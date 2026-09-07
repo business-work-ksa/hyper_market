@@ -1,0 +1,152 @@
+"""Clôture d'un ticket de caisse.
+
+La clôture est le point de jonction entre la caisse, le stock et la comptabilité : un seul geste
+du caissier produit la sortie de stock au CMP et les écritures comptables. C'est la traduction
+concrète de la promesse « zéro double saisie » (docs/07, §1.2).
+"""
+
+from decimal import Decimal
+
+from django.db import transaction
+from django.db.models import Max
+from django.utils import timezone
+
+from apps.inventory.models import Depot, MouvementStock
+from apps.inventory.services import sortir_stock
+from apps.pos.models import CENTIME, LigneTicket, ReglementTicket, SessionCaisse, Ticket
+
+__all__ = ["TicketInvalide", "ouvrir_session", "ajouter_ligne", "cloturer_ticket", "fermer_session"]
+
+
+class TicketInvalide(ValueError):
+    """Ticket refusé : session fermée, ticket vide, ou règlement incomplet."""
+
+
+def ouvrir_session(*, depot: Depot, caissier, fonds_ouverture=Decimal("0")) -> SessionCaisse:
+    ouverte = SessionCaisse.objects_all_tenants.filter(
+        depot=depot, caissier=caissier, etat=SessionCaisse.OUVERTE
+    ).first()
+    if ouverte is not None:
+        return ouverte
+    return SessionCaisse.objects_all_tenants.create(
+        boutique_id=depot.boutique_id,
+        depot=depot,
+        caissier=caissier,
+        fonds_ouverture=fonds_ouverture,
+    )
+
+
+def _numero_suivant(boutique_id) -> str:
+    """Séquence continue par boutique, sans rupture ni doublon (exigence de facturation)."""
+    dernier = (
+        Ticket.objects_all_tenants.filter(boutique_id=boutique_id)
+        .aggregate(m=Max("numero"))["m"]
+    )
+    prochain = 1 if dernier is None else int(dernier.split("-")[-1]) + 1
+    return f"T-{prochain:08d}"
+
+
+def creer_ticket(*, session: SessionCaisse, operation_id=None, **kwargs) -> Ticket:
+    if session.etat != SessionCaisse.OUVERTE:
+        raise TicketInvalide("La session de caisse est fermée.")
+
+    if operation_id is not None:
+        existant = Ticket.objects_all_tenants.filter(operation_id=operation_id).first()
+        if existant is not None:
+            return existant
+
+    return Ticket.objects_all_tenants.create(
+        boutique_id=session.boutique_id,
+        session=session,
+        numero=_numero_suivant(session.boutique_id),
+        operation_id=operation_id,
+        **kwargs,
+    )
+
+
+def ajouter_ligne(*, ticket: Ticket, variante, quantite, remise=Decimal("0")) -> LigneTicket:
+    if ticket.etat != Ticket.BROUILLON:
+        raise TicketInvalide("Un ticket clôturé ne peut plus être modifié.")
+
+    ligne = LigneTicket.objects_all_tenants.create(
+        boutique_id=ticket.boutique_id,
+        ticket=ticket,
+        variante=variante,
+        libelle=str(variante),
+        quantite=Decimal(quantite),
+        pu_ttc=variante.prix_vente,
+        taux_tva=variante.taux_tva,
+        remise=Decimal(remise),
+    )
+    _recalculer_totaux(ticket)
+    return ligne
+
+
+def _recalculer_totaux(ticket: Ticket) -> None:
+    lignes = list(LigneTicket.objects_all_tenants.filter(ticket=ticket))
+    ttc = sum((l.total_ttc for l in lignes), Decimal("0"))
+    ht = sum((l.total_ht for l in lignes), Decimal("0"))
+    ticket.total_ttc = ttc.quantize(CENTIME)
+    ticket.total_ht = ht.quantize(CENTIME)
+    ticket.total_tva = (ttc - ht).quantize(CENTIME)
+    ticket.save(update_fields=["total_ttc", "total_ht", "total_tva", "modifie_le"])
+
+
+def regler(*, ticket: Ticket, moyen: str, montant, reference_psp: str = "") -> ReglementTicket:
+    return ReglementTicket.objects_all_tenants.create(
+        boutique_id=ticket.boutique_id,
+        ticket=ticket,
+        moyen=moyen,
+        montant=Decimal(montant),
+        reference_psp=reference_psp,
+    )
+
+
+@transaction.atomic
+def cloturer_ticket(ticket: Ticket, *, cree_par=None) -> Ticket:
+    """Clôt le ticket : sortie de stock au CMP puis génération des écritures comptables."""
+    if ticket.etat == Ticket.CLOTURE:
+        return ticket  # idempotent : une retransmission hors ligne ne double pas la sortie de stock
+    if ticket.etat == Ticket.ANNULE:
+        raise TicketInvalide("Ce ticket a été annulé.")
+
+    lignes = list(
+        LigneTicket.objects_all_tenants.filter(ticket=ticket).select_related("variante")
+    )
+    if not lignes:
+        raise TicketInvalide("Un ticket vide ne peut pas être clôturé.")
+    if ticket.reste_a_payer > 0:
+        raise TicketInvalide(f"Règlement incomplet : reste {ticket.reste_a_payer} FCFA.")
+
+    depot = ticket.session.depot
+    for ligne in lignes:
+        sortir_stock(
+            depot=depot,
+            variante=ligne.variante,
+            quantite=ligne.quantite,
+            type_mouvement=MouvementStock.SORTIE,
+            origine_type="pos.Ticket",
+            origine_id=ticket.pk,
+            operation_id=ticket.operation_id,
+            commentaire=f"Vente comptoir {ticket.numero}",
+            cree_par=cree_par,
+        )
+
+    ticket.etat = Ticket.CLOTURE
+    ticket.cloture_le = timezone.now()
+    ticket.save(update_fields=["etat", "cloture_le", "modifie_le"])
+
+    # Import tardif : `pos` ne doit pas dépendre de `accounting` au chargement des modèles
+    # (règle de dépendance du docs/09, §2).
+    from apps.accounting.services import comptabiliser_ticket
+
+    comptabiliser_ticket(ticket)
+    return ticket
+
+
+def fermer_session(session: SessionCaisse, *, fonds_compte) -> SessionCaisse:
+    session.fonds_compte = Decimal(fonds_compte)
+    session.fermee_le = timezone.now()
+    session.etat = SessionCaisse.FERMEE
+    session.save(update_fields=["fonds_compte", "fermee_le", "etat", "modifie_le"])
+    return session

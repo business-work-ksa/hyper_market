@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# HyperMarché
+.venv/
+db.sqlite3
+media/
+staticfiles/
+.env

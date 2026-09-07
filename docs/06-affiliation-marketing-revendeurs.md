@@ -97,25 +97,37 @@ qui grèveraient la marge à mesure que la base grandit.
 
 ### 4.1 — Base de calcul
 
+Deux rémunérations, deux assiettes, **deux sources de financement différentes**. Les confondre
+rend le plafond incalculable — c'est le piège classique de ces programmes.
+
 ```
 Montant HT encaissé et non annulé
         │
         ├──▶ Marge marchand
+        │         │
+        │         └──▶ Part revendeur : marge fixée par le marchand, produit par produit
+        │                               (assiette = HT vendu ; plafond = ce que le marchand consent)
         │
         └──▶ Commission plateforme (3 % à 8 % selon rayon)
                     │
-                    ├──▶ Part apporteur N1  : 10 % de la commission
-                    ├──▶ Part apporteur N2  :  3 % de la commission
-                    ├──▶ Part revendeur     : négociée, imputée sur la marge marchand
-                    │                          + éventuel complément plateforme
+                    ├──▶ Part apporteur N1 : 10 % de la commission
+                    ├──▶ Part apporteur N2 :  3 % de la commission
+                    │         └── cumul N1 + N2 plafonné à 35 % de la commission
+                    │
                     └──▶ Marge nette plateforme (≥ 65 % de la commission)
 ```
 
+**Le revendeur est payé par le marchand, l'apporteur est payé par la plateforme.** Le revendeur ne
+consomme donc pas la commission de la plateforme et n'entre pas dans le plafond de 35 % ; son
+propre plafond est la marge que le marchand a lui-même consentie sur chaque produit
+(`Produit.marge_revendeur`, bornée à 100 % du HT par une contrainte de base de données).
+
 **Trois invariants, testés automatiquement :**
 
-1. La commission d'affiliation ne s'ajoute **jamais** au prix payé par l'acheteur.
-2. Le cumul des reversements d'affiliation ne dépasse **jamais 35 %** de la commission plateforme
-   sur une transaction donnée.
+1. Aucune rémunération d'affiliation ne s'ajoute **jamais** au prix payé par l'acheteur.
+2. Le cumul des reversements **financés par la plateforme** (N1 + N2) ne dépasse **jamais 35 %** de
+   la commission plateforme sur une transaction donnée. Quand le plafond mord, c'est le **parrain
+   direct qui est servi en priorité** : c'est lui qui a réellement amené la vente.
 3. Une commission n'existe que sur du **chiffre d'affaires encaissé** et sorti du délai de
    rétractation ou de retour.
 

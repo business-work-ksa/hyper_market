@@ -45,14 +45,31 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 11 | [Roadmap, budget & équipe](docs/11-roadmap-budget-equipe.md) | 5 lots de livraison, staffing, budget par phase |
 | 12 | [Risques & KPI](docs/12-risques-et-kpi.md) | Registre des risques cotés, tableau de bord de pilotage |
 | 13 | [Sources](docs/13-sources.md) | Toutes les références chiffrées utilisées |
+| 14 | [Guide du développeur](docs/14-guide-developpeur.md) | Mise en route du code, règles à ne pas enfreindre |
+
+## Mise en route du code
+
+```bash
+make installer                  # environnement virtuel + dépendances
+cp .env.example .env
+docker compose up -d db redis   # PostgreSQL 16 + Redis
+make migrer
+make demo                       # référentiels + 2 boutiques de démonstration
+make servir                     # http://localhost:8000/admin/
+make tester                     # 67 tests
+```
+
+Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
 ## État du projet
 
 - [x] Cadrage marché et positionnement
 - [x] Étude de marché et business plan
 - [x] Dossier de conception fonctionnelle et technique
-- [ ] **Lot 0** — Socle Django : multi-tenant, rôles, emplacements *(en cours)*
+- [x] **Lot 0** — Socle Django : multi-tenant, rôles, emplacements, isolation prouvée par les tests
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
+  *(domaine et moteurs métier posés et testés ; API REST, PWA caisse et adaptateurs Mobile Money
+  restent à écrire)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

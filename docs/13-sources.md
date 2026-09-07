@@ -61,6 +61,7 @@ Références utilisées pour l'[étude de marché](02-etude-de-marche.md), le
 |---|---|
 | TVA 19,25 % (17,5 % + 10 % CAC) ; IS 33 % au réel normal, 27,5 % au simplifié | [LeFisk — Fiscalité des entreprises au Cameroun 2026](https://www.lefisk.cm/blog/fiscalite-entreprises-cameroun-guide-complet) |
 | Régimes d'imposition, seuils de CA, acompte mensuel de 2,2 % | [LeFisk — Régimes d'imposition Cameroun 2026](https://lefisk.cm/blog/regimes-imposition-cameroun-guide-fiscal) |
+| **IGS** : suppression de l'impôt libératoire et du régime simplifié, seuil de 50 M F, caractère libératoire (patente, TVA, IRPP), barème en classes, réduction de moitié en cas d'adhésion à un CGA | [Code général des impôts — IGS 2026 : ce que vous devez savoir](https://codegeneraldesimpots.com/cm/article/igs-2026-ce-que-vous-devez-savoir) · [Barème IGS 2026 : classes et montants](https://codegeneraldesimpots.com/cm/article/bareme-igs-cameroun-2026-classes-et-montants) · [LeFisk — Impôt général synthétique](https://lefisk.cm/blog/impot-general-synthetique-cameroun) |
 | Mécanisme de TVA et obligations déclaratives | [LeFisk — TVA au Cameroun 2026](https://lefisk.cm/fiscalite/tva) |
 | Panorama général des impôts et taxes | [Prisma Gestion — Panorama des impôts et taxes au Cameroun (2026)](https://prismagestion.site/blog/panorama-impots-taxes-cameroun-2026) |
 | Code général des impôts (texte de référence) | [Code général des impôts Cameroun](https://codegeneraldesimpots.com/cm/) |
@@ -92,7 +93,22 @@ Références utilisées pour l'[étude de marché](02-etude-de-marche.md), le
 | Commentaire de doctrine | [La Base Lextenso — Cameroun : adoption d'une loi dédiée à la protection des données](https://www.labase-lextenso.fr/l-essentiel-droits-africains-des-affaires/2025-n2/cameroun-adoption-d-une-loi-dediee-a-la-protection-des-donnees-a-caractere-personnel-DAA202v2) |
 | Synthèse et entrée en vigueur | [Cybersecurity Mag Africa](https://cybersecuritymag.africa/cameroun-se-dote-dun-cadre-juridique-sur-la-protection-des-donnees-caractere-personnel/) · [Direction générale du Budget](https://www.dgb.cm/la-loi-sur-la-protection-des-donnees-personnelles-entre-officiellement-en-vigueur/) |
 
-## 8. Marché du logiciel de gestion
+## 8. Création d'entreprise et financement du démarrage
+
+| Donnée utilisée | Source |
+|---|---|
+| Capital social minimum de 100 000 F pour une SARL ; acte notarié facultatif si unipersonnelle ou capital ≤ 1 M F | [OHADA — Le Cameroun simplifie les formalités de constitution des SARL](https://www.ohada.org/creation-d-entreprises-le-cameroun-simplifie-les-formalites-de-constitution-des-sarl/) · [LeFisk — Créer une SARL au Cameroun](https://lefisk.cm/entreprises/sarl) |
+| CFCE, guichet unique, délai officiel de 72 h | [Infos Pratiques — Créer une entreprise au Cameroun, guide 2026](https://infospratiques.cm/creation-entreprise-cameroun/) · [Pr Y. R. Kalieu Elongo — Note pratique sur la création d'une société commerciale](https://kalieu-elongo.com/note-pratique-sur-la-procedure-de-creation-dune-societe-commerciale-au-cameroun/) |
+| Comparatif des formes juridiques et des coûts | [Sangobids — Types d'entreprises au Cameroun 2026](https://cm.sangobids.com/blog/types-entreprises-cameroun-guide-complet-formalites-couts) |
+| FNE (jusqu'à 5 M F), PAJER-U, PIAASI, PIFMAS (500 k à 5 M F) | [LeFisk — Obtenir un financement au Cameroun 2026](https://lefisk.cm/blog/comment-obtenir-financement-cameroun-2026-guide-complet) · [LeFisk — Financement de micro-projets](https://lefisk.cm/blog/financement-micro-projets-cameroun-2026-ong-ambassades-fne-subventions-guide) · [Sango Services — Financement des jeunes entrepreneurs](https://sangoservices.com/fr/blog/financement-jeunes-entrepreneurs-cameroun) |
+| Tony Elumelu Foundation : 5 000 USD non remboursables, candidatures du 1ᵉʳ janvier au 1ᵉʳ mars | [TEF — Programme 2026](https://www.tonyelumelufoundation.org/press-releases/apply-tef-entrepreneurship-programme-2026) · [Business in Cameroon](https://www.businessincameroon.com/finance/1201-15588-tony-elumelu-foundation-opens-2026-funding-window-for-african-entrepreneurs) |
+| Incubateurs et accélérateurs (ActivSpaces, Orange Fab, CIPMEN) ; AFD via Digital Africa et Choose Africa, 10 k à 300 k EUR | [Africarrières — Entrepreneuriat et startups au Cameroun, guide 2026](https://africarrieres.com/cameroun/fr/guide/decouvrir/entrepreneuriat) · [Kolonell — Subventions et grants startups africaines 2026](https://kolonell.com/fr/blog/subventions-grants-startups-afrique-trouver-2026) |
+
+> **Frais de formalités au CFCE :** les montants exacts n'ont pas pu être vérifiés à une source
+> primaire (portail inaccessible). Le budget du [document 17](17-demarrage-sans-capital.md) retient
+> un ordre de grandeur explicitement marqué **[À CONFIRMER auprès du CFCE]**.
+
+## 9. Marché du logiciel de gestion
 
 | Donnée utilisée | Source |
 |---|---|
@@ -101,7 +117,7 @@ Références utilisées pour l'[étude de marché](02-etude-de-marche.md), le
 | Arbitrage logiciel standard vs sur mesure pour une PME camerounaise | [Alivaon — Logiciel sur mesure ou standard pour votre PME camerounaise](https://www.alivaon.com/blog/logiciel-sur-mesure-ou-standard-pme-cameroun) |
 | Dynamique concurrentielle Odoo / Sage sur le marché francophone africain | [Oasis Techno Cloud — Odoo vs Sage vs SAP](https://oasistechnocloud.com/blog/odoo-vs-sage-vs-sap-maroc/) |
 
-## 9. Données non sourcées
+## 10. Données non sourcées
 
 Les éléments suivants sont des **hypothèses de travail construites par analogie**, pas des données
 observées. Ils sont à valider par l'étude terrain (document 02, §5) :

@@ -48,10 +48,15 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 14 | [Guide du développeur](docs/14-guide-developpeur.md) | Mise en route du code, règles à ne pas enfreindre |
 | 15 | [Plan de validation terrain](docs/15-plan-de-validation-terrain.md) | Protocole des 10 semaines de phase 0, guides d'entretien, seuils du jalon G0 |
 | 16 | [Partenariat cabinet comptable](docs/16-partenariat-cabinet-comptable.md) | Sélection, frontière de responsabilité, recette des barèmes de paie |
+| 17 | [Démarrer sans capital](docs/17-demarrage-sans-capital.md) | **Le plan effectivement applicable aujourd'hui** : 450 000 F, 5 paliers autofinancés |
 
 > **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
 > réglementés : la [validation terrain](docs/15-plan-de-validation-terrain.md) (jalon G0) et le
 > [partenariat cabinet](docs/16-partenariat-cabinet-comptable.md) (arbitrages A5 et A6).
+>
+> **Sans capital de départ**, le plan de financement du document 03 n'est pas exécutable. Le
+> [document 17](docs/17-demarrage-sans-capital.md) le remplace pour la phase de démarrage : les
+> deux conditions ci-dessus y sont remplies **avec du temps plutôt qu'avec de l'argent**.
 
 ## Mise en route du code
 

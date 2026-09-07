@@ -173,15 +173,40 @@ cabinet dépose.
 
 Le régime détermine les obligations comptables et donc les fonctionnalités activées.
 
-| Régime | Chiffre d'affaires annuel | Impôt sur les sociétés | Obligations comptables |
+| Régime | Chiffre d'affaires annuel HT | Imposition | Obligations comptables |
 |---|---|---|---|
-| **Impôt libératoire** | < 10 M F | Forfait par classe | Livre de recettes/dépenses |
-| **Simplifié** | 50 à 100 M F | 25 % + 10 % CAC = **27,5 %** ; acompte mensuel de 2,2 % du CA | Système allégé SYSCOHADA |
+| **IGS** — impôt général synthétique | ≤ 50 M F (activités commerciales) | Forfait par classe, **libératoire de la patente, de la TVA et de l'IRPP** sur les bénéfices | Livre de recettes/dépenses |
+| **Réel simplifié** | 50 à 100 M F | 25 % + 10 % CAC = **27,5 %** ; acompte mensuel de 2,2 % du CA | Système allégé SYSCOHADA |
 | **Réel normal** | > 100 M F | 30 % + 10 % CAC = **33 %** | Système normal SYSCOHADA, états financiers complets |
 
-Le persona cible (M. Ateba, 85 M F de CA) relève du régime **simplifié** ; il bascule au réel
-normal en franchissant 100 M. La plateforme doit détecter le franchissement de seuil et alerter —
-c'est un service à forte valeur perçue.
+> **Attention — changement de cadre.** L'**impôt libératoire** (CA < 10 M) et l'ancien **régime
+> simplifié** (10 à 50 M) ont été **supprimés et fusionnés dans l'IGS**, institué par la loi
+> n° 2024/020 du 23 décembre 2024 sur la fiscalité locale et structuré par la loi de finances 2026.
+> Toute documentation antérieure mentionnant l'impôt libératoire est périmée.
+
+**Le barème IGS** compte 10 classes progressives selon la tranche de chiffre d'affaires — de
+20 000 F/an pour la classe 1 (CA < 500 000 F) à environ 1 000 000 F/an pour la classe 10
+(CA de 20 à 30 M F). **[À VALIDER : barème complet et nombre exact de classes — les sources
+publiques divergent entre 10 et 12 ; se référer à l'article C 40 de la loi sur la fiscalité
+locale.]**
+
+**Deux conséquences produit, à ne pas manquer :**
+
+1. **Un assujetti à l'IGS ne facture pas de TVA et ne la récupère pas.** Le moteur de facturation
+   et les modèles d'écriture doivent en tenir compte : pour ces boutiques, aucune ligne `4431` ni
+   `4452`, et la déclaration de TVA n'a pas lieu d'être. C'est le cas de la majorité des petites
+   boutiques — donc un cas à traiter dès le lot 1, pas une exception tardive.
+2. **L'adhésion à un centre de gestion agréé (CGA) divise l'IGS par deux** pour les classes 8, 9
+   et 10 (CA ≥ 10 M F). C'est une **alerte à forte valeur perçue** à intégrer au produit : « en
+   adhérant à un CGA, vous économisez X FCFA par an ». Elle ouvre aussi un canal de partenariat
+   naturel avec les CGA, au même titre que les cabinets d'expertise comptable
+   ([document 16](16-partenariat-cabinet-comptable.md)).
+
+Le persona cible (M. Ateba, 85 M F de CA) relève du **réel simplifié** ; il bascule au réel normal
+en franchissant 100 M. La plateforme doit détecter les deux franchissements de seuil — 50 M
+(sortie de l'IGS, entrée dans la TVA) et 100 M — et alerter. Le premier est le plus important :
+**une boutique qui franchit 50 M sans s'en apercevoir devient redevable de la TVA sans l'avoir
+collectée.**
 
 ---
 

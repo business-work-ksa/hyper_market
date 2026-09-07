@@ -46,6 +46,12 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 12 | [Risques & KPI](docs/12-risques-et-kpi.md) | Registre des risques cotés, tableau de bord de pilotage |
 | 13 | [Sources](docs/13-sources.md) | Toutes les références chiffrées utilisées |
 | 14 | [Guide du développeur](docs/14-guide-developpeur.md) | Mise en route du code, règles à ne pas enfreindre |
+| 15 | [Plan de validation terrain](docs/15-plan-de-validation-terrain.md) | Protocole des 10 semaines de phase 0, guides d'entretien, seuils du jalon G0 |
+| 16 | [Partenariat cabinet comptable](docs/16-partenariat-cabinet-comptable.md) | Sélection, frontière de responsabilité, recette des barèmes de paie |
+
+> **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
+> réglementés : la [validation terrain](docs/15-plan-de-validation-terrain.md) (jalon G0) et le
+> [partenariat cabinet](docs/16-partenariat-cabinet-comptable.md) (arbitrages A5 et A6).
 
 ## Mise en route du code
 

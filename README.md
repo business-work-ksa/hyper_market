@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 190 tests
+make tester                     # 213 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -161,8 +161,11 @@ node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie le
 - [x] **Impression thermique** — pilote ESC/POS sur Bluetooth basse consommation
 - [x] **Isolation au niveau ligne** — la base refuse ce que le code aurait pu laisser passer
 - [x] **Gestion de l'équipe** — embauche, rôles et retraits d'accès, sans passer par l'administration
+- [x] **Socle de paiement** — routage par opérateur, disjoncteur, idempotence, prestataire simulé
+  *(les appels réseau MTN / Orange / Camtel attendent un bac à sable : ils ne seront pas écrits à l'aveugle)*
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
-  *(restent les adaptateurs Mobile Money — voir [docs/18](docs/18-produit-palier-1.md), §9)*
+  *(reste la couche HTTP des opérateurs Mobile Money — voir
+  [docs/18](docs/18-produit-palier-1.md), §9)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

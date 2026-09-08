@@ -24,6 +24,7 @@ from apps.accounting.models import EcritureComptable
 from apps.inventory.models import Depot, MouvementStock, NiveauStock
 from apps.inventory.services import enregistrer_mouvement, entrer_stock, transferer_stock
 from apps.marketplace.models import Bail, Boutique, Rayon, TypeEmplacement
+from apps.payments.models import Prestataire
 from apps.pos import services as caisse
 from apps.pos.models import Ticket
 
@@ -105,6 +106,18 @@ class Command(BaseCommand):
 
         if options["reinitialiser"]:
             Boutique.objects.filter(slug__in=[b["slug"] for b in BOUTIQUES]).delete()
+
+        # Prestataire simulé : réservé aux démonstrations. Il n'est pas chargé par
+        # `initialiser_referentiels` — un faux prestataire n'a rien à faire dans
+        # les référentiels d'une plateforme qui encaisse de l'argent réel.
+        Prestataire.objects.update_or_create(
+            code=Prestataire.FAUX,
+            defaults={
+                "libelle": "Prestataire simulé (démonstration)",
+                "taux_frais": Decimal("0.0160"),
+                "prefixes_numero": [],
+            },
+        )
 
         role_gerant = Role.objects.get(code=Role.GERANT)
 

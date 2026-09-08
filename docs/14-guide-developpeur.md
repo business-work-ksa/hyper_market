@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 190 tests (17 ignorés sur SQLite)
+make tester      # 213 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -63,6 +63,7 @@ apps/
   pos/             caisse, sessions, tickets                ★
   orders/          commandes, sous-commandes, retours
   payments/        prestataires, transactions, séquestre, portefeuilles
+                   adaptateurs.py — contrat multi-PSP, disjoncteur, simulateur
   accounting/      plan SYSCOHADA, journaux, écritures, balance
   affiliation/     filiation, attribution, commissions, revendeurs
   backoffice/      vues et formulaires du back-office marchand
@@ -257,6 +258,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_permissions.py` | **Frontière d'exposition** : matrice des droits, porte des écrans, coût et marge absents des pages où ils n'ont rien à faire |
 | `test_multi_depots.py` | Dépôt courant, transferts, quota d'ouverture, réception hors ligne idempotente, catalogue JSON |
 | `test_equipe.py` | Embauche, changement de rôle, retrait d'accès — **un accès se retire, un compte ne se supprime pas** ; les garde-fous qui empêchent un gérant de se fermer la porte |
+| `test_paiements.py` | Routage par préfixe, disjoncteur, **une clé d'idempotence ne débite qu'une fois**, un état terminal ne recule jamais |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
@@ -272,7 +274,7 @@ juridique qui vient d'être enfreinte. Dans les trois premiers cas, c'est une fu
 | Sujet | État | Référence |
 |---|---|---|
 | API REST (DRF) | Sérialiseurs et vues à écrire | docs/05 |
-| Adaptateurs Mobile Money | Interface définie ; implémentations MTN/Orange/Camtel à écrire | docs/09, §6 |
+| Appels HTTP vers MTN / Orange / Camtel | Contrat, routage, disjoncteur, idempotence et prestataire simulé écrits et testés ; **les appels réseau attendent un bac à sable d'opérateur** — ils ne seront pas écrits à l'aveugle | docs/09, §6 |
 | Impression thermique hors Bluetooth LE | Le pilote ESC/POS couvre le Bluetooth basse consommation sur Chromium ; USB, Wi-Fi, SPP et iOS demandent une application native | docs/18, §9 |
 | Logistique, RH, paie, retail media | Lots 2 à 5 | docs/11 |
 | Fiches ADR dans `docs/adr/` | À créer à partir du tableau du docs/09, §10 | docs/09 |

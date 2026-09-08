@@ -481,14 +481,43 @@ Le numéro de téléphone reste l'identifiant : une personne qui a déjà un com
 rattachée, jamais recréée. Un même numéro qui ouvrirait deux comptes scinderait l'historique d'un
 employé en deux.
 
+### 8.8 — Le socle de paiement, et où il s'arrête volontairement
+
+Le palier 1 n'encaisse pas en ligne : au comptoir, « Mobile Money » est un moyen de paiement
+*constaté*, pas une API. Le socle existe néanmoins, parce que c'est la partie difficile et qu'elle
+ne dépend d'aucun opérateur : routage par préfixe, disjoncteur, cycle de vie idempotent,
+prestataire simulé.
+
+Deux règles y sont gravées, et testées :
+
+- **Une clé d'idempotence, une transaction.** Un double débit Mobile Money coûte l'argent du
+  client et la réputation du commerçant, dans cet ordre. C'est une contrainte d'unicité en base qui
+  arbitre, pas une lecture préalable — deux caisses qui retransmettent au même instant passent
+  toutes deux le contrôle applicatif.
+- **Un état terminal ne recule jamais.** Les notifications d'opérateur arrivent en double et en
+  désordre : sans cette règle, la dernière reçue ferait loi, et une transaction réussie pourrait
+  « échouer » une minute plus tard.
+
+**Ce qui s'arrête là, et pourquoi.** Les appels HTTP vers MTN, Orange et Camtel ne sont pas écrits.
+Une intégration bancaire jamais exécutée produit du code vraisemblable et faux — sur un chemin où
+l'erreur s'appelle « double débit ». Les adaptateurs existent en coquille et refusent avec un
+message explicite tant qu'aucun identifiant de bac à sable n'est fourni. Le jour où les comptes
+seront ouverts, il ne restera que la couche réseau : tout le reste est déjà là, et déjà testé.
+
+Une affirmation du document 09 est tombée au passage : il annonçait une « bascule automatique en
+cas d'indisponibilité d'un opérateur ». **Le numéro du payeur décide de l'opérateur**, et un numéro
+MTN ne s'encaisse pas chez Orange. Ce qui bascule, c'est un agrégateur généraliste ; à défaut, on
+refuse franchement et on renvoie vers les espèces.
+
 ---
 
 ## 9. Ce qui reste avant d'ouvrir à un vrai client
 
 | Sujet | Pourquoi ce n'est pas encore fait |
 |---|---|
-| **Adaptateurs Mobile Money** | L'interface est définie, les implémentations MTN / Orange / Camtel restent à écrire |
+| **Couche HTTP des opérateurs** | Voir §8.8 : elle sera écrite contre un bac à sable, jamais à l'aveugle |
 | **Impression hors Bluetooth LE** | Voir §8.5 : USB, Wi-Fi, SPP et iOS demandent une application native |
 
-Aucun de ces deux points n'est une fuite de données ni une perte de saisie. C'est la différence
-avec la liste précédente.
+Aucun de ces deux points n'est une fuite de données ni une perte de saisie, et aucun des deux ne
+se règle en écrivant du code : l'un attend un compte marchand, l'autre une application native.
+C'est la différence avec la liste précédente.

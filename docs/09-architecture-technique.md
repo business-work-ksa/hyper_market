@@ -257,15 +257,26 @@ class PrestatairePaiement(Protocol):
     def verser(self, beneficiaire: str, montant: Decimal) -> ReponseVersement: ...
 ```
 
-Implémentations : `MtnMomoAdapter`, `OrangeMoneyAdapter`, `CamtelAdapter`, `CarteAdapter`,
-`PaiementLivraisonAdapter`, plus un `FauxPrestataire` pour les tests et démonstrations.
+État : le contrat, le routage, le disjoncteur, le cycle de vie idempotent et un `FauxPrestataire`
+déterministe sont écrits et testés (`apps/payments/`). Les **appels HTTP vers MTN, Orange et
+Camtel ne le sont pas** : ils seront écrits contre un bac à sable d'opérateur, jamais à l'aveugle.
+Sur un chemin où l'erreur s'appelle « double débit », du code vraisemblable et jamais exécuté est
+pire que pas de code. Les adaptateurs existent donc en coquille et refusent avec un message
+explicite tant qu'aucun identifiant n'est fourni.
 
-Le routage choisit le prestataire selon l'opérateur du numéro de l'acheteur, la disponibilité
-constatée et le coût. **Bascule automatique en cas d'indisponibilité d'un opérateur.**
+**Correction d'une affirmation de ce document.** Il annonçait une « bascule automatique en cas
+d'indisponibilité d'un opérateur ». C'est faux : le numéro du payeur *décide* de l'opérateur, et
+un numéro MTN ne s'encaisse pas chez Orange. Ce qui bascule réellement, c'est le **généraliste** —
+agrégateur ou passerelle carte, reconnaissable à sa liste de préfixes vide, qui accepte n'importe
+quel numéro. À défaut, le routage refuse franchement et renvoie le commerçant vers les espèces,
+plutôt que d'envoyer un paiement chez le mauvais opérateur.
 
-Chaque appel sortant est protégé par un disjoncteur (*circuit breaker*), avec relance à intervalle
-croissant et **clé d'idempotence obligatoire** : un double débit est le pire incident possible sur
-ce marché.
+Chaque appel sortant est protégé par un disjoncteur (*circuit breaker*) — son état est en mémoire
+de processus, ce qui suffit tant qu'il n'y a qu'un serveur — et porte une **clé d'idempotence
+obligatoire**, arbitrée par une contrainte d'unicité en base : un double débit est le pire incident
+possible sur ce marché. La transaction est enregistrée et validée **avant** l'appel réseau : une
+transaction SQL ouverte pendant un appel d'opérateur durerait le temps d'un délai réseau et
+annulerait, à l'échec, la trace de cet échec.
 
 ---
 

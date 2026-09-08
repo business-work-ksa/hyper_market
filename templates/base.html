@@ -1,0 +1,124 @@
+{% load static hm %}<!doctype html>
+<html lang="fr" data-theme="{{ theme|default:'light' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#00806A">
+<title>{% block titre %}HyperMarché{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<script>
+  // Restaure le thème avant le premier rendu : évite le flash de bascule.
+  (function () {
+    try {
+      var t = localStorage.getItem("hm-theme");
+      if (t) document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+{% include "partials/icones.html" %}
+
+<div class="coquille">
+  <nav class="rail" aria-label="Navigation principale">
+    <div class="rail__marque">
+      <span class="sceau" aria-hidden="true">HM</span>
+      <span class="rail__nom">HyperMarché</span>
+    </div>
+
+    <div class="rail__nav">
+      <div class="rail__groupe">
+        <p class="t-sur-titre">Exploitation</p>
+        {% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page %}
+        {% nav 'caisse' 'ic-caisse' 'Caisse' page %}
+        {% nav 'stock' 'ic-stock' 'Stock' page alertes %}
+        {% nav 'ventes' 'ic-ventes' 'Ventes' page %}
+      </div>
+
+      <div class="rail__groupe rail__groupe--secondaire">
+        <p class="t-sur-titre">Gestion</p>
+        {% nav 'comptabilite' 'ic-compta' 'Comptabilité' page %}
+        {% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}
+      </div>
+    </div>
+
+    <div class="rail__pied">
+      <div class="compte">
+        <span class="jeton" aria-hidden="true">{{ boutique.enseigne|initiales }}</span>
+        <div class="pile-sm" style="min-width:0">
+          <span class="t-petit" style="font-weight:580;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ boutique.enseigne }}</span>
+          <span class="t-legende">{{ boutique.ville }}</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div style="min-width:0">
+    <header class="bandeau">
+      <h1 class="bandeau__titre">{% block entete %}{% endblock %}</h1>
+      <div class="bandeau__actions">
+        {% block actions_entete %}{% endblock %}
+
+        <span class="indic-reseau" id="indic-reseau" data-hors-ligne="false" title="État de la connexion">
+          <span class="indic-reseau__point" aria-hidden="true"></span>
+          <span id="indic-reseau-texte">En ligne</span>
+        </span>
+
+        <button class="btn btn--icone btn--discret" id="bascule-theme"
+                aria-label="Basculer le thème clair ou sombre">
+          <svg id="icone-theme"><use href="#ic-sombre"></use></svg>
+        </button>
+
+        <a class="btn btn--icone btn--discret" href="{% url 'connexion' %}" aria-label="Se déconnecter">
+          <svg><use href="#ic-sortie"></use></svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="zone {% block classe_zone %}{% endblock %}">
+      {% block contenu %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script>
+  // --- Thème -------------------------------------------------------------
+  (function () {
+    var racine = document.documentElement;
+    var bouton = document.getElementById("bascule-theme");
+    var icone = document.getElementById("icone-theme");
+
+    function refletIcone() {
+      var sombre = racine.getAttribute("data-theme") === "dark";
+      icone.querySelector("use").setAttribute("href", sombre ? "#ic-clair" : "#ic-sombre");
+    }
+    refletIcone();
+
+    bouton.addEventListener("click", function () {
+      var suivant = racine.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      racine.setAttribute("data-theme", suivant);
+      try { localStorage.setItem("hm-theme", suivant); } catch (e) {}
+      refletIcone();
+    });
+  })();
+
+  // --- Indicateur de connexion ------------------------------------------
+  // Le mode hors ligne est une contrainte d'architecture (ADR-004) : l'état du
+  // réseau doit être visible en permanence, pas découvert au moment de l'échec.
+  (function () {
+    var indic = document.getElementById("indic-reseau");
+    var texte = document.getElementById("indic-reseau-texte");
+    function refleter() {
+      var horsLigne = !navigator.onLine;
+      indic.dataset.horsLigne = horsLigne ? "true" : "false";
+      texte.textContent = horsLigne ? "Hors ligne — les ventes sont conservées" : "En ligne";
+    }
+    window.addEventListener("online", refleter);
+    window.addEventListener("offline", refleter);
+    refleter();
+  })();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

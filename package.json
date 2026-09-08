@@ -1,0 +1,11 @@
+{
+  "name": "hypermarche-captures",
+  "private": true,
+  "description": "Outillage de capture d'écran du back-office HyperMarché.",
+  "scripts": {
+    "captures": "node scripts/captures.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}

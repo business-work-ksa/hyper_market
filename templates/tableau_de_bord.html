@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load hm l10n %}
+
+{% block titre %}Tableau de bord — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Tableau de bord{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn btn--primaire" href="{% url 'caisse' %}">
+    <svg><use href="#ic-caisse"></use></svg> Encaisser
+  </a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+
+  {# ---- Rangée d'indicateurs -------------------------------------------- #}
+  {# Quatre chiffres, pas douze. Un tableau de bord qui dit tout ne dit rien. #}
+  <section class="tuiles" aria-label="Indicateurs du jour">
+    <article class="tuile">
+      <div class="tuile__libelle">
+        <svg><use href="#ic-argent"></use></svg>
+        <span class="t-sur-titre">Ventes du jour</span>
+      </div>
+      <p class="tuile__valeur">{{ ca_jour|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note">
+        {% if evolution is not None %}
+          {% if evolution >= 0 %}
+            <span class="ecart ecart--hausse"><svg><use href="#ic-hausse"></use></svg>{{ evolution|pourcent }}</span>
+          {% else %}
+            <span class="ecart ecart--baisse"><svg><use href="#ic-baisse"></use></svg>{{ evolution|pourcent }}</span>
+          {% endif %}
+          <span class="t-muet">vs hier</span>
+        {% else %}
+          <span class="t-muet">Première journée de vente</span>
+        {% endif %}
+      </p>
+    </article>
+
+    <article class="tuile">
+      <div class="tuile__libelle">
+        <svg><use href="#ic-marge"></use></svg>
+        <span class="t-sur-titre">Marge du jour</span>
+      </div>
+      <p class="tuile__valeur">{{ marge_jour|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{{ taux_marge|pourcent }} du chiffre d'affaires</span></p>
+    </article>
+
+    <article class="tuile">
+      <div class="tuile__libelle">
+        <svg><use href="#ic-stock"></use></svg>
+        <span class="t-sur-titre">Valeur du stock</span>
+      </div>
+      <p class="tuile__valeur">{{ valeur_stock|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{{ nb_references }} références, au coût moyen pondéré</span></p>
+    </article>
+
+    <article class="tuile">
+      <div class="tuile__libelle">
+        <svg><use href="#ic-alerte"></use></svg>
+        <span class="t-sur-titre">À réapprovisionner</span>
+      </div>
+      <p class="tuile__valeur">{{ nb_ruptures|add:nb_sous_seuil }}<span class="unite">articles</span></p>
+      <p class="tuile__note">
+        {% if nb_ruptures %}
+          <span class="puce puce--critique"><svg><use href="#ic-rupture"></use></svg>{{ nb_ruptures }} en rupture</span>
+        {% else %}
+          <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Aucune rupture</span>
+        {% endif %}
+      </p>
+    </article>
+  </section>
+
+  {# ---- Graphique + santé du stock --------------------------------------- #}
+  <div class="duo">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Chiffre d'affaires, 14 derniers jours</h2>
+        <span class="puce"><svg><use href="#ic-horloge"></use></svg>Ventes clôturées</span>
+      </header>
+      <div class="carte__corps" style="position:relative" id="boite-graphe">
+        {% include "partials/graphe_ventes.html" %}
+        <div class="info-bulle" id="info-bulle" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Santé du stock</h2>
+      </header>
+      <div class="carte__corps colonne" style="gap:16px">
+        <div class="colonne" style="gap:10px">
+          {% comment %}
+          Piste composite : trois états, écart de 2 px entre remplissages.
+          La légende porte icône + libellé — la couleur ne suffit jamais.
+          {% endcomment %}
+          {% localize off %}
+          <div class="piste" role="img"
+               aria-label="{{ nb_sains }} articles en stock, {{ nb_sous_seuil }} sous le seuil, {{ nb_ruptures }} en rupture">
+            <span class="piste__bon" style="width:{{ part_sains }}%"></span>
+            <span class="piste__alerte" style="width:{{ part_sous_seuil }}%"></span>
+            <span class="piste__critique" style="width:{{ part_ruptures }}%"></span>
+          </div>
+          {% endlocalize %}
+          <div class="legende">
+            <span class="legende__item"><span class="legende__pastille" style="background:var(--bon)"></span>
+              En stock <strong class="chiffre">{{ nb_sains }}</strong></span>
+            <span class="legende__item"><span class="legende__pastille" style="background:var(--alerte)"></span>
+              Sous le seuil <strong class="chiffre">{{ nb_sous_seuil }}</strong></span>
+            <span class="legende__item"><span class="legende__pastille" style="background:var(--critique)"></span>
+              Rupture <strong class="chiffre">{{ nb_ruptures }}</strong></span>
+          </div>
+        </div>
+
+        <div class="colonne" style="gap:0">
+          <p class="t-sur-titre" style="margin-bottom:9px">À commander en priorité</p>
+          {% for niveau in alertes_stock %}
+            <a class="rangee rangee--espace" href="{% url 'article' niveau.variante_id %}"
+               style="padding:9px 0;border-bottom:1px solid var(--filet)">
+              <span class="pile-sm" style="min-width:0">
+                <span class="t-corps" style="font-weight:550">{{ niveau.variante.produit.libelle|truncatechars:34 }}</span>
+                <span class="t-legende">Seuil : {{ niveau.seuil_alerte|quantite }}</span>
+              </span>
+              <span class="rangee" style="gap:9px">
+                <span class="chiffre" style="font-weight:620">{{ niveau.quantite|quantite }}</span>
+                {% puce_stock niveau %}
+              </span>
+            </a>
+          {% empty %}
+            <div class="vide" style="padding:22px">
+              <svg><use href="#ic-check"></use></svg>
+              <p class="t-2">Aucun article sous son seuil.</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {# ---- Meilleures ventes + derniers tickets ----------------------------- #}
+  <div class="duo">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Meilleures ventes sur 14 jours</h2>
+      </header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Article</th>
+                <th scope="col" class="num">Quantité</th>
+                <th scope="col" class="num">Chiffre d'affaires</th>
+                <th scope="col" style="width:110px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entree in meilleurs %}
+                <tr>
+                  <td class="principal">{{ entree.libelle|truncatechars:40 }}</td>
+                  <td class="num t-2">{{ entree.quantite|quantite }}</td>
+                  <td class="num" style="font-weight:600">{{ entree.montant|fcfa }}</td>
+                  <td>
+                    {# Barre de rang : même marque, même couleur que le graphe principal. #}
+                    <span style="display:block;height:6px;border-radius:3px;background:var(--surface-creuse)">
+                      {% localize off %}<span style="display:block;height:6px;border-radius:3px;background:var(--serie);width:{{ entree.part }}%"></span>{% endlocalize %}
+                    </span>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
+                  <p class="t-2">Aucune vente sur la période.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Derniers tickets</h2>
+        <a class="btn btn--discret" href="{% url 'ventes' %}">Tout voir</a>
+      </header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <tbody>
+              {% for ticket in derniers_tickets %}
+                <tr>
+                  <td>
+                    <span class="pile-sm">
+                      <span class="principal chiffre">{{ ticket.numero }}</span>
+                      <span class="t-legende">{{ ticket.cloture_le|date:"d/m à H:i" }} · {{ ticket.session.caissier.nom_complet }}</span>
+                    </span>
+                  </td>
+                  <td class="num" style="font-weight:620">{{ ticket.total_ttc|fcfa }} <span class="t-muet" style="font-weight:400">FCFA</span></td>
+                </tr>
+              {% empty %}
+                <tr><td><div class="vide"><svg><use href="#ic-ventes"></use></svg>
+                  <p class="t-2">Aucun ticket clôturé.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Couche de survol du graphe : une zone de saisie par créneau, plus large que
+  // la barre elle-même (règle d'interaction : la cible dépasse la marque).
+  (function () {
+    var boite = document.getElementById("boite-graphe");
+    var bulle = document.getElementById("info-bulle");
+    if (!boite || !bulle) return;
+
+    // Sur un écran tactile, il n'y a pas de survol : une info-bulle y resterait
+    // collée après le premier effleurement. L'étiquette directe sur le maximum
+    // et le tableau des meilleures ventes portent déjà les chiffres.
+    if (!window.matchMedia("(hover: hover)").matches) {
+      bulle.remove();
+      return;
+    }
+
+    var barres = boite.querySelectorAll(".barre");
+
+    boite.querySelectorAll(".zone-survol").forEach(function (zone) {
+      var rang = zone.dataset.rang;
+
+      zone.addEventListener("mouseenter", function () {
+        barres.forEach(function (b) {
+          b.classList.toggle("barre--attenuee", b.dataset.rang !== rang);
+        });
+        bulle.innerHTML =
+          '<div class="info-bulle__cle">' + zone.dataset.jour + "</div>" +
+          '<div class="info-bulle__val">' + zone.dataset.valeur + " FCFA</div>";
+        bulle.dataset.visible = "true";
+      });
+
+      zone.addEventListener("mousemove", function (evt) {
+        var cadre = boite.getBoundingClientRect();
+        var x = evt.clientX - cadre.left;
+        var y = evt.clientY - cadre.top;
+        bulle.style.left = Math.min(x + 14, cadre.width - bulle.offsetWidth - 8) + "px";
+        bulle.style.top = Math.max(y - bulle.offsetHeight - 10, 4) + "px";
+      });
+
+      zone.addEventListener("mouseleave", function () {
+        barres.forEach(function (b) { b.classList.remove("barre--attenuee"); });
+        bulle.dataset.visible = "false";
+      });
+    });
+  })();
+</script>
+{% endblock %}

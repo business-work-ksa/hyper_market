@@ -49,6 +49,8 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 15 | [Plan de validation terrain](docs/15-plan-de-validation-terrain.md) | Protocole des 10 semaines de phase 0, guides d'entretien, seuils du jalon G0 |
 | 16 | [Partenariat cabinet comptable](docs/16-partenariat-cabinet-comptable.md) | Sélection, frontière de responsabilité, recette des barèmes de paie |
 | 17 | [Démarrer sans capital](docs/17-demarrage-sans-capital.md) | **Le plan effectivement applicable aujourd'hui** : 450 000 F, 5 paliers autofinancés |
+| 18 | [Produit du palier 1](docs/18-produit-palier-1.md) | Le plan raffiné : les 6 écrans, l'installation en 90 minutes, critères d'acceptation |
+| 19 | [Système de design](docs/19-systeme-de-design.md) | Jetons validés, règles de visualisation, pièges rencontrés |
 
 > **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
 > réglementés : la [validation terrain](docs/15-plan-de-validation-terrain.md) (jalon G0) et le
@@ -62,15 +64,36 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 
 ```bash
 make installer                  # environnement virtuel + dépendances
-cp .env.example .env
+cp .env.example .env            # DEBUG=True, sinon le CSS n'est pas servi
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
-make demo                       # référentiels + 2 boutiques de démonstration
-make servir                     # http://localhost:8000/admin/
-make tester                     # 67 tests
+make demo                       # référentiels + 2 boutiques, 20 jours de ventes
+make servir                     # http://localhost:8000/
+make tester                     # 89 tests
 ```
 
+Comptes de démonstration (mot de passe `demo1234`) :
+`+237699110011` — Quincaillerie Ateba, Douala · `+237677220022` — Bella Cosmétiques, Yaoundé.
+
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
+
+## Le back-office marchand
+
+Six écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
+Captures dans [`captures/`](captures/) — régénérables par `node scripts/captures.js`.
+
+| Écran | Ce qu'il fait |
+|---|---|
+| **Tableau de bord** | Ventes du jour, **marge réelle au coût moyen pondéré**, valeur du stock, alertes, graphe sur 14 jours |
+| **Caisse** ★ | Grille tactile, recherche et code-barres, ticket, 3 moyens de paiement, encaissement idempotent |
+| **Stock** | Liste, filtres, valeur au CMP, historique des mouvements par article |
+| **Ventes** | Journal des tickets clôturés, HT / TVA / TTC |
+| **Comptabilité** | Balance SYSCOHADA, dernières écritures, marge brute — en lecture seule |
+| **Ma boutique** | Identité, bail, équipe, dépôts |
+
+Un encaissement produit d'un seul geste **le ticket, la sortie de stock au coût moyen et les trois
+écritures comptables** — c'est la promesse « zéro double saisie », et elle est testée de bout en
+bout.
 
 ## État du projet
 
@@ -78,9 +101,11 @@ Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 - [x] Étude de marché et business plan
 - [x] Dossier de conception fonctionnelle et technique
 - [x] **Lot 0** — Socle Django : multi-tenant, rôles, emplacements, isolation prouvée par les tests
+- [x] **Interface du palier 1** — 6 écrans, système de design, captures de recette
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
-  *(domaine et moteurs métier posés et testés ; API REST, PWA caisse et adaptateurs Mobile Money
-  restent à écrire)*
+  *(domaine, moteurs métier et back-office posés et testés ; restent le mode hors ligne réel,
+  l'écran de reprise de stock, l'impression du ticket et les adaptateurs Mobile Money —
+  voir [docs/18](docs/18-produit-palier-1.md), §6)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

@@ -5,6 +5,10 @@ Sert aux démonstrations commerciales et à la recette. Les données sont volont
 commerçant.
 """
 
+import random
+from datetime import datetime
+from datetime import time as dtime
+from datetime import timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -16,10 +20,14 @@ from apps.accounts.models import Appartenance, Role, Utilisateur
 from apps.affiliation.services import attribuer, creer_apporteur
 from apps.catalog.models import Categorie, Produit, Variante
 from apps.core.tenancy import contexte_boutique
-from apps.inventory.models import Depot
-from apps.inventory.services import entrer_stock
+from apps.accounting.models import EcritureComptable
+from apps.inventory.models import Depot, MouvementStock, NiveauStock
+from apps.inventory.services import enregistrer_mouvement, entrer_stock
 from apps.marketplace.models import Bail, Boutique, Rayon, TypeEmplacement
 from apps.pos import services as caisse
+from apps.pos.models import Ticket
+
+JOURS_HISTORIQUE = 20
 
 BOUTIQUES = [
     {
@@ -33,10 +41,14 @@ BOUTIQUES = [
         "ville": "Douala",
         "gerant": ("+237699110011", "Jean-Pierre Ateba"),
         "produits": [
-            ("QUI-CIM-50", "Ciment CIMENCAM 50 kg", "6500", "5200", 40),
-            ("QUI-PEIN-20", "Peinture acrylique blanche 20 L", "28000", "21500", 12),
-            ("QUI-TUB-PVC", "Tube PVC 110 mm — 3 m", "4800", "3600", 60),
-            ("QUI-CAD-IND", "Cadenas industriel 60 mm", "3500", "2100", 25),
+            # (sku, libellé, prix TTC, coût, quantité initiale, seuil d'alerte)
+            ("QUI-CIM-50", "Ciment CIMENCAM 50 kg", "6500", "5200", 900, 120),
+            ("QUI-PEIN-20", "Peinture acrylique blanche 20 L", "28000", "21500", 260, 45),
+            ("QUI-TUB-PVC", "Tube PVC 110 mm — 3 m", "4800", "3600", 640, 90),
+            ("QUI-CAD-IND", "Cadenas industriel 60 mm", "3500", "2100", 410, 60),
+            ("QUI-BRO-ELE", "Brouette galvanisée renforcée", "34500", "26000", 180, 30),
+            ("QUI-FER-12", "Fer à béton 12 mm — barre 12 m", "9800", "7400", 520, 80),
+            ("QUI-DIS-230", "Disque à tronçonner 230 mm", "2200", "1250", 700, 100),
         ],
     },
     {
@@ -50,10 +62,12 @@ BOUTIQUES = [
         "ville": "Yaoundé",
         "gerant": ("+237677220022", "Élisabeth Ngo Bell"),
         "produits": [
-            ("COS-KAR-500", "Beurre de karité brut 500 g", "4500", "2400", 120),
-            ("COS-HUI-COC", "Huile de coco vierge 250 ml", "3200", "1600", 90),
-            ("COS-SAV-NOI", "Savon noir africain 200 g", "1500", "700", 200),
-            ("COS-CRE-VIS", "Crème hydratante visage 100 ml", "8900", "5100", 45),
+            ("COS-KAR-500", "Beurre de karité brut 500 g", "4500", "2400", 820, 110),
+            ("COS-HUI-COC", "Huile de coco vierge 250 ml", "3200", "1600", 760, 100),
+            ("COS-SAV-NOI", "Savon noir africain 200 g", "1500", "700", 980, 140),
+            ("COS-CRE-VIS", "Crème hydratante visage 100 ml", "8900", "5100", 340, 50),
+            ("COS-HUI-ARG", "Huile d'argan pressée à froid 100 ml", "12500", "7900", 280, 40),
+            ("COS-MAS-ARG", "Masque à l'argile verte 150 g", "3800", "2050", 520, 70),
         ],
     },
 ]
@@ -114,7 +128,7 @@ class Command(BaseCommand):
                 "ville": donnees["ville"],
                 "rayon_principal": rayon,
                 "etat": Boutique.ACTIVE,
-                "regime_fiscal": Boutique.SIMPLIFIE,
+                "regime_fiscal": Boutique.REEL_SIMPLIFIE,
             },
         )
 
@@ -154,7 +168,7 @@ class Command(BaseCommand):
         )
 
         variantes = []
-        for sku, libelle, prix_ttc, cout, quantite in produits:
+        for sku, libelle, prix_ttc, cout, quantite, seuil in produits:
             produit, _ = Produit.objects.get_or_create(
                 boutique=boutique,
                 sku=sku,
@@ -171,6 +185,9 @@ class Command(BaseCommand):
                 defaults={"produit": produit, "prix_vente": Decimal(prix_ttc)},
             )
             if cree:
+                NiveauStock.objects.create(
+                    boutique=boutique, depot=depot, variante=variante, seuil_alerte=Decimal(seuil)
+                )
                 entrer_stock(
                     depot=depot,
                     variante=variante,
@@ -182,18 +199,106 @@ class Command(BaseCommand):
                 )
             variantes.append(variante)
 
-        self._passer_une_vente(boutique, depot, gerant, variantes)
+        self._generer_historique(boutique, depot, gerant, variantes)
+        self._creer_etats_de_stock(depot, gerant, variantes)
 
-    def _passer_une_vente(self, boutique, depot, gerant, variantes):
+    def _generer_historique(self, boutique, depot, gerant, variantes):
+        """Vingt jours de ventes comptoir, pour que le tableau de bord ait du sens.
+
+        Le tirage est déterministe (graine fixe) : deux exécutions produisent le
+        même jeu, ce qui rend les captures d'écran et les démonstrations
+        reproductibles.
+        """
+        alea = random.Random(f"hypermarche-{boutique.slug}")
+        vendables = [v for v in variantes if v.niveaux.filter(quantite__gt=0).exists()]
+        if not vendables:
+            return
+
         session = caisse.ouvrir_session(
             depot=depot, caissier=gerant, fonds_ouverture=Decimal("50000")
         )
-        ticket = caisse.creer_ticket(session=session, client_nom="Client comptoir")
-        caisse.ajouter_ligne(ticket=ticket, variante=variantes[0], quantite=Decimal("2"))
-        caisse.ajouter_ligne(ticket=ticket, variante=variantes[1], quantite=Decimal("1"))
-        ticket.refresh_from_db()
-        caisse.regler(ticket=ticket, moyen="especes", montant=ticket.total_ttc)
-        caisse.cloturer_ticket(ticket, cree_par=gerant)
+        moyens = ["especes"] * 6 + ["mobile_money"] * 3 + ["carte"]
+        aujourdhui = timezone.localdate()
+
+        for recul in range(JOURS_HISTORIQUE, -1, -1):
+            jour = aujourdhui - timedelta(days=recul)
+            # Les dimanches sont creux, les samedis chargés : une courbe plate
+            # ne ressemble à aucun commerce réel.
+            if jour.weekday() == 6:
+                nb_tickets = alea.randint(0, 2)
+            elif jour.weekday() == 5:
+                nb_tickets = alea.randint(5, 9)
+            else:
+                nb_tickets = alea.randint(2, 6)
+
+            for _ in range(nb_tickets):
+                ticket = caisse.creer_ticket(session=session)
+                for variante in alea.sample(vendables, alea.randint(1, min(3, len(vendables)))):
+                    caisse.ajouter_ligne(
+                        ticket=ticket, variante=variante, quantite=Decimal(alea.randint(1, 3))
+                    )
+                ticket.refresh_from_db()
+                if ticket.total_ttc <= 0:
+                    continue
+                caisse.regler(ticket=ticket, moyen=alea.choice(moyens), montant=ticket.total_ttc)
+                caisse.cloturer_ticket(ticket, cree_par=gerant)
+                self._antidater(ticket, jour, alea)
+
+    def _creer_etats_de_stock(self, depot, gerant, variantes):
+        """Met en scène les trois états du stock, par ajustement d'inventaire.
+
+        Un jeu de démonstration où tout est vert ne montre pas ce que le produit
+        sert à voir. On provoque donc deux alertes et une rupture — non pas en
+        truquant les compteurs, mais en passant de vrais mouvements
+        d'ajustement, comme le ferait un inventaire physique.
+        """
+        cibles = variantes[-3:]
+        if len(cibles) < 3:
+            return
+
+        scenarios = [
+            (cibles[0], Decimal("0.55"), "Écart d'inventaire — casse non déclarée"),
+            (cibles[1], Decimal("0.70"), "Écart d'inventaire — comptage du mois"),
+            (cibles[2], None, "Rupture constatée à l'inventaire"),
+        ]
+
+        for variante, part_du_seuil, motif in scenarios:
+            niveau = NiveauStock.objects.get(depot=depot, variante=variante)
+            cible = Decimal("0") if part_du_seuil is None else (
+                niveau.seuil_alerte * part_du_seuil
+            ).quantize(Decimal("1"))
+            ecart = cible - niveau.quantite
+            if ecart == 0:
+                continue
+            enregistrer_mouvement(
+                depot=depot,
+                variante=variante,
+                type_mouvement=MouvementStock.AJUSTEMENT,
+                quantite=ecart,
+                origine_type="demo",
+                commentaire=motif,
+                cree_par=gerant,
+            )
+
+    @staticmethod
+    def _antidater(ticket, jour, alea):
+        """Repositionne le ticket et ses effets dans le passé.
+
+        `cree_le` et `cloture_le` sont horodatés automatiquement : on les corrige
+        par `update()`, qui contourne `auto_now_add` sans toucher aux montants.
+        """
+        horodatage = timezone.make_aware(
+            datetime.combine(jour, dtime(alea.randint(8, 18), alea.randint(0, 59)))
+        )
+        Ticket.objects_all_tenants.filter(pk=ticket.pk).update(
+            cree_le=horodatage, cloture_le=horodatage
+        )
+        MouvementStock.objects_all_tenants.filter(
+            origine_type="pos.Ticket", origine_id=ticket.pk
+        ).update(cree_le=horodatage)
+        EcritureComptable.objects_all_tenants.filter(
+            origine_type="pos.Ticket", origine_id=ticket.pk
+        ).update(cree_le=horodatage, date_ecriture=jour)
 
     def _creer_reseau_affiliation(self):
         """Awa parraine Junior, Junior parraine Sandrine — la chaîne s'arrête à 2 niveaux."""

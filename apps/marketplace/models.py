@@ -97,12 +97,14 @@ class Boutique(BaseModel):
         (RESILIEE, "Résiliée"),
     ]
 
-    IMPOT_LIBERATOIRE = "liberatoire"
-    SIMPLIFIE = "simplifie"
+    # L'impôt libératoire et l'ancien régime simplifié ont été fusionnés dans l'IGS
+    # (loi n° 2024/020, structurée par la loi de finances 2026) — voir docs/07, §5.
+    IGS = "igs"
+    REEL_SIMPLIFIE = "reel_simplifie"
     REEL_NORMAL = "reel_normal"
     REGIMES = [
-        (IMPOT_LIBERATOIRE, "Impôt libératoire (CA < 10 M)"),
-        (SIMPLIFIE, "Réel simplifié (CA 50-100 M)"),
+        (IGS, "IGS — impôt général synthétique (CA ≤ 50 M)"),
+        (REEL_SIMPLIFIE, "Réel simplifié (CA 50-100 M)"),
         (REEL_NORMAL, "Réel normal (CA > 100 M)"),
     ]
 
@@ -111,7 +113,7 @@ class Boutique(BaseModel):
     slug = models.SlugField(max_length=140, unique=True)
     rccm = models.CharField(max_length=64, blank=True, verbose_name="RCCM")
     niu = models.CharField(max_length=32, blank=True, verbose_name="NIU")
-    regime_fiscal = models.CharField(max_length=24, choices=REGIMES, default=SIMPLIFIE)
+    regime_fiscal = models.CharField(max_length=24, choices=REGIMES, default=REEL_SIMPLIFIE)
     rayon_principal = models.ForeignKey(
         Rayon, on_delete=models.PROTECT, related_name="boutiques", null=True, blank=True
     )

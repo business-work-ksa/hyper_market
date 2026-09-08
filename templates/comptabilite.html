@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Comptabilité — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Comptabilité{% endblock %}
+
+{% block actions_entete %}
+  {% if equilibree %}
+    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Balance équilibrée</span>
+  {% else %}
+    <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>Balance déséquilibrée</span>
+  {% endif %}
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+
+  <div class="bandeau-info">
+    <svg><use href="#ic-info"></use></svg>
+    <span>
+      <strong>La plateforme prépare, votre expert-comptable révise et atteste.</strong>
+      Les écritures ci-dessous sont générées automatiquement à partir de vos ventes, de vos
+      encaissements et de vos mouvements de stock — aucune n'a été saisie à la main.
+    </span>
+  </div>
+
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Chiffre d'affaires</span></div>
+      <p class="tuile__valeur">{{ chiffre_affaires|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">Compte 701 — ventes de marchandises</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-stock"></use></svg><span class="t-sur-titre">Coût des ventes</span></div>
+      <p class="tuile__valeur">{{ cout_ventes|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">Compte 6031 — variation des stocks</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Marge brute</span></div>
+      <p class="tuile__valeur">{{ marge_brute|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">Chiffre d'affaires moins coût des ventes</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">TVA collectée</span></div>
+      <p class="tuile__valeur">{{ tva_collectee|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note">
+        {% if assujetti_tva %}
+          <span class="t-muet">Compte 4431 — à déclarer mensuellement</span>
+        {% else %}
+          <span class="puce"><svg><use href="#ic-info"></use></svg>Régime IGS — non assujetti</span>
+        {% endif %}
+      </p>
+    </article>
+  </section>
+
+  <div class="duo">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Balance générale</h2>
+        <span class="puce">SYSCOHADA révisé</span>
+      </header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Compte</th>
+                <th scope="col">Intitulé</th>
+                <th scope="col" class="num">Débit</th>
+                <th scope="col" class="num">Crédit</th>
+                <th scope="col" class="num">Solde</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ligne in lignes %}
+                <tr>
+                  <td class="principal chiffre">{{ ligne.numero }}</td>
+                  <td class="t-2">{{ ligne.intitule }}</td>
+                  <td class="num t-2">{{ ligne.debit|fcfa }}</td>
+                  <td class="num t-2">{{ ligne.credit|fcfa }}</td>
+                  <td class="num" style="font-weight:600">{{ ligne.solde|fcfa }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5"><div class="vide"><svg><use href="#ic-compta"></use></svg>
+                  <p class="t-2">Aucune écriture sur l'exercice.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+            {% if lignes %}
+              <tfoot>
+                <tr style="border-top:2px solid var(--filet-fort)">
+                  <td colspan="2" style="padding:11px 16px;font-weight:640">Totaux</td>
+                  <td class="num" style="padding:11px 16px;font-weight:640">{{ total_debit|fcfa }}</td>
+                  <td class="num" style="padding:11px 16px;font-weight:640">{{ total_credit|fcfa }}</td>
+                  <td class="num" style="padding:11px 16px">
+                    {% if equilibree %}
+                      <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>0</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Dernières écritures</h2></header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <tbody>
+              {% for e in ecritures %}
+                <tr>
+                  <td>
+                    <span class="pile-sm">
+                      <span class="principal">{{ e.libelle|truncatechars:34 }}</span>
+                      <span class="t-legende chiffre">{{ e.journal.code }} · {{ e.piece }} · {{ e.date_ecriture|date:"d/m/Y" }}</span>
+                    </span>
+                  </td>
+                  <td class="num">
+                    {% if e.validee %}
+                      <span class="puce puce--bon"><svg><use href="#ic-verrou"></use></svg>Validée</span>
+                    {% else %}
+                      <span class="puce">Brouillon</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td><div class="vide"><svg><use href="#ic-compta"></use></svg>
+                  <p class="t-2">Aucune écriture.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <footer class="carte__pied">
+        <p class="t-legende">
+          Une écriture validée est immuable. Toute correction se fait par contre-passation,
+          jamais par modification.
+        </p>
+      </footer>
+    </section>
+  </div>
+</div>
+{% endblock %}

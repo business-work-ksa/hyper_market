@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Stock — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Stock{% endblock %}
+
+{% block actions_entete %}
+  <span class="puce"><svg><use href="#ic-stock"></use></svg>{{ valeur_totale|fcfa }} FCFA au coût moyen</span>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+
+  {# Les filtres tiennent sur une seule rangée, au-dessus du tableau. #}
+  <form class="rangee" method="get" role="search">
+    <div class="recherche" style="flex:1;max-width:400px">
+      <svg><use href="#ic-recherche"></use></svg>
+      <input class="champ" type="search" name="q" value="{{ recherche }}"
+             placeholder="Rechercher un article ou une référence" aria-label="Rechercher">
+    </div>
+
+    <div class="rangee" style="gap:6px" role="group" aria-label="Filtrer par état">
+      <button class="btn {% if filtre == 'tous' %}btn--primaire{% endif %}" name="etat" value="tous" type="submit">Tous</button>
+      <button class="btn {% if filtre == 'alerte' %}btn--primaire{% endif %}" name="etat" value="alerte" type="submit">Sous le seuil</button>
+      <button class="btn {% if filtre == 'rupture' %}btn--primaire{% endif %}" name="etat" value="rupture" type="submit">Rupture</button>
+    </div>
+  </form>
+
+  <section class="carte">
+    <div class="carte__corps--serre">
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Article</th>
+              <th scope="col">Référence</th>
+              <th scope="col">Dépôt</th>
+              <th scope="col" class="num">Quantité</th>
+              <th scope="col" class="num">Coût moyen</th>
+              <th scope="col" class="num">Valeur</th>
+              <th scope="col">État</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for niveau in niveaux %}
+              <tr onclick="location.href='{% url 'article' niveau.variante_id %}'" style="cursor:pointer">
+                <td class="principal">{{ niveau.variante.produit.libelle }}</td>
+                <td class="t-2 chiffre">{{ niveau.variante.sku }}</td>
+                <td class="t-2">{{ niveau.depot.libelle }}</td>
+                <td class="num" style="font-weight:620">{{ niveau.quantite|quantite }}</td>
+                <td class="num t-2">{{ niveau.cmp|fcfa }}</td>
+                <td class="num">{{ niveau.valeur|fcfa }}</td>
+                <td>{% puce_stock niveau %}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7">
+                  <div class="vide">
+                    <svg><use href="#ic-stock"></use></svg>
+                    <p class="t-2">Aucun article ne correspond.</p>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if niveaux %}
+      <footer class="carte__pied rangee rangee--espace">
+        <span class="t-legende">{{ niveaux|length }} article{{ niveaux|length|pluralize }} affiché{{ niveaux|length|pluralize }}</span>
+        <span class="t-petit">Valeur totale <strong class="chiffre">{{ valeur_totale|fcfa }} FCFA</strong></span>
+      </footer>
+    {% endif %}
+  </section>
+
+  <div class="bandeau-info">
+    <svg><use href="#ic-info"></use></svg>
+    <span>
+      Le stock est valorisé au <strong>coût moyen pondéré</strong> : chaque entrée recalcule le coût,
+      chaque sortie le conserve. Un stock négatif n'est pas une erreur bloquante mais une anomalie
+      à régulariser par inventaire — refuser une vente déjà encaissée serait pire qu'un compteur
+      temporairement faux.
+    </span>
+  </div>
+</div>
+{% endblock %}

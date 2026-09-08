@@ -50,6 +50,7 @@ LOCAL_APPS = [
     "apps.payments",
     "apps.accounting",
     "apps.affiliation",
+    "apps.backoffice",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -99,6 +100,8 @@ else:  # repli local / CI sans PostgreSQL
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.Utilisateur"
+LOGIN_URL = "connexion"
+LOGIN_REDIRECT_URL = "tableau_de_bord"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -121,6 +124,7 @@ PAYS_DEFAUT = "CM"
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 

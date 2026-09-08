@@ -1,0 +1,97 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#00806A">
+<title>Connexion — HyperMarché</title>
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<script>(function(){try{var t=localStorage.getItem("hm-theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+</head>
+<body>
+{% include "partials/icones.html" %}
+
+<div class="portail">
+  {% comment %}
+  Le panneau de gauche porte la promesse. Il disparaît sous 1080 px : sur un
+  téléphone, le commerçant veut se connecter, pas lire un argumentaire.
+  {% endcomment %}
+  <aside class="portail__scene">
+    <div class="rangee" style="gap:11px">
+      <span class="sceau" style="background:rgba(255,255,255,0.17);color:#fff">HM</span>
+      <span style="font-size:15px;font-weight:620;letter-spacing:-0.015em">HyperMarché</span>
+    </div>
+
+    <div class="colonne" style="gap:26px">
+      <p class="portail__accroche">Votre boutique sait enfin ce qu'elle gagne.</p>
+      <div class="portail__preuves">
+        <div class="portail__preuve">
+          <svg><use href="#ic-stock"></use></svg>
+          <span>Votre stock à jour en temps réel, même sans réseau.</span>
+        </div>
+        <div class="portail__preuve">
+          <svg><use href="#ic-marge"></use></svg>
+          <span>Votre marge réelle, article par article, calculée au coût moyen.</span>
+        </div>
+        <div class="portail__preuve">
+          <svg><use href="#ic-compta"></use></svg>
+          <span>Vos écritures SYSCOHADA générées à chaque vente, sans double saisie.</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:12px;opacity:0.72;max-width:44ch;line-height:1.55">
+      La plateforme prépare votre comptabilité. Votre expert-comptable la révise et l'atteste.
+    </p>
+  </aside>
+
+  <main class="portail__formulaire">
+    <div class="portail__boite">
+      <div class="pile-sm">
+        <h1 class="t-titre">Se connecter</h1>
+        <p class="t-2">Entrez le numéro de téléphone associé à votre boutique.</p>
+      </div>
+
+      {% if erreur %}
+        <div class="bandeau-info bandeau-info--alerte" role="alert">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>{{ erreur }}</span>
+        </div>
+      {% endif %}
+
+      <form method="post" class="colonne" style="gap:14px" novalidate>
+        {% csrf_token %}
+        <div class="groupe-champ">
+          <label for="telephone">Numéro de téléphone</label>
+          <input class="champ champ--grand" type="tel" id="telephone" name="telephone"
+                 value="{{ telephone|default:'' }}" placeholder="+237 6 99 11 00 11"
+                 autocomplete="username" inputmode="tel" required autofocus>
+        </div>
+
+        <div class="groupe-champ">
+          <label for="mot_de_passe">Mot de passe</label>
+          <input class="champ champ--grand" type="password" id="mot_de_passe" name="mot_de_passe"
+                 autocomplete="current-password" required>
+        </div>
+
+        <button class="btn btn--primaire btn--grand btn--bloc" type="submit">Ouvrir ma boutique</button>
+      </form>
+
+      <div class="bandeau-info">
+        <svg><use href="#ic-info"></use></svg>
+        <div class="pile-sm">
+          <span style="font-weight:580">Démonstration</span>
+          <span class="t-legende chiffre">+237699110011 · demo1234 — Quincaillerie Ateba, Douala</span>
+        </div>
+      </div>
+
+      <p class="t-legende" style="display:flex;align-items:center;gap:6px">
+        <svg style="width:13px;height:13px"><use href="#ic-verrou"></use></svg>
+        Vos données restent les vôtres. Export intégral et gratuit à tout moment.
+      </p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

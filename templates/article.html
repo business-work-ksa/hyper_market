@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}{{ variante.produit.libelle }} — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}{{ variante.produit.libelle }}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    {% for niveau in niveaux %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-stock"></use></svg>
+          <span class="t-sur-titre">{{ niveau.depot.libelle }}</span>
+        </div>
+        <p class="tuile__valeur">{{ niveau.quantite|quantite }}<span class="unite">en stock</span></p>
+        <p class="tuile__note">{% puce_stock niveau %}</p>
+      </article>
+    {% endfor %}
+
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Prix de vente</span></div>
+      <p class="tuile__valeur">{{ variante.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{{ variante.prix_ht|fcfa }} FCFA hors taxes</span></p>
+    </article>
+
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Coût moyen pondéré</span></div>
+      {% for niveau in niveaux %}
+        <p class="tuile__valeur">{{ niveau.cmp|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">Valeur du stock : {{ niveau.valeur|fcfa }} FCFA</span></p>
+      {% endfor %}
+    </article>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Historique des mouvements</h2>
+      <span class="puce"><svg><use href="#ic-verrou"></use></svg>Journal en ajout seul</span>
+    </header>
+    <div class="carte__corps--serre">
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Type</th>
+              <th scope="col">Origine</th>
+              <th scope="col" class="num">Quantité</th>
+              <th scope="col" class="num">Coût unitaire</th>
+              <th scope="col" class="num">Stock après</th>
+              <th scope="col" class="num">CMP après</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in mouvements %}
+              <tr>
+                <td class="t-2 chiffre">{{ m.cree_le|date:"d/m/Y H:i" }}</td>
+                <td class="principal">{{ m.get_type_display }}</td>
+                <td class="t-2">{{ m.commentaire|default:"—"|truncatechars:34 }}</td>
+                <td class="num" style="font-weight:620;{% if m.quantite < 0 %}color:var(--critique){% else %}color:var(--bon){% endif %}">
+                  {% if m.quantite > 0 %}+{% endif %}{{ m.quantite|quantite }}
+                </td>
+                <td class="num t-2">{{ m.cout_unitaire|fcfa }}</td>
+                <td class="num">{{ m.quantite_apres|quantite }}</td>
+                <td class="num t-2">{{ m.cmp_apres|fcfa }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7"><div class="vide"><svg><use href="#ic-stock"></use></svg>
+                <p class="t-2">Aucun mouvement enregistré.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

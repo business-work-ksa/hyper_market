@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 170 tests (17 ignorés sur SQLite)
+make tester      # 190 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -67,6 +67,7 @@ apps/
   affiliation/     filiation, attribution, commissions, revendeurs
   backoffice/      vues et formulaires du back-office marchand
                    acces.py — boutique courante, dépôt courant, porte des droits
+                   vues_equipe.py — embauche, rôles, retrait d'accès
 static/            CSS écrit à la main, service worker, file hors ligne (IndexedDB),
                    pilote d'imprimante thermique ESC/POS, icônes
 templates/         gabarits Django
@@ -255,6 +256,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_backoffice_gestion.py` | Reprise de stock, inventaire, session de caisse, ticket, export |
 | `test_permissions.py` | **Frontière d'exposition** : matrice des droits, porte des écrans, coût et marge absents des pages où ils n'ont rien à faire |
 | `test_multi_depots.py` | Dépôt courant, transferts, quota d'ouverture, réception hors ligne idempotente, catalogue JSON |
+| `test_equipe.py` | Embauche, changement de rôle, retrait d'accès — **un accès se retire, un compte ne se supprime pas** ; les garde-fous qui empêchent un gérant de se fermer la porte |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
@@ -269,7 +271,6 @@ juridique qui vient d'être enfreinte. Dans les trois premiers cas, c'est une fu
 
 | Sujet | État | Référence |
 |---|---|---|
-| Gestion de l'équipe dans l'interface | Les droits sont appliqués et affichés, mais un gérant ne peut pas encore inviter un employé ni changer son rôle depuis le back-office : cela passe par l'administration | docs/18, §9 |
 | API REST (DRF) | Sérialiseurs et vues à écrire | docs/05 |
 | Adaptateurs Mobile Money | Interface définie ; implémentations MTN/Orange/Camtel à écrire | docs/09, §6 |
 | Impression thermique hors Bluetooth LE | Le pilote ESC/POS couvre le Bluetooth basse consommation sur Chromium ; USB, Wi-Fi, SPP et iOS demandent une application native | docs/18, §9 |

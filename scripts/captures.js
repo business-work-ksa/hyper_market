@@ -26,6 +26,7 @@ const PAGES = [
   { nom: 'comptabilite', url: '/comptabilite/' },
   { nom: 'boutique', url: '/boutique/' },
   { nom: 'boutique-depot', url: '/boutique/depots/nouveau/' },
+  { nom: 'equipe', url: '/boutique/equipe/' },
 ];
 
 // Chacun de ces comptes ouvre sur un écran différent : c'est précisément ce que

@@ -487,6 +487,17 @@ table { border-collapse: collapse; width: 100%; }
    signalisation de 200 px de haut. */
 .icone-ligne { width: 15px; height: 15px; flex-shrink: 0; }
 
+/* Mot de passe provisoire : lu à voix haute ou recopié à la main, une seule
+   fois. Grand, espacé, en chasse fixe — c'est un cas où la lisibilité prime sur
+   la discrétion. */
+.mot-de-passe {
+  font-family: var(--mono);
+  font-size: 26px; font-weight: 660; letter-spacing: 0.06em;
+  padding: 14px 16px; border-radius: var(--r-md);
+  background: var(--marque-teinte); color: var(--marque);
+  text-align: center; user-select: all;
+}
+
 /* Statut : toujours icône + libellé, jamais la couleur seule. */
 .puce--bon      { background: var(--bon-teinte);      color: var(--bon); }
 .puce--alerte   { background: var(--alerte-teinte);   color: #8A6408; }
@@ -731,8 +742,12 @@ table { border-collapse: collapse; width: 100%; }
 .champ--compact {
   height: 30px; padding: 0 26px 0 9px;
   font-size: 12.5px; font-weight: 550;
-  max-width: 210px;
+  min-width: 132px; max-width: 210px;
 }
+/* Sélecteur de rôle : « Gérant de boutique » doit tenir en entier. Un libellé
+   tronqué dans une liste de choix fait douter de ce qu'on est en train de
+   choisir. */
+.champ--role { min-width: 204px; max-width: none; }
 
 .indic-reseau {
   display: inline-flex; align-items: center; gap: 6px;

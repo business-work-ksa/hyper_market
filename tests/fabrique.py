@@ -40,17 +40,20 @@ def creer_rayon(taux="0.0500") -> Rayon:
     )
 
 
-def creer_offre(*, quota_depots=1) -> TypeEmplacement:
+def creer_offre(*, quota_depots=1, quota_utilisateurs=1) -> TypeEmplacement:
     return TypeEmplacement.objects.create(
         code=f"OFFRE_{_suivant()}",
         libelle="Boutique",
         loyer_mensuel=Decimal("45000"),
         taux_commission_defaut=Decimal("0.0500"),
         quota_depots=quota_depots,
+        quota_utilisateurs=quota_utilisateurs,
     )
 
 
-def creer_boutique(enseigne=None, *, avec_comptabilite=True, quota_depots=1) -> Boutique:
+def creer_boutique(
+    enseigne=None, *, avec_comptabilite=True, quota_depots=1, quota_utilisateurs=1
+) -> Boutique:
     n = _suivant()
     enseigne = enseigne or f"Boutique {n}"
     boutique = Boutique.objects.create(
@@ -60,7 +63,7 @@ def creer_boutique(enseigne=None, *, avec_comptabilite=True, quota_depots=1) -> 
         rayon_principal=creer_rayon(),
         etat=Boutique.ACTIVE,
     )
-    offre = creer_offre(quota_depots=quota_depots)
+    offre = creer_offre(quota_depots=quota_depots, quota_utilisateurs=quota_utilisateurs)
     Bail.objects.create(
         boutique=boutique,
         type_emplacement=offre,

@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 170 tests
+make tester                     # 190 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -86,7 +86,7 @@ Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
 ## Le back-office marchand
 
-Treize écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
+Quatorze écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
 Captures dans [`captures/`](captures/) — régénérables par `node scripts/captures.js`.
 
 | Écran | Ce qu'il fait |
@@ -97,6 +97,7 @@ Captures dans [`captures/`](captures/) — régénérables par `node scripts/cap
 | **Ventes** | Journal des tickets clôturés, HT / TVA / TTC |
 | **Comptabilité** | Balance SYSCOHADA, dernières écritures, marge brute — en lecture seule |
 | **Ma boutique** | Identité, bail, équipe, dépôts, **droits de chaque rôle**, export intégral en CSV |
+| **Équipe** | Embaucher, changer un rôle, retirer un accès, régénérer un mot de passe |
 | **Nouvel article** | Produit, prix, coût, quantité et seuil en un seul formulaire |
 | **Inventaire** | Comptage physique, théorique masqué, écarts régularisés par ajustement |
 | **Entrée de stock** | Réception fournisseur, CMP recalculé, **mise en file si le réseau manque** |
@@ -159,9 +160,9 @@ node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie le
 - [x] **Multi-dépôts** — dépôt d'exploitation, transferts, quota d'emplacement
 - [x] **Impression thermique** — pilote ESC/POS sur Bluetooth basse consommation
 - [x] **Isolation au niveau ligne** — la base refuse ce que le code aurait pu laisser passer
+- [x] **Gestion de l'équipe** — embauche, rôles et retraits d'accès, sans passer par l'administration
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
-  *(restent la gestion de l'équipe dans l'interface et les adaptateurs Mobile Money — voir
-  [docs/18](docs/18-produit-palier-1.md), §9)*
+  *(restent les adaptateurs Mobile Money — voir [docs/18](docs/18-produit-palier-1.md), §9)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

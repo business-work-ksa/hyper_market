@@ -326,10 +326,10 @@ soit levée (docs/19, §7.6).
 
 ---
 
-## 8. Les cinq manques du palier 1, comblés
+## 8. Les manques du palier 1, comblés
 
-Les cinq points listés ici comme bloquants ont été traités. Ce qu'ils ont chacun coûté, et ce que
-chacun a appris.
+Les cinq points listés ici comme bloquants ont été traités, puis deux autres qui les suivaient de
+près. Ce qu'ils ont chacun coûté, et ce que chacun a appris.
 
 ### 8.1 — Rôles et permissions dans les vues
 
@@ -437,15 +437,58 @@ navigateur ; les imprimantes USB, Wi-Fi et Bluetooth « classique » (SPP) reste
 et la page doit être servie en HTTPS. Là, l'impression navigateur et le partage WhatsApp restent
 les chemins — et une application native reste nécessaire pour un pilotage complet.
 
+### 8.6 — L'isolation au niveau ligne, et le piège qui la rendait décorative
+
+La troisième barrière du multi-tenant existait sur le papier depuis le document 09 ; elle n'existait
+pas en base. Elle y est désormais : une politique sur chacune des 24 tables scopées, pilotée par un
+réglage de session que le contexte Python pose à chaque changement de boutique. Réglage absent :
+rien n'est visible.
+
+**Le premier essai n'a rien prouvé du tout.** Les 156 tests sont passés sans qu'une seule ligne ne
+change de comportement — le rôle applicatif était superutilisateur, et un superutilisateur ignore
+toutes les politiques *sans lever la moindre erreur*. Les tests d'isolation passaient
+triomphalement en ne testant rien. C'est le piège le plus coûteux du dispositif, et le seul qui ne
+laisse aucune trace : `manage.py verifier_rls` et un test dédié le détectent maintenant, et
+`docker compose` retire l'attribut à l'initialisation de la base.
+
+Une fois la barrière réellement active, elle a immédiatement attrapé deux fautes qui dormaient : un
+test qui préparait un dépôt pour une seconde boutique sans changer de contexte, et un jeu de
+démonstration qui antidatait des écritures validées — donc qui n'avait jamais tourné sur
+PostgreSQL. Les deux étaient invisibles tant que la base ne disait rien.
+
+Conséquence de sens, à retenir : `objects_all_tenants` ne contourne plus que le gestionnaire.
+**Connaître son tenant ne suffit plus, il faut le déclarer.**
+
+### 8.7 — La gestion de l'équipe
+
+Les droits étaient appliqués et affichés, mais leur attribution passait par l'administration
+Django : un gérant ne pouvait ni embaucher, ni changer un rôle, ni retirer un accès sans nous
+appeler. Intenable pour un produit vendu à des commerçants — un départ se règle le jour même.
+
+Un écran, et trois principes qui viennent du terrain :
+
+1. **Un accès se retire, il ne se supprime jamais.** L'employé qui part a encaissé des ventes et
+   signé des mouvements de stock. Effacer son compte effacerait la traçabilité de ce qu'il a fait —
+   et c'est précisément ce qu'un gérant cherchera à faire un jour de colère.
+2. **Le mot de passe se remet en main propre.** Il n'y a ni passerelle SMS ni courriel fiable à ce
+   palier. Il est donc généré dans un alphabet qui se dicte sans ambiguïté — ni O/0 ni I/1, comme
+   les codes d'apporteur — affiché une seule fois, en grand, et jamais stocké en clair. Le gérant
+   peut en régénérer un : sans lui, un employé qui oublie le sien n'a aucun recours.
+3. **On ne se ferme pas la porte de l'intérieur.** Un gérant ne retire pas son propre accès, et le
+   dernier gérant d'une boutique ne peut ni se retirer ni se rétrograder.
+
+Le numéro de téléphone reste l'identifiant : une personne qui a déjà un compte HyperMarché est
+rattachée, jamais recréée. Un même numéro qui ouvrirait deux comptes scinderait l'historique d'un
+employé en deux.
+
 ---
 
 ## 9. Ce qui reste avant d'ouvrir à un vrai client
 
 | Sujet | Pourquoi ce n'est pas encore fait |
 |---|---|
-| **Gestion de l'équipe** | Les droits sont appliqués et affichés, mais inviter un employé ou changer son rôle passe encore par l'administration Django |
 | **Adaptateurs Mobile Money** | L'interface est définie, les implémentations MTN / Orange / Camtel restent à écrire |
 | **Impression hors Bluetooth LE** | Voir §8.5 : USB, Wi-Fi, SPP et iOS demandent une application native |
 
-Aucun de ces trois points n'est une fuite de données ni une perte de saisie. C'est la différence
+Aucun de ces deux points n'est une fuite de données ni une perte de saisie. C'est la différence
 avec la liste précédente.

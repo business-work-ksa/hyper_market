@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django import forms
 
+from apps.accounts.models import validateur_telephone
 from apps.catalog.models import Produit
 
 CHAMP = {"class": "champ"}
@@ -162,6 +163,80 @@ class DepotForm(forms.Form):
             if code != Depot.ENTREPOT_PLATEFORME
         ]
         self.fields["type"].initial = Depot.RESERVE
+
+
+class MembreEquipeForm(forms.Form):
+    """Rattachement d'une personne à la boutique, avec son rôle.
+
+    Le numéro de téléphone est l'identifiant : si la personne a déjà un compte
+    HyperMarché — le comptable d'un groupe, un vendeur qui change de boutique —
+    on la rattache, on ne recrée rien. Un même numéro n'ouvre jamais deux
+    comptes, sans quoi l'historique d'un employé se scinderait en deux.
+    """
+
+    telephone = forms.CharField(
+        label="Numéro de téléphone",
+        max_length=16,
+        validators=[validateur_telephone],
+        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "+237699000000"}),
+    )
+    nom_complet = forms.CharField(
+        label="Nom complet", max_length=150, required=False,
+        help_text="Ignoré si la personne a déjà un compte.",
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Marie Ekedi"}),
+    )
+    role = forms.ChoiceField(label="Rôle", widget=forms.Select(attrs=CHAMP))
+
+    def __init__(self, *args, roles=None, boutique=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.boutique = boutique
+        self.roles = {r.code: r for r in (roles or [])}
+        self.fields["role"].choices = [(code, r.libelle) for code, r in self.roles.items()]
+
+    def clean_telephone(self):
+        return self.cleaned_data["telephone"].strip().replace(" ", "")
+
+    def clean_role(self):
+        role = self.roles.get(self.cleaned_data["role"])
+        if role is None:
+            raise forms.ValidationError("Ce rôle ne peut pas être attribué dans une boutique.")
+        return role
+
+    def clean(self):
+        donnees = super().clean()
+        telephone = donnees.get("telephone")
+        if not telephone:
+            return donnees
+
+        from apps.accounts.models import Appartenance, Utilisateur
+
+        existant = Utilisateur.objects.filter(telephone=telephone).first()
+        self.utilisateur_existant = existant
+
+        if existant is not None and self.boutique is not None:
+            deja = Appartenance.objects.filter(
+                utilisateur=existant, boutique=self.boutique, actif=True
+            ).exists()
+            if deja:
+                self.add_error("telephone", "Cette personne fait déjà partie de votre équipe.")
+        elif existant is None and not donnees.get("nom_complet"):
+            self.add_error("nom_complet", "Le nom est obligatoire pour un nouveau compte.")
+        return donnees
+
+
+class ChangementDeRoleForm(forms.Form):
+    role = forms.ChoiceField(label="Rôle")
+
+    def __init__(self, *args, roles=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.roles = {r.code: r for r in (roles or [])}
+        self.fields["role"].choices = [(code, r.libelle) for code, r in self.roles.items()]
+
+    def clean_role(self):
+        role = self.roles.get(self.cleaned_data["role"])
+        if role is None:
+            raise forms.ValidationError("Rôle inconnu.")
+        return role
 
 
 class OuvertureCaisseForm(forms.Form):

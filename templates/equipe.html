@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Équipe — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Équipe{% endblock %}
+
+{% block actions_entete %}
+  <span class="puce">{{ actifs }} / {{ quota_utilisateurs }} accès</span>
+  <a class="btn" href="{% url 'boutique' %}">Retour à ma boutique</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+
+  {% comment %}
+  Il n'y a ni passerelle SMS ni courriel fiable à ce palier : le mot de passe se
+  remet en main propre. Il est donc affiché une fois, en grand, avec la consigne
+  de le noter — et il ne réapparaîtra jamais.
+  {% endcomment %}
+  {% if mot_de_passe_provisoire %}
+    <section class="carte" style="border-color:var(--marque)">
+      <header class="carte__entete">
+        <h2 class="t-section">Mot de passe provisoire</h2>
+        <span class="puce puce--alerte">
+          <svg><use href="#ic-alerte"></use></svg>Affiché une seule fois
+        </span>
+      </header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <p class="t-2">
+          Pour <strong>{{ mot_de_passe_provisoire.nom }}</strong>
+          (<span class="chiffre">{{ mot_de_passe_provisoire.telephone }}</span>) :
+        </p>
+        <p class="mot-de-passe chiffre">{{ mot_de_passe_provisoire.valeur }}</p>
+        <p class="t-legende">
+          Notez-le ou dictez-le maintenant — les lettres ambiguës en ont été exclues.
+          Il n'est stocké nulle part en clair : personne, pas même nous, ne pourra vous le relire.
+        </p>
+      </div>
+    </section>
+  {% endif %}
+
+  {% comment %}
+  Le tableau prend toute la largeur : chaque ligne porte un sélecteur de rôle et
+  trois actions. Serrées dans une colonne de duo, elles débordaient hors de la
+  carte — une mise en page doit prévoir ce qu'elle contient (docs/19, §7.5).
+  {% endcomment %}
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Qui a accès</h2>
+      <span class="puce">
+        <svg><use href="#ic-verrou"></use></svg>
+        {{ places_restantes }} place{{ places_restantes|pluralize }} libre{{ places_restantes|pluralize }}
+      </span>
+    </header>
+
+    <div class="carte__corps--serre">
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Personne</th>
+              <th scope="col" style="width:260px">Rôle</th>
+              <th scope="col" style="width:280px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for membre in membres %}
+              <tr {% if not membre.actif %}style="opacity:.55"{% endif %}>
+                <td>
+                  <span class="rangee" style="gap:10px">
+                    <span class="jeton">{{ membre.utilisateur.nom_complet|initiales }}</span>
+                    <span class="pile-sm">
+                      <span class="principal">{{ membre.utilisateur.nom_complet }}</span>
+                      <span class="t-legende chiffre">{{ membre.utilisateur.telephone }}</span>
+                    </span>
+                  </span>
+                </td>
+
+                <td>
+                  {% if membre.actif %}
+                    <form method="post" action="{% url 'equipe_role' membre.pk %}"
+                          class="rangee" style="gap:6px">
+                      {% csrf_token %}
+                      <select class="champ champ--compact champ--role" name="role"
+                              aria-label="Rôle de {{ membre.utilisateur.nom_complet }}">
+                        {% for role in roles %}
+                          <option value="{{ role.code }}" {% if role.code == membre.role_id %}selected{% endif %}>{{ role.libelle }}</option>
+                        {% endfor %}
+                      </select>
+                      <button class="btn" type="submit">Changer</button>
+                    </form>
+                  {% else %}
+                    <span class="puce">
+                      {{ membre.role.libelle }} · accès retiré{% if membre.jusqu_a %} le {{ membre.jusqu_a|date:"d/m/Y" }}{% endif %}
+                    </span>
+                  {% endif %}
+                </td>
+
+                <td class="num">
+                  <span class="rangee" style="gap:6px;justify-content:flex-end">
+                    {% if membre.actif %}
+                      <form method="post" action="{% url 'equipe_mot_de_passe' membre.pk %}">
+                        {% csrf_token %}
+                        <button class="btn" type="submit">Mot de passe</button>
+                      </form>
+                      <form method="post" action="{% url 'equipe_retirer' membre.pk %}">
+                        {% csrf_token %}
+                        <button class="btn" type="submit">Retirer l'accès</button>
+                      </form>
+                    {% else %}
+                      <form method="post" action="{% url 'equipe_reactiver' membre.pk %}">
+                        {% csrf_token %}
+                        <button class="btn" type="submit">Rendre l'accès</button>
+                      </form>
+                    {% endif %}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer class="carte__pied">
+      <p class="t-legende">
+        Retirer un accès ne supprime jamais le compte : la personne a encaissé des ventes et signé
+        des mouvements de stock. Son nom doit rester lisible dans cet historique.
+      </p>
+    </footer>
+  </section>
+
+  <div class="duo">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Ce que chaque rôle ouvre</h2></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% for role in roles_detail %}
+          <div class="colonne" style="gap:6px">
+            <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
+            <span class="t-legende">
+              {% for libelle in role.droits %}{{ libelle }}{% if not forloop.last %} · {% endif %}{% empty %}Aucun droit sur cette boutique.{% endfor %}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+      <footer class="carte__pied">
+        <p class="t-legende">
+          Un changement de rôle prend effet immédiatement, à la page suivante que la personne
+          ouvrira.
+        </p>
+      </footer>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Rattacher quelqu'un</h2></header>
+      <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+        {% csrf_token %}
+        {% include "partials/champ.html" with champ=formulaire.telephone %}
+        {% include "partials/champ.html" with champ=formulaire.nom_complet %}
+        {% include "partials/champ.html" with champ=formulaire.role %}
+
+        {% if formulaire.non_field_errors %}
+          <div class="bandeau-info bandeau-info--alerte">
+            <svg><use href="#ic-alerte"></use></svg>
+            <span>{{ formulaire.non_field_errors|join:" " }}</span>
+          </div>
+        {% endif %}
+
+        <button class="btn btn--primaire btn--grand btn--bloc" type="submit"
+                {% if not places_restantes %}disabled{% endif %}>
+          Rattacher à la boutique
+        </button>
+      </form>
+      <footer class="carte__pied">
+        <p class="t-legende">
+          Le numéro est l'identifiant : si la personne a déjà un compte HyperMarché, elle est
+          rattachée avec son mot de passe habituel, et rien n'est recréé.
+        </p>
+      </footer>
+    </section>
+  </div>
+</div>
+{% endblock %}

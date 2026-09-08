@@ -44,7 +44,12 @@
 
   <div class="duo">
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Équipe</h2></header>
+      <header class="carte__entete">
+        <h2 class="t-section">Équipe</h2>
+        {% if 'boutique.administrer' in droits %}
+          <a class="btn" href="{% url 'equipe' %}">Gérer l'équipe</a>
+        {% endif %}
+      </header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">

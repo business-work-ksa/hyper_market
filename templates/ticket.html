@@ -34,13 +34,15 @@
   .total { font-family: var(--sans); font-size: 15px; font-weight: 700; }
   .pied { text-align: center; font-size: 10.5px; margin-top: 12px; line-height: 1.6; }
 
-  .actions { width: 80mm; max-width: 100%; margin: 16px auto 0; display: flex; gap: 8px; }
-  .actions .btn { flex: 1; }
+  .actions { width: 80mm; max-width: 100%; margin: 16px auto 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .actions .btn { flex: 1 1 46%; }
+  .reglage { width: 80mm; max-width: 100%; margin: 10px auto 0; display: flex; align-items: center; gap: 8px; }
+  .etat-impression { width: 80mm; max-width: 100%; margin: 8px auto 0; text-align: center; }
 
   @media print {
     body { background: #fff; padding: 0; }
     .bande { width: auto; box-shadow: none; border-radius: 0; padding: 0; }
-    .actions { display: none; }
+    .actions, .reglage, .etat-impression { display: none; }
     @page { margin: 4mm; }
   }
 </style>
@@ -110,11 +112,31 @@
 </article>
 
 <div class="actions">
-  <button class="btn btn--primaire" type="button" onclick="window.print()">Imprimer</button>
-  <a class="btn" href="{% url 'ventes' %}">Retour aux ventes</a>
+  <button class="btn btn--primaire" type="button" id="bobine" hidden>Imprimer sur la bobine</button>
+  <button class="btn" type="button" onclick="window.print()">Imprimer (navigateur)</button>
   <button class="btn" type="button" id="partager" hidden>Partager</button>
+  <a class="btn" href="{% url 'ventes' %}">Retour aux ventes</a>
 </div>
 
+<div class="reglage" id="reglage-bobine" hidden>
+  <label class="t-legende" for="largeur-bobine">Largeur de bobine</label>
+  <select class="champ champ--compact" id="largeur-bobine">
+    <option value="32">58 mm — 32 colonnes</option>
+    <option value="48">80 mm — 48 colonnes</option>
+  </select>
+</div>
+
+<p class="t-legende etat-impression" id="etat-impression" role="status"></p>
+
+{% comment %}
+Le ruban se construit à partir de ces données, pas en grattant la page : un
+changement de gabarit ne doit pas casser silencieusement l'impression.
+
+`{# … #}` est **mono-ligne** en Django : écrit sur plusieurs lignes, il s'affiche
+tel quel dans la page (docs/19, §8).
+{% endcomment %}
+<script type="application/json" id="ticket-donnees">{{ ticket_json|safe }}</script>
+<script src="{% static 'js/imprimante.js' %}"></script>
 <script>
   // Sans imprimante, le partage natif envoie le ticket par WhatsApp — le canal
   // réel du commerce ici. Le bouton n'apparaît que si l'appareil sait le faire.
@@ -128,6 +150,57 @@
         text: "Votre ticket de {{ ticket.total_ttc|fcfa }} FCFA chez {{ boutique.enseigne|escapejs }}.",
         url: window.location.href,
       }).catch(function () {});
+    });
+  })();
+
+  // Impression thermique directe. Web Bluetooth exige un contexte sécurisé et
+  // un geste de l'utilisateur : le bouton, jamais le chargement de la page.
+  (function () {
+    var bouton = document.getElementById("bobine");
+    var reglage = document.getElementById("reglage-bobine");
+    var largeur = document.getElementById("largeur-bobine");
+    var etat = document.getElementById("etat-impression");
+
+    if (!window.Imprimante || !window.Imprimante.disponible()) {
+      etat.textContent =
+        "Impression directe indisponible sur cet appareil : utilisez l'impression du " +
+        "navigateur ou le partage.";
+      return;
+    }
+
+    bouton.hidden = false;
+    reglage.hidden = false;
+
+    try {
+      var memorisee = localStorage.getItem("hm-largeur-bobine");
+      if (memorisee) largeur.value = memorisee;
+    } catch (e) {}
+
+    largeur.addEventListener("change", function () {
+      try { localStorage.setItem("hm-largeur-bobine", largeur.value); } catch (e) {}
+    });
+
+    var donnees = JSON.parse(document.getElementById("ticket-donnees").textContent);
+
+    bouton.addEventListener("click", function () {
+      bouton.disabled = true;
+      etat.textContent = "Recherche de l'imprimante…";
+
+      window.Imprimante.imprimer(donnees, parseInt(largeur.value, 10))
+        .then(function () {
+          etat.textContent = "Ticket envoyé à « " + window.Imprimante.appareil() + " ».";
+        })
+        .catch(function (erreur) {
+          // Un refus de la boîte de sélection n'est pas une panne : c'est un
+          // choix. On ne l'annonce pas comme une erreur.
+          etat.textContent =
+            erreur && erreur.name === "NotFoundError"
+              ? "Aucune imprimante sélectionnée."
+              : "Impression impossible : " + (erreur && erreur.message ? erreur.message : "liaison interrompue") + ".";
+        })
+        .finally(function () {
+          bouton.disabled = false;
+        });
     });
   })();
 </script>

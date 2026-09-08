@@ -10,9 +10,11 @@ urlpatterns = [
     path("service-worker.js", views.service_worker, name="service_worker"),
     path("connexion/", views.connexion, name="connexion"),
     path("deconnexion/", views.deconnexion, name="deconnexion"),
+    path("depot/", views.choisir_depot, name="choisir_depot"),
 
     path("caisse/", views.caisse, name="caisse"),
     path("caisse/encaisser/", views.caisse_encaisser, name="caisse_encaisser"),
+    path("caisse/catalogue.json", views.catalogue_json, name="catalogue_json"),
     path("caisse/session/", views.session_caisse, name="session_caisse"),
 
     path("stock/", views.stock, name="stock"),
@@ -20,6 +22,8 @@ urlpatterns = [
     path("stock/inventaire/", views.inventaire, name="inventaire"),
     path("stock/<uuid:variante_id>/", views.article, name="article"),
     path("stock/<uuid:variante_id>/entree/", views.entree_stock, name="entree_stock"),
+    path("stock/<uuid:variante_id>/entree.json", views.entree_stock_json, name="entree_stock_json"),
+    path("stock/<uuid:variante_id>/transfert/", views.transfert_stock, name="transfert_stock"),
 
     path("ventes/", views.ventes, name="ventes"),
     path("ventes/<uuid:ticket_id>/ticket/", views.ticket, name="ticket"),
@@ -28,4 +32,5 @@ urlpatterns = [
 
     path("boutique/", views.boutique, name="boutique"),
     path("boutique/export/", views.export_donnees, name="export_donnees"),
+    path("boutique/depots/nouveau/", views.nouveau_depot, name="nouveau_depot"),
 ]

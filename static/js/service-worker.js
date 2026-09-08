@@ -18,18 +18,25 @@
  * rejouer avec sa clé d'idempotence.
  */
 
-const VERSION = "hm-v1";
+const VERSION = "hm-v2";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_PAGES = `${VERSION}-pages`;
 
 // La coquille minimale pour que la caisse s'ouvre sans réseau.
 const COQUILLE = [
   "/caisse/",
+  "/stock/",
   "/static/css/hypermarche.css",
   "/static/js/hors-ligne.js",
+  "/static/js/imprimante.js",
   "/static/icones/hm-192.png",
   "/static/manifest.webmanifest",
 ];
+
+// Points d'entrée de données : jamais servis depuis le cache. Le catalogue est
+// rangé dans IndexedDB par la page, avec sa date de fraîcheur affichée ; une
+// réponse périmée servie comme fraîche serait invisible et donc pire.
+const DONNEES_VIVES = ["/caisse/catalogue.json"];
 
 self.addEventListener("install", (evenement) => {
   evenement.waitUntil(
@@ -65,6 +72,7 @@ self.addEventListener("fetch", (evenement) => {
 
   const url = new URL(requete.url);
   if (url.origin !== self.location.origin) return;
+  if (DONNEES_VIVES.includes(url.pathname)) return; // au réseau, ou pas du tout
 
   if (estStatique(url)) {
     evenement.respondWith(

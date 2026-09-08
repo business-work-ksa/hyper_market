@@ -70,7 +70,10 @@
     </section>
 
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Dépôts</h2></header>
+      <header class="carte__entete">
+        <h2 class="t-section">Dépôts</h2>
+        <span class="puce">{{ depots|length }} / {{ quota_depots }}</span>
+      </header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
@@ -89,13 +92,71 @@
         </div>
       </div>
       <footer class="carte__pied rangee rangee--espace">
-        <p class="t-legende" style="max-width:46ch">
-          Vos données vous appartiennent : export intégral et gratuit à tout moment, y compris
-          en cas de résiliation.
+        <p class="t-legende" style="max-width:40ch">
+          {% if depots_restants %}
+            Votre emplacement autorise encore {{ depots_restants }} dépôt{{ depots_restants|pluralize }}.
+          {% else %}
+            Votre emplacement n'autorise pas de dépôt supplémentaire.
+          {% endif %}
         </p>
-        <a class="btn btn--primaire" href="{% url 'export_donnees' %}">Exporter mes données</a>
+        {% if 'boutique.administrer' in droits and depots_restants %}
+          <a class="btn" href="{% url 'nouveau_depot' %}">
+            <svg><use href="#ic-plus"></use></svg> Nouveau dépôt
+          </a>
+        {% endif %}
       </footer>
     </section>
+  </div>
+
+  {% comment %}
+  Ce que chaque rôle voit, écrit à l'écran plutôt que laissé dans le code : un
+  gérant qui confie sa caisse doit pouvoir vérifier lui-même que la marge est
+  fermée à son caissier, sans avoir à croire quiconque sur parole.
+  {% endcomment %}
+  <div class="duo{% if not 'exporter' in droits %} duo--plein{% endif %}">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Ce que chaque rôle peut faire</h2>
+        <span class="puce"><svg><use href="#ic-verrou"></use></svg>Droits appliqués</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:16px">
+        {% for role in droits_par_role %}
+          <div class="colonne" style="gap:7px">
+            <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
+            {% for libelle in role.droits %}
+              <span class="rangee" style="gap:8px">
+                <svg class="icone-ligne" style="color:var(--bon)"><use href="#ic-check"></use></svg>
+                <span class="t-2">{{ libelle }}</span>
+              </span>
+            {% empty %}
+              <span class="t-legende">Aucun droit sur cette boutique.</span>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if 'exporter' in droits %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">Vos données</h2></header>
+        <div class="carte__corps colonne" style="gap:12px">
+          <p class="t-2">
+            Vos données vous appartiennent : <strong>export intégral et gratuit</strong> à tout
+            moment, y compris en cas de résiliation de votre emplacement.
+          </p>
+          <p class="t-2">
+            L'archive contient votre catalogue, votre stock valorisé, chaque mouvement avec son
+            coût, vos ventes et votre journal comptable — en CSV, lisibles par n'importe quel
+            tableur.
+          </p>
+        </div>
+        <footer class="carte__pied">
+          <a class="btn btn--primaire btn--bloc" href="{% url 'export_donnees' %}">
+            Exporter mes données
+          </a>
+        </footer>
+      </section>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

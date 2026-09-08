@@ -5,9 +5,11 @@
 {% block entete %}Ventes{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn btn--primaire" href="{% url 'caisse' %}">
-    <svg><use href="#ic-caisse"></use></svg> Nouvelle vente
-  </a>
+  {% if 'caisse.encaisser' in droits %}
+    <a class="btn btn--primaire" href="{% url 'caisse' %}">
+      <svg><use href="#ic-caisse"></use></svg> Nouvelle vente
+    </a>
+  {% endif %}
 {% endblock %}
 
 {% block contenu %}

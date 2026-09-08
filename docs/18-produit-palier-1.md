@@ -263,7 +263,8 @@ pas prouver seuls.
 |---|---|
 | `manifest.webmanifest` | L'application s'installe sur l'écran d'accueil, démarre sur la caisse |
 | `service-worker.js` | Coquille en cache : la caisse s'ouvre sans réseau |
-| `hors-ligne.js` | File d'attente des ventes non transmises, rejeu automatique |
+| `hors-ligne.js` | File d'attente **IndexedDB** des opérations non transmises, rejeu automatique, catalogue de secours |
+| `imprimante.js` | Pilote ESC/POS sur Bluetooth basse consommation |
 
 Le service worker est servi **depuis la racine** : sa portée est celle de son URL, et depuis
 `/static/js/` il n'aurait intercepté que `/static/js/`.
@@ -278,21 +279,25 @@ ressource, c'est une écriture.
 
 ### 7.2 — Les quatre règles de la file
 
-1. **Une vente encaissée n'est jamais perdue.** Elle part, ou elle attend. Le panier est vidé dès
-   la mise en file, pas à la confirmation du serveur : le client a payé, il attend son ticket, la
-   vente ne peut plus être reprise. C'est au serveur de rattraper le réseau, pas au vendeur.
+1. **Une opération enregistrée n'est jamais perdue.** Elle part, ou elle attend. Le panier est vidé
+   dès la mise en file, pas à la confirmation du serveur : le client a payé, il attend son ticket,
+   la vente ne peut plus être reprise. C'est au serveur de rattraper le réseau, pas au vendeur.
 2. **Le rejeu est séquentiel.** La numérotation des tickets doit rester déterministe ; deux ventes
    envoyées en parallèle se disputeraient le même numéro.
-3. **Une erreur métier sort de la file.** Réessayer indéfiniment une vente que le serveur refuse ne
-   la fera jamais passer, et bloquerait toutes les suivantes derrière elle.
+3. **Une erreur métier sort de la file.** Réessayer indéfiniment une opération que le serveur refuse
+   ne la fera jamais passer, et bloquerait toutes les suivantes derrière elle.
 4. **Une erreur réseau reste dans la file.** C'est exactement le cas pour lequel elle existe.
 
-Le nombre de ventes en attente est affiché en permanence dans le bandeau. L'état du réseau ne se
+Le nombre d'opérations en attente est affiché en permanence dans le bandeau. L'état du réseau ne se
 découvre pas au moment de l'échec.
+
+La file ne transporte plus seulement des ventes : chaque entrée porte son URL, et le vidage ne
+connaît rien du métier qu'il achemine. C'est ce qui a permis d'y ajouter les réceptions de
+marchandise sans toucher à la mécanique de rejeu.
 
 ### 7.3 — Ce qui a été prouvé, et comment
 
-`scripts/verifier-hors-ligne.js` coupe réellement le réseau du navigateur et vérifie huit points :
+`scripts/verifier-hors-ligne.js` coupe réellement le réseau du navigateur et vérifie quinze points :
 
 ```
 ok  une vente en ligne est transmise immédiatement
@@ -304,22 +309,145 @@ ok  la file survit au rechargement de la page
 ok  la file se vide au retour du réseau
 ok  les trois ventes sont arrivées au serveur
 ok  la même clé d'idempotence ne crée qu'un ticket
+ok  la caisse affiche son catalogue sans réseau
+ok  la fraîcheur du catalogue est annoncée
+ok  hors ligne, la réception est conservée
+ok  la file mélange ventes et mouvements de stock
+ok  la réception part au retour du réseau
+ok  le mouvement est bien inscrit au journal du stock
 ```
 
-Le dernier point est celui qui rend tout le reste possible : **c'est parce que le serveur est
+Le neuvième point est celui qui rend tout le reste possible : **c'est parce que le serveur est
 idempotent que le rejeu est sûr.**
+
+C'est aussi ce script qui a trouvé un défaut invisible autrement : `hors-ligne.js` est chargé en
+`defer`, donc **après** les scripts en ligne des pages. Le compteur d'opérations en attente du
+bandeau s'abonnait à un objet qui n'existait pas encore, et restait muet sans qu'aucune erreur ne
+soit levée (docs/19, §7.6).
 
 ---
 
-## 8. Ce qui reste avant d'ouvrir à un vrai client
+## 8. Les cinq manques du palier 1, comblés
+
+Les cinq points listés ici comme bloquants ont été traités. Ce qu'ils ont chacun coûté, et ce que
+chacun a appris.
+
+### 8.1 — Rôles et permissions dans les vues
+
+C'était le plus urgent, et ce n'était pas une fonctionnalité : **tout utilisateur rattaché voyait
+tout, la marge comprise.** Un coût d'achat affiché sur un écran ouvert au comptoir circule dans le
+quartier avant la fin de la journée.
+
+La matrice vit dans `apps/accounts/permissions.py`, en code. Onze droits élémentaires, dont deux
+qu'il fallait absolument séparer :
+
+- **`cout.voir`** — ce que la marchandise a coûté. Le magasinier en a besoin : il saisit des prix
+  d'achat.
+- **`marge.voir`** — ce qu'elle rapporte. Le magasinier n'a aucune raison d'y accéder.
+
+| Rôle | Ce qu'il ouvre |
+|---|---|
+| Gérant | Tout |
+| Caissier · Vendeur | Caisse, ventes, stock — **ni coût, ni marge** |
+| Magasinier | Stock, mouvements, coûts d'achat — **pas la marge**, pas la caisse |
+| Comptable | Comptabilité, marge, coûts, export — pas le stock, pas la caisse |
+| RH | Fiche de la boutique |
+
+Trois décisions de conception valent d'être notées :
+
+1. **La source de vérité est en code, pas en base.** `Role.permissions` n'est qu'un miroir
+   d'affichage. Une table modifiable à chaud n'a pas à pouvoir ouvrir la marge à un caissier.
+2. **Le tableau de bord est composé, pas grisé.** Un magasinier n'a pas la version amputée du
+   tableau du gérant : il a le sien — mouvements du jour, valeur du stock, réapprovisionnement.
+   Et la marge n'est pas cachée en CSS, elle **n'est pas calculée** : un `display:none` voyage
+   quand même sur le réseau.
+3. **Le refus est explicite.** Un 403 qui nomme le rôle et le droit manquant, pas une redirection
+   silencieuse — sinon l'utilisateur croit à une panne et appelle.
+
+L'écran « Ma boutique » affiche la matrice appliquée à l'équipe réelle : un gérant qui confie sa
+caisse doit pouvoir vérifier lui-même que la marge est fermée à sa caissière.
+
+### 8.2 — Catalogue hors ligne
+
+La caisse s'ouvrait sans réseau, mais sur la page en cache — **catalogue figé compris**. Un article
+créé le matin restait invisible l'après-midi sur un poste hors ligne.
+
+La grille est désormais reconstruite au chargement à partir de `/caisse/catalogue.json`, rangé dans
+IndexedDB à chaque passage en ligne. Sans réseau, on ressort le dernier catalogue connu, **avec sa
+date affichée en clair** : « catalogue du 12/03 à 17:41, les quantités peuvent avoir bougé ». Un
+catalogue périmé présenté comme frais serait pire qu'un catalogue daté.
+
+Le rendu serveur reste en place : la caisse fonctionne sans JavaScript.
+
+### 8.3 — Mouvements de stock hors ligne
+
+Seules les ventes étaient mises en file. Une réception saisie au moment où le réseau tombait était
+perdue — et le camion, lui, était bien reparti : la marchandise était en réserve et absente du
+système.
+
+Deux changements :
+
+- `POST /stock/<id>/entree.json` accepte une réception **idempotente**, avec la même clé
+  d'opération qu'un ticket. Sans elle, un rejeu fausserait le coût moyen pondéré à chaque
+  retransmission.
+- `localStorage` a cédé la place à **IndexedDB**. Il était synchrone, plafonné à quelques
+  mégaoctets et partagé avec tout le reste ; il tenait pour trente tickets, pas pour une file
+  hétérogène plus un catalogue. Un repli sur `localStorage` subsiste pour les navigateurs qui
+  refusent IndexedDB : mieux vaut une file dégradée qu'aucune.
+
+Détail qui compte : la clé primaire de la file est **auto-incrémentée**, pas l'identifiant
+d'opération. L'ordre des clés est l'ordre d'insertion, et c'est lui qui garantit le rejeu
+séquentiel ; un UUID en clé primaire aurait donné un ordre aléatoire — et des numéros de tickets
+dans le désordre.
+
+### 8.4 — Multi-dépôts dans l'interface
+
+Le modèle portait les dépôts depuis le premier jour ; les écrans supposaient le principal. Une
+réserve et un comptoir ont pourtant des stocks différents, et un comptage fait dans la mauvaise
+réserve produit des écarts inventés de toutes pièces.
+
+- Un **dépôt d'exploitation** est choisi dans le bandeau — celui où l'on encaisse, où l'on reçoit,
+  où l'on compte. Le sélecteur n'apparaît qu'à partir de deux dépôts.
+- **Une session de caisse ouverte l'emporte sur ce choix.** Changer de dépôt en cours de journée ne
+  déplace pas la caisse ; sinon une vente sortirait le stock d'une réserve pendant qu'on encaisse
+  au comptoir.
+- La liste de stock garde son **propre** filtre de dépôt : ici on consulte, là-bas on travaille.
+- Un écran de **transfert** a été ajouté. Le dépôt source n'y est pas un champ : c'est le dépôt
+  courant. On sort la marchandise du dépôt où l'on se trouve, pas d'un dépôt désigné de loin.
+- L'ouverture d'un dépôt respecte le **quota de l'emplacement loué** — une contrainte commerciale
+  (docs/03, §1.1), donc annoncée à l'écran autant qu'appliquée.
+
+### 8.5 — Impression thermique directe
+
+`window.print()` ouvre la boîte de dialogue du navigateur, qui ne sait pas parler à la bobine posée
+sur le comptoir. Le pilote `imprimante.js` compose un ruban ESC/POS et l'envoie en Bluetooth basse
+consommation.
+
+Trois choix imposés par le terrain :
+
+- **Les accents sont repliés sur l'ASCII.** Les imprimantes bon marché démarrent en CP437 et
+  ignorent la commande qui change de table : un « é » y sort en caractère grec. Un ticket sans
+  accents reste lisible ; un ticket en charabia, non.
+- **La largeur est un réglage**, 32 ou 48 colonnes, mémorisé. Le parc est partagé entre bobines
+  58 et 80 mm.
+- **Le ruban est composé à partir des données du ticket**, pas en grattant le DOM : un changement
+  de gabarit ne doit pas casser silencieusement l'impression.
+
+**Ce que cela ne couvre pas, et il faut le dire :** iOS n'expose Web Bluetooth dans aucun
+navigateur ; les imprimantes USB, Wi-Fi et Bluetooth « classique » (SPP) restent hors d'atteinte ;
+et la page doit être servie en HTTPS. Là, l'impression navigateur et le partage WhatsApp restent
+les chemins — et une application native reste nécessaire pour un pilotage complet.
+
+---
+
+## 9. Ce qui reste avant d'ouvrir à un vrai client
 
 | Sujet | Pourquoi ce n'est pas encore fait |
 |---|---|
-| **Catalogue hors ligne** | La caisse s'ouvre sans réseau, mais sur la dernière version en cache. Un article créé pendant la coupure n'y est pas |
-| **Mouvements de stock hors ligne** | Seules les ventes sont mises en file. Une réception saisie hors ligne est perdue — `localStorage` devra céder la place à IndexedDB |
-| **Multi-dépôts dans l'interface** | Le modèle les porte, les écrans supposent un dépôt principal |
-| **Impression thermique directe** | Le navigateur imprime ; le pilotage direct d'une imprimante Bluetooth demandera une application native |
-| **Rôles et permissions dans les vues** | Tout utilisateur rattaché voit tout. Un caissier ne devrait pas voir la marge |
+| **Sécurité au niveau ligne PostgreSQL** | Barrières 1 et 2 en place ; la 3ᵉ attend le paramètre de session porté par la connexion (docs/09, §3.2). C'est désormais le point le plus urgent |
+| **Gestion de l'équipe** | Les droits sont appliqués et affichés, mais inviter un employé ou changer son rôle passe encore par l'administration Django |
+| **Adaptateurs Mobile Money** | L'interface est définie, les implémentations MTN / Orange / Camtel restent à écrire |
+| **Impression hors Bluetooth LE** | Voir §8.5 : USB, Wi-Fi, SPP et iOS demandent une application native |
 
-**Le dernier point est le plus urgent des cinq** : montrer la marge à un caissier est un problème
-avant d'être une fonctionnalité manquante.
+Aucun de ces quatre points n'est une fuite de données ni une perte de saisie. C'est la différence
+avec la liste précédente.

@@ -69,41 +69,63 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 116 tests
+make tester                     # 156 tests
 ```
 
-Comptes de démonstration (mot de passe `demo1234`) :
-`+237699110011` — Quincaillerie Ateba, Douala · `+237677220022` — Bella Cosmétiques, Yaoundé.
+Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
+
+| Téléphone | Rôle | Ce qu'il voit |
+|---|---|---|
+| `+237699110011` | Gérant, Quincaillerie Ateba | Tout |
+| `+237699110022` | Caissière, Quincaillerie Ateba | Caisse, ventes, stock — **ni coût, ni marge** |
+| `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge** |
+| `+237677220022` | Gérante, Bella Cosmétiques | Tout |
+| `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
 ## Le back-office marchand
 
-Dix écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
+Treize écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
 Captures dans [`captures/`](captures/) — régénérables par `node scripts/captures.js`.
 
 | Écran | Ce qu'il fait |
 |---|---|
-| **Tableau de bord** | Ventes du jour, **marge réelle au coût moyen pondéré**, valeur du stock, alertes, graphe sur 14 jours |
+| **Tableau de bord** | Ventes du jour, **marge réelle au coût moyen pondéré**, valeur du stock, alertes, graphe sur 14 jours — composé selon le rôle |
 | **Caisse** ★ | Grille tactile, recherche et code-barres, ticket, 3 moyens de paiement, encaissement idempotent |
-| **Stock** | Liste, filtres, valeur au CMP, historique des mouvements par article |
+| **Stock** | Liste, filtres, filtre par dépôt, valeur au CMP, historique des mouvements par article |
 | **Ventes** | Journal des tickets clôturés, HT / TVA / TTC |
 | **Comptabilité** | Balance SYSCOHADA, dernières écritures, marge brute — en lecture seule |
-| **Ma boutique** | Identité, bail, équipe, dépôts, **export intégral en CSV** |
+| **Ma boutique** | Identité, bail, équipe, dépôts, **droits de chaque rôle**, export intégral en CSV |
 | **Nouvel article** | Produit, prix, coût, quantité et seuil en un seul formulaire |
 | **Inventaire** | Comptage physique, théorique masqué, écarts régularisés par ajustement |
+| **Entrée de stock** | Réception fournisseur, CMP recalculé, **mise en file si le réseau manque** |
+| **Transfert** | Déplacement entre dépôts : ni création ni destruction de valeur |
+| **Nouveau dépôt** | Ouverture d'une réserve, dans la limite du quota de l'emplacement loué |
 | **Session de caisse** | Ouverture sur fonds déclaré, fermeture sur comptage, écart calculé |
-| **Ticket** | Format bande 80 mm, mentions légales, impression ou partage WhatsApp |
+| **Ticket** | Bande 80 mm, mentions légales, **impression thermique Bluetooth**, ou partage WhatsApp |
 
 Un encaissement produit d'un seul geste **le ticket, la sortie de stock au coût moyen et les trois
 écritures comptables** — c'est la promesse « zéro double saisie », et elle est testée de bout en
 bout.
 
+### Rôles et droits
+
+Un rattachement à une boutique n'est pas un droit sur tout ce qu'elle contient. Onze droits
+élémentaires, attribués par rôle dans [`apps/accounts/permissions.py`](apps/accounts/permissions.py),
+séparent notamment **le coût d'achat** (que le magasinier saisit) de **la marge** (qui ne regarde
+que le gérant et le comptable).
+
+Un droit refusé ne masque pas une valeur en CSS : **elle n'est pas calculée**. Un `display:none`
+voyage quand même sur le réseau.
+
 ### Mode hors ligne
 
 L'application s'installe sur l'écran d'accueil et **la caisse fonctionne sans réseau**. Une vente
-encaissée hors ligne est mise en file, survit au rechargement, et part seule au retour du réseau —
-sans jamais se dédoubler, parce que le serveur est idempotent.
+encaissée ou une réception saisie hors ligne est mise en file dans IndexedDB, survit au
+rechargement, et part seule au retour du réseau — sans jamais se dédoubler, parce que le serveur est
+idempotent. Le catalogue est rangé à chaque passage en ligne, et ressorti daté quand le réseau
+manque.
 
 ```bash
 node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie les 9 points
@@ -115,12 +137,15 @@ node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie le
 - [x] Étude de marché et business plan
 - [x] Dossier de conception fonctionnelle et technique
 - [x] **Lot 0** — Socle Django : multi-tenant, rôles, emplacements, isolation prouvée par les tests
-- [x] **Interface du palier 1** — 10 écrans, système de design, captures de recette
+- [x] **Interface du palier 1** — 13 écrans, système de design, captures de recette
 - [x] **Reprise de stock, inventaire, session de caisse, ticket, export intégral**
-- [x] **Mode hors ligne** — application installable, file de ventes, rejeu idempotent
+- [x] **Mode hors ligne** — application installable, file IndexedDB, catalogue de secours, rejeu idempotent
+- [x] **Rôles et droits** — le coût et la marge fermés à qui n'a pas à les voir, refus explicites
+- [x] **Multi-dépôts** — dépôt d'exploitation, transferts, quota d'emplacement
+- [x] **Impression thermique** — pilote ESC/POS sur Bluetooth basse consommation
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
-  *(restent les rôles et permissions dans les vues, le catalogue hors ligne et les adaptateurs
-  Mobile Money — voir [docs/18](docs/18-produit-palier-1.md), §8)*
+  *(restent la sécurité au niveau ligne PostgreSQL, la gestion de l'équipe et les adaptateurs
+  Mobile Money — voir [docs/18](docs/18-produit-palier-1.md), §9)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

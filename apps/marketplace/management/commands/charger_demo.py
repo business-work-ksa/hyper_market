@@ -22,7 +22,7 @@ from apps.catalog.models import Categorie, Produit, Variante
 from apps.core.tenancy import contexte_boutique
 from apps.accounting.models import EcritureComptable
 from apps.inventory.models import Depot, MouvementStock, NiveauStock
-from apps.inventory.services import enregistrer_mouvement, entrer_stock
+from apps.inventory.services import enregistrer_mouvement, entrer_stock, transferer_stock
 from apps.marketplace.models import Bail, Boutique, Rayon, TypeEmplacement
 from apps.pos import services as caisse
 from apps.pos.models import Ticket
@@ -40,6 +40,13 @@ BOUTIQUES = [
         "niu": "M031912345678A",
         "ville": "Douala",
         "gerant": ("+237699110011", "Jean-Pierre Ateba"),
+        # Une équipe aux rôles distincts : c'est ce qui rend visible le fait que
+        # tout le monde ne voit pas la même chose (apps/accounts/permissions.py).
+        "equipe": [
+            ("+237699110022", "Marie Ekedi", Role.CAISSIER),
+            ("+237699110033", "Salomon Bidzogo", Role.MAGASINIER),
+        ],
+        "reserve": "Réserve Bonabéri",
         "produits": [
             # (sku, libellé, prix TTC, coût, quantité initiale, seuil d'alerte)
             ("QUI-CIM-50", "Ciment CIMENCAM 50 kg", "6500", "5200", 900, 120),
@@ -61,6 +68,8 @@ BOUTIQUES = [
         "niu": "M032187654321B",
         "ville": "Yaoundé",
         "gerant": ("+237677220022", "Élisabeth Ngo Bell"),
+        "equipe": [("+237677220033", "Nadège Fotso", Role.COMPTABLE)],
+        "reserve": None,
         "produits": [
             ("COS-KAR-500", "Beurre de karité brut 500 g", "4500", "2400", 820, 110),
             ("COS-HUI-COC", "Huile de coco vierge 250 ml", "3200", "1600", 760, 100),
@@ -146,15 +155,31 @@ class Command(BaseCommand):
         Appartenance.objects.get_or_create(
             utilisateur=gerant, boutique=boutique, role=role_gerant
         )
+        self._creer_equipe(boutique, donnees.get("equipe") or [])
 
         initialiser_boutique(boutique)
 
         with contexte_boutique(boutique):
-            self._garnir_boutique(boutique, rayon, gerant, donnees["produits"])
+            self._garnir_boutique(boutique, rayon, gerant, donnees)
 
         return boutique
 
-    def _garnir_boutique(self, boutique, rayon, gerant, produits):
+    def _creer_equipe(self, boutique, equipe):
+        for telephone, nom, code_role in equipe:
+            employe, cree = Utilisateur.objects.get_or_create(
+                telephone=telephone, defaults={"nom_complet": nom, "telephone_verifie": True}
+            )
+            if cree:
+                employe.set_password("demo1234")
+                employe.save(update_fields=["password"])
+            Appartenance.objects.get_or_create(
+                utilisateur=employe,
+                boutique=boutique,
+                role=Role.objects.get(code=code_role),
+            )
+
+    def _garnir_boutique(self, boutique, rayon, gerant, donnees):
+        produits = donnees["produits"]
         categorie, _ = Categorie.objects.get_or_create(
             rayon=rayon,
             slug=f"general-{rayon.code}",
@@ -201,6 +226,38 @@ class Command(BaseCommand):
 
         self._generer_historique(boutique, depot, gerant, variantes)
         self._creer_etats_de_stock(depot, gerant, variantes)
+        self._ouvrir_reserve(boutique, depot, gerant, variantes, donnees.get("reserve"))
+
+    def _ouvrir_reserve(self, boutique, principal, gerant, variantes, libelle):
+        """Second dépôt et transferts, pour que le multi-dépôts soit visible.
+
+        Une quincaillerie tient rarement tout son ciment derrière le comptoir :
+        la réserve est le cas normal, pas une option de configuration.
+        """
+        if not libelle:
+            return
+
+        reserve, cree = Depot.objects.get_or_create(
+            boutique=boutique,
+            libelle=libelle,
+            defaults={"type": Depot.RESERVE, "principal": False},
+        )
+        if not cree:
+            return
+
+        for variante in variantes[:3]:
+            niveau = NiveauStock.objects.filter(depot=principal, variante=variante).first()
+            if niveau is None or niveau.quantite <= 10:
+                continue
+            transferer_stock(
+                depot_source=principal,
+                depot_cible=reserve,
+                variante=variante,
+                quantite=(niveau.quantite / 3).quantize(Decimal("1")),
+                origine_type="demo",
+                commentaire="Mise en réserve à l'installation",
+                cree_par=gerant,
+            )
 
     def _generer_historique(self, boutique, depot, gerant, variantes):
         """Vingt jours de ventes comptoir, pour que le tableau de bord ait du sens.

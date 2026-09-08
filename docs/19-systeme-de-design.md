@@ -14,6 +14,7 @@ celle-là, et consigne les pièges rencontrés.
 | Une ligne de caisse en moins de 4 secondes | La grille d'articles est l'écran, pas un menu. Aucun aller-retour réseau à la saisie |
 | Le gérant regarde son téléphone, le caissier une tablette | Rail latéral sur bureau, barre d'onglets en bas sur mobile |
 | Écran allumé toute la journée dans une boutique sombre | Mode sombre à valeurs choisies, pas une inversion |
+| Le gérant, le caissier et le magasinier partagent le même logiciel | Les écrans sont **composés** par rôle, pas grisés : chacun a le sien, aucun n'a une version amputée de celui du patron |
 
 > **« Premium » ne veut pas dire chargé.** Ici : hiérarchie nette, typographie tenue, couleur rare
 > et intentionnelle, aucune latence. Une ombre portée coûte moins cher qu'une image, et une page
@@ -132,7 +133,7 @@ remplissages, et une légende à pastille + libellé + valeur.
 
 ---
 
-## 7. Quatre pièges rencontrés, et leur correctif
+## 7. Six pièges rencontrés, et leur correctif
 
 Consignés parce qu'ils se reproduiront.
 
@@ -177,10 +178,50 @@ quand une consigne demande de ne pas regarder quelque chose, l'interface ne doit
 Ce défaut n'apparaît dans aucun test — l'écran fonctionnait parfaitement. Il s'est vu sur une
 capture.
 
+### 7.5 — Une grille figée trahit un écran conditionnel
+
+`.duo` est une grille à deux colonnes de proportions fixes (1,62 / 1). Elle a très bien tenu tant
+que ses deux cartes existaient toujours. Le jour où les droits ont pu en refuser une, la carte
+restante est restée dans sa colonne étroite et l'autre moitié de l'écran est devenue un trou.
+
+**Correctif :** un modificateur `.duo--plein` qui repasse la grille à une seule colonne, posé par le
+gabarit quand un seul des deux enfants est ouvert au rôle.
+
+La règle générale : **dès qu'un conteneur peut perdre un enfant, sa mise en page doit le prévoir.**
+Une grille dimensionnée pour un contenu certain se casse dès que le contenu devient conditionnel —
+et le rendu conditionnel arrive toujours plus tard que la grille.
+
+### 7.6 — Un script `defer` s'exécute après les scripts en ligne, pas avant
+
+`hors-ligne.js` est chargé dans l'en-tête avec `defer`. Les scripts en ligne des pages, eux,
+s'exécutent pendant l'analyse du document — donc **avant** lui. Tout code en ligne qui lisait
+`window.HorsLigne` au premier passage trouvait `undefined`, sortait par sa garde, et ne faisait
+rien. Sans erreur, sans avertissement, sans trace.
+
+Conséquences réelles avant correction : le compteur d'opérations en attente du bandeau ne s'est
+jamais abonné à la file, et la synchronisation du catalogue de la caisse ne s'est jamais lancée.
+Les deux gardes `if (window.X)` avaient exactement la forme d'une précaution raisonnable.
+
+**Correctif :** s'abonner sur `DOMContentLoaded` — qui survient après l'exécution des scripts
+différés — ou, quand il s'agit d'intercepter une action, décider au moment de l'action plutôt qu'au
+chargement.
+
+La leçon dépasse ce cas : **une garde qui échoue silencieusement est un défaut permanent**. Si un
+`if (window.X) return;` protège quelque chose d'important, l'absence de `X` mérite une trace en
+console — sinon la fonctionnalité disparaît sans que personne l'apprenne.
+
+Aucun test Django ne pouvait l'attraper : c'est le script de vérification hors ligne, qui pilote un
+vrai navigateur, qui l'a mis au jour.
+
 > **Et un piège d'outillage, tout aussi coûteux :** `runserver --noreload` garde le module Python
-> en mémoire. Plusieurs corrections de `views.py` semblaient sans effet alors qu'elles étaient
-> justes — le serveur servait l'ancien code. **Après toute modification Python, redémarrer avant
-> de conclure quoi que ce soit d'une capture d'écran.**
+> en mémoire — **et les gabarits aussi**. Depuis Django 4.1, le chargeur de gabarits est mis en
+> cache même en `DEBUG` ; c'est le rechargement automatique qui redémarre le processus à chaque
+> modification, et `--noreload` le désactive précisément.
+>
+> Le symptôme est trompeur : une classe CSS ajoutée à un gabarit reste introuvable dans la page,
+> ce qui ressemble à une erreur de sélecteur. Une icône de 15 px continuait ainsi de s'afficher à
+> 200 px de haut, correctif appliqué. **Après toute modification de Python ou de gabarit,
+> redémarrer avant de conclure quoi que ce soit d'une capture d'écran.**
 
 ---
 

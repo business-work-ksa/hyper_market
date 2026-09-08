@@ -25,13 +25,25 @@ const PAGES = [
   { nom: 'ventes', url: '/ventes/' },
   { nom: 'comptabilite', url: '/comptabilite/' },
   { nom: 'boutique', url: '/boutique/' },
+  { nom: 'boutique-depot', url: '/boutique/depots/nouveau/' },
 ];
 
-async function connecter(page) {
+// Chacun de ces comptes ouvre sur un écran différent : c'est précisément ce que
+// les captures doivent montrer (docs/18, §8.1).
+const COMPTES = {
+  gerant: { telephone: '+237699110011', accueil: '/' },
+  caissiere: { telephone: '+237699110022', accueil: '/caisse/' },
+  magasinier: { telephone: '+237699110033', accueil: '/' },
+};
+
+async function connecter(page, compte = COMPTES.gerant) {
   await page.goto(BASE + '/connexion/', { waitUntil: 'networkidle' });
-  await page.fill('#telephone', '+237699110011');
+  await page.fill('#telephone', compte.telephone);
   await page.fill('#mot_de_passe', 'demo1234');
-  await Promise.all([page.waitForURL(BASE + '/'), page.click('button[type=submit]')]);
+  await Promise.all([
+    page.waitForURL(BASE + compte.accueil),
+    page.click('button[type=submit]'),
+  ]);
 }
 
 (async () => {
@@ -86,8 +98,44 @@ async function connecter(page) {
 
       await page.screenshot({ path: `${SORTIE}/${p.nom}-${theme}.png` });
     }
+
+    // Le transfert entre dépôts porte sur un article : on en prend un au vol
+    // dans la grille de la caisse, seul écran qui expose l'identifiant.
+    await page.goto(BASE + '/caisse/', { waitUntil: 'networkidle' });
+    const variante = await page.$eval('.article-tuile', (t) => t.dataset.id).catch(() => null);
+    if (variante) {
+      await page.goto(`${BASE}/stock/${variante}/transfert/`, { waitUntil: 'networkidle' });
+      await page.screenshot({ path: `${SORTIE}/stock-transfert-${theme}.png` });
+    }
+
     await contexte.close();
   }
+
+  // --- Les mêmes écrans, vus par d'autres rôles ----------------------------
+  // C'est la seule façon de vérifier qu'un caissier ne voit ni coût ni marge :
+  // aucun test ne montre à quoi ressemble sa page.
+  const roles = await navigateur.newContext({
+    viewport: { width: 1440, height: 940 },
+    deviceScaleFactor: 2,
+    colorScheme: 'light',
+    locale: 'fr-FR',
+  });
+  const pr = await roles.newPage();
+
+  await connecter(pr, COMPTES.caissiere);
+  await pr.goto(BASE + '/stock/', { waitUntil: 'networkidle' });
+  await pr.screenshot({ path: `${SORTIE}/stock-caissiere.png` });
+
+  // Un écran fermé : refus explicite, pas de redirection silencieuse.
+  await pr.goto(BASE + '/comptabilite/', { waitUntil: 'networkidle' });
+  await pr.screenshot({ path: `${SORTIE}/refus-caissiere.png` });
+
+  await connecter(pr, COMPTES.magasinier);
+  await pr.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await pr.waitForTimeout(250);
+  await pr.screenshot({ path: `${SORTIE}/tableau-de-bord-magasinier.png` });
+
+  await roles.close();
 
   // Mobile — la caisse est utilisée debout, sur un téléphone d'entrée de gamme.
   const mobile = await navigateur.newContext({

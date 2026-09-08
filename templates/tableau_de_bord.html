@@ -5,73 +5,114 @@
 {% block entete %}Tableau de bord{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn btn--primaire" href="{% url 'caisse' %}">
-    <svg><use href="#ic-caisse"></use></svg> Encaisser
-  </a>
+  {% if 'caisse.encaisser' in droits %}
+    <a class="btn btn--primaire" href="{% url 'caisse' %}">
+      <svg><use href="#ic-caisse"></use></svg> Encaisser
+    </a>
+  {% elif 'stock.mouvementer' in droits %}
+    <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
+      <svg><use href="#ic-plus"></use></svg> Nouvel article
+    </a>
+  {% endif %}
 {% endblock %}
 
 {% block contenu %}
 <div class="colonne">
 
-  {# ---- Rangée d'indicateurs -------------------------------------------- #}
-  {# Quatre chiffres, pas douze. Un tableau de bord qui dit tout ne dit rien. #}
+  {% comment %}
+  Quatre chiffres, pas douze : un tableau de bord qui dit tout ne dit rien.
+
+  Les tuiles sont **composées** selon les droits du rôle, pas grisées après coup.
+  Un magasinier n'a pas une version amputée du tableau du gérant : il a le sien —
+  mouvements du jour, valeur du stock, réapprovisionnement. Montrer une marge à
+  qui n'a pas à la connaître est un problème de données avant d'être une
+  question d'écran (apps/accounts/permissions.py).
+  {% endcomment %}
   <section class="tuiles" aria-label="Indicateurs du jour">
-    <article class="tuile">
-      <div class="tuile__libelle">
-        <svg><use href="#ic-argent"></use></svg>
-        <span class="t-sur-titre">Ventes du jour</span>
-      </div>
-      <p class="tuile__valeur">{{ ca_jour|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note">
-        {% if evolution is not None %}
-          {% if evolution >= 0 %}
-            <span class="ecart ecart--hausse"><svg><use href="#ic-hausse"></use></svg>{{ evolution|pourcent }}</span>
+    {% if 'ventes.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-argent"></use></svg>
+          <span class="t-sur-titre">Ventes du jour</span>
+        </div>
+        <p class="tuile__valeur">{{ ca_jour|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note">
+          {% if evolution is not None %}
+            {% if evolution >= 0 %}
+              <span class="ecart ecart--hausse"><svg><use href="#ic-hausse"></use></svg>{{ evolution|pourcent }}</span>
+            {% else %}
+              <span class="ecart ecart--baisse"><svg><use href="#ic-baisse"></use></svg>{{ evolution|pourcent }}</span>
+            {% endif %}
+            <span class="t-muet">vs hier</span>
           {% else %}
-            <span class="ecart ecart--baisse"><svg><use href="#ic-baisse"></use></svg>{{ evolution|pourcent }}</span>
+            <span class="t-muet">Première journée de vente</span>
           {% endif %}
-          <span class="t-muet">vs hier</span>
-        {% else %}
-          <span class="t-muet">Première journée de vente</span>
-        {% endif %}
-      </p>
-    </article>
+        </p>
+      </article>
+    {% elif 'stock.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-stock"></use></svg>
+          <span class="t-sur-titre">Mouvements du jour</span>
+        </div>
+        <p class="tuile__valeur">{{ mouvements_jour }}<span class="unite">écritures</span></p>
+        <p class="tuile__note"><span class="t-muet">Entrées, sorties et ajustements</span></p>
+      </article>
+    {% endif %}
 
-    <article class="tuile">
-      <div class="tuile__libelle">
-        <svg><use href="#ic-marge"></use></svg>
-        <span class="t-sur-titre">Marge du jour</span>
-      </div>
-      <p class="tuile__valeur">{{ marge_jour|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">{{ taux_marge|pourcent }} du chiffre d'affaires</span></p>
-    </article>
+    {% if 'marge.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-marge"></use></svg>
+          <span class="t-sur-titre">Marge du jour</span>
+        </div>
+        <p class="tuile__valeur">{{ marge_jour|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">{{ taux_marge|pourcent }} du chiffre d'affaires</span></p>
+      </article>
+    {% endif %}
 
-    <article class="tuile">
-      <div class="tuile__libelle">
-        <svg><use href="#ic-stock"></use></svg>
-        <span class="t-sur-titre">Valeur du stock</span>
-      </div>
-      <p class="tuile__valeur">{{ valeur_stock|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">{{ nb_references }} références, au coût moyen pondéré</span></p>
-    </article>
+    {% if 'cout.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-stock"></use></svg>
+          <span class="t-sur-titre">Valeur du stock</span>
+        </div>
+        <p class="tuile__valeur">{{ valeur_stock|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">{{ nb_references }} références, au coût moyen pondéré</span></p>
+      </article>
+    {% endif %}
 
-    <article class="tuile">
-      <div class="tuile__libelle">
-        <svg><use href="#ic-alerte"></use></svg>
-        <span class="t-sur-titre">À réapprovisionner</span>
-      </div>
-      <p class="tuile__valeur">{{ nb_ruptures|add:nb_sous_seuil }}<span class="unite">articles</span></p>
-      <p class="tuile__note">
-        {% if nb_ruptures %}
-          <span class="puce puce--critique"><svg><use href="#ic-rupture"></use></svg>{{ nb_ruptures }} en rupture</span>
-        {% else %}
-          <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Aucune rupture</span>
-        {% endif %}
-      </p>
-    </article>
+    {% if 'stock.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span class="t-sur-titre">À réapprovisionner</span>
+        </div>
+        <p class="tuile__valeur">{{ nb_ruptures|add:nb_sous_seuil }}<span class="unite">articles</span></p>
+        <p class="tuile__note">
+          {% if nb_ruptures %}
+            <span class="puce puce--critique"><svg><use href="#ic-rupture"></use></svg>{{ nb_ruptures }} en rupture</span>
+          {% else %}
+            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Aucune rupture</span>
+          {% endif %}
+        </p>
+      </article>
+    {% elif 'comptabilite.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-argent"></use></svg>
+          <span class="t-sur-titre">Trésorerie</span>
+        </div>
+        <p class="tuile__valeur">{{ tresorerie|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">Caisse et Mobile Money, solde comptable</span></p>
+      </article>
+    {% endif %}
   </section>
 
   {# ---- Graphique + santé du stock --------------------------------------- #}
-  <div class="duo">
+  {% if 'ventes.voir' in droits or 'stock.voir' in droits %}
+  <div class="duo{% if not 'ventes.voir' in droits or not 'stock.voir' in droits %} duo--plein{% endif %}">
+    {% if 'ventes.voir' in droits %}
     <section class="carte">
       <header class="carte__entete">
         <h2 class="t-section">Chiffre d'affaires, 14 derniers jours</h2>
@@ -82,7 +123,9 @@
         <div class="info-bulle" id="info-bulle" role="status" aria-live="polite"></div>
       </div>
     </section>
+    {% endif %}
 
+    {% if 'stock.voir' in droits %}
     <section class="carte">
       <header class="carte__entete">
         <h2 class="t-section">Santé du stock</h2>
@@ -134,9 +177,12 @@
         </div>
       </div>
     </section>
+    {% endif %}
   </div>
+  {% endif %}
 
   {# ---- Meilleures ventes + derniers tickets ----------------------------- #}
+  {% if 'ventes.voir' in droits %}
   <div class="duo">
     <section class="carte">
       <header class="carte__entete">
@@ -205,6 +251,7 @@
       </div>
     </section>
   </div>
+  {% endif %}
 </div>
 {% endblock %}
 

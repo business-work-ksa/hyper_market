@@ -5,7 +5,9 @@ stock, ventes, lecture comptable. Ni marketplace, ni logistique, ni paiement en
 ligne — ils viendront quand ils seront financés.
 
 Toutes les vues s'exécutent dans le contexte de la boutique courante, posé par
-`BoutiqueCouranteMiddleware` à partir de la session (docs/09, §3.2).
+`BoutiqueCouranteMiddleware` à partir de la session (docs/09, §3.2), et derrière
+le décorateur `exige` qui vérifie les droits du rôle (`apps.backoffice.acces`).
+Une vue décorée peut supposer que la boutique existe et que le droit est acquis.
 """
 
 import csv
@@ -13,25 +15,38 @@ import io
 import json
 import zipfile
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from apps.accounting.services import balance, solde_compte
+from apps.accounts import permissions as droit
+from apps.accounts.permissions import droits_de
+from apps.backoffice.acces import (
+    boutique_courante,
+    contexte_commun,
+    depot_courant,
+    depots_disponibles,
+    exige,
+    exige_json,
+    page_d_accueil,
+)
 from apps.backoffice.forms import (
     ArticleForm,
+    DepotForm,
     EntreeStockForm,
     FermetureCaisseForm,
     OuvertureCaisseForm,
+    TransfertStockForm,
 )
 from apps.catalog.models import Produit, Variante
 from apps.inventory.models import (
@@ -41,63 +56,17 @@ from apps.inventory.models import (
     MouvementStock,
     NiveauStock,
 )
-from apps.inventory.services import entrer_stock, regulariser_inventaire
+from apps.inventory.services import (
+    MouvementInvalide,
+    entrer_stock,
+    regulariser_inventaire,
+    transferer_stock,
+)
 from apps.marketplace.models import Boutique
 from apps.pos import services as caisse_service
 from apps.pos.models import LigneTicket, ReglementTicket, Ticket
 
 JOURS_HISTORIQUE = 14
-
-
-# ----------------------------------------------------------------------------
-# Session et boutique courante
-# ----------------------------------------------------------------------------
-def _boutique_courante(request) -> Boutique | None:
-    """Boutique de la session, avec repli sur l'appartenance unique.
-
-    Une session peut perdre sa boutique — cookie effacé, session régénérée après
-    changement de mot de passe, connexion par un autre chemin. Renvoyer alors le
-    gérant à l'écran de connexion serait absurde s'il n'appartient qu'à une seule
-    boutique : on la rétablit. Ce repli reprend celui du middleware de tenancy,
-    pour que la vue et le contexte de requête ne divergent jamais.
-    """
-    identifiant = request.session.get("boutique_id")
-    if identifiant:
-        boutique = Boutique.objects.filter(pk=identifiant).first()
-        if boutique is not None:
-            return boutique
-
-    utilisateur = getattr(request, "user", None)
-    if utilisateur is None or not utilisateur.is_authenticated:
-        return None
-
-    appartenances = list(
-        utilisateur.appartenances.filter(actif=True).select_related("boutique")[:2]
-    )
-    if len(appartenances) != 1:
-        # Zéro appartenance, ou plusieurs : c'est à l'utilisateur de choisir.
-        return None
-
-    boutique = appartenances[0].boutique
-    request.session["boutique_id"] = str(boutique.pk)
-    return boutique
-
-
-def _contexte_commun(request, page: str) -> dict:
-    boutique = _boutique_courante(request)
-    alertes = 0
-    if boutique is not None:
-        alertes = _niveaux_en_alerte().count()
-    return {"page": page, "boutique": boutique, "alertes": alertes or None}
-
-
-def _niveaux_en_alerte():
-    """Articles en rupture ou sous leur seuil de réapprovisionnement."""
-    from django.db.models import F, Q
-
-    return NiveauStock.objects.filter(
-        Q(quantite__lte=0) | Q(quantite__lte=F("seuil_alerte"))
-    ).select_related("variante__produit", "depot")
 
 
 # ----------------------------------------------------------------------------
@@ -128,7 +97,13 @@ def connexion(request):
                 status=403,
             )
         request.session["boutique_id"] = str(appartenance.boutique_id)
-        return redirect("tableau_de_bord")
+        request.session.pop("depot_id", None)
+
+        # Chacun ouvre sur l'écran qu'il peut réellement utiliser : un caissier
+        # arrive sur sa caisse, pas sur un tableau de bord dont toutes les tuiles
+        # lui sont fermées.
+        droits = droits_de(utilisateur, appartenance.boutique)
+        return redirect(page_d_accueil(droits))
 
     return render(request, "connexion.html")
 
@@ -139,55 +114,95 @@ def deconnexion(request):
 
 
 # ----------------------------------------------------------------------------
+# Dépôt d'exploitation
+# ----------------------------------------------------------------------------
+@exige()
+@require_POST
+def choisir_depot(request):
+    """Change le dépôt sur lequel portent caisse, réception et comptage."""
+    depot = Depot.objects.filter(pk=request.POST.get("depot"), actif=True).first()
+    if depot is not None:
+        request.session["depot_id"] = str(depot.pk)
+
+    suite = request.POST.get("suite") or ""
+    if not url_has_allowed_host_and_scheme(suite, allowed_hosts={request.get_host()}):
+        suite = "/"
+    return redirect(suite)
+
+
+# ----------------------------------------------------------------------------
 # Tableau de bord
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.TABLEAU_DE_BORD)
 def tableau_de_bord(request):
-    contexte = _contexte_commun(request, "tableau_de_bord")
-    if contexte["boutique"] is None:
-        return redirect("connexion")
+    """Le tableau de bord n'est pas le même écran pour tous les rôles.
+
+    Les tuiles sont composées à partir des droits, pas masquées après coup : un
+    magasinier n'a pas une version grisée du tableau du gérant, il a le sien —
+    mouvements du jour, valeur du stock, réapprovisionnement.
+    """
+    contexte = contexte_commun(request, "tableau_de_bord")
+    droits = contexte["droits"]
 
     aujourdhui = timezone.localdate()
     hier = aujourdhui - timedelta(days=1)
 
-    ca_jour = _chiffre_affaires(aujourdhui, aujourdhui)
-    ca_hier = _chiffre_affaires(hier, hier)
-    cout_jour = _cout_des_ventes(aujourdhui, aujourdhui)
+    if droit.VENTES_VOIR in droits:
+        ca_jour = _chiffre_affaires(aujourdhui, aujourdhui)
+        ca_hier = _chiffre_affaires(hier, hier)
+        serie = _serie_ventes(JOURS_HISTORIQUE)
+        contexte.update(
+            {
+                "ca_jour": ca_jour,
+                "evolution": ((ca_jour - ca_hier) / ca_hier * 100) if ca_hier else None,
+                "serie": serie,
+                "graphe": geometrie_graphe(serie),
+                "derniers_tickets": Ticket.objects.filter(etat=Ticket.CLOTURE).select_related(
+                    "session__caissier"
+                )[:6],
+                "meilleurs": _meilleurs_articles(7),
+            }
+        )
 
-    marge_jour = ca_jour - cout_jour
-    taux_marge = (marge_jour / ca_jour * 100) if ca_jour else Decimal("0")
-    evolution = ((ca_jour - ca_hier) / ca_hier * 100) if ca_hier else None
+        if droit.MARGE_VOIR in droits:
+            marge_jour = ca_jour - _cout_des_ventes(aujourdhui, aujourdhui)
+            contexte.update(
+                {
+                    "marge_jour": marge_jour,
+                    "taux_marge": (marge_jour / ca_jour * 100) if ca_jour else Decimal("0"),
+                }
+            )
 
-    serie = _serie_ventes(JOURS_HISTORIQUE)
-    niveaux = list(NiveauStock.objects.select_related("variante__produit"))
-    valeur_stock = sum((n.quantite * n.cmp for n in niveaux), Decimal("0"))
-    ruptures = [n for n in niveaux if n.quantite <= 0]
-    sous_seuil = [n for n in niveaux if 0 < n.quantite <= n.seuil_alerte]
-    sains = [n for n in niveaux if n.quantite > n.seuil_alerte]
+    if droit.STOCK_VOIR in droits:
+        niveaux = list(NiveauStock.objects.select_related("variante__produit"))
+        ruptures = [n for n in niveaux if n.quantite <= 0]
+        sous_seuil = [n for n in niveaux if 0 < n.quantite <= n.seuil_alerte]
+        sains = [n for n in niveaux if n.quantite > n.seuil_alerte]
+        contexte.update(
+            {
+                "nb_references": len(niveaux),
+                "nb_ruptures": len(ruptures),
+                "nb_sous_seuil": len(sous_seuil),
+                "nb_sains": len(sains),
+                "part_sains": _part(len(sains), len(niveaux)),
+                "part_sous_seuil": _part(len(sous_seuil), len(niveaux)),
+                "part_ruptures": _part(len(ruptures), len(niveaux)),
+                "alertes_stock": (ruptures + sous_seuil)[:6],
+                "mouvements_jour": MouvementStock.objects.filter(
+                    cree_le__date=aujourdhui
+                ).count(),
+            }
+        )
+        if droit.COUT_VOIR in droits:
+            contexte["valeur_stock"] = sum(
+                (n.quantite * n.cmp for n in niveaux), Decimal("0")
+            )
 
-    contexte.update(
-        {
-            "ca_jour": ca_jour,
-            "marge_jour": marge_jour,
-            "taux_marge": taux_marge,
-            "evolution": evolution,
-            "valeur_stock": valeur_stock,
-            "nb_references": len(niveaux),
-            "nb_ruptures": len(ruptures),
-            "nb_sous_seuil": len(sous_seuil),
-            "nb_sains": len(sains),
-            "part_sains": _part(len(sains), len(niveaux)),
-            "part_sous_seuil": _part(len(sous_seuil), len(niveaux)),
-            "part_ruptures": _part(len(ruptures), len(niveaux)),
-            "serie": serie,
-            "graphe": geometrie_graphe(serie),
-            "alertes_stock": (ruptures + sous_seuil)[:6],
-            "derniers_tickets": Ticket.objects.filter(etat=Ticket.CLOTURE).select_related(
-                "session__caissier"
-            )[:6],
-            "meilleurs": _meilleurs_articles(7),
-        }
-    )
+    if droit.COMPTABILITE_VOIR in droits:
+        contexte["tresorerie"] = solde_compte(
+            "571", boutique_id=contexte["boutique"].pk
+        ) + solde_compte("5311", boutique_id=contexte["boutique"].pk)
+
     return render(request, "tableau_de_bord.html", contexte)
 
 
@@ -383,18 +398,22 @@ def _meilleurs_articles(limite: int) -> list[dict]:
 # ----------------------------------------------------------------------------
 # Caisse
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
-def caisse(request):
-    contexte = _contexte_commun(request, "caisse")
-    if contexte["boutique"] is None:
-        return redirect("connexion")
+def _articles_caisse(depot) -> list[dict]:
+    """Catalogue vendable du dépôt, sous la forme consommée par la caisse.
 
+    Une seule construction, servie à deux endroits : le gabarit de la caisse et
+    le point d'entrée JSON qui alimente le catalogue hors ligne. Deux
+    représentations divergentes du même catalogue produiraient, tôt ou tard, une
+    tuile qui vend un prix que le serveur ne connaît pas.
+    """
     variantes = (
         Variante.objects.filter(actif=True)
         .select_related("produit", "produit__categorie")
         .order_by("produit__libelle")
     )
-    niveaux = {n.variante_id: n for n in NiveauStock.objects.all()}
+    niveaux = {}
+    if depot is not None:
+        niveaux = {n.variante_id: n for n in NiveauStock.objects.filter(depot=depot)}
 
     articles = []
     for variante in variantes:
@@ -404,18 +423,28 @@ def caisse(request):
                 "id": str(variante.id),
                 "libelle": variante.produit.libelle,
                 "sku": variante.sku,
+                "code_barres": variante.code_barres or "",
                 "prix": float(variante.prix_vente),
                 "taux_tva": float(variante.taux_tva),
                 "stock": float(niveau.quantite) if niveau else 0.0,
-                "categorie": variante.produit.categorie.libelle if variante.produit.categorie else "",
+                "categorie": (
+                    variante.produit.categorie.libelle if variante.produit.categorie else ""
+                ),
             }
         )
+    return articles
 
+
+@exige(droit.CAISSE_ENCAISSER)
+def caisse(request):
+    contexte = contexte_commun(request, "caisse")
+    depot = contexte["depot_courant"]
     session = _session_ouverte(request)
+
+    articles = _articles_caisse(session.depot if session else depot)
     contexte.update(
         {
             "articles": articles,
-            "articles_json": json.dumps(articles),
             "session_caisse": session,
             "tickets_session": (
                 Ticket.objects.filter(session=session, etat=Ticket.CLOTURE).count()
@@ -427,15 +456,40 @@ def caisse(request):
     return render(request, "caisse.html", contexte)
 
 
+@exige_json(droit.CAISSE_ENCAISSER)
+def catalogue_json(request):
+    """Catalogue du dépôt, pour le cache hors ligne de la caisse.
+
+    Le service worker sert la page de caisse depuis son cache quand le réseau
+    manque — mais une page en cache fige aussi son catalogue. Un article créé ce
+    matin serait invisible cet après-midi sur un poste hors ligne. La grille est
+    donc reconstruite à partir de ce point d'entrée, rangé dans IndexedDB à
+    chaque passage en ligne : l'écran est au pire aussi frais que la dernière
+    connexion, jamais aussi vieux que la page.
+    """
+    session = _session_ouverte(request)
+    depot = session.depot if session else depot_courant(request)
+    return JsonResponse(
+        {
+            "ok": True,
+            "genere_le": timezone.localtime().isoformat(timespec="seconds"),
+            "depot": str(depot.pk) if depot else None,
+            "articles": _articles_caisse(depot),
+        }
+    )
+
+
 def _session_ouverte(request):
     from apps.pos.models import SessionCaisse
 
-    return SessionCaisse.objects.filter(
-        caissier=request.user, etat=SessionCaisse.OUVERTE
-    ).select_related("depot").first()
+    return (
+        SessionCaisse.objects.filter(caissier=request.user, etat=SessionCaisse.OUVERTE)
+        .select_related("depot")
+        .first()
+    )
 
 
-@login_required(login_url="connexion")
+@exige_json(droit.CAISSE_ENCAISSER)
 @require_POST
 def caisse_encaisser(request):
     """Encaisse un panier : ticket, sortie de stock au CMP, écritures comptables.
@@ -443,10 +497,6 @@ def caisse_encaisser(request):
     Un seul appel déclenche toute la chaîne — c'est la promesse « zéro double
     saisie » (docs/07, §1.2).
     """
-    boutique = _boutique_courante(request)
-    if boutique is None:
-        return JsonResponse({"ok": False, "erreur": "Aucune boutique active."}, status=403)
-
     try:
         charge = json.loads(request.body or "{}")
     except json.JSONDecodeError:
@@ -456,13 +506,18 @@ def caisse_encaisser(request):
     if not lignes:
         return JsonResponse({"ok": False, "erreur": "Le panier est vide."}, status=400)
 
-    depot = Depot.objects.filter(principal=True).first() or Depot.objects.first()
+    # Une session ouverte est liée à son dépôt : elle l'emporte sur le dépôt
+    # choisi dans l'en-tête, sinon une vente sortirait le stock d'une réserve
+    # pendant qu'on encaisse au comptoir.
+    session = _session_ouverte(request)
+    depot = session.depot if session else depot_courant(request)
     if depot is None:
         return JsonResponse({"ok": False, "erreur": "Aucun dépôt configuré."}, status=400)
 
-    session = _session_ouverte(request) or caisse_service.ouvrir_session(
-        depot=depot, caissier=request.user, fonds_ouverture=Decimal("0")
-    )
+    if session is None:
+        session = caisse_service.ouvrir_session(
+            depot=depot, caissier=request.user, fonds_ouverture=Decimal("0")
+        )
 
     try:
         ticket = caisse_service.creer_ticket(
@@ -474,7 +529,12 @@ def caisse_encaisser(request):
             # Retransmission d'une opération déjà appliquée : on renvoie le résultat
             # précédent plutôt que de rejouer la vente (ADR-004).
             return JsonResponse(
-                {"ok": True, "numero": ticket.numero, "total": float(ticket.total_ttc), "rejoue": True}
+                {
+                    "ok": True,
+                    "numero": ticket.numero,
+                    "total": float(ticket.total_ttc),
+                    "rejoue": True,
+                }
             )
 
         for ligne in lignes:
@@ -498,25 +558,40 @@ def caisse_encaisser(request):
         return JsonResponse({"ok": False, "erreur": str(erreur)}, status=400)
 
     return JsonResponse(
-        {"ok": True, "numero": ticket.numero, "total": float(ticket.total_ttc), "rejoue": False}
+        {
+            "ok": True,
+            "numero": ticket.numero,
+            "total": float(ticket.total_ttc),
+            "ticket_id": str(ticket.pk),
+            "rejoue": False,
+        }
     )
 
 
 # ----------------------------------------------------------------------------
 # Stock
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.STOCK_VOIR)
 def stock(request):
-    contexte = _contexte_commun(request, "stock")
-    if contexte["boutique"] is None:
-        return redirect("connexion")
+    contexte = contexte_commun(request, "stock")
 
     recherche = (request.GET.get("q") or "").strip()
     filtre = request.GET.get("etat") or "tous"
 
+    # Le filtre de dépôt est confronté à la liste réelle plutôt qu'injecté tel
+    # quel : un identifiant fantaisiste dans l'URL doit produire « tous », pas
+    # une erreur de conversion.
+    connus = {str(d.pk) for d in contexte["depots"]}
+    depot_filtre = request.GET.get("depot") or "tous"
+    if depot_filtre not in connus:
+        depot_filtre = "tous"
+
     niveaux = NiveauStock.objects.select_related(
         "variante__produit", "variante__produit__categorie", "depot"
     ).order_by("variante__produit__libelle")
+
+    if depot_filtre != "tous":
+        niveaux = niveaux.filter(depot_id=depot_filtre)
 
     if recherche:
         from django.db.models import Q
@@ -537,17 +612,16 @@ def stock(request):
             "niveaux": niveaux,
             "recherche": recherche,
             "filtre": filtre,
+            "depot_filtre": depot_filtre,
             "valeur_totale": sum((n.quantite * n.cmp for n in niveaux), Decimal("0")),
         }
     )
     return render(request, "stock.html", contexte)
 
 
-@login_required(login_url="connexion")
+@exige(droit.STOCK_VOIR)
 def article(request, variante_id):
-    contexte = _contexte_commun(request, "stock")
-    if contexte["boutique"] is None:
-        return redirect("connexion")
+    contexte = contexte_commun(request, "stock")
 
     variante = Variante.objects.filter(pk=variante_id).select_related("produit").first()
     if variante is None:
@@ -557,7 +631,9 @@ def article(request, variante_id):
         {
             "variante": variante,
             "niveaux": NiveauStock.objects.filter(variante=variante).select_related("depot"),
-            "mouvements": MouvementStock.objects.filter(variante=variante).select_related("depot")[:30],
+            "mouvements": MouvementStock.objects.filter(variante=variante).select_related(
+                "depot"
+            )[:30],
         }
     )
     return render(request, "article.html", contexte)
@@ -566,35 +642,28 @@ def article(request, variante_id):
 # ----------------------------------------------------------------------------
 # Reprise et mouvements de stock
 # ----------------------------------------------------------------------------
-def _depot_principal():
-    return Depot.objects.filter(principal=True).first() or Depot.objects.first()
-
-
-@login_required(login_url="connexion")
+@exige(droit.STOCK_MOUVEMENTER)
 def nouvel_article(request):
     """Création d'un article avec son stock initial.
 
     C'est l'écran de l'installation : pendant un comptage debout dans une
     réserve, on ne remplit pas quatre écrans par référence.
     """
-    contexte = _contexte_commun(request, "stock")
+    contexte = contexte_commun(request, "stock")
     boutique = contexte["boutique"]
-    if boutique is None:
-        return redirect("connexion")
 
-    depot = _depot_principal()
+    depot = contexte["depot_courant"]
     if depot is None:
         depot = Depot.objects.create(
             boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True
         )
+        request.session["depot_id"] = str(depot.pk)
 
     if request.method == "POST":
         formulaire = ArticleForm(request.POST, boutique=boutique)
         if formulaire.is_valid():
             variante = _creer_article(formulaire.cleaned_data, boutique, depot, request.user)
-            messages.success(
-                request, f"« {variante.produit.libelle} » ajouté à votre stock."
-            )
+            messages.success(request, f"« {variante.produit.libelle} » ajouté à votre stock.")
             suite = "nouvel_article" if request.POST.get("enchainer") else "stock"
             return redirect(suite)
     else:
@@ -641,18 +710,16 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
     return variante
 
 
-@login_required(login_url="connexion")
+@exige(droit.STOCK_MOUVEMENTER)
 def entree_stock(request, variante_id):
     """Réception fournisseur : le CMP est recalculé par le moteur de stock."""
-    contexte = _contexte_commun(request, "stock")
-    if contexte["boutique"] is None:
-        return redirect("connexion")
+    contexte = contexte_commun(request, "stock")
 
     variante = Variante.objects.filter(pk=variante_id).select_related("produit").first()
     if variante is None:
         return redirect("stock")
 
-    depot = _depot_principal()
+    depot = contexte["depot_courant"]
     niveau = NiveauStock.objects.filter(variante=variante, depot=depot).first()
 
     if request.method == "POST":
@@ -680,19 +747,146 @@ def entree_stock(request, variante_id):
     return render(request, "stock_entree.html", contexte)
 
 
-@login_required(login_url="connexion")
+@exige_json(droit.STOCK_MOUVEMENTER)
+@require_POST
+def entree_stock_json(request, variante_id):
+    """Même réception, en JSON et **idempotente** — pour la file hors ligne.
+
+    Jusqu'ici, seules les ventes survivaient à une coupure. Une réception saisie
+    au moment où le réseau tombe était simplement perdue, et le camion reparti :
+    la marchandise était en réserve et absente du système. Le mouvement porte
+    désormais la même clé d'idempotence qu'un ticket, ce qui rend son rejeu sûr.
+    """
+    try:
+        charge = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "erreur": "Requête illisible."}, status=400)
+
+    variante = Variante.objects.filter(pk=variante_id).first()
+    if variante is None:
+        return JsonResponse({"ok": False, "erreur": "Article introuvable."}, status=400)
+
+    depot = Depot.objects.filter(pk=charge.get("depot"), actif=True).first() or depot_courant(
+        request
+    )
+    if depot is None:
+        return JsonResponse({"ok": False, "erreur": "Aucun dépôt configuré."}, status=400)
+
+    formulaire = EntreeStockForm(
+        {
+            "quantite": charge.get("quantite"),
+            "cout_unitaire": charge.get("cout_unitaire"),
+            "commentaire": charge.get("commentaire") or "",
+        }
+    )
+    if not formulaire.is_valid():
+        return JsonResponse(
+            {"ok": False, "erreur": _premiere_erreur(formulaire), "erreurs": formulaire.errors},
+            status=400,
+        )
+
+    try:
+        mouvement = entrer_stock(
+            depot=depot,
+            variante=variante,
+            quantite=formulaire.cleaned_data["quantite"],
+            cout_unitaire=formulaire.cleaned_data["cout_unitaire"],
+            origine_type="backoffice.reception",
+            operation_id=charge.get("operation_id") or None,
+            commentaire=formulaire.cleaned_data["commentaire"] or "Réception fournisseur",
+            cree_par=request.user,
+        )
+    except MouvementInvalide as erreur:
+        return JsonResponse({"ok": False, "erreur": str(erreur)}, status=400)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "variante": str(variante.pk),
+            "quantite_apres": float(mouvement.quantite_apres),
+            "cmp_apres": float(mouvement.cmp_apres),
+            "url": f"/stock/{variante.pk}/",
+        }
+    )
+
+
+def _premiere_erreur(formulaire) -> str:
+    for erreurs in formulaire.errors.values():
+        if erreurs:
+            return erreurs[0]
+    return "Saisie refusée."
+
+
+@exige(droit.STOCK_MOUVEMENTER)
+def transfert_stock(request, variante_id):
+    """Transfert d'un article entre deux dépôts de la boutique.
+
+    Un transfert interne ne crée ni ne détruit de valeur : la marchandise sort au
+    CMP du dépôt d'origine et entre au même coût dans le dépôt de destination.
+    C'est le seul écran par lequel un stock peut se déplacer sans passer par une
+    vente ou un inventaire.
+    """
+    contexte = contexte_commun(request, "stock")
+
+    variante = Variante.objects.filter(pk=variante_id).select_related("produit").first()
+    if variante is None:
+        return redirect("stock")
+
+    depots = depots_disponibles()
+    source = contexte["depot_courant"]
+    if source is None or len(depots) < 2:
+        messages.error(request, "Un transfert demande au moins deux dépôts.")
+        return redirect("article", variante_id=variante.pk)
+
+    niveau = NiveauStock.objects.filter(variante=variante, depot=source).first()
+
+    if request.method == "POST":
+        formulaire = TransfertStockForm(request.POST, depots=depots, source=source)
+        if formulaire.is_valid():
+            try:
+                transferer_stock(
+                    depot_source=source,
+                    depot_cible=formulaire.cleaned_data["cible"],
+                    variante=variante,
+                    quantite=formulaire.cleaned_data["quantite"],
+                    origine_type="backoffice.transfert",
+                    commentaire=formulaire.cleaned_data["commentaire"] or "Transfert interne",
+                    cree_par=request.user,
+                )
+            except MouvementInvalide as erreur:
+                formulaire.add_error(None, str(erreur))
+            else:
+                messages.success(
+                    request,
+                    f"{formulaire.cleaned_data['quantite']:.0f} unité(s) transférée(s) "
+                    f"vers « {formulaire.cleaned_data['cible'].libelle} ».",
+                )
+                return redirect("article", variante_id=variante.pk)
+    else:
+        formulaire = TransfertStockForm(depots=depots, source=source)
+
+    contexte.update(
+        {
+            "formulaire": formulaire,
+            "variante": variante,
+            "source": source,
+            "niveau": niveau,
+        }
+    )
+    return render(request, "stock_transfert.html", contexte)
+
+
+@exige(droit.STOCK_MOUVEMENTER)
 def inventaire(request):
     """Comptage physique du dépôt, puis régularisation par mouvements d'ajustement.
 
     Les écarts ne sont jamais écrits directement sur le niveau de stock : ils
     passent par le journal, comme tout le reste.
     """
-    contexte = _contexte_commun(request, "stock")
+    contexte = contexte_commun(request, "stock")
     boutique = contexte["boutique"]
-    if boutique is None:
-        return redirect("connexion")
 
-    depot = _depot_principal()
+    depot = contexte["depot_courant"]
     if depot is None:
         return redirect("stock")
 
@@ -713,7 +907,7 @@ def inventaire(request):
                 continue  # non compté : on ne suppose rien
             try:
                 valeur = Decimal(brut.replace(",", "."))
-            except (ArithmeticError, ValueError):
+            except (InvalidOperation, ArithmeticError, ValueError):
                 continue
             LigneInventaire.objects.create(
                 boutique=boutique,
@@ -751,20 +945,20 @@ def inventaire(request):
 # ----------------------------------------------------------------------------
 # Session de caisse
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.CAISSE_ENCAISSER)
 def session_caisse(request):
     """Ouverture et fermeture de caisse.
 
     Sans fermeture comptée, il n'y a pas d'écart de caisse — donc aucun contrôle
     du caissier. C'est la raison d'être de cet écran.
     """
-    contexte = _contexte_commun(request, "caisse")
-    boutique = contexte["boutique"]
-    if boutique is None:
-        return redirect("connexion")
+    contexte = contexte_commun(request, "caisse")
 
     session = _session_ouverte(request)
-    depot = _depot_principal()
+    depot = session.depot if session else contexte["depot_courant"]
+    if depot is None:
+        messages.error(request, "Aucun dépôt n'est ouvert : créez-en un avant d'encaisser.")
+        return redirect("boutique")
 
     if request.method == "POST":
         if session is None:
@@ -775,7 +969,7 @@ def session_caisse(request):
                     caissier=request.user,
                     fonds_ouverture=formulaire.cleaned_data["fonds_ouverture"],
                 )
-                messages.success(request, "Caisse ouverte. Bonne journée.")
+                messages.success(request, f"Caisse ouverte sur « {depot.libelle} ».")
                 return redirect("caisse")
         else:
             formulaire = FermetureCaisseForm(request.POST)
@@ -813,33 +1007,78 @@ def session_caisse(request):
 # ----------------------------------------------------------------------------
 # Ticket imprimable
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.VENTES_VOIR)
 def ticket(request, ticket_id):
     """Ticket au format bande 80 mm, imprimable ou partageable.
 
     Un client qui repart sans rien doute. À défaut d'imprimante, la page se
-    partage par WhatsApp.
+    partage par WhatsApp ; si l'appareil sait parler Bluetooth, elle part
+    directement sur la bobine (`static/js/imprimante.js`).
     """
-    contexte = _contexte_commun(request, "ventes")
+    contexte = contexte_commun(request, "ventes")
     boutique = contexte["boutique"]
-    if boutique is None:
-        return redirect("connexion")
 
-    ticket_vendu = (
-        Ticket.objects.filter(pk=ticket_id).select_related("session__caissier").first()
-    )
+    ticket_vendu = Ticket.objects.filter(pk=ticket_id).select_related("session__caissier").first()
     if ticket_vendu is None:
         return redirect("ventes")
+
+    lignes = list(LigneTicket.objects.filter(ticket=ticket_vendu))
+    reglements = list(ReglementTicket.objects.filter(ticket=ticket_vendu))
+    assujetti = boutique.regime_fiscal != Boutique.IGS
 
     contexte.update(
         {
             "ticket": ticket_vendu,
-            "lignes": LigneTicket.objects.filter(ticket=ticket_vendu),
-            "reglements": ReglementTicket.objects.filter(ticket=ticket_vendu),
-            "assujetti_tva": boutique.regime_fiscal != Boutique.IGS,
+            "lignes": lignes,
+            "reglements": reglements,
+            "assujetti_tva": assujetti,
+            "ticket_json": json.dumps(
+                _ticket_pour_impression(boutique, ticket_vendu, lignes, reglements, assujetti)
+            ),
         }
     )
     return render(request, "ticket.html", contexte)
+
+
+def _ticket_pour_impression(boutique, ticket_vendu, lignes, reglements, assujetti) -> dict:
+    """Modèle de données du ticket, indépendant de sa mise en page HTML.
+
+    L'imprimante thermique ne lit pas le DOM : elle reçoit du texte et des
+    commandes ESC/POS. Construire le ruban à partir de cette structure plutôt
+    qu'en grattant la page évite qu'un changement de gabarit casse silencieusement
+    l'impression.
+    """
+    return {
+        "enseigne": boutique.enseigne,
+        "raison_sociale": boutique.raison_sociale,
+        "rccm": boutique.rccm,
+        "niu": boutique.niu,
+        "ville": boutique.ville,
+        "telephone": boutique.telephone,
+        "numero": ticket_vendu.numero,
+        "date": timezone.localtime(ticket_vendu.cloture_le).strftime("%d/%m/%Y %H:%M")
+        if ticket_vendu.cloture_le
+        else "",
+        "caissier": ticket_vendu.session.caissier.nom_complet,
+        "client": ticket_vendu.client_nom,
+        "lignes": [
+            {
+                "libelle": ligne.libelle,
+                "quantite": float(ligne.quantite),
+                "pu": float(ligne.pu_ttc),
+                "total": float(ligne.total_ttc),
+                "remise": float(ligne.remise),
+            }
+            for ligne in lignes
+        ],
+        "total_ht": float(ticket_vendu.total_ht),
+        "total_tva": float(ticket_vendu.total_tva),
+        "total_ttc": float(ticket_vendu.total_ttc),
+        "assujetti_tva": assujetti,
+        "reglements": [
+            {"moyen": r.get_moyen_display(), "montant": float(r.montant)} for r in reglements
+        ],
+    }
 
 
 # ----------------------------------------------------------------------------
@@ -866,16 +1105,14 @@ def service_worker(request):
 # ----------------------------------------------------------------------------
 # Export des données
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.EXPORTER)
 def export_donnees(request):
     """Export intégral, gratuit, en CSV — la promesse de réversibilité tenue.
 
     Elle est écrite dans l'interface et dans le contrat de bail : elle doit être
     vraie avant le premier client payant (docs/01, §4.1 et docs/08, §8).
     """
-    boutique = _boutique_courante(request)
-    if boutique is None:
-        return redirect("connexion")
+    boutique = boutique_courante(request)
 
     tampon = io.BytesIO()
     with zipfile.ZipFile(tampon, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -897,7 +1134,7 @@ def _en_csv(entetes: list[str], lignes) -> str:
     graveur.writerow(entetes)
     graveur.writerows(lignes)
     # BOM : sans lui, Excel en français ouvre les accents en mojibake.
-    return "\ufeff" + sortie.getvalue()
+    return "﻿" + sortie.getvalue()
 
 
 def _tables_export(boutique) -> list[tuple]:
@@ -995,21 +1232,20 @@ def _notice_export(boutique) -> str:
 # ----------------------------------------------------------------------------
 # Ventes
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.VENTES_VOIR)
 def ventes(request):
-    contexte = _contexte_commun(request, "ventes")
-    if contexte["boutique"] is None:
-        return redirect("connexion")
+    contexte = contexte_commun(request, "ventes")
 
     tickets = list(
-        Ticket.objects.filter(etat=Ticket.CLOTURE)
-        .select_related("session__caissier", "session__depot")[:60]
+        Ticket.objects.filter(etat=Ticket.CLOTURE).select_related(
+            "session__caissier", "session__depot"
+        )[:60]
     )
     lignes_par_ticket = {}
     for ligne in LigneTicket.objects.filter(ticket__in=tickets):
         lignes_par_ticket.setdefault(ligne.ticket_id, []).append(ligne)
-    for ticket in tickets:
-        ticket.lignes_affichees = lignes_par_ticket.get(ticket.id, [])
+    for ticket_vendu in tickets:
+        ticket_vendu.lignes_affichees = lignes_par_ticket.get(ticket_vendu.id, [])
 
     contexte.update(
         {
@@ -1024,12 +1260,10 @@ def ventes(request):
 # ----------------------------------------------------------------------------
 # Comptabilité
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.COMPTABILITE_VOIR)
 def comptabilite(request):
-    contexte = _contexte_commun(request, "comptabilite")
+    contexte = contexte_commun(request, "comptabilite")
     boutique = contexte["boutique"]
-    if boutique is None:
-        return redirect("connexion")
 
     lignes = balance(boutique_id=boutique.pk)
     total_debit = sum((l["debit"] for l in lignes), Decimal("0"))
@@ -1065,18 +1299,90 @@ def comptabilite(request):
 # ----------------------------------------------------------------------------
 # Boutique
 # ----------------------------------------------------------------------------
-@login_required(login_url="connexion")
+@exige(droit.BOUTIQUE_VOIR)
 def boutique(request):
-    contexte = _contexte_commun(request, "boutique")
+    contexte = contexte_commun(request, "boutique")
     fiche = contexte["boutique"]
-    if fiche is None:
-        return redirect("connexion")
+
+    bail = fiche.bail_actif
+    depots = list(Depot.objects.all())
+    quota = bail.type_emplacement.quota_depots if bail else 1
 
     contexte.update(
         {
-            "bail": fiche.bail_actif,
-            "depots": Depot.objects.all(),
+            "bail": bail,
+            "depots": depots,
+            "quota_depots": quota,
+            "depots_restants": max(quota - len(depots), 0),
             "equipe": fiche.appartenances.filter(actif=True).select_related("utilisateur", "role"),
+            "droits_par_role": _droits_par_role(fiche),
         }
     )
     return render(request, "boutique.html", contexte)
+
+
+def _droits_par_role(fiche) -> list[dict]:
+    """Ce que chaque rôle présent dans l'équipe peut réellement faire.
+
+    Écrit à l'écran plutôt que laissé dans le code : un gérant qui confie sa
+    caisse doit pouvoir vérifier lui-même ce que son caissier voit, sans avoir à
+    croire sur parole que la marge lui est fermée.
+    """
+    from apps.accounts.permissions import LIBELLES, droits_du_role
+
+    vus = []
+    codes = []
+    for appartenance in fiche.appartenances.filter(actif=True).select_related("role"):
+        if appartenance.role_id in codes:
+            continue
+        codes.append(appartenance.role_id)
+        vus.append(
+            {
+                "libelle": appartenance.role.libelle,
+                "droits": [LIBELLES[d] for d in sorted(droits_du_role(appartenance.role_id))],
+            }
+        )
+    return vus
+
+
+@exige(droit.BOUTIQUE_ADMINISTRER)
+def nouveau_depot(request):
+    """Ajout d'un dépôt, dans la limite du quota de l'emplacement loué.
+
+    Le quota n'est pas une contrainte technique mais commerciale : il fait partie
+    de la grille tarifaire (docs/03, §1.1). Il est donc annoncé, pas seulement
+    appliqué.
+    """
+    contexte = contexte_commun(request, "boutique")
+    fiche = contexte["boutique"]
+
+    bail = fiche.bail_actif
+    quota = bail.type_emplacement.quota_depots if bail else 1
+    existants = Depot.objects.count()
+
+    if existants >= quota:
+        messages.error(
+            request,
+            f"Votre emplacement autorise {quota} dépôt(s). "
+            "Passez à une offre supérieure pour en ouvrir un de plus.",
+        )
+        return redirect("boutique")
+
+    if request.method == "POST":
+        formulaire = DepotForm(request.POST)
+        if formulaire.is_valid():
+            depot = Depot.objects.create(
+                boutique=fiche,
+                libelle=formulaire.cleaned_data["libelle"],
+                type=formulaire.cleaned_data["type"],
+                adresse=formulaire.cleaned_data["adresse"],
+                principal=existants == 0,
+                cree_par=request.user,
+            )
+            messages.success(request, f"Dépôt « {depot.libelle} » ouvert.")
+            return redirect("boutique")
+    else:
+        formulaire = DepotForm()
+
+    contexte.update({"formulaire": formulaire, "quota_depots": quota, "existants": existants})
+    return render(request, "depot_nouveau.html", contexte)

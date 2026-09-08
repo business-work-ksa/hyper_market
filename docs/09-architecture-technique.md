@@ -252,7 +252,7 @@ ce marché.
 | Domaine | Mesure |
 |---|---|
 | Authentification | Téléphone + mot de passe, OTP SMS, double facteur pour les rôles sensibles |
-| Autorisation | Permissions granulaires par rôle **et** par boutique, vérifiées côté serveur systématiquement |
+| Autorisation | Permissions granulaires par rôle **et** par boutique, vérifiées côté serveur systématiquement. Matrice en code (`apps/accounts/permissions.py`), porte unique (`apps/backoffice/acces.py`) : ce qu'un rôle n'ouvre pas n'est pas masqué à l'affichage, il n'est pas calculé |
 | Isolation | Trois barrières (§3.2), jeu de tests d'isolation en intégration continue |
 | Chiffrement | TLS partout ; pièces d'identité et coordonnées bancaires chiffrées au repos (`pgcrypto`) |
 | Journal d'audit | Toute lecture de données sensibles et toute écriture métier journalisées, horodatées, inaltérables |

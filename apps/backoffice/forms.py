@@ -106,6 +106,64 @@ class EntreeStockForm(forms.Form):
     )
 
 
+class TransfertStockForm(forms.Form):
+    """Déplacement d'un article d'un dépôt vers un autre.
+
+    Le dépôt source n'est pas un champ : c'est le dépôt d'exploitation courant,
+    celui affiché dans l'en-tête. Le proposer au choix ouvrirait la porte au
+    transfert saisi depuis le mauvais bout — on sort la marchandise du dépôt où
+    l'on se trouve, pas d'un dépôt qu'on désigne de loin.
+    """
+
+    cible = forms.ChoiceField(label="Vers le dépôt", widget=forms.Select(attrs=CHAMP))
+    quantite = forms.DecimalField(
+        label="Quantité transférée", min_value=Decimal("0.0001"), decimal_places=4,
+        widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
+    )
+    commentaire = forms.CharField(
+        label="Motif", max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Réassort du comptoir"}),
+    )
+
+    def __init__(self, *args, depots=None, source=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.depots = {str(d.pk): d for d in (depots or []) if source is None or d.pk != source.pk}
+        self.fields["cible"].choices = [(cle, d.libelle) for cle, d in self.depots.items()]
+
+    def clean_cible(self):
+        depot = self.depots.get(self.cleaned_data["cible"])
+        if depot is None:
+            raise forms.ValidationError("Ce dépôt n'existe pas dans votre boutique.")
+        return depot
+
+
+class DepotForm(forms.Form):
+    """Ouverture d'un dépôt supplémentaire (réserve, second point de vente)."""
+
+    libelle = forms.CharField(
+        label="Nom du dépôt", max_length=120,
+        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Réserve Akwa"}),
+    )
+    type = forms.ChoiceField(label="Type", widget=forms.Select(attrs=CHAMP))
+    adresse = forms.CharField(
+        label="Adresse", max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Facultative"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        from apps.inventory.models import Depot
+
+        super().__init__(*args, **kwargs)
+        # L'entrepôt mutualisé appartient à la plateforme : un marchand ne peut
+        # pas s'en ouvrir un depuis son back-office.
+        self.fields["type"].choices = [
+            (code, libelle)
+            for code, libelle in Depot.TYPES
+            if code != Depot.ENTREPOT_PLATEFORME
+        ]
+        self.fields["type"].initial = Depot.RESERVE
+
+
 class OuvertureCaisseForm(forms.Form):
     fonds_ouverture = forms.DecimalField(
         label="Fonds de caisse au démarrage", min_value=Decimal("0"),

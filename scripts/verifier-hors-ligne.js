@@ -3,7 +3,11 @@
  *
  * Ce que les tests Django ne peuvent pas prouver : que la file tient quand le
  * réseau tombe entre les mains du caissier. On coupe donc vraiment le réseau du
- * navigateur, on encaisse, et on regarde ce qui se passe.
+ * navigateur, on encaisse, on reçoit de la marchandise, et on regarde ce qui se
+ * passe.
+ *
+ * Le commentaire de la réception porte un horodatage : le script est rejouable
+ * sur la même base sans confondre son mouvement avec celui de la fois d'avant.
  *
  *   python manage.py runserver 8000 --noreload
  *   node scripts/verifier-hors-ligne.js
@@ -123,6 +127,65 @@ async function encaisserUnArticle(page) {
     'la même clé d\'idempotence ne crée qu\'un ticket',
     resultat[0].corps.numero === resultat[1].corps.numero && resultat[1].corps.rejoue === true,
     `${resultat[0].corps.numero} / ${resultat[1].corps.numero}`
+  );
+
+  // --- 6. Catalogue hors ligne ---------------------------------------------
+  // Une page servie depuis le cache fige aussi son catalogue : la grille est
+  // donc reconstruite à partir de celui rangé dans IndexedDB.
+  const variante = await page.$eval('.article-tuile', (t) => t.dataset.id);
+
+  await contexte.setOffline(true);
+  await page.goto(`${BASE}/caisse/`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+  await page.waitForTimeout(900);
+
+  const tuilesHorsLigne = await page.$$eval('.article-tuile', (t) => t.length);
+  verifier(
+    'la caisse affiche son catalogue sans réseau',
+    tuilesHorsLigne > 0,
+    `${tuilesHorsLigne} article(s)`
+  );
+  verifier(
+    'la fraîcheur du catalogue est annoncée',
+    await page.$eval('#etat-catalogue', (n) => !n.hidden).catch(() => false)
+  );
+
+  // --- 7. Réception de marchandise hors ligne ------------------------------
+  // Jusqu'ici, seules les ventes étaient en file : une réception saisie pendant
+  // la coupure était perdue, et le camion, lui, était bien reparti.
+  await contexte.setOffline(false);
+  await page.goto(`${BASE}/stock/${variante}/entree/`, { waitUntil: 'networkidle' });
+  await contexte.setOffline(true);
+
+  const motif = `Bon de livraison ${Date.now()}`;
+  await page.fill('#id_quantite', '5');
+  await page.fill('#id_cout_unitaire', '1000');
+  await page.fill('#id_commentaire', motif);
+  await page.click('#valider-entree');
+  await page.waitForTimeout(700);
+
+  verifier(
+    'hors ligne, la réception est conservée',
+    /conservée/.test(await page.textContent('#message-entree')),
+    (await page.textContent('#message-entree')).trim()
+  );
+  verifier(
+    'la file mélange ventes et mouvements de stock',
+    (await page.evaluate(() => window.HorsLigne.enAttente())) === 1
+  );
+
+  await contexte.setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await page.waitForTimeout(2500);
+
+  verifier(
+    'la réception part au retour du réseau',
+    (await page.evaluate(() => window.HorsLigne.enAttente())) === 0
+  );
+
+  await page.goto(`${BASE}/stock/${variante}/`, { waitUntil: 'networkidle' });
+  verifier(
+    'le mouvement est bien inscrit au journal du stock',
+    (await page.content()).includes(motif.slice(0, 24))
   );
 
   await navigateur.close();

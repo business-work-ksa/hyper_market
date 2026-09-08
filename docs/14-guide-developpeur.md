@@ -21,16 +21,22 @@ infrastructure, **et ce n'est jamais acceptable en production** : les triggers q
 journal comptable inaltérable ne s'y installent pas.
 
 ```bash
-make tester      # 116 tests
+make tester      # 156 tests
 make verifier    # contrôles Django + détection de migration manquante
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) :
 
-| Téléphone | Rôle |
-|---|---|
-| `+237699110011` | Gérant, Quincaillerie Ateba (Douala) |
-| `+237677220022` | Gérante, Bella Cosmétiques (Yaoundé) |
+| Téléphone | Rôle | Ce qu'il voit |
+|---|---|---|
+| `+237699110011` | Gérant, Quincaillerie Ateba (Douala) | Tout |
+| `+237699110022` | Caissière, Quincaillerie Ateba | Caisse, ventes, stock — **ni coût, ni marge** |
+| `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge**, pas la caisse |
+| `+237677220022` | Gérante, Bella Cosmétiques (Yaoundé) | Tout |
+| `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
+
+Se connecter successivement avec ces comptes est le moyen le plus rapide de voir
+ce que la matrice de droits change réellement à l'écran.
 
 Pour l'administration : `python manage.py createsuperuser` (l'identifiant est le téléphone).
 
@@ -43,6 +49,7 @@ config/            réglages, urls, celery
 apps/
   core/            modèles de base, tenancy, audit, synchronisation, consentements
   accounts/        utilisateurs (identifiés par téléphone), rôles, appartenances, KYC
+                   permissions.py — matrice des droits, source de vérité      ★
   marketplace/     rayons, types d'emplacement, boutiques, baux, loyers
   catalog/         référentiel mutualisé, produits, variantes
   inventory/       dépôts, mouvements, CMP, inventaires   ★
@@ -51,11 +58,13 @@ apps/
   payments/        prestataires, transactions, séquestre, portefeuilles
   accounting/      plan SYSCOHADA, journaux, écritures, balance
   affiliation/     filiation, attribution, commissions, revendeurs
-  backoffice/      vues, formulaires et gabarits du back-office marchand
-static/            CSS écrit à la main, service worker, file hors ligne, icônes
+  backoffice/      vues et formulaires du back-office marchand
+                   acces.py — boutique courante, dépôt courant, porte des droits
+static/            CSS écrit à la main, service worker, file hors ligne (IndexedDB),
+                   pilote d'imprimante thermique ESC/POS, icônes
 templates/         gabarits Django
 scripts/           captures d'écran et vérification du mode hors ligne
-tests/             tests transverses (isolation, CMP, comptabilité, affiliation, back-office)
+tests/             tests transverses (isolation, droits, CMP, comptabilité, affiliation, dépôts)
 docs/              dossier projet
 ```
 
@@ -63,7 +72,7 @@ docs/              dossier projet
 
 ---
 
-## 3. Les cinq règles à ne jamais enfreindre
+## 3. Les six règles à ne jamais enfreindre
 
 ### 3.1 — Toute donnée métier appartient à une boutique
 
@@ -142,6 +151,38 @@ caisse.cloturer_ticket(ticket)                    # idempotent
 `catalog` ne connaît pas `orders`. `core` ne connaît personne. La communication montante passe par
 un import tardif dans un service ou par un signal de domaine, jamais par un import de module.
 
+### 3.6 — Un écran ne décide jamais seul de ce qu'il montre
+
+Le rattachement à une boutique n'est pas un droit sur tout ce qu'elle contient. Toute vue passe par
+la porte, et tout affichage sensible lit le **même** ensemble de droits qu'elle :
+
+```python
+from apps.accounts import permissions as droit
+from apps.backoffice.acces import contexte_commun, exige, exige_json
+
+@exige(droit.STOCK_MOUVEMENTER)          # connexion + boutique + droit, avant la vue
+def entree_stock(request, variante_id):
+    contexte = contexte_commun(request, "stock")   # porte `droits` aux gabarits
+    ...
+
+@exige_json(droit.CAISSE_ENCAISSER)      # refus en JSON : la file hors ligne lit le code
+def caisse_encaisser(request):
+    ...
+```
+
+```django
+{% if 'cout.voir' in droits %}<td class="num">{{ niveau.cmp|fcfa }}</td>{% endif %}
+```
+
+Deux points qui ne se négocient pas :
+
+- **La source de vérité est `apps/accounts/permissions.py`, en code.** `Role.permissions` en base
+  n'en est qu'un miroir d'affichage, jamais relu pour décider : une table modifiable à chaud n'a
+  pas à pouvoir ouvrir la marge à un caissier.
+- **Masquer ne suffit pas : on ne calcule pas.** Le tableau de bord d'un magasinier ne contient pas
+  de marge cachée en CSS — la valeur n'est jamais mise dans le contexte. Un `display:none` voyage
+  quand même sur le réseau et se lit dans la source de la page.
+
 ---
 
 ## 4. Recettes courantes
@@ -191,12 +232,15 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_journal_ajout_seul_postgres.py` | Le trigger résiste au SQL brut (ignoré sur SQLite) |
 | `test_backoffice.py` | Isolation vue par le navigateur, chaîne d'encaissement, géométrie du graphe |
 | `test_backoffice_gestion.py` | Reprise de stock, inventaire, session de caisse, ticket, export |
+| `test_permissions.py` | **Frontière d'exposition** : matrice des droits, porte des écrans, coût et marge absents des pages où ils n'ont rien à faire |
+| `test_multi_depots.py` | Dépôt courant, transferts, quota d'ouverture, réception hors ligne idempotente, catalogue JSON |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
 
-Un test qui échoue dans `test_isolation_tenant.py` ou dans les invariants d'affiliation n'est
-jamais « à ajuster » : c'est une règle produit ou juridique qui vient d'être enfreinte.
+Un test qui échoue dans `test_isolation_tenant.py`, dans `test_permissions.py` ou dans les
+invariants d'affiliation n'est jamais « à ajuster » : c'est une règle produit ou juridique qui
+vient d'être enfreinte. Dans les deux premiers cas, c'est une fuite de données.
 
 ---
 
@@ -204,10 +248,10 @@ jamais « à ajuster » : c'est une règle produit ou juridique qui vient d'êtr
 
 | Sujet | État | Référence |
 |---|---|---|
-| **Rôles et permissions dans les vues** | **Non implémenté, et c'est le plus urgent** : tout utilisateur rattaché voit tout, y compris la marge. Un caissier ne devrait pas la voir | docs/18, §8 |
-| Sécurité au niveau ligne (`RLS`) PostgreSQL | **Non implémentée.** Barrières 1 et 2 en place ; la 3ᵉ attend le paramètre de session porté par la connexion | docs/09, §3.2 |
-| Catalogue et mouvements de stock hors ligne | Seules les ventes sont mises en file ; `localStorage` devra céder la place à IndexedDB | docs/18, §8 |
+| Sécurité au niveau ligne (`RLS`) PostgreSQL | **Non implémentée, et c'est le plus urgent.** Barrières 1 et 2 en place ; la 3ᵉ attend le paramètre de session porté par la connexion | docs/09, §3.2 |
+| Gestion de l'équipe dans l'interface | Les droits sont appliqués et affichés, mais un gérant ne peut pas encore inviter un employé ni changer son rôle depuis le back-office : cela passe par l'administration | docs/18, §9 |
 | API REST (DRF) | Sérialiseurs et vues à écrire | docs/05 |
 | Adaptateurs Mobile Money | Interface définie ; implémentations MTN/Orange/Camtel à écrire | docs/09, §6 |
+| Impression thermique hors Bluetooth LE | Le pilote ESC/POS couvre le Bluetooth basse consommation sur Chromium ; USB, Wi-Fi, SPP et iOS demandent une application native | docs/18, §9 |
 | Logistique, RH, paie, retail media | Lots 2 à 5 | docs/11 |
 | Fiches ADR dans `docs/adr/` | À créer à partir du tableau du docs/09, §10 | docs/09 |

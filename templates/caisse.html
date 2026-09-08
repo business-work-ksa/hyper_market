@@ -35,6 +35,18 @@
       <button class="btn" type="button" id="vider-recherche">Effacer</button>
     </div>
 
+    {% comment %}
+    La grille est rendue par le serveur — la caisse reste utilisable sans
+    JavaScript — puis reconstruite au chargement à partir du catalogue rapporté
+    du serveur, ou du dernier catalogue rangé dans IndexedDB si le réseau manque.
+    Sans cela, une page servie depuis le cache du service worker figerait aussi
+    son catalogue : l'article créé ce matin resterait invisible cet après-midi.
+    {% endcomment %}
+    <p class="bandeau-info bandeau-info--alerte" id="etat-catalogue" hidden>
+      <svg><use href="#ic-alerte"></use></svg>
+      <span id="etat-catalogue-texte"></span>
+    </p>
+
     <div class="grille-articles" id="grille-articles">
       {% for a in articles %}
         <button class="article-tuile" type="button"
@@ -180,8 +192,100 @@
   }
 
   // --- Catalogue ---------------------------------------------------------
-  document.querySelectorAll(".article-tuile").forEach(function (tuile) {
-    tuile.addEventListener("click", function () { ajouter(tuile.dataset); });
+  // Délégation plutôt qu'un écouteur par tuile : la grille est reconstruite
+  // quand le catalogue est rafraîchi, et des écouteurs posés une fois pour
+  // toutes survivraient mal à ce remplacement.
+  var elGrille = document.getElementById("grille-articles");
+  var elEtatCatalogue = document.getElementById("etat-catalogue");
+  var elEtatTexte = document.getElementById("etat-catalogue-texte");
+
+  elGrille.addEventListener("click", function (evt) {
+    var tuile = evt.target.closest(".article-tuile");
+    if (tuile) ajouter(tuile.dataset);
+  });
+
+  function dessinerGrille(articles) {
+    if (!articles || articles.length === 0) return;
+    var fragment = document.createDocumentFragment();
+
+    articles.forEach(function (a) {
+      var tuile = document.createElement("button");
+      tuile.className = "article-tuile";
+      tuile.type = "button";
+      tuile.dataset.id = a.id;
+      tuile.dataset.libelle = a.libelle;
+      tuile.dataset.prix = a.prix;
+      tuile.dataset.sku = a.sku;
+      tuile.dataset.stock = a.stock;
+      tuile.dataset.recherche = (
+        a.libelle + " " + a.sku + " " + (a.code_barres || "")
+      ).toLowerCase();
+
+      var nom = document.createElement("span");
+      nom.className = "article-tuile__nom";
+      nom.textContent = a.libelle;
+
+      var pied = document.createElement("span");
+      pied.className = "article-tuile__pied";
+      var prix = document.createElement("span");
+      prix.className = "article-tuile__prix";
+      prix.textContent = fcfa(a.prix);
+      var stock = document.createElement("span");
+      stock.className = "t-legende chiffre";
+      stock.textContent = Math.round(a.stock * 10000) / 10000 + " en stock";
+      pied.appendChild(prix);
+      pied.appendChild(stock);
+
+      tuile.appendChild(nom);
+      tuile.appendChild(pied);
+      fragment.appendChild(tuile);
+    });
+
+    elGrille.innerHTML = "";
+    elGrille.appendChild(fragment);
+    elRecherche.dispatchEvent(new Event("input"));
+  }
+
+  function annoncerCache(range) {
+    if (!range) return;
+    var quand = new Date(range);
+    elEtatTexte.textContent =
+      "Hors ligne : catalogue du " +
+      quand.toLocaleDateString("fr-FR") +
+      " à " +
+      quand.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) +
+      ". Les quantités affichées peuvent avoir bougé.";
+    elEtatCatalogue.hidden = false;
+  }
+
+  // Au chargement : on rapporte le catalogue frais et on le range pour la
+  // prochaine coupure ; à défaut de réseau, on ressort le dernier connu.
+  //
+  // Sur `DOMContentLoaded` et non tout de suite : `hors-ligne.js` est chargé en
+  // `defer`, donc après ce script en ligne. Appelé plus tôt, `window.HorsLigne`
+  // serait indéfini et la synchronisation ne se ferait jamais — silencieusement.
+  document.addEventListener("DOMContentLoaded", function synchroniserCatalogue() {
+    if (!window.HorsLigne) {
+      console.error("File hors ligne absente : le catalogue ne sera pas rafraîchi ni conservé.");
+      return;
+    }
+
+    fetch("/caisse/catalogue.json", { headers: { Accept: "application/json" } })
+      .then(function (reponse) {
+        if (!reponse.ok) throw new Error("catalogue indisponible");
+        return reponse.json();
+      })
+      .then(function (corps) {
+        dessinerGrille(corps.articles);
+        return window.HorsLigne.catalogue.enregistrer(corps.articles, corps);
+      })
+      .catch(function () {
+        return window.HorsLigne.catalogue.lire().then(function (enregistrement) {
+          if (!enregistrement) return;
+          dessinerGrille(enregistrement.articles);
+          annoncerCache(enregistrement.range_le);
+        });
+      });
   });
 
   elRecherche.addEventListener("input", function () {

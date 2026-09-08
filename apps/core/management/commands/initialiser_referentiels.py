@@ -10,6 +10,7 @@ from django.db import transaction
 
 from apps.accounting.referentiel import charger_plan_comptable
 from apps.accounts.models import Role
+from apps.accounts.permissions import droits_du_role
 from apps.marketplace.models import Rayon, TypeEmplacement
 from apps.payments.models import Prestataire
 
@@ -87,8 +88,17 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         for code, libelle, portee in ROLES:
+            # `permissions` est un **miroir** de `apps.accounts.permissions` :
+            # écrit ici pour que l'administration affiche ce qu'un rôle ouvre,
+            # jamais relu pour décider. La décision reste en code — une table
+            # modifiable à chaud n'a pas à pouvoir ouvrir la marge à un caissier.
             Role.objects.update_or_create(
-                code=code, defaults={"libelle": libelle, "portee": portee}
+                code=code,
+                defaults={
+                    "libelle": libelle,
+                    "portee": portee,
+                    "permissions": sorted(droits_du_role(code)),
+                },
             )
         self.stdout.write(f"  {len(ROLES)} rôles")
 

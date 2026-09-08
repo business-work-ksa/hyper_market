@@ -30,20 +30,27 @@
       <span class="rail__nom">HyperMarché</span>
     </div>
 
+    {% comment %}
+    Le rail ne montre que les écrans réellement ouverts au rôle. Afficher un
+    onglet qui répond 403 apprend à l'utilisateur que le logiciel est cassé ;
+    l'omettre lui apprend simplement où est son travail.
+    {% endcomment %}
     <div class="rail__nav">
       <div class="rail__groupe">
         <p class="t-sur-titre">Exploitation</p>
-        {% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page %}
-        {% nav 'caisse' 'ic-caisse' 'Caisse' page %}
-        {% nav 'stock' 'ic-stock' 'Stock' page alertes %}
-        {% nav 'ventes' 'ic-ventes' 'Ventes' page %}
+        {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page %}{% endif %}
+        {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' 'Caisse' page %}{% endif %}
+        {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' 'Stock' page alertes %}{% endif %}
+        {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' 'Ventes' page %}{% endif %}
       </div>
 
-      <div class="rail__groupe rail__groupe--secondaire">
-        <p class="t-sur-titre">Gestion</p>
-        {% nav 'comptabilite' 'ic-compta' 'Comptabilité' page %}
-        {% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}
-      </div>
+      {% if 'comptabilite.voir' in droits or 'boutique.voir' in droits %}
+        <div class="rail__groupe rail__groupe--secondaire">
+          <p class="t-sur-titre">Gestion</p>
+          {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page %}{% endif %}
+          {% if 'boutique.voir' in droits %}{% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}{% endif %}
+        </div>
+      {% endif %}
     </div>
 
     <div class="rail__pied">
@@ -62,6 +69,29 @@
       <h1 class="bandeau__titre">{% block entete %}{% endblock %}</h1>
       <div class="bandeau__actions">
         {% block actions_entete %}{% endblock %}
+
+        {% comment %}
+        Le sélecteur n'apparaît qu'à partir de deux dépôts : un commerçant qui
+        n'en a qu'un n'a pas à choisir chaque matin entre une seule option. Ce
+        qu'il désigne ici, c'est le dépôt d'exploitation — celui où l'on encaisse,
+        où l'on reçoit, où l'on compte.
+        {% endcomment %}
+        {% if depots|length > 1 %}
+          <form class="choix-depot" method="post" action="{% url 'choisir_depot' %}">
+            {% csrf_token %}
+            <input type="hidden" name="suite" value="{{ request.get_full_path }}">
+            <label class="t-legende" for="choix-depot">Dépôt</label>
+            <select class="champ champ--compact" name="depot" id="choix-depot"
+                    onchange="this.form.submit()">
+              {% for d in depots %}
+                <option value="{{ d.pk }}" {% if depot_courant and d.pk == depot_courant.pk %}selected{% endif %}>
+                  {{ d.libelle }}
+                </option>
+              {% endfor %}
+            </select>
+            <noscript><button class="btn" type="submit">Changer</button></noscript>
+          </form>
+        {% endif %}
 
         <span class="indic-reseau" id="indic-reseau" data-hors-ligne="false" title="État de la connexion">
           <span class="indic-reseau__point" aria-hidden="true"></span>
@@ -132,10 +162,12 @@
       indic.dataset.horsLigne = horsLigne || enAttente > 0 ? "true" : "false";
 
       if (enAttente > 0) {
+        // « opération » et non « vente » : la file porte désormais aussi les
+        // réceptions de marchandise saisies pendant une coupure.
         texte.textContent =
-          enAttente + " vente" + (enAttente > 1 ? "s" : "") + " en attente d'envoi";
+          enAttente + " opération" + (enAttente > 1 ? "s" : "") + " en attente d'envoi";
       } else if (horsLigne) {
-        texte.textContent = "Hors ligne — les ventes sont conservées";
+        texte.textContent = "Hors ligne — les saisies sont conservées";
       } else {
         texte.textContent = "En ligne";
       }
@@ -144,12 +176,23 @@
     window.addEventListener("online", refleter);
     window.addEventListener("offline", refleter);
 
-    if (window.FileVentes) {
-      window.FileVentes.surChangement(function (n) {
+    // `hors-ligne.js` est chargé en `defer` : il s'exécute après ce script en
+    // ligne, mais avant `DOMContentLoaded`. S'abonner tout de suite trouverait
+    // `window.HorsLigne` indéfini — et l'indicateur resterait muet sans que rien
+    // ne le signale.
+    document.addEventListener("DOMContentLoaded", function () {
+      if (!window.HorsLigne) {
+        // Une garde qui échoue en silence est un défaut permanent : ici, le
+        // compteur de ventes en attente disparaîtrait sans que personne l'apprenne.
+        console.error("File hors ligne absente : les opérations en attente ne seront pas comptées.");
+        return;
+      }
+      window.HorsLigne.surChangement(function (n) {
         enAttente = n;
         refleter();
       });
-    }
+    });
+
     refleter();
   })();
 

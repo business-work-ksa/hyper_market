@@ -482,6 +482,11 @@ table { border-collapse: collapse; width: 100%; }
 }
 .puce svg { width: 12px; height: 12px; flex-shrink: 0; }
 
+/* Icône posée dans une ligne de texte hors composant. Sans elle, un `<svg>` nu
+   prend la taille de son conteneur : une puce d'alerte devenait un panneau de
+   signalisation de 200 px de haut. */
+.icone-ligne { width: 15px; height: 15px; flex-shrink: 0; }
+
 /* Statut : toujours icône + libellé, jamais la couleur seule. */
 .puce--bon      { background: var(--bon-teinte);      color: var(--bon); }
 .puce--alerte   { background: var(--alerte-teinte);   color: #8A6408; }
@@ -715,6 +720,19 @@ table { border-collapse: collapse; width: 100%; }
 .pousse { margin-left: auto; }
 
 .duo { display: grid; grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr); gap: 14px; }
+/* Une rangée dont un seul écran est ouvert au rôle : la carte restante prend
+   toute la largeur plutôt que de laisser un vide là où l'autre est refusée. */
+.duo--plein { grid-template-columns: minmax(0, 1fr); }
+
+/* Sélecteur de dépôt d'exploitation, dans le bandeau. N'apparaît qu'à partir de
+   deux dépôts (voir templates/base.html). */
+.choix-depot { display: inline-flex; align-items: center; gap: 7px; }
+.choix-depot label { white-space: nowrap; }
+.champ--compact {
+  height: 30px; padding: 0 26px 0 9px;
+  font-size: 12.5px; font-weight: 550;
+  max-width: 210px;
+}
 
 .indic-reseau {
   display: inline-flex; align-items: center; gap: 6px;

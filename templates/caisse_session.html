@@ -19,6 +19,17 @@
 
     <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
       {% csrf_token %}
+
+      {% comment %}
+      Une session est liée à son dépôt : le stock sort de là, et nulle part
+      ailleurs. Le rappeler ici évite d'ouvrir la caisse du comptoir en croyant
+      travailler sur la réserve.
+      {% endcomment %}
+      <div class="rangee rangee--espace">
+        <span class="t-2">Dépôt</span>
+        <span class="puce puce--marque"><svg><use href="#ic-stock"></use></svg>{{ depot.libelle }}</span>
+      </div>
+
       {% for champ in formulaire %}
         {% include "partials/champ.html" with champ=champ %}
       {% endfor %}

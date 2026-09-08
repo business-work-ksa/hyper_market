@@ -44,6 +44,7 @@
               <th scope="col" class="num">Hors taxes</th>
               <th scope="col" class="num">TVA</th>
               <th scope="col" class="num">Total</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -63,9 +64,12 @@
                 <td class="num t-2">{{ ticket.total_ht|fcfa }}</td>
                 <td class="num t-2">{{ ticket.total_tva|fcfa }}</td>
                 <td class="num" style="font-weight:620">{{ ticket.total_ttc|fcfa }}</td>
+                <td class="num">
+                  <a class="btn btn--discret" href="{% url 'ticket' ticket.pk %}">Ticket</a>
+                </td>
               </tr>
             {% empty %}
-              <tr><td colspan="7"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
+              <tr><td colspan="8"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
                 <p class="t-2">Aucune vente enregistrée.</p></div></td></tr>
             {% endfor %}
           </tbody>

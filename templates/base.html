@@ -7,6 +7,9 @@
 <meta name="theme-color" content="#00806A">
 <title>{% block titre %}HyperMarché{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+<link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
+<script src="{% static 'js/hors-ligne.js' %}" defer></script>
 <script>
   // Restaure le thème avant le premier rendu : évite le flash de bascule.
   (function () {
@@ -77,6 +80,18 @@
     </header>
 
     <main class="zone {% block classe_zone %}{% endblock %}">
+      {% if messages %}
+        <div class="colonne" style="gap:8px;margin-bottom:16px">
+          {% for message in messages %}
+            <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% endif %}"
+                 role="status">
+              <svg><use href="#{% if message.tags == 'error' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
       {% block contenu %}{% endblock %}
     </main>
   </div>
@@ -103,21 +118,51 @@
     });
   })();
 
-  // --- Indicateur de connexion ------------------------------------------
+  // --- Indicateur de connexion et file d'attente -------------------------
   // Le mode hors ligne est une contrainte d'architecture (ADR-004) : l'état du
-  // réseau doit être visible en permanence, pas découvert au moment de l'échec.
+  // réseau et le nombre de ventes non transmises doivent être visibles en
+  // permanence, pas découverts au moment de l'échec.
   (function () {
     var indic = document.getElementById("indic-reseau");
     var texte = document.getElementById("indic-reseau-texte");
+    var enAttente = 0;
+
     function refleter() {
       var horsLigne = !navigator.onLine;
-      indic.dataset.horsLigne = horsLigne ? "true" : "false";
-      texte.textContent = horsLigne ? "Hors ligne — les ventes sont conservées" : "En ligne";
+      indic.dataset.horsLigne = horsLigne || enAttente > 0 ? "true" : "false";
+
+      if (enAttente > 0) {
+        texte.textContent =
+          enAttente + " vente" + (enAttente > 1 ? "s" : "") + " en attente d'envoi";
+      } else if (horsLigne) {
+        texte.textContent = "Hors ligne — les ventes sont conservées";
+      } else {
+        texte.textContent = "En ligne";
+      }
     }
+
     window.addEventListener("online", refleter);
     window.addEventListener("offline", refleter);
+
+    if (window.FileVentes) {
+      window.FileVentes.surChangement(function (n) {
+        enAttente = n;
+        refleter();
+      });
+    }
     refleter();
   })();
+
+  // --- Installation de l'application -------------------------------------
+  // Le service worker est servi depuis la racine pour couvrir toute
+  // l'application ; il ne met jamais en cache un encaissement.
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(function (e) {
+        console.warn("Service worker non enregistré", e);
+      });
+    });
+  }
 </script>
 {% block scripts %}{% endblock %}
 </body>

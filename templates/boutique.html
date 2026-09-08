@@ -88,11 +88,12 @@
           </table>
         </div>
       </div>
-      <footer class="carte__pied">
-        <p class="t-legende">
+      <footer class="carte__pied rangee rangee--espace">
+        <p class="t-legende" style="max-width:46ch">
           Vos données vous appartiennent : export intégral et gratuit à tout moment, y compris
           en cas de résiliation.
         </p>
+        <a class="btn btn--primaire" href="{% url 'export_donnees' %}">Exporter mes données</a>
       </footer>
     </section>
   </div>

@@ -6,6 +6,10 @@
 
 {% block actions_entete %}
   <span class="puce"><svg><use href="#ic-stock"></use></svg>{{ valeur_totale|fcfa }} FCFA au coût moyen</span>
+  <a class="btn" href="{% url 'inventaire' %}">Inventaire</a>
+  <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
+    <svg><use href="#ic-plus"></use></svg> Nouvel article
+  </a>
 {% endblock %}
 
 {% block contenu %}
@@ -58,6 +62,9 @@
                   <div class="vide">
                     <svg><use href="#ic-stock"></use></svg>
                     <p class="t-2">Aucun article ne correspond.</p>
+                    <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
+                      <svg><use href="#ic-plus"></use></svg> Ajouter un article
+                    </a>
                   </div>
                 </td>
               </tr>

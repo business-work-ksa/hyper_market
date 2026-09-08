@@ -8,24 +8,43 @@ Toutes les vues s'exécutent dans le contexte de la boutique courante, posé par
 `BoutiqueCouranteMiddleware` à partir de la session (docs/09, §3.2).
 """
 
+import csv
+import io
 import json
+import zipfile
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.staticfiles import finders
+from django.db import transaction
 from django.db.models import Sum
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounting.services import balance, solde_compte
-from apps.catalog.models import Variante
-from apps.inventory.models import Depot, MouvementStock, NiveauStock
+from apps.backoffice.forms import (
+    ArticleForm,
+    EntreeStockForm,
+    FermetureCaisseForm,
+    OuvertureCaisseForm,
+)
+from apps.catalog.models import Produit, Variante
+from apps.inventory.models import (
+    Depot,
+    Inventaire,
+    LigneInventaire,
+    MouvementStock,
+    NiveauStock,
+)
+from apps.inventory.services import entrer_stock, regulariser_inventaire
 from apps.marketplace.models import Boutique
 from apps.pos import services as caisse_service
-from apps.pos.models import LigneTicket, Ticket
+from apps.pos.models import LigneTicket, ReglementTicket, Ticket
 
 JOURS_HISTORIQUE = 14
 
@@ -542,6 +561,435 @@ def article(request, variante_id):
         }
     )
     return render(request, "article.html", contexte)
+
+
+# ----------------------------------------------------------------------------
+# Reprise et mouvements de stock
+# ----------------------------------------------------------------------------
+def _depot_principal():
+    return Depot.objects.filter(principal=True).first() or Depot.objects.first()
+
+
+@login_required(login_url="connexion")
+def nouvel_article(request):
+    """Création d'un article avec son stock initial.
+
+    C'est l'écran de l'installation : pendant un comptage debout dans une
+    réserve, on ne remplit pas quatre écrans par référence.
+    """
+    contexte = _contexte_commun(request, "stock")
+    boutique = contexte["boutique"]
+    if boutique is None:
+        return redirect("connexion")
+
+    depot = _depot_principal()
+    if depot is None:
+        depot = Depot.objects.create(
+            boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True
+        )
+
+    if request.method == "POST":
+        formulaire = ArticleForm(request.POST, boutique=boutique)
+        if formulaire.is_valid():
+            variante = _creer_article(formulaire.cleaned_data, boutique, depot, request.user)
+            messages.success(
+                request, f"« {variante.produit.libelle} » ajouté à votre stock."
+            )
+            suite = "nouvel_article" if request.POST.get("enchainer") else "stock"
+            return redirect(suite)
+    else:
+        formulaire = ArticleForm(boutique=boutique)
+
+    contexte.update({"formulaire": formulaire, "depot": depot})
+    return render(request, "article_nouveau.html", contexte)
+
+
+@transaction.atomic
+def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
+    """Produit, variante, seuil et entrée de stock valorisée, en une transaction."""
+    produit = Produit.objects.create(
+        boutique=boutique,
+        sku=donnees["sku"],
+        libelle=donnees["libelle"],
+        regime_tva=donnees["regime_tva"],
+        cree_par=utilisateur,
+    )
+    variante = Variante.objects.create(
+        boutique=boutique,
+        produit=produit,
+        sku=donnees["sku"],
+        code_barres=donnees.get("code_barres") or "",
+        prix_vente=donnees["prix_vente"],
+        cree_par=utilisateur,
+    )
+    NiveauStock.objects.create(
+        boutique=boutique,
+        depot=depot,
+        variante=variante,
+        seuil_alerte=donnees["seuil_alerte"],
+    )
+    if donnees["quantite"] > 0:
+        entrer_stock(
+            depot=depot,
+            variante=variante,
+            quantite=donnees["quantite"],
+            cout_unitaire=donnees["cout_unitaire"],
+            origine_type="backoffice.reprise",
+            commentaire="Reprise de stock à l'installation",
+            cree_par=utilisateur,
+        )
+    return variante
+
+
+@login_required(login_url="connexion")
+def entree_stock(request, variante_id):
+    """Réception fournisseur : le CMP est recalculé par le moteur de stock."""
+    contexte = _contexte_commun(request, "stock")
+    if contexte["boutique"] is None:
+        return redirect("connexion")
+
+    variante = Variante.objects.filter(pk=variante_id).select_related("produit").first()
+    if variante is None:
+        return redirect("stock")
+
+    depot = _depot_principal()
+    niveau = NiveauStock.objects.filter(variante=variante, depot=depot).first()
+
+    if request.method == "POST":
+        formulaire = EntreeStockForm(request.POST)
+        if formulaire.is_valid():
+            mouvement = entrer_stock(
+                depot=depot,
+                variante=variante,
+                quantite=formulaire.cleaned_data["quantite"],
+                cout_unitaire=formulaire.cleaned_data["cout_unitaire"],
+                origine_type="backoffice.reception",
+                commentaire=formulaire.cleaned_data["commentaire"] or "Réception fournisseur",
+                cree_par=request.user,
+            )
+            messages.success(
+                request,
+                f"Entrée enregistrée. Nouveau coût moyen : {mouvement.cmp_apres:.0f} FCFA.",
+            )
+            return redirect("article", variante_id=variante.pk)
+    else:
+        initial = {"cout_unitaire": niveau.cmp.quantize(Decimal("1"))} if niveau else {}
+        formulaire = EntreeStockForm(initial=initial)
+
+    contexte.update({"formulaire": formulaire, "variante": variante, "niveau": niveau})
+    return render(request, "stock_entree.html", contexte)
+
+
+@login_required(login_url="connexion")
+def inventaire(request):
+    """Comptage physique du dépôt, puis régularisation par mouvements d'ajustement.
+
+    Les écarts ne sont jamais écrits directement sur le niveau de stock : ils
+    passent par le journal, comme tout le reste.
+    """
+    contexte = _contexte_commun(request, "stock")
+    boutique = contexte["boutique"]
+    if boutique is None:
+        return redirect("connexion")
+
+    depot = _depot_principal()
+    if depot is None:
+        return redirect("stock")
+
+    niveaux = list(
+        NiveauStock.objects.filter(depot=depot)
+        .select_related("variante__produit")
+        .order_by("variante__produit__libelle")
+    )
+
+    if request.method == "POST":
+        inventaire_en_cours = Inventaire.objects.create(
+            boutique=boutique, depot=depot, cree_par=request.user
+        )
+        comptees = 0
+        for niveau in niveaux:
+            brut = (request.POST.get(f"qte_{niveau.variante_id}") or "").strip()
+            if brut == "":
+                continue  # non compté : on ne suppose rien
+            try:
+                valeur = Decimal(brut.replace(",", "."))
+            except (ArithmeticError, ValueError):
+                continue
+            LigneInventaire.objects.create(
+                boutique=boutique,
+                inventaire=inventaire_en_cours,
+                variante=niveau.variante,
+                qte_theorique=niveau.quantite,
+                qte_comptee=valeur,
+                motif=(request.POST.get(f"motif_{niveau.variante_id}") or "")[:255],
+            )
+            comptees += 1
+
+        if comptees == 0:
+            inventaire_en_cours.delete()
+            messages.error(request, "Aucune quantité saisie : l'inventaire n'a pas été enregistré.")
+            return redirect("inventaire")
+
+        mouvements = regulariser_inventaire(inventaire_en_cours, cree_par=request.user)
+        messages.success(
+            request,
+            f"Inventaire validé : {comptees} article(s) comptés, "
+            f"{len(mouvements)} écart(s) régularisé(s).",
+        )
+        return redirect("stock")
+
+    contexte.update(
+        {
+            "depot": depot,
+            "niveaux": niveaux,
+            "derniers": Inventaire.objects.filter(etat=Inventaire.VALIDE)[:5],
+        }
+    )
+    return render(request, "inventaire.html", contexte)
+
+
+# ----------------------------------------------------------------------------
+# Session de caisse
+# ----------------------------------------------------------------------------
+@login_required(login_url="connexion")
+def session_caisse(request):
+    """Ouverture et fermeture de caisse.
+
+    Sans fermeture comptée, il n'y a pas d'écart de caisse — donc aucun contrôle
+    du caissier. C'est la raison d'être de cet écran.
+    """
+    contexte = _contexte_commun(request, "caisse")
+    boutique = contexte["boutique"]
+    if boutique is None:
+        return redirect("connexion")
+
+    session = _session_ouverte(request)
+    depot = _depot_principal()
+
+    if request.method == "POST":
+        if session is None:
+            formulaire = OuvertureCaisseForm(request.POST)
+            if formulaire.is_valid():
+                caisse_service.ouvrir_session(
+                    depot=depot,
+                    caissier=request.user,
+                    fonds_ouverture=formulaire.cleaned_data["fonds_ouverture"],
+                )
+                messages.success(request, "Caisse ouverte. Bonne journée.")
+                return redirect("caisse")
+        else:
+            formulaire = FermetureCaisseForm(request.POST)
+            if formulaire.is_valid():
+                fermee = caisse_service.fermer_session(
+                    session, fonds_compte=formulaire.cleaned_data["fonds_compte"]
+                )
+                ecart = fermee.ecart
+                if ecart == 0:
+                    messages.success(request, "Caisse fermée, aucun écart.")
+                else:
+                    signe = "manquant" if ecart < 0 else "excédent"
+                    messages.error(
+                        request, f"Caisse fermée avec un {signe} de {abs(ecart):.0f} FCFA."
+                    )
+                return redirect("caisse")
+    else:
+        formulaire = OuvertureCaisseForm() if session is None else FermetureCaisseForm()
+
+    contexte.update(
+        {
+            "formulaire": formulaire,
+            "session_caisse": session,
+            "depot": depot,
+            "tickets_session": (
+                Ticket.objects.filter(session=session, etat=Ticket.CLOTURE).count()
+                if session
+                else 0
+            ),
+        }
+    )
+    return render(request, "caisse_session.html", contexte)
+
+
+# ----------------------------------------------------------------------------
+# Ticket imprimable
+# ----------------------------------------------------------------------------
+@login_required(login_url="connexion")
+def ticket(request, ticket_id):
+    """Ticket au format bande 80 mm, imprimable ou partageable.
+
+    Un client qui repart sans rien doute. À défaut d'imprimante, la page se
+    partage par WhatsApp.
+    """
+    contexte = _contexte_commun(request, "ventes")
+    boutique = contexte["boutique"]
+    if boutique is None:
+        return redirect("connexion")
+
+    ticket_vendu = (
+        Ticket.objects.filter(pk=ticket_id).select_related("session__caissier").first()
+    )
+    if ticket_vendu is None:
+        return redirect("ventes")
+
+    contexte.update(
+        {
+            "ticket": ticket_vendu,
+            "lignes": LigneTicket.objects.filter(ticket=ticket_vendu),
+            "reglements": ReglementTicket.objects.filter(ticket=ticket_vendu),
+            "assujetti_tva": boutique.regime_fiscal != Boutique.IGS,
+        }
+    )
+    return render(request, "ticket.html", contexte)
+
+
+# ----------------------------------------------------------------------------
+# Application installable et mode hors ligne
+# ----------------------------------------------------------------------------
+def service_worker(request):
+    """Sert le service worker depuis la racine.
+
+    La portée d'un service worker est celle de son URL : servi depuis
+    `/static/js/`, il ne pourrait intercepter que `/static/js/`. Il doit donc
+    être exposé à la racine pour couvrir toute l'application.
+    """
+    chemin = finders.find("js/service-worker.js")
+    if chemin is None:  # pragma: no cover — fichier statique manquant
+        return HttpResponse("// service worker introuvable", content_type="text/javascript")
+
+    with open(chemin, encoding="utf-8") as fichier:
+        reponse = HttpResponse(fichier.read(), content_type="text/javascript")
+    reponse["Service-Worker-Allowed"] = "/"
+    reponse["Cache-Control"] = "no-cache"
+    return reponse
+
+
+# ----------------------------------------------------------------------------
+# Export des données
+# ----------------------------------------------------------------------------
+@login_required(login_url="connexion")
+def export_donnees(request):
+    """Export intégral, gratuit, en CSV — la promesse de réversibilité tenue.
+
+    Elle est écrite dans l'interface et dans le contrat de bail : elle doit être
+    vraie avant le premier client payant (docs/01, §4.1 et docs/08, §8).
+    """
+    boutique = _boutique_courante(request)
+    if boutique is None:
+        return redirect("connexion")
+
+    tampon = io.BytesIO()
+    with zipfile.ZipFile(tampon, "w", zipfile.ZIP_DEFLATED) as archive:
+        for nom, entetes, lignes in _tables_export(boutique):
+            archive.writestr(f"{nom}.csv", _en_csv(entetes, lignes))
+        archive.writestr("LISEZ-MOI.txt", _notice_export(boutique))
+
+    horodatage = timezone.localtime().strftime("%Y%m%d-%H%M")
+    reponse = HttpResponse(tampon.getvalue(), content_type="application/zip")
+    reponse["Content-Disposition"] = (
+        f'attachment; filename="hypermarche-{boutique.slug}-{horodatage}.zip"'
+    )
+    return reponse
+
+
+def _en_csv(entetes: list[str], lignes) -> str:
+    sortie = io.StringIO()
+    graveur = csv.writer(sortie, delimiter=";")
+    graveur.writerow(entetes)
+    graveur.writerows(lignes)
+    # BOM : sans lui, Excel en français ouvre les accents en mojibake.
+    return "\ufeff" + sortie.getvalue()
+
+
+def _tables_export(boutique) -> list[tuple]:
+    from apps.accounting.models import LigneEcriture
+
+    produits = Variante.objects.select_related("produit").order_by("sku")
+    niveaux = NiveauStock.objects.select_related("variante", "depot")
+    mouvements = MouvementStock.objects.select_related("variante", "depot").order_by("cree_le")
+    tickets = Ticket.objects.select_related("session__caissier").order_by("cree_le")
+    lignes_ticket = LigneTicket.objects.select_related("ticket").order_by("cree_le")
+    ecritures = LigneEcriture.objects.select_related("ecriture__journal", "compte").order_by(
+        "ecriture__date_ecriture"
+    )
+
+    return [
+        (
+            "articles",
+            ["sku", "libelle", "code_barres", "prix_vente_ttc", "regime_tva", "actif"],
+            [
+                [v.sku, v.produit.libelle, v.code_barres, v.prix_vente, v.produit.regime_tva, v.actif]
+                for v in produits
+            ],
+        ),
+        (
+            "stock",
+            ["depot", "sku", "quantite", "cout_moyen_pondere", "valeur", "seuil_alerte"],
+            [
+                [n.depot.libelle, n.variante.sku, n.quantite, n.cmp, n.valeur, n.seuil_alerte]
+                for n in niveaux
+            ],
+        ),
+        (
+            "mouvements_stock",
+            ["date", "depot", "sku", "type", "quantite", "cout_unitaire", "stock_apres", "cmp_apres", "commentaire"],
+            [
+                [
+                    timezone.localtime(m.cree_le).isoformat(timespec="seconds"),
+                    m.depot.libelle, m.variante.sku, m.type, m.quantite,
+                    m.cout_unitaire, m.quantite_apres, m.cmp_apres, m.commentaire,
+                ]
+                for m in mouvements
+            ],
+        ),
+        (
+            "tickets",
+            ["numero", "date", "caissier", "total_ht", "total_tva", "total_ttc", "etat"],
+            [
+                [
+                    t.numero,
+                    timezone.localtime(t.cloture_le).isoformat(timespec="seconds") if t.cloture_le else "",
+                    t.session.caissier.nom_complet, t.total_ht, t.total_tva, t.total_ttc, t.etat,
+                ]
+                for t in tickets
+            ],
+        ),
+        (
+            "lignes_ticket",
+            ["ticket", "libelle", "quantite", "pu_ttc", "taux_tva", "remise", "total_ttc"],
+            [
+                [l.ticket.numero, l.libelle, l.quantite, l.pu_ttc, l.taux_tva, l.remise, l.total_ttc]
+                for l in lignes_ticket
+            ],
+        ),
+        (
+            "ecritures_comptables",
+            ["date", "journal", "piece", "libelle", "compte", "intitule", "debit", "credit"],
+            [
+                [
+                    l.ecriture.date_ecriture.isoformat(), l.ecriture.journal.code,
+                    l.ecriture.piece, l.ecriture.libelle, l.compte.numero,
+                    l.compte.intitule, l.debit, l.credit,
+                ]
+                for l in ecritures
+            ],
+        ),
+    ]
+
+
+def _notice_export(boutique) -> str:
+    return (
+        f"Export des données de « {boutique.enseigne} » ({boutique.raison_sociale})\r\n"
+        f"Généré le {timezone.localtime():%d/%m/%Y à %H:%M}.\r\n\r\n"
+        "Fichiers CSV, séparateur point-virgule, encodage UTF-8 avec BOM.\r\n\r\n"
+        "Ces données vous appartiennent. Cet export est intégral et gratuit, à tout\r\n"
+        "moment, y compris en cas de résiliation de votre emplacement.\r\n\r\n"
+        "  articles.csv             votre catalogue et vos prix\r\n"
+        "  stock.csv                l'état actuel, valorisé au coût moyen pondéré\r\n"
+        "  mouvements_stock.csv     chaque entrée et sortie, avec le coût appliqué\r\n"
+        "  tickets.csv              vos ventes\r\n"
+        "  lignes_ticket.csv        le détail de chaque vente\r\n"
+        "  ecritures_comptables.csv votre journal en partie double (SYSCOHADA)\r\n"
+    )
 
 
 # ----------------------------------------------------------------------------

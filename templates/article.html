@@ -6,6 +6,9 @@
 
 {% block actions_entete %}
   <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
+  <a class="btn btn--primaire" href="{% url 'entree_stock' variante.pk %}">
+    <svg><use href="#ic-plus"></use></svg> Entrée de stock
+  </a>
 {% endblock %}
 
 {% block contenu %}

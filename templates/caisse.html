@@ -11,8 +11,9 @@
       <svg><use href="#ic-check"></use></svg>
       Caisse ouverte · {{ tickets_session }} ticket{{ tickets_session|pluralize }}
     </span>
+    <a class="btn" href="{% url 'session_caisse' %}">Fermer la caisse</a>
   {% else %}
-    <span class="puce"><svg><use href="#ic-horloge"></use></svg>La caisse s'ouvrira à la première vente</span>
+    <a class="btn btn--primaire" href="{% url 'session_caisse' %}">Ouvrir la caisse</a>
   {% endif %}
 {% endblock %}
 
@@ -234,13 +235,6 @@
     });
   }
 
-  function jeton() {
-    var champ = document.querySelector("[name=csrfmiddlewaretoken]");
-    if (champ) return champ.value;
-    var m = document.cookie.match(/csrftoken=([^;]+)/);
-    return m ? m[1] : "";
-  }
-
   elEncaisser.addEventListener("click", function () {
     if (panier.size === 0) return;
 
@@ -248,29 +242,36 @@
     panier.forEach(function (l) { lignes.push({ variante: l.id, quantite: l.quantite }); });
 
     // Clé d'idempotence générée côté client : une retransmission après coupure
-    // réseau ne créera jamais deux ventes (ADR-004).
+    // réseau ne créera jamais deux ventes (ADR-004). C'est elle qui autorise la
+    // file d'attente à rejouer sans risque.
     var charge = { operation_id: uuid(), lignes: lignes, moyen: moyen };
 
     elEncaisser.disabled = true;
     elEncaisser.textContent = "Encaissement…";
 
-    fetch("{% url 'caisse_encaisser' %}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": jeton() },
-      body: JSON.stringify(charge)
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.ok) {
-          elMessage.textContent = "Ticket " + data.numero + " encaissé — " + fcfa(data.total) + " FCFA.";
+    // Le panier est vidé dès la mise en file, pas à la confirmation du serveur :
+    // le caissier a encaissé, le client attend, la vente ne peut plus être
+    // reprise. C'est le serveur qui rattrapera le réseau, pas le vendeur.
+    window.FileVentes.encaisser(charge)
+      .then(function (resultat) {
+        if (resultat.etat === "envoyee") {
+          elMessage.innerHTML = "";
+          var lien = document.createElement("a");
+          lien.href = "/ventes/";
+          lien.textContent =
+            "Ticket " + resultat.corps.numero + " encaissé — " + fcfa(resultat.corps.total) + " FCFA.";
+          lien.style.fontWeight = "580";
+          elMessage.appendChild(lien);
+          panier.clear();
+          rendre();
+        } else if (resultat.etat === "en_attente") {
+          elMessage.textContent =
+            "Vente conservée (" + resultat.enAttente + " en attente). Elle partira au retour du réseau.";
           panier.clear();
           rendre();
         } else {
-          elMessage.textContent = data.erreur || "L'encaissement a échoué.";
+          elMessage.textContent = resultat.erreur || "L'encaissement a échoué.";
         }
-      })
-      .catch(function () {
-        elMessage.textContent = "Réseau indisponible. La vente sera renvoyée à la reconnexion.";
       })
       .finally(function () {
         elEncaisser.textContent = "Encaisser";

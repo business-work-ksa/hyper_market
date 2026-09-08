@@ -49,7 +49,7 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 15 | [Plan de validation terrain](docs/15-plan-de-validation-terrain.md) | Protocole des 10 semaines de phase 0, guides d'entretien, seuils du jalon G0 |
 | 16 | [Partenariat cabinet comptable](docs/16-partenariat-cabinet-comptable.md) | Sélection, frontière de responsabilité, recette des barèmes de paie |
 | 17 | [Démarrer sans capital](docs/17-demarrage-sans-capital.md) | **Le plan effectivement applicable aujourd'hui** : 450 000 F, 5 paliers autofinancés |
-| 18 | [Produit du palier 1](docs/18-produit-palier-1.md) | Le plan raffiné : les 6 écrans, l'installation en 90 minutes, critères d'acceptation |
+| 18 | [Produit du palier 1](docs/18-produit-palier-1.md) | Le plan raffiné : les écrans et leurs critères, l'installation en 90 minutes, le mode hors ligne |
 | 19 | [Système de design](docs/19-systeme-de-design.md) | Jetons validés, règles de visualisation, pièges rencontrés |
 
 > **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 89 tests
+make tester                     # 116 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) :
@@ -79,7 +79,7 @@ Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
 ## Le back-office marchand
 
-Six écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
+Dix écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
 Captures dans [`captures/`](captures/) — régénérables par `node scripts/captures.js`.
 
 | Écran | Ce qu'il fait |
@@ -89,11 +89,25 @@ Captures dans [`captures/`](captures/) — régénérables par `node scripts/cap
 | **Stock** | Liste, filtres, valeur au CMP, historique des mouvements par article |
 | **Ventes** | Journal des tickets clôturés, HT / TVA / TTC |
 | **Comptabilité** | Balance SYSCOHADA, dernières écritures, marge brute — en lecture seule |
-| **Ma boutique** | Identité, bail, équipe, dépôts |
+| **Ma boutique** | Identité, bail, équipe, dépôts, **export intégral en CSV** |
+| **Nouvel article** | Produit, prix, coût, quantité et seuil en un seul formulaire |
+| **Inventaire** | Comptage physique, théorique masqué, écarts régularisés par ajustement |
+| **Session de caisse** | Ouverture sur fonds déclaré, fermeture sur comptage, écart calculé |
+| **Ticket** | Format bande 80 mm, mentions légales, impression ou partage WhatsApp |
 
 Un encaissement produit d'un seul geste **le ticket, la sortie de stock au coût moyen et les trois
 écritures comptables** — c'est la promesse « zéro double saisie », et elle est testée de bout en
 bout.
+
+### Mode hors ligne
+
+L'application s'installe sur l'écran d'accueil et **la caisse fonctionne sans réseau**. Une vente
+encaissée hors ligne est mise en file, survit au rechargement, et part seule au retour du réseau —
+sans jamais se dédoubler, parce que le serveur est idempotent.
+
+```bash
+node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie les 9 points
+```
 
 ## État du projet
 
@@ -101,11 +115,12 @@ bout.
 - [x] Étude de marché et business plan
 - [x] Dossier de conception fonctionnelle et technique
 - [x] **Lot 0** — Socle Django : multi-tenant, rôles, emplacements, isolation prouvée par les tests
-- [x] **Interface du palier 1** — 6 écrans, système de design, captures de recette
+- [x] **Interface du palier 1** — 10 écrans, système de design, captures de recette
+- [x] **Reprise de stock, inventaire, session de caisse, ticket, export intégral**
+- [x] **Mode hors ligne** — application installable, file de ventes, rejeu idempotent
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
-  *(domaine, moteurs métier et back-office posés et testés ; restent le mode hors ligne réel,
-  l'écran de reprise de stock, l'impression du ticket et les adaptateurs Mobile Money —
-  voir [docs/18](docs/18-produit-palier-1.md), §6)*
+  *(restent les rôles et permissions dans les vues, le catalogue hors ligne et les adaptateurs
+  Mobile Money — voir [docs/18](docs/18-produit-palier-1.md), §8)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

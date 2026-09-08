@@ -33,7 +33,7 @@ tenues valent mieux que 400 abandonnées au bout d'une semaine. Le reste se sais
 
 ---
 
-## 2. Les six écrans, et rien d'autre
+## 2. Les écrans du quotidien, et rien d'autre
 
 ### 2.1 — Connexion
 
@@ -129,8 +129,8 @@ ventes, marge brute, TVA collectée.
 | Commission sur GMV | Le palier 1 ne facture qu'un abonnement |
 | Affiliation, revendeurs, retail media | Palier 5 |
 | Paie, bulletins, déclarations sociales | Bloqué par l'arbitrage A6 |
-| Achats, commandes fournisseurs, réception | Palier 2 — la reprise de stock suffit d'abord |
-| Multi-dépôts, transferts | Le modèle les porte ; l'interface non |
+| Commandes fournisseurs et encours | Palier 2 — l'entrée de stock manuelle suffit d'abord |
+| Multi-dépôts, transferts | Le modèle les porte ; les écrans supposent un dépôt principal |
 
 **Le code du dépôt va plus loin que cette liste** : les modèles de commandes, de paiement et
 d'affiliation existent et sont testés. Ils ne sont simplement pas exposés dans l'interface. C'est
@@ -186,15 +186,140 @@ renouvelé.** C'est le signal d'alerte le plus fiable, et il apparaît dès le d
 
 ---
 
-## 6. Reste à faire avant la première installation réelle
+## 6. Les cinq chantiers de l'installation, livrés
 
-| Chantier | Pourquoi c'est bloquant |
+Les cinq manques identifiés à la livraison de l'interface sont comblés. Chacun touche au
+journal du stock ou à celui de la caisse : **aucun n'écrit un compteur en direct.**
+
+### 6.1 — Reprise de stock
+
+Deux écrans, pour deux moments différents.
+
+**Nouvel article** (`/stock/nouvel-article/`) est l'écran de l'installation : un seul formulaire
+produit le produit, la variante, le seuil d'alerte et l'entrée de stock valorisée. Le bouton
+« Enregistrer et ajouter le suivant » existe parce qu'on saisit vingt références d'affilée, debout
+dans une réserve, pas une par session.
+
+Deux garde-fous : la référence est normalisée en majuscules et refusée si elle existe déjà ; un
+coût d'achat supérieur au prix de vente est **signalé** — vendre à perte se décide, ça ne doit pas
+se découvrir au bilan.
+
+**Entrée de stock** (`/stock/<article>/entree/`) sert au réapprovisionnement. Le formulaire propose
+le coût moyen courant comme valeur de départ, et le moteur recalcule le CMP.
+
+### 6.2 — Inventaire physique
+
+`/stock/inventaire/` liste le dépôt et n'attend qu'une chose : les quantités comptées.
+
+**Le stock théorique est masqué par défaut.** C'est le point qui a demandé une correction après
+coup : le premier écran affichait le théorique à côté du champ de saisie, ce qui annulait le
+contrôle — un compteur qui connaît le chiffre attendu ne compte plus, il confirme. Un bouton le
+révèle quand le gérant veut vérifier une ligne douteuse.
+
+Les lignes vides sont ignorées : un article non compté n'est pas régularisé. Les écarts passent
+par des mouvements d'ajustement horodatés et motivés. La virgule décimale française est acceptée.
+
+### 6.3 — Session de caisse
+
+`/caisse/session/` ouvre la caisse sur un fonds déclaré et la ferme sur un comptage. L'écart est
+calculé et annoncé — manquant ou excédent. Sans cet écran, il n'y a pas d'écart de caisse, donc
+aucun contrôle du caissier.
+
+L'écran de fermeture rappelle de compter **avant** de consulter le théorique, pour la même raison
+qu'à l'inventaire.
+
+### 6.4 — Ticket imprimable
+
+`/ventes/<ticket>/ticket/` rend le ticket au format bande 80 mm, en monospace pour que les
+colonnes s'alignent sans tableau. Il porte les mentions légales du vendeur — raison sociale, RCCM,
+NIU — le détail des lignes, les totaux et le moyen de paiement.
+
+Une feuille d'impression dédiée retire toute l'interface. À défaut d'imprimante, le bouton
+**Partager** utilise le partage natif du téléphone : le ticket part par WhatsApp, qui est le canal
+réel du commerce ici. Le bouton n'apparaît que si l'appareil sait le faire.
+
+Une boutique au régime **IGS** n'affiche ni ligne de TVA ni total hors taxes, mais la mention
+« TVA non applicable ».
+
+### 6.5 — Export intégral
+
+`/boutique/export/` produit une archive ZIP de six fichiers CSV — articles, stock, mouvements,
+tickets, lignes de ticket, écritures comptables — plus une notice. Séparateur point-virgule,
+UTF-8 **avec BOM** : sans lui, Excel en français ouvre les accents en mojibake.
+
+C'était une promesse écrite dans l'interface et dans le contrat de bail. Elle est maintenant vraie,
+et testée — y compris sur le fait qu'elle ne franchit pas la frontière d'une autre boutique.
+
+---
+
+## 7. Le mode hors ligne
+
+C'est la contrainte d'architecture ADR-004, et la seule pièce que les tests Django ne pouvaient
+pas prouver seuls.
+
+### 7.1 — Ce qui a été posé
+
+| Pièce | Rôle |
 |---|---|
-| **Mode hors ligne effectif** (PWA, file d'opérations locale) | Le serveur est prêt et idempotent ; le client, non. Sans lui, une coupure fait perdre une vente |
-| **Écran de reprise de stock** | Aujourd'hui l'entrée en stock passe par la commande de démonstration ou l'admin ; il faut un écran de comptage utilisable à deux, debout dans une réserve |
-| **Impression du ticket** | Imprimante Bluetooth ou envoi par WhatsApp — un client qui ne repart avec rien doute |
-| **Ouverture et fermeture de caisse** | Le modèle existe, l'écran manque ; sans lui, pas d'écart de caisse, donc pas de contrôle du caissier |
-| **Export intégral des données** | C'est une promesse écrite dans l'interface. Elle doit être vraie avant le premier client payant |
+| `manifest.webmanifest` | L'application s'installe sur l'écran d'accueil, démarre sur la caisse |
+| `service-worker.js` | Coquille en cache : la caisse s'ouvre sans réseau |
+| `hors-ligne.js` | File d'attente des ventes non transmises, rejeu automatique |
 
-Ces cinq chantiers sont le contenu réel des semaines qui suivent. **Aucun ne demande d'argent, tous
-demandent du temps** — ce qui est exactement la contrainte du document 17.
+Le service worker est servi **depuis la racine** : sa portée est celle de son URL, et depuis
+`/static/js/` il n'aurait intercepté que `/static/js/`.
+
+**Deux stratégies de cache, choisies selon ce que coûte une donnée périmée.** Le statique est
+servi depuis le cache d'abord — il est versionné, et servir l'ancien une seconde économise de la
+data. Les pages sont servies depuis le réseau d'abord — un stock périmé affiché comme frais serait
+pire qu'une page lente.
+
+**Ce que le service worker ne met jamais en cache : l'encaissement.** Une vente n'est pas une
+ressource, c'est une écriture.
+
+### 7.2 — Les quatre règles de la file
+
+1. **Une vente encaissée n'est jamais perdue.** Elle part, ou elle attend. Le panier est vidé dès
+   la mise en file, pas à la confirmation du serveur : le client a payé, il attend son ticket, la
+   vente ne peut plus être reprise. C'est au serveur de rattraper le réseau, pas au vendeur.
+2. **Le rejeu est séquentiel.** La numérotation des tickets doit rester déterministe ; deux ventes
+   envoyées en parallèle se disputeraient le même numéro.
+3. **Une erreur métier sort de la file.** Réessayer indéfiniment une vente que le serveur refuse ne
+   la fera jamais passer, et bloquerait toutes les suivantes derrière elle.
+4. **Une erreur réseau reste dans la file.** C'est exactement le cas pour lequel elle existe.
+
+Le nombre de ventes en attente est affiché en permanence dans le bandeau. L'état du réseau ne se
+découvre pas au moment de l'échec.
+
+### 7.3 — Ce qui a été prouvé, et comment
+
+`scripts/verifier-hors-ligne.js` coupe réellement le réseau du navigateur et vérifie huit points :
+
+```
+ok  une vente en ligne est transmise immédiatement
+ok  la file est vide après une vente en ligne
+ok  hors ligne, la vente est conservée
+ok  la file contient la vente hors ligne
+ok  une seconde vente hors ligne s'empile
+ok  la file survit au rechargement de la page
+ok  la file se vide au retour du réseau
+ok  les trois ventes sont arrivées au serveur
+ok  la même clé d'idempotence ne crée qu'un ticket
+```
+
+Le dernier point est celui qui rend tout le reste possible : **c'est parce que le serveur est
+idempotent que le rejeu est sûr.**
+
+---
+
+## 8. Ce qui reste avant d'ouvrir à un vrai client
+
+| Sujet | Pourquoi ce n'est pas encore fait |
+|---|---|
+| **Catalogue hors ligne** | La caisse s'ouvre sans réseau, mais sur la dernière version en cache. Un article créé pendant la coupure n'y est pas |
+| **Mouvements de stock hors ligne** | Seules les ventes sont mises en file. Une réception saisie hors ligne est perdue — `localStorage` devra céder la place à IndexedDB |
+| **Multi-dépôts dans l'interface** | Le modèle les porte, les écrans supposent un dépôt principal |
+| **Impression thermique directe** | Le navigateur imprime ; le pilotage direct d'une imprimante Bluetooth demandera une application native |
+| **Rôles et permissions dans les vues** | Tout utilisateur rattaché voit tout. Un caissier ne devrait pas voir la marge |
+
+**Le dernier point est le plus urgent des cinq** : montrer la marge à un caissier est un problème
+avant d'être une fonctionnalité manquante.

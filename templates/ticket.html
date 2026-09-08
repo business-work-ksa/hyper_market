@@ -1,0 +1,135 @@
+{% load static hm %}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Ticket {{ ticket.numero }} — {{ boutique.enseigne }}</title>
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<style>
+  /* Bande de 80 mm : la largeur des imprimantes thermiques courantes.
+     Tout est en monospace pour que les colonnes s'alignent sans tableau. */
+  :root { color-scheme: light; }
+  body { background: var(--surface-creuse); padding: 22px 14px 44px; }
+
+  .bande {
+    width: 80mm; max-width: 100%; margin: 0 auto;
+    background: #FFFFFF; color: #14140F;
+    padding: 16px 14px 20px;
+    border-radius: var(--r-md);
+    box-shadow: var(--ombre-2);
+    font-family: var(--mono);
+    font-size: 12px; line-height: 1.45;
+  }
+  .bande__entete { text-align: center; }
+  .bande__enseigne { font-family: var(--sans); font-size: 16px; font-weight: 680; letter-spacing: -0.015em; }
+  .bande__legal { font-size: 10.5px; line-height: 1.5; margin-top: 5px; }
+
+  .sep { border: none; border-top: 1px dashed #B9B6AA; margin: 11px 0; }
+
+  .lgn { display: flex; justify-content: space-between; gap: 10px; }
+  .lgn--art { flex-direction: column; gap: 1px; margin-bottom: 7px; }
+  .lgn--art .detail { display: flex; justify-content: space-between; gap: 10px; }
+  .lgn--art .nom { font-weight: 650; }
+  .total { font-family: var(--sans); font-size: 15px; font-weight: 700; }
+  .pied { text-align: center; font-size: 10.5px; margin-top: 12px; line-height: 1.6; }
+
+  .actions { width: 80mm; max-width: 100%; margin: 16px auto 0; display: flex; gap: 8px; }
+  .actions .btn { flex: 1; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .bande { width: auto; box-shadow: none; border-radius: 0; padding: 0; }
+    .actions { display: none; }
+    @page { margin: 4mm; }
+  }
+</style>
+</head>
+<body>
+{% include "partials/icones.html" %}
+
+<article class="bande">
+  <header class="bande__entete">
+    <p class="bande__enseigne">{{ boutique.enseigne }}</p>
+    <p class="bande__legal">
+      {{ boutique.raison_sociale }}<br>
+      {% if boutique.rccm %}RCCM {{ boutique.rccm }}<br>{% endif %}
+      {% if boutique.niu %}NIU {{ boutique.niu }}<br>{% endif %}
+      {{ boutique.ville }}{% if boutique.telephone %} · {{ boutique.telephone }}{% endif %}
+    </p>
+  </header>
+
+  <hr class="sep">
+
+  <div class="lgn"><span>Ticket</span><span>{{ ticket.numero }}</span></div>
+  <div class="lgn"><span>Date</span><span>{{ ticket.cloture_le|date:"d/m/Y H:i" }}</span></div>
+  <div class="lgn"><span>Caissier</span><span>{{ ticket.session.caissier.nom_complet|truncatechars:20 }}</span></div>
+  {% if ticket.client_nom %}
+    <div class="lgn"><span>Client</span><span>{{ ticket.client_nom|truncatechars:20 }}</span></div>
+  {% endif %}
+
+  <hr class="sep">
+
+  {% for ligne in lignes %}
+    <div class="lgn--art">
+      <span class="nom">{{ ligne.libelle }}</span>
+      <span class="detail">
+        <span>{{ ligne.quantite|quantite }} × {{ ligne.pu_ttc|fcfa }}</span>
+        <span>{{ ligne.total_ttc|fcfa }}</span>
+      </span>
+      {% if ligne.remise %}
+        <span class="detail"><span>Remise</span><span>-{{ ligne.remise|fcfa }}</span></span>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <hr class="sep">
+
+  {% if assujetti_tva %}
+    <div class="lgn"><span>Total hors taxes</span><span>{{ ticket.total_ht|fcfa }}</span></div>
+    <div class="lgn"><span>TVA 19,25 %</span><span>{{ ticket.total_tva|fcfa }}</span></div>
+  {% endif %}
+  <div class="lgn total"><span>TOTAL</span><span>{{ ticket.total_ttc|fcfa }} FCFA</span></div>
+
+  <hr class="sep">
+
+  {% for reglement in reglements %}
+    <div class="lgn">
+      <span>{{ reglement.get_moyen_display }}</span>
+      <span>{{ reglement.montant|fcfa }}</span>
+    </div>
+  {% endfor %}
+
+  <p class="pied">
+    {% if not assujetti_tva %}
+      TVA non applicable — régime de l'impôt général synthétique.<br>
+    {% endif %}
+    Merci de votre visite.<br>
+    Conservez ce ticket pour tout échange.
+  </p>
+</article>
+
+<div class="actions">
+  <button class="btn btn--primaire" type="button" onclick="window.print()">Imprimer</button>
+  <a class="btn" href="{% url 'ventes' %}">Retour aux ventes</a>
+  <button class="btn" type="button" id="partager" hidden>Partager</button>
+</div>
+
+<script>
+  // Sans imprimante, le partage natif envoie le ticket par WhatsApp — le canal
+  // réel du commerce ici. Le bouton n'apparaît que si l'appareil sait le faire.
+  (function () {
+    var bouton = document.getElementById("partager");
+    if (!navigator.share) return;
+    bouton.hidden = false;
+    bouton.addEventListener("click", function () {
+      navigator.share({
+        title: "Ticket {{ ticket.numero }} — {{ boutique.enseigne|escapejs }}",
+        text: "Votre ticket de {{ ticket.total_ttc|fcfa }} FCFA chez {{ boutique.enseigne|escapejs }}.",
+        url: window.location.href,
+      }).catch(function () {});
+    });
+  })();
+</script>
+</body>
+</html>

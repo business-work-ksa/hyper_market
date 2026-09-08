@@ -18,7 +18,10 @@ const SORTIE = path.join(__dirname, '..', 'captures');
 const PAGES = [
   { nom: 'tableau-de-bord', url: '/' },
   { nom: 'caisse', url: '/caisse/' },
+  { nom: 'caisse-session', url: '/caisse/session/' },
   { nom: 'stock', url: '/stock/' },
+  { nom: 'stock-nouvel-article', url: '/stock/nouvel-article/' },
+  { nom: 'stock-inventaire', url: '/stock/inventaire/' },
   { nom: 'ventes', url: '/ventes/' },
   { nom: 'comptabilite', url: '/comptabilite/' },
   { nom: 'boutique', url: '/boutique/' },
@@ -106,6 +109,16 @@ async function connecter(page) {
   for (const i of [0, 1]) { if (t[i]) await t[i].click(); }
   await pm.waitForTimeout(250);
   await pm.screenshot({ path: `${SORTIE}/mobile-caisse.png` });
+
+  // Le ticket imprimable : format bande, sur la dernière vente clôturée.
+  await pm.goto(BASE + '/ventes/', { waitUntil: 'networkidle' });
+  const lienTicket = await pm.$('.tableau tbody tr a[href*="/ticket/"]');
+  if (lienTicket) {
+    await lienTicket.click();
+    await pm.waitForLoadState('networkidle');
+    await pm.waitForTimeout(200);
+    await pm.screenshot({ path: `${SORTIE}/ticket.png`, fullPage: true });
+  }
 
   await navigateur.close();
   console.log('Captures terminées.');

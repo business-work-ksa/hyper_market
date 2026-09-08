@@ -132,7 +132,7 @@ remplissages, et une légende à pastille + libellé + valeur.
 
 ---
 
-## 7. Trois pièges rencontrés, et leur correctif
+## 7. Quatre pièges rencontrés, et leur correctif
 
 Consignés parce qu'ils se reproduiront.
 
@@ -163,6 +163,20 @@ puis `184.0 + '3.5'` échoue aussi. Toutes les étiquettes d'axe se sont retrouv
 **Correctif :** aucune arithmétique dans un gabarit. La géométrie se calcule en Python et arrive
 prête à écrire. La règle vaut au-delà de ce cas : un gabarit dispose, il ne calcule pas.
 
+### 7.4 — Un écran peut annuler sa propre consigne
+
+L'inventaire affichait « comptez d'abord, regardez le théorique ensuite » — et montrait le stock
+théorique dans la colonne voisine du champ de saisie. La consigne était juste, l'écran la
+contredisait. **Un compteur qui connaît le chiffre attendu ne compte plus, il confirme**, et tout
+le contrôle disparaît.
+
+**Correctif :** le théorique est masqué par défaut, révélable par un bouton. La règle générale :
+quand une consigne demande de ne pas regarder quelque chose, l'interface ne doit pas le montrer.
+Écrire la consigne ne suffit pas.
+
+Ce défaut n'apparaît dans aucun test — l'écran fonctionnait parfaitement. Il s'est vu sur une
+capture.
+
 > **Et un piège d'outillage, tout aussi coûteux :** `runserver --noreload` garde le module Python
 > en mémoire. Plusieurs corrections de `views.py` semblaient sans effet alors qu'elles étaient
 > justes — le serveur servait l'ancien code. **Après toute modification Python, redémarrer avant
@@ -177,8 +191,12 @@ débordements. `captures/` contient une capture de chaque écran, en clair et en
 vues mobiles, produites par un script Playwright.
 
 C'est en les regardant qu'ont été trouvés : les commentaires Django multilignes rendus en clair
-dans la page, le débordement du bandeau à 390 px, et les trois pièges du §7. **Aucun de ces
-défauts n'était visible dans le code.**
+dans la page, le débordement du bandeau à 390 px, la contradiction de l'écran d'inventaire, et les
+pièges du §7. **Aucun de ces défauts n'était visible dans le code, et aucun ne faisait échouer un
+test.**
+
+Le mode hors ligne, lui, se vérifie autrement : `scripts/verifier-hors-ligne.js` coupe réellement
+le réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
 
 Régénérer après toute modification d'interface :
 

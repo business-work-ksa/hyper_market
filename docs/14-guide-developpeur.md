@@ -8,12 +8,12 @@ Mise en route du socle technique et règles à respecter dans le code.
 
 ```bash
 make installer          # environnement virtuel + dépendances
-cp .env.example .env    # puis adapter
+cp .env.example .env    # DEBUG=True, sinon les fichiers statiques ne sont pas servis
 
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo               # référentiels + 2 boutiques de démonstration
-make servir             # http://localhost:8000/admin/
+make servir             # http://localhost:8000/
 ```
 
 Sans `DATABASE_URL`, le projet bascule sur SQLite. C'est commode pour lancer les tests sans
@@ -21,7 +21,7 @@ infrastructure, **et ce n'est jamais acceptable en production** : les triggers q
 journal comptable inaltérable ne s'y installent pas.
 
 ```bash
-make tester      # 67 tests
+make tester      # 116 tests
 make verifier    # contrôles Django + détection de migration manquante
 ```
 
@@ -51,7 +51,11 @@ apps/
   payments/        prestataires, transactions, séquestre, portefeuilles
   accounting/      plan SYSCOHADA, journaux, écritures, balance
   affiliation/     filiation, attribution, commissions, revendeurs
-tests/             tests transverses (isolation, CMP, comptabilité, affiliation)
+  backoffice/      vues, formulaires et gabarits du back-office marchand
+static/            CSS écrit à la main, service worker, file hors ligne, icônes
+templates/         gabarits Django
+scripts/           captures d'écran et vérification du mode hors ligne
+tests/             tests transverses (isolation, CMP, comptabilité, affiliation, back-office)
 docs/              dossier projet
 ```
 
@@ -185,6 +189,11 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_comptabilite.py` | Équilibre débit/crédit, immuabilité, contre-passation, chaîne caisse → stock → écritures, marge brute calculable |
 | `test_affiliation.py` | Filiation à 2 niveaux, plafond de 35 %, séparation des sources de financement, délai de retour avant acquisition |
 | `test_journal_ajout_seul_postgres.py` | Le trigger résiste au SQL brut (ignoré sur SQLite) |
+| `test_backoffice.py` | Isolation vue par le navigateur, chaîne d'encaissement, géométrie du graphe |
+| `test_backoffice_gestion.py` | Reprise de stock, inventaire, session de caisse, ticket, export |
+
+Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
+réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
 
 Un test qui échoue dans `test_isolation_tenant.py` ou dans les invariants d'affiliation n'est
 jamais « à ajuster » : c'est une règle produit ou juridique qui vient d'être enfreinte.
@@ -195,9 +204,10 @@ jamais « à ajuster » : c'est une règle produit ou juridique qui vient d'êtr
 
 | Sujet | État | Référence |
 |---|---|---|
+| **Rôles et permissions dans les vues** | **Non implémenté, et c'est le plus urgent** : tout utilisateur rattaché voit tout, y compris la marge. Un caissier ne devrait pas la voir | docs/18, §8 |
 | Sécurité au niveau ligne (`RLS`) PostgreSQL | **Non implémentée.** Barrières 1 et 2 en place ; la 3ᵉ attend le paramètre de session porté par la connexion | docs/09, §3.2 |
+| Catalogue et mouvements de stock hors ligne | Seules les ventes sont mises en file ; `localStorage` devra céder la place à IndexedDB | docs/18, §8 |
 | API REST (DRF) | Sérialiseurs et vues à écrire | docs/05 |
-| Application caisse (PWA hors ligne) | Modèle et service serveur prêts ; client à construire | docs/09, §4 |
 | Adaptateurs Mobile Money | Interface définie ; implémentations MTN/Orange/Camtel à écrire | docs/09, §6 |
 | Logistique, RH, paie, retail media | Lots 2 à 5 | docs/11 |
 | Fiches ADR dans `docs/adr/` | À créer à partir du tableau du docs/09, §10 | docs/09 |

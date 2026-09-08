@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Entrée de stock — {{ variante.produit.libelle }}{% endblock %}
+{% block entete %}Entrée de stock{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'article' variante.pk %}">Retour à l'article</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{{ variante.produit.libelle }}</h2>
+      <span class="puce chiffre">{{ variante.sku }}</span>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+      {% include "partials/champ.html" with champ=formulaire.quantite %}
+      {% include "partials/champ.html" with champ=formulaire.cout_unitaire %}
+      {% include "partials/champ.html" with champ=formulaire.commentaire %}
+      <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+        Enregistrer l'entrée
+      </button>
+    </form>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">État actuel</h2></header>
+    <div class="carte__corps colonne" style="gap:14px">
+      {% if niveau %}
+        <div class="rangee rangee--espace">
+          <span class="t-2">En stock</span>
+          <strong class="chiffre">{{ niveau.quantite|quantite }}</strong>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">Coût moyen pondéré</span>
+          <strong class="chiffre">{{ niveau.cmp|fcfa }} FCFA</strong>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">Valeur du stock</span>
+          <strong class="chiffre">{{ niveau.valeur|fcfa }} FCFA</strong>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">Seuil d'alerte</span>
+          <span class="chiffre">{{ niveau.seuil_alerte|quantite }}</span>
+        </div>
+      {% else %}
+        <p class="t-2">Aucun stock enregistré pour cet article.</p>
+      {% endif %}
+    </div>
+    <footer class="carte__pied">
+      <p class="t-legende">
+        Une entrée recalcule le coût moyen pondéré ; une sortie ne le modifie jamais.
+        Le coût appliqué est historisé sur chaque mouvement et ne pourra plus être recalculé.
+      </p>
+    </footer>
+  </section>
+</div>
+{% endblock %}

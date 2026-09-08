@@ -1,0 +1,12 @@
+{% comment %}
+Rend un champ de formulaire avec son libellé, son aide et ses erreurs.
+Les widgets portent déjà leurs classes (voir apps/backoffice/forms.py).
+{% endcomment %}
+<div class="groupe-champ">
+  <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+  {{ champ }}
+  {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+  {% for erreur in champ.errors %}
+    <span class="t-petit" style="color:var(--critique);font-weight:550">{{ erreur }}</span>
+  {% endfor %}
+</div>

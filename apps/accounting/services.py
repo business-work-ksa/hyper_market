@@ -5,11 +5,13 @@ docs/07-comptabilite-paie-syscohada.md, §3.4. C'est ce module qui matérialise 
 « zéro double saisie » : le comptable ne saisit rien de ce que le système sait déjà.
 """
 
+from contextlib import contextmanager
 from decimal import Decimal
 
 from django.db import transaction
 from django.db.models import Max, Sum
 
+from apps.core.tenancy import contexte_boutique
 from apps.accounting.models import (
     CENTIME,
     CompteBoutique,
@@ -84,8 +86,20 @@ def _piece_suivante(boutique_id, exercice, journal) -> str:
     return f"{journal.code}-{prochain:06d}"
 
 
+def passer_ecriture(*, boutique_id, **arguments) -> EcritureComptable:
+    """Passe une écriture en partie double, dans le contexte de sa boutique.
+
+    Le contexte est établi **autour** de la transaction, pas dedans : un `SET`
+    PostgreSQL est transactionnel, et le poser à l'intérieur d'un bloc qui peut
+    échouer laisserait la restauration se heurter à une transaction en erreur
+    (`apps/core/rls.py`).
+    """
+    with contexte_boutique(boutique_id):
+        return _passer_ecriture(boutique_id=boutique_id, **arguments)
+
+
 @transaction.atomic
-def passer_ecriture(
+def _passer_ecriture(
     *,
     boutique_id,
     code_journal: str,
@@ -97,7 +111,7 @@ def passer_ecriture(
     valider: bool = True,
     cree_par=None,
 ) -> EcritureComptable:
-    """Passe une écriture en partie double.
+    """Corps de `passer_ecriture`.
 
     `lignes` est une liste de triplets `(numero_compte, debit, credit)`.
     L'écriture est refusée si elle est déséquilibrée : c'est la garantie que le grand livre reste
@@ -152,9 +166,14 @@ def passer_ecriture(
     return ecriture
 
 
-@transaction.atomic
 def contrepasser(ecriture: EcritureComptable, *, date_ecriture=None, motif: str = "") -> EcritureComptable:
     """Annule une écriture validée par son inverse. **Seule correction possible.**"""
+    with contexte_boutique(ecriture.boutique_id):
+        return _contrepasser(ecriture, date_ecriture=date_ecriture, motif=motif)
+
+
+@transaction.atomic
+def _contrepasser(ecriture: EcritureComptable, *, date_ecriture=None, motif: str = "") -> EcritureComptable:
     if ecriture.contrepassee_par_id is not None:
         raise EcritureInvalide("Cette écriture a déjà été contre-passée.")
 
@@ -184,6 +203,11 @@ def contrepasser(ecriture: EcritureComptable, *, date_ecriture=None, motif: str 
 
 def comptabiliser_ticket(ticket) -> list[EcritureComptable]:
     """Vente au comptoir : vente + TVA, encaissement, sortie de stock au CMP (docs/07, §3.1)."""
+    with contexte_boutique(ticket.boutique_id):
+        return _comptabiliser_ticket(ticket)
+
+
+def _comptabiliser_ticket(ticket) -> list[EcritureComptable]:
     from apps.inventory.models import MouvementStock
 
     boutique_id = ticket.boutique_id
@@ -268,17 +292,38 @@ def _cout_sorti(ticket, modele_mouvement) -> Decimal:
 
 def solde_compte(numero: str, *, boutique_id=None, jusqu_au=None) -> Decimal:
     """Solde d'un compte (débit − crédit) pour la boutique courante ou désignée."""
-    lignes = LigneEcriture.objects_all_tenants.filter(compte__numero=numero)
-    if boutique_id is not None:
-        lignes = lignes.filter(boutique_id=boutique_id)
-    if jusqu_au is not None:
-        lignes = lignes.filter(ecriture__date_ecriture__lte=jusqu_au)
-    agg = lignes.aggregate(d=Sum("debit"), c=Sum("credit"))
+    with _contexte_de_lecture(boutique_id):
+        lignes = LigneEcriture.objects_all_tenants.filter(compte__numero=numero)
+        if boutique_id is not None:
+            lignes = lignes.filter(boutique_id=boutique_id)
+        if jusqu_au is not None:
+            lignes = lignes.filter(ecriture__date_ecriture__lte=jusqu_au)
+        agg = lignes.aggregate(d=Sum("debit"), c=Sum("credit"))
     return ((agg["d"] or Decimal("0")) - (agg["c"] or Decimal("0"))).quantize(CENTIME)
+
+
+@contextmanager
+def _contexte_de_lecture(boutique_id):
+    """Établit le contexte quand la boutique est désignée, le laisse tel quel sinon.
+
+    Une lecture qui nomme sa boutique doit l'annoncer à la base : sans cela, les
+    politiques de sécurité au niveau ligne ne renverraient rien. Une lecture qui
+    ne la nomme pas s'appuie sur le contexte de l'appelant, comme avant.
+    """
+    if boutique_id is None:
+        yield
+    else:
+        with contexte_boutique(boutique_id):
+            yield
 
 
 def balance(*, boutique_id=None, jusqu_au=None) -> list[dict]:
     """Balance générale : un enregistrement par compte mouvementé, trié par numéro."""
+    with _contexte_de_lecture(boutique_id):
+        return _balance(boutique_id=boutique_id, jusqu_au=jusqu_au)
+
+
+def _balance(*, boutique_id=None, jusqu_au=None) -> list[dict]:
     lignes = LigneEcriture.objects_all_tenants.all()
     if boutique_id is not None:
         lignes = lignes.filter(boutique_id=boutique_id)

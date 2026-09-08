@@ -1,10 +1,19 @@
-"""Fabriques de données pour les tests."""
+"""Fabriques de données pour les tests.
+
+Les fabriques de données scopées posent elles-mêmes le contexte de la boutique
+qu'elles peuplent. Ce n'est pas une commodité : depuis la barrière 3, une
+insertion faite dans le mauvais contexte est **rejetée par PostgreSQL**, et un
+test qui prépare deux boutiques doit dire à chaque ligne à laquelle elle
+appartient. Autant que la fabrique s'en charge — c'est du code de test, pas du
+code de production, et l'isolation reste prouvée par les tests dédiés.
+"""
 
 from decimal import Decimal
 
 from apps.accounting.referentiel import initialiser_boutique
 from apps.accounts.models import Utilisateur
 from apps.catalog.models import Produit, Variante
+from apps.core.tenancy import contexte_boutique
 from apps.inventory.models import Depot
 from apps.marketplace.models import Bail, Boutique, Rayon, TypeEmplacement
 
@@ -65,6 +74,12 @@ def creer_boutique(enseigne=None, *, avec_comptabilite=True, quota_depots=1) -> 
 
 
 def creer_depot(boutique, libelle="Magasin", *, principal=True) -> Depot:
+    with contexte_boutique(boutique):
+        return creer_depot_sans_contexte(boutique, libelle, principal=principal)
+
+
+def creer_depot_sans_contexte(boutique, libelle="Magasin", *, principal=True) -> Depot:
+    """Insertion volontairement non contextualisée, pour éprouver la barrière 3."""
     return Depot.objects.create(
         boutique=boutique,
         libelle=libelle,
@@ -76,9 +91,10 @@ def creer_depot(boutique, libelle="Magasin", *, principal=True) -> Depot:
 def creer_variante(boutique, *, prix="11925", sku=None) -> Variante:
     n = _suivant()
     sku = sku or f"SKU-{n}"
-    produit = Produit.objects.create(
-        boutique=boutique, sku=sku, libelle=f"Produit {n}"
-    )
-    return Variante.objects.create(
-        boutique=boutique, produit=produit, sku=sku, prix_vente=Decimal(prix)
-    )
+    with contexte_boutique(boutique):
+        produit = Produit.objects.create(
+            boutique=boutique, sku=sku, libelle=f"Produit {n}"
+        )
+        return Variante.objects.create(
+            boutique=boutique, produit=produit, sku=sku, prix_vente=Decimal(prix)
+        )

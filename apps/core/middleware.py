@@ -1,6 +1,6 @@
 """Barrière 1 du multi-tenant : résolution de la boutique courante pour chaque requête."""
 
-from apps.core.tenancy import definir_boutique_courante
+from apps.core.tenancy import definir_boutique_courante, restaurer_boutique_courante
 
 ENTETE_BOUTIQUE = "HTTP_X_BOUTIQUE"
 
@@ -28,9 +28,10 @@ class BoutiqueCouranteMiddleware:
         try:
             return self.get_response(request)
         finally:
-            from apps.core.tenancy import _boutique
-
-            _boutique.reset(jeton)
+            # La restauration remet aussi le réglage de session PostgreSQL :
+            # les connexions sont persistantes, et une requête ne doit jamais
+            # laisser la suivante hériter de sa boutique.
+            restaurer_boutique_courante(jeton)
 
     @staticmethod
     def _resoudre(request):

@@ -75,8 +75,22 @@ class IsolationTenantTest(TestCase):
         with contexte_plateforme():
             self.assertEqual(Variante.objects.count(), 2)
 
-    def test_gestionnaire_non_filtre_reste_disponible(self):
-        self.assertEqual(Variante.objects_all_tenants.count(), 2)
+    def test_le_gestionnaire_non_filtre_ne_contourne_pas_la_base(self):
+        """`objects_all_tenants` lève la barrière 2, jamais la barrière 3.
+
+        Sur PostgreSQL, la politique de sécurité au niveau ligne s'applique quand
+        même : un gestionnaire non filtré sans contexte ne ramène rien. C'est le
+        sens même de la troisième barrière — elle protège du code qui croyait
+        pouvoir s'en passer. Sur SQLite, faute de RLS, seul le contournement du
+        gestionnaire est observable.
+        """
+        from django.db import connection
+
+        attendu = 0 if connection.vendor == "postgresql" else 2
+        self.assertEqual(Variante.objects_all_tenants.count(), attendu)
+
+        with contexte_plateforme():
+            self.assertEqual(Variante.objects_all_tenants.count(), 2)
 
     def test_le_contexte_est_restaure_apres_le_bloc(self):
         with contexte_boutique(self.boutique_a):

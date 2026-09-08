@@ -17,13 +17,20 @@ make servir             # http://localhost:8000/
 ```
 
 Sans `DATABASE_URL`, le projet bascule sur SQLite. C'est commode pour lancer les tests sans
-infrastructure, **et ce n'est jamais acceptable en production** : les triggers qui rendent le
-journal comptable inaltérable ne s'y installent pas.
+infrastructure, **et ce n'est jamais acceptable en production** : ni les triggers qui rendent le
+journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne s'y installent.
+Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 156 tests
+make tester      # 170 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
+make securite    # la barrière 3 est-elle réellement active ?
 ```
+
+> **Le rôle applicatif ne doit être ni `SUPERUSER` ni `BYPASSRLS`.** Ces attributs annulent les
+> politiques d'isolation **sans lever la moindre erreur** : tout fonctionne, les tests passent, et
+> plus rien n'est isolé. `docker compose` s'en charge (`infrastructure/postgres/`) ; sur une base
+> existante, `ALTER ROLE <role> NOSUPERUSER NOBYPASSRLS CREATEDB;`, puis `make securite`.
 
 Comptes de démonstration (mot de passe `demo1234`) :
 
@@ -98,6 +105,19 @@ sait quel tenant il manipule, et ne doit pas dépendre d'un contexte ambiant.
 Attention : les gestionnaires inverses (`ticket.lignes`, `ecriture.lignes`) héritent du
 gestionnaire filtré. Dans un service, préférer
 `LigneTicket.objects_all_tenants.filter(ticket=ticket)`.
+
+**Mais `objects_all_tenants` ne contourne que le gestionnaire, jamais la base.** Sur PostgreSQL,
+la barrière 3 (`apps/core/rls.py`) filtre au niveau de la ligne, et un service qui n'annonce pas sa
+boutique ne voit rien et n'écrit rien. Un service de confiance qui reçoit un tenant explicite
+l'établit donc autour de sa transaction :
+
+```python
+def passer_ecriture(*, boutique_id, **arguments):
+    with contexte_boutique(boutique_id):      # autour, jamais dedans : un SET est transactionnel
+        return _passer_ecriture(boutique_id=boutique_id, **arguments)
+```
+
+Connaître son tenant ne suffit plus : il faut le déclarer.
 
 ### 3.2 — Le journal comptable est en ajout seul
 
@@ -230,6 +250,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_comptabilite.py` | Équilibre débit/crédit, immuabilité, contre-passation, chaîne caisse → stock → écritures, marge brute calculable |
 | `test_affiliation.py` | Filiation à 2 niveaux, plafond de 35 %, séparation des sources de financement, délai de retour avant acquisition |
 | `test_journal_ajout_seul_postgres.py` | Le trigger résiste au SQL brut (ignoré sur SQLite) |
+| `test_rls_postgres.py` | **Barrière 3** : la base refuse ce que le code aurait pu laisser passer — isolation en SQL brut, `WITH CHECK` à l'insertion, rôle sans privilège de contournement, couverture de toutes les tables scopées |
 | `test_backoffice.py` | Isolation vue par le navigateur, chaîne d'encaissement, géométrie du graphe |
 | `test_backoffice_gestion.py` | Reprise de stock, inventaire, session de caisse, ticket, export |
 | `test_permissions.py` | **Frontière d'exposition** : matrice des droits, porte des écrans, coût et marge absents des pages où ils n'ont rien à faire |
@@ -238,9 +259,9 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
 
-Un test qui échoue dans `test_isolation_tenant.py`, dans `test_permissions.py` ou dans les
-invariants d'affiliation n'est jamais « à ajuster » : c'est une règle produit ou juridique qui
-vient d'être enfreinte. Dans les deux premiers cas, c'est une fuite de données.
+Un test qui échoue dans `test_isolation_tenant.py`, `test_permissions.py`, `test_rls_postgres.py`
+ou dans les invariants d'affiliation n'est jamais « à ajuster » : c'est une règle produit ou
+juridique qui vient d'être enfreinte. Dans les trois premiers cas, c'est une fuite de données.
 
 ---
 
@@ -248,7 +269,6 @@ vient d'être enfreinte. Dans les deux premiers cas, c'est une fuite de données
 
 | Sujet | État | Référence |
 |---|---|---|
-| Sécurité au niveau ligne (`RLS`) PostgreSQL | **Non implémentée, et c'est le plus urgent.** Barrières 1 et 2 en place ; la 3ᵉ attend le paramètre de session porté par la connexion | docs/09, §3.2 |
 | Gestion de l'équipe dans l'interface | Les droits sont appliqués et affichés, mais un gérant ne peut pas encore inviter un employé ni changer son rôle depuis le back-office : cela passe par l'administration | docs/18, §9 |
 | API REST (DRF) | Sérialiseurs et vues à écrire | docs/05 |
 | Adaptateurs Mobile Money | Interface définie ; implémentations MTN/Orange/Camtel à écrire | docs/09, §6 |

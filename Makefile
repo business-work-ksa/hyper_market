@@ -2,7 +2,7 @@ VENV := .venv
 PY := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
-.PHONY: installer migrer referentiels demo servir tester verifier propre
+.PHONY: installer migrer referentiels demo servir tester verifier securite propre
 
 installer:            ## Crée l'environnement virtuel et installe les dépendances
 	python3 -m venv $(VENV)
@@ -27,6 +27,9 @@ tester:               ## Exécute la suite de tests
 verifier:             ## Contrôles de cohérence Django + migrations manquantes
 	$(PY) manage.py check
 	$(PY) manage.py makemigrations --check --dry-run
+
+securite:             ## Vérifie que l'isolation au niveau ligne est réellement active
+	$(PY) manage.py verifier_rls
 
 propre:
 	find . -name '__pycache__' -type d -prune -exec rm -rf {} +

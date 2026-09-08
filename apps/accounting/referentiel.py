@@ -16,6 +16,7 @@ from apps.accounting.models import (
     Journal,
     PlanComptable,
 )
+from apps.core.tenancy import contexte_boutique
 
 CODE_PLAN = "SYSCOHADA_REVISE"
 
@@ -101,29 +102,34 @@ def initialiser_boutique(boutique, *, annee: int | None = None) -> Exercice:
 
     Appelée à l'activation du bail, en même temps que l'état des lieux d'entrée. Idempotent :
     on peut la rejouer sans dupliquer ni écraser.
+
+    Le corps s'exécute dans le contexte de la boutique dotée : `objects_all_tenants` contourne le
+    gestionnaire, jamais la base, et les politiques de sécurité au niveau ligne refuseraient ces
+    écritures sans contexte déclaré (`apps/core/rls.py`).
     """
     plan = charger_plan_comptable()
 
-    for compte_modele in CompteGeneral.objects.filter(plan=plan):
-        CompteBoutique.objects_all_tenants.get_or_create(
+    with contexte_boutique(boutique):
+        for compte_modele in CompteGeneral.objects.filter(plan=plan):
+            CompteBoutique.objects_all_tenants.get_or_create(
+                boutique=boutique,
+                numero=compte_modele.numero,
+                defaults={
+                    "intitule": compte_modele.intitule,
+                    "type": compte_modele.type,
+                    "compte_modele": compte_modele,
+                },
+            )
+
+        for code, libelle in JOURNAUX:
+            Journal.objects_all_tenants.get_or_create(
+                boutique=boutique, code=code, defaults={"libelle": libelle}
+            )
+
+        annee = annee or date.today().year
+        exercice, _ = Exercice.objects_all_tenants.get_or_create(
             boutique=boutique,
-            numero=compte_modele.numero,
-            defaults={
-                "intitule": compte_modele.intitule,
-                "type": compte_modele.type,
-                "compte_modele": compte_modele,
-            },
+            debut=date(annee, 1, 1),
+            defaults={"fin": date(annee, 12, 31)},
         )
-
-    for code, libelle in JOURNAUX:
-        Journal.objects_all_tenants.get_or_create(
-            boutique=boutique, code=code, defaults={"libelle": libelle}
-        )
-
-    annee = annee or date.today().year
-    exercice, _ = Exercice.objects_all_tenants.get_or_create(
-        boutique=boutique,
-        debut=date(annee, 1, 1),
-        defaults={"fin": date(annee, 12, 31)},
-    )
     return exercice

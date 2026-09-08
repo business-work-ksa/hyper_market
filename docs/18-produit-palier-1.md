@@ -130,7 +130,6 @@ ventes, marge brute, TVA collectée.
 | Affiliation, revendeurs, retail media | Palier 5 |
 | Paie, bulletins, déclarations sociales | Bloqué par l'arbitrage A6 |
 | Commandes fournisseurs et encours | Palier 2 — l'entrée de stock manuelle suffit d'abord |
-| Multi-dépôts, transferts | Le modèle les porte ; les écrans supposent un dépôt principal |
 
 **Le code du dépôt va plus loin que cette liste** : les modèles de commandes, de paiement et
 d'affiliation existent et sont testés. Ils ne sont simplement pas exposés dans l'interface. C'est
@@ -444,10 +443,9 @@ les chemins — et une application native reste nécessaire pour un pilotage com
 
 | Sujet | Pourquoi ce n'est pas encore fait |
 |---|---|
-| **Sécurité au niveau ligne PostgreSQL** | Barrières 1 et 2 en place ; la 3ᵉ attend le paramètre de session porté par la connexion (docs/09, §3.2). C'est désormais le point le plus urgent |
 | **Gestion de l'équipe** | Les droits sont appliqués et affichés, mais inviter un employé ou changer son rôle passe encore par l'administration Django |
 | **Adaptateurs Mobile Money** | L'interface est définie, les implémentations MTN / Orange / Camtel restent à écrire |
 | **Impression hors Bluetooth LE** | Voir §8.5 : USB, Wi-Fi, SPP et iOS demandent une application native |
 
-Aucun de ces quatre points n'est une fuite de données ni une perte de saisie. C'est la différence
+Aucun de ces trois points n'est une fuite de données ni une perte de saisie. C'est la différence
 avec la liste précédente.

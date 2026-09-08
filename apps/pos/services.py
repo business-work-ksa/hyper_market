@@ -103,8 +103,16 @@ def regler(*, ticket: Ticket, moyen: str, montant, reference_psp: str = "") -> R
 
 
 @transaction.atomic
-def cloturer_ticket(ticket: Ticket, *, cree_par=None) -> Ticket:
-    """Clôt le ticket : sortie de stock au CMP puis génération des écritures comptables."""
+def cloturer_ticket(ticket: Ticket, *, cree_par=None, cloture_le=None) -> Ticket:
+    """Clôt le ticket : sortie de stock au CMP puis génération des écritures comptables.
+
+    `cloture_le` permet de déclarer **quand la vente a réellement eu lieu**, et non
+    quand le serveur l'a reçue. C'est la date que porteront les écritures
+    comptables, et elle ne pourra plus être corrigée ensuite : le journal est en
+    ajout seul, et son trigger refuse de déplacer une écriture validée dans le
+    temps. Une vente encaissée hors ligne doit donc arriver avec son heure, pas
+    la recevoir après coup.
+    """
     if ticket.etat == Ticket.CLOTURE:
         return ticket  # idempotent : une retransmission hors ligne ne double pas la sortie de stock
     if ticket.etat == Ticket.ANNULE:
@@ -133,7 +141,7 @@ def cloturer_ticket(ticket: Ticket, *, cree_par=None) -> Ticket:
         )
 
     ticket.etat = Ticket.CLOTURE
-    ticket.cloture_le = timezone.now()
+    ticket.cloture_le = cloture_le or timezone.now()
     ticket.save(update_fields=["etat", "cloture_le", "modifie_le"])
 
     # Import tardif : `pos` ne doit pas dépendre de `accounting` au chargement des modèles

@@ -289,6 +289,9 @@ class Command(BaseCommand):
                 nb_tickets = alea.randint(2, 6)
 
             for _ in range(nb_tickets):
+                horodatage = timezone.make_aware(
+                    datetime.combine(jour, dtime(alea.randint(8, 18), alea.randint(0, 59)))
+                )
                 ticket = caisse.creer_ticket(session=session)
                 for variante in alea.sample(vendables, alea.randint(1, min(3, len(vendables)))):
                     caisse.ajouter_ligne(
@@ -298,8 +301,12 @@ class Command(BaseCommand):
                 if ticket.total_ttc <= 0:
                     continue
                 caisse.regler(ticket=ticket, moyen=alea.choice(moyens), montant=ticket.total_ttc)
-                caisse.cloturer_ticket(ticket, cree_par=gerant)
-                self._antidater(ticket, jour, alea)
+                # La date de clôture est **déclarée avant** la comptabilisation :
+                # elle devient la date des écritures, et le journal en ajout seul
+                # refuse ensuite de la déplacer. Antidater après coup ne marchait
+                # que sur SQLite, faute de trigger.
+                caisse.cloturer_ticket(ticket, cree_par=gerant, cloture_le=horodatage)
+                self._antidater(ticket, horodatage)
 
     def _creer_etats_de_stock(self, depot, gerant, variantes):
         """Met en scène les trois états du stock, par ajustement d'inventaire.
@@ -338,24 +345,24 @@ class Command(BaseCommand):
             )
 
     @staticmethod
-    def _antidater(ticket, jour, alea):
-        """Repositionne le ticket et ses effets dans le passé.
+    def _antidater(ticket, horodatage):
+        """Repositionne les horodatages techniques dans le passé.
 
-        `cree_le` et `cloture_le` sont horodatés automatiquement : on les corrige
-        par `update()`, qui contourne `auto_now_add` sans toucher aux montants.
+        `cree_le` est posé automatiquement par `auto_now_add` : seul un `update()`
+        peut le corriger. On ne touche **que** cet horodatage technique.
+
+        La date comptable, elle, n'est pas corrigeable : le trigger du journal
+        refuse de déplacer une écriture validée dans le temps, et il a raison.
+        Elle est donc déclarée à la clôture du ticket, avant que la
+        comptabilisation ne s'exécute.
         """
-        horodatage = timezone.make_aware(
-            datetime.combine(jour, dtime(alea.randint(8, 18), alea.randint(0, 59)))
-        )
-        Ticket.objects_all_tenants.filter(pk=ticket.pk).update(
-            cree_le=horodatage, cloture_le=horodatage
-        )
+        Ticket.objects_all_tenants.filter(pk=ticket.pk).update(cree_le=horodatage)
         MouvementStock.objects_all_tenants.filter(
             origine_type="pos.Ticket", origine_id=ticket.pk
         ).update(cree_le=horodatage)
         EcritureComptable.objects_all_tenants.filter(
             origine_type="pos.Ticket", origine_id=ticket.pk
-        ).update(cree_le=horodatage, date_ecriture=jour)
+        ).update(cree_le=horodatage)
 
     def _creer_reseau_affiliation(self):
         """Awa parraine Junior, Junior parraine Sandrine — la chaîne s'arrête à 2 niveaux."""

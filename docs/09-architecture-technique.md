@@ -118,10 +118,32 @@ class TenantScopedModel(BaseModel):
         abstract = True
 ```
 
-**Barrière 3 — Sécurité au niveau ligne PostgreSQL.** Politiques `RLS` sur les tables sensibles
-(écritures comptables, bulletins de paie, mouvements de stock), avec un paramètre de session
-positionné par la connexion. Même une requête SQL brute mal écrite ne peut pas franchir la
-frontière.
+**Barrière 3 — Sécurité au niveau ligne PostgreSQL.** *Implémentée* (`apps/core/rls.py`, migration
+`core.0002`). Une politique sur **chacune des 24 tables scopées** compare `boutique_id` au réglage
+de session `hypermarche.boutique_id`, posé par le contexte Python à chaque changement de boutique.
+Même une requête SQL brute mal écrite ne franchit pas la frontière.
+
+```sql
+CREATE POLICY hm_isolation_boutique ON catalog_variante
+    USING (boutique_id::text = current_setting('hypermarche.boutique_id', true)
+           OR current_setting('hypermarche.boutique_id', true) = 'plateforme')
+    WITH CHECK (…même condition…);
+```
+
+Trois choix qui décident de son efficacité :
+
+1. **`FORCE ROW LEVEL SECURITY`.** Sans lui, le propriétaire des tables — c'est-à-dire le rôle
+   applicatif — contourne toutes les politiques.
+2. **Le rôle applicatif ne doit être ni `SUPERUSER` ni `BYPASSRLS`.** Ces attributs annulent la
+   barrière **sans lever la moindre erreur** : les politiques existent, elles sont correctes, et
+   elles ne s'appliquent à personne. C'est le piège le plus coûteux du dispositif ; `manage.py
+   verifier_rls` et un test dédié le détectent.
+3. **Réglage absent = rien n'est visible.** Un oubli de contexte produit une absence de données,
+   jamais une fuite — exactement le choix déjà fait à la barrière 2.
+
+Conséquence pour le code : `objects_all_tenants` ne contourne plus que le **gestionnaire**, jamais
+la base. Un service de confiance doit désormais *annoncer* la boutique qu'il manipule
+(`with contexte_boutique(...)`), et pas seulement la connaître.
 
 ### 3.3 — Tests d'isolation obligatoires
 

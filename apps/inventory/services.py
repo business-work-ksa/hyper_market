@@ -18,6 +18,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import F
 
+from apps.core.tenancy import contexte_boutique
 from apps.inventory.models import (
     QUANTUM,
     Depot,
@@ -61,8 +62,20 @@ def _niveau_verrouille(depot: Depot, variante) -> NiveauStock:
     return niveau
 
 
+def enregistrer_mouvement(*, depot: Depot, **arguments) -> MouvementStock:
+    """Écrit un mouvement dans le contexte de la boutique du dépôt.
+
+    Le contexte est établi **autour** de la transaction, pas dedans : un `SET`
+    PostgreSQL est transactionnel, et le poser à l'intérieur d'un bloc qui peut
+    échouer laisserait la restauration se heurter à une transaction en erreur
+    (`apps/core/rls.py`).
+    """
+    with contexte_boutique(depot.boutique_id):
+        return _enregistrer_mouvement(depot=depot, **arguments)
+
+
 @transaction.atomic
-def enregistrer_mouvement(
+def _enregistrer_mouvement(
     *,
     depot: Depot,
     variante,
@@ -75,7 +88,7 @@ def enregistrer_mouvement(
     commentaire: str = "",
     cree_par=None,
 ) -> MouvementStock:
-    """Écrit un mouvement et met à jour le niveau de stock, CMP compris.
+    """Corps de `enregistrer_mouvement` : mouvement écrit, niveau et CMP mis à jour.
 
     `quantite` est signée : positive pour une entrée, négative pour une sortie.
     """
@@ -173,13 +186,24 @@ def sortir_stock(*, depot, variante, quantite, type_mouvement=None, **kwargs) ->
     )
 
 
-@transaction.atomic
 def transferer_stock(*, depot_source, depot_cible, variante, quantite, **kwargs):
     """Transfert entre deux dépôts d'une même boutique.
 
     La marchandise sort au CMP du dépôt source et entre au même coût dans le dépôt cible : un
     transfert interne ne crée ni ne détruit de valeur.
     """
+    with contexte_boutique(depot_source.boutique_id):
+        return _transferer_stock(
+            depot_source=depot_source,
+            depot_cible=depot_cible,
+            variante=variante,
+            quantite=quantite,
+            **kwargs,
+        )
+
+
+@transaction.atomic
+def _transferer_stock(*, depot_source, depot_cible, variante, quantite, **kwargs):
     if depot_source.boutique_id != depot_cible.boutique_id:
         raise MouvementInvalide("Un transfert ne peut pas franchir la frontière d'une boutique.")
     if depot_source.pk == depot_cible.pk:
@@ -206,9 +230,14 @@ def transferer_stock(*, depot_source, depot_cible, variante, quantite, **kwargs)
     return sortie, entree
 
 
-@transaction.atomic
 def regulariser_inventaire(inventaire, *, cree_par=None) -> list[MouvementStock]:
     """Valide un inventaire : écrit un mouvement d'ajustement par ligne en écart."""
+    with contexte_boutique(inventaire.boutique_id):
+        return _regulariser_inventaire(inventaire, cree_par=cree_par)
+
+
+@transaction.atomic
+def _regulariser_inventaire(inventaire, *, cree_par=None) -> list[MouvementStock]:
     from django.utils import timezone
 
     from apps.inventory.models import Inventaire

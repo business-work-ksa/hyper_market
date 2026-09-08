@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 156 tests
+make tester                     # 170 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -119,6 +119,21 @@ que le gérant et le comptable).
 Un droit refusé ne masque pas une valeur en CSS : **elle n'est pas calculée**. Un `display:none`
 voyage quand même sur le réseau.
 
+### Isolation entre boutiques
+
+Trois barrières indépendantes, dont aucune ne suffit seule : le contexte de requête, le
+gestionnaire filtrant, et des **politiques PostgreSQL au niveau ligne** sur les 24 tables scopées.
+La troisième protège de ce que les deux premières ne voient pas — une requête brute, un script,
+un gestionnaire non filtré. Réglage de session absent : rien n'est visible.
+
+```bash
+make securite   # la barrière 3 est-elle réellement active ?
+```
+
+Elle a une condition d'existence facile à manquer : **le rôle applicatif ne doit être ni
+`SUPERUSER` ni `BYPASSRLS`**, faute de quoi les politiques sont ignorées sans la moindre erreur.
+La commande ci-dessus et un test dédié le vérifient.
+
 ### Mode hors ligne
 
 L'application s'installe sur l'écran d'accueil et **la caisse fonctionne sans réseau**. Une vente
@@ -143,9 +158,10 @@ node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie le
 - [x] **Rôles et droits** — le coût et la marge fermés à qui n'a pas à les voir, refus explicites
 - [x] **Multi-dépôts** — dépôt d'exploitation, transferts, quota d'emplacement
 - [x] **Impression thermique** — pilote ESC/POS sur Bluetooth basse consommation
+- [x] **Isolation au niveau ligne** — la base refuse ce que le code aurait pu laisser passer
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
-  *(restent la sécurité au niveau ligne PostgreSQL, la gestion de l'équipe et les adaptateurs
-  Mobile Money — voir [docs/18](docs/18-produit-palier-1.md), §9)*
+  *(restent la gestion de l'équipe dans l'interface et les adaptateurs Mobile Money — voir
+  [docs/18](docs/18-produit-palier-1.md), §9)*
 - [ ] **Lot 2** — Opérations : logistique, séquestre, WhatsApp, B2B
 - [ ] **Lot 3** — Comptabilité SYSCOHADA
 - [ ] **Lot 4** — RH & paie

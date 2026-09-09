@@ -1,0 +1,79 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}Votre panier — HyperMarché{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<h1 class="t-section" style="font-size:1.4rem;margin-bottom:16px">Votre panier</h1>
+
+{% if not lignes %}
+  <div class="vide">
+    <svg><use href="#ic-panier"></use></svg>
+    <p class="t-2">Votre panier est vide.</p>
+    <a class="btn btn--primaire" href="{% url 'vitrine_catalogue' %}">Parcourir le marché</a>
+  </div>
+{% else %}
+  <div class="duo">
+    <div class="colonne">
+      {% comment %}
+      Un groupe par commerçant, et c'est structurel : chacun accepte, prépare et
+      livre sa part séparément, et peut refuser sans que les autres soient
+      touchés. Présenter le panier d'un bloc promettrait une commande
+      indivisible qui n'existe pas.
+      {% endcomment %}
+      {% for groupe in groupes %}
+        <section class="carte">
+          <header class="carte__entete">
+            <h2 class="t-section">{{ groupe.boutique.enseigne }}</h2>
+            <span class="t-legende">{{ groupe.boutique.ville }}</span>
+          </header>
+          <div class="carte__corps colonne" style="gap:14px">
+            {% for ligne in groupe.lignes %}
+              <div class="panier-ligne">
+                <a class="pile-sm" href="{% url 'vitrine_article' ligne.article.pk %}" style="min-width:0">
+                  <span class="principal">{{ ligne.article.produit.libelle }}</span>
+                  <span class="t-legende">{{ ligne.article.prix_vente|fcfa }} FCFA l'unité</span>
+                </a>
+                <form method="post" action="{% url 'vitrine_panier_modifier' ligne.article.pk %}"
+                      class="rangee" style="gap:8px">
+                  {% csrf_token %}
+                  <input class="champ champ--compact" type="number" name="quantite"
+                         value="{{ ligne.quantite }}" min="0" max="99" inputmode="numeric"
+                         style="width:74px" aria-label="Quantité">
+                  <button class="btn btn--discret" type="submit">Mettre à jour</button>
+                </form>
+                <span class="chiffre" style="font-weight:620">{{ ligne.total|fcfa }} FCFA</span>
+              </div>
+            {% endfor %}
+            <div class="rangee rangee--espace">
+              <span class="t-legende">Sous-total {{ groupe.boutique.enseigne }}</span>
+              <span class="chiffre">{{ groupe.total|fcfa }} FCFA</span>
+            </div>
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Total</h2></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        <div class="rangee rangee--espace">
+          <span class="t-2">{{ lignes|length }} référence{{ lignes|length|pluralize }}</span>
+          <span class="article-fiche__prix" style="font-size:1.5rem">{{ total|fcfa }}<span class="unite">FCFA</span></span>
+        </div>
+        <p class="t-legende">
+          Livraison à convenir avec chaque commerçant. Le paiement se fait à la
+          remise de la marchandise.
+        </p>
+        <a class="btn btn--primaire btn--grand btn--bloc" href="{% url 'vitrine_commander' %}">
+          Commander
+        </a>
+        <a class="btn btn--discret btn--bloc" href="{% url 'vitrine_catalogue' %}">
+          Continuer mes achats
+        </a>
+      </div>
+    </section>
+  </div>
+{% endif %}
+{% endblock %}

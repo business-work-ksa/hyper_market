@@ -1,0 +1,15 @@
+{% extends "vitrine/base.html" %}
+
+{% block titre %}Introuvable — HyperMarché{% endblock %}
+
+{% block contenu %}
+<div class="vide">
+  <svg><use href="#ic-recherche"></use></svg>
+  <p class="t-2">Cette page n'existe pas, ou l'article n'est plus en vente.</p>
+  <p class="t-legende">
+    Un commerçant peut retirer un article, ou suspendre sa boutique. Le lien
+    cesse alors de fonctionner — c'est voulu.
+  </p>
+  <a class="btn btn--primaire" href="{% url 'vitrine_catalogue' %}">Retour au catalogue</a>
+</div>
+{% endblock %}

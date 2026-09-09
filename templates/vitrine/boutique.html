@@ -1,0 +1,30 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}{{ boutique.enseigne }} — HyperMarché{% endblock %}
+
+{% block contenu %}
+<header class="vitrine__boutique">
+  <span class="jeton jeton--grand">{{ boutique.enseigne|initiales }}</span>
+  <div class="pile-sm">
+    <h1 class="t-section" style="font-size:1.4rem">{{ boutique.enseigne }}</h1>
+    <p class="t-legende">
+      {{ boutique.ville }}{% if boutique.rayon_principal %} · {{ boutique.rayon_principal.libelle }}{% endif %}
+      · {{ nombre }} article{{ nombre|pluralize }} en vitrine
+    </p>
+  </div>
+</header>
+
+{% if articles %}
+  <div class="grille-vitrine">
+    {% for article in articles %}
+      {% include "vitrine/partials/carte-article.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="vide">
+    <svg><use href="#ic-panier"></use></svg>
+    <p class="t-2">Ce commerçant n'a aucun article en vitrine pour l'instant.</p>
+  </div>
+{% endif %}
+{% endblock %}

@@ -10,6 +10,7 @@ admin.site.index_title = "Gestion de la place de marché"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("apps.api.urls")),
+    path("marche/", include("apps.vitrine.urls")),
     path("", include("apps.backoffice.urls")),
 ]
 

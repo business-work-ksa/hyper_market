@@ -1,0 +1,57 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}Passer commande — HyperMarché{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<h1 class="t-section" style="font-size:1.4rem;margin-bottom:16px">Passer commande</h1>
+
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Où vous livrer</h2></header>
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+      {% include "partials/champ.html" with champ=formulaire.nom_complet %}
+      {% include "partials/champ.html" with champ=formulaire.telephone %}
+      {% include "partials/champ.html" with champ=formulaire.adresse_livraison %}
+      {% include "partials/champ.html" with champ=formulaire.note %}
+
+      <div class="bandeau-info" role="note">
+        <svg><use href="#ic-info"></use></svg>
+        <span>
+          Rien n'est débité maintenant. Chaque commerçant vous appelle pour
+          convenir de la livraison, et vous payez à la remise.
+        </span>
+      </div>
+
+      <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+        Envoyer la commande
+      </button>
+    </form>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Votre commande</h2></header>
+    <div class="carte__corps colonne" style="gap:14px">
+      {% for groupe in groupes %}
+        <div class="colonne" style="gap:6px">
+          <span class="t-sur-titre">{{ groupe.boutique.enseigne }}</span>
+          {% for ligne in groupe.lignes %}
+            <div class="rangee rangee--espace">
+              <span class="t-2">{{ ligne.article.produit.libelle|truncatechars:30 }} × {{ ligne.quantite }}</span>
+              <span class="chiffre">{{ ligne.total|fcfa }} FCFA</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="rangee rangee--espace" style="border-top:1px solid var(--filet);padding-top:12px">
+        <span style="font-weight:620">Total</span>
+        <span class="article-fiche__prix" style="font-size:1.3rem">{{ total|fcfa }}<span class="unite">FCFA</span></span>
+      </div>
+      <a class="btn btn--discret btn--bloc" href="{% url 'vitrine_panier' %}">Modifier le panier</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

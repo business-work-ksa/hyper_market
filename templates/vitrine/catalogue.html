@@ -1,0 +1,29 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}{% if rayon_courant %}{{ rayon_courant.libelle }}{% elif recherche %}« {{ recherche }} »{% else %}Catalogue{% endif %} — HyperMarché{% endblock %}
+
+{% block contenu %}
+<header class="rangee rangee--espace" style="margin-bottom:16px">
+  <h1 class="t-section">
+    {% if recherche %}« {{ recherche }} »
+    {% elif rayon_courant %}{{ rayon_courant.libelle }}
+    {% else %}Tout le marché{% endif %}
+  </h1>
+  <span class="t-legende">{{ nombre }} article{{ nombre|pluralize }}</span>
+</header>
+
+{% if articles %}
+  <div class="grille-vitrine">
+    {% for article in articles %}
+      {% include "vitrine/partials/carte-article.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="vide">
+    <svg><use href="#ic-recherche"></use></svg>
+    <p class="t-2">Rien ne correspond à cette recherche.</p>
+    <p class="t-legende">Essayez un autre mot, ou parcourez un rayon.</p>
+  </div>
+{% endif %}
+{% endblock %}

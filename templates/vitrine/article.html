@@ -1,0 +1,76 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}{{ article.produit.libelle }} — {{ article.boutique.enseigne }}{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <div class="carte__corps colonne" style="gap:18px">
+      <span class="article-fiche__image" aria-hidden="true">
+        <svg><use href="#ic-panier"></use></svg>
+      </span>
+
+      <div class="colonne" style="gap:6px">
+        <h1 class="t-section" style="font-size:1.4rem">{{ article.produit.libelle }}</h1>
+        {% if article.attributs %}
+          <p class="t-legende">
+            {% for cle, valeur in article.attributs.items %}{{ cle }} : {{ valeur }}{% if not forloop.last %} · {% endif %}{% endfor %}
+          </p>
+        {% endif %}
+        <p class="article-fiche__prix">{{ article.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="t-legende">
+          Prix toutes taxes comprises{% if article.taux_tva %}, dont {{ article.taux_tva|pourcent:2 }} de TVA{% endif %}.
+        </p>
+      </div>
+
+      {% if article.produit.description %}
+        <p class="t-2">{{ article.produit.description|linebreaksbr }}</p>
+      {% endif %}
+
+      <form method="post" action="{% url 'vitrine_panier_ajouter' article.pk %}" class="rangee" style="gap:10px">
+        {% csrf_token %}
+        <input type="hidden" name="suite" value="{{ request.get_full_path }}">
+        <label class="t-legende" for="quantite">Quantité</label>
+        <input class="champ champ--compact" id="quantite" type="number" name="quantite"
+               value="1" min="1" max="99" inputmode="numeric" style="width:90px">
+        <button class="btn btn--primaire btn--grand" type="submit">Ajouter au panier</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="colonne">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Vendu par</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <a class="boutique-tuile" href="{% url 'vitrine_boutique' article.boutique.slug %}">
+          <span class="jeton">{{ article.boutique.enseigne|initiales }}</span>
+          <span class="pile-sm">
+            <span class="principal">{{ article.boutique.enseigne }}</span>
+            <span class="t-legende">{{ article.boutique.ville }}</span>
+          </span>
+        </a>
+        <p class="t-legende">
+          C'est ce commerçant qui prépare et livre votre commande. HyperMarché
+          lui loue son emplacement et tient sa gestion — il ne revend pas ses
+          articles à sa place.
+        </p>
+      </div>
+    </section>
+
+    {% if voisins %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">Chez le même commerçant</h2></header>
+        <div class="carte__corps colonne" style="gap:10px">
+          {% for autre in voisins %}
+            <a class="rangee rangee--espace" href="{% url 'vitrine_article' autre.pk %}">
+              <span class="t-2">{{ autre.produit.libelle|truncatechars:32 }}</span>
+              <span class="chiffre" style="font-weight:620">{{ autre.prix_vente|fcfa }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

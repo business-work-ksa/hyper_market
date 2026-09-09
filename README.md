@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 304 tests
+make tester                     # 332 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -83,6 +83,25 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
+
+## La vitrine publique
+
+`/marche/` — le catalogue de tout le marché, sans compte : recherche, fiche produit, vitrine par
+commerçant, panier, tunnel de commande. Chaque article nomme le commerçant qui le vend et qui le
+livrera.
+
+C'est le **seul endroit du produit qui lit en contexte plateforme**, et
+[`apps/vitrine/catalogue.py`](apps/vitrine/catalogue.py) en est la seule porte : elle ne rend que
+des articles actifs de boutiques en état de vendre, et **jamais le stock ni le coût d'achat**. Une
+boutique suspendue disparaît de la vitrine tout en gardant son back-office — on ne coupe pas sa
+comptabilité à un marchand en retard de loyer.
+
+Un panier traverse les boutiques et s'éclate en une sous-commande par commerçant, chacun acceptant,
+préparant et livrant sa part séparément. On ne demande son identité à l'acheteur qu'au moment de
+livrer, et passer commande **n'ouvre aucune session** : un numéro non vérifié ne donne pas accès à
+l'historique de son propriétaire.
+
+La vitrine n'encaisse pas encore — même frontière que les appels d'opérateur.
 
 ## Le back-office marchand
 
@@ -192,7 +211,8 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
 - [x] **Décisions d'architecture** — dix fiches, chacune rattachée au test qui la tient
 - [x] **Commandes en ligne** — éclatement d'un panier multi-boutiques, commission figée, chaque
   effet à son étape, écran de traitement pour le marchand
-  *(le tunnel de commande côté acheteur reste à écrire)*
+- [x] **Vitrine publique** — catalogue de tout le marché sans compte, panier, tunnel de commande,
+  lien de parrainage *(l'encaissement en ligne attend le même bac à sable d'opérateur)*
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

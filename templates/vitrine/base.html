@@ -1,0 +1,84 @@
+{% load static hm %}<!doctype html>
+{% comment %}
+Pas de `data-theme` ici, et c'est délibéré. Le back-office le stampe parce qu'un
+commerçant choisit son thème une fois pour la journée et le retrouve le
+lendemain. Un visiteur de passage n'a rien à choisir : la vitrine suit sa
+préférence système, que `prefers-color-scheme` porte déjà.
+
+Stamper `light` par défaut, comme le fait le back-office avant que son script ne
+restaure le choix mémorisé, condamnerait la vitrine au mode clair pour tout le
+monde — l'attribut gagne sur la requête média.
+{% endcomment %}
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#00806A">
+<title>{% block titre %}HyperMarché{% endblock %}</title>
+{% comment %}
+Pas de service worker ni de file hors ligne ici : la vitrine s'adresse à un
+visiteur de passage, et lui installer une application au premier clic serait
+présomptueux. Le hors-ligne est un besoin du commerçant à son comptoir, pas de
+l'acheteur qui découvre le marché.
+{% endcomment %}
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
+</head>
+<body class="vitrine">
+{% include "partials/icones.html" %}
+
+<header class="vitrine__entete">
+  <a class="vitrine__marque" href="{% url 'vitrine_accueil' %}">
+    <span class="sceau" aria-hidden="true">HM</span>
+    <span>HyperMarché</span>
+  </a>
+
+  <form class="vitrine__recherche" method="get" action="{% url 'vitrine_catalogue' %}" role="search">
+    <svg aria-hidden="true"><use href="#ic-recherche"></use></svg>
+    <input class="champ" type="search" name="q" value="{{ recherche }}"
+           placeholder="Chercher un article, une marque…" aria-label="Chercher dans le marché">
+  </form>
+
+  <a class="btn btn--panier" href="{% url 'vitrine_panier' %}">
+    <svg><use href="#ic-panier"></use></svg>
+    <span class="vitrine__panier-mot">Panier</span>
+    {% if articles_au_panier %}<span class="puce puce--marque">{{ articles_au_panier }}</span>{% endif %}
+  </a>
+</header>
+
+{% block rayons %}
+  <nav class="vitrine__rayons" aria-label="Rayons du marché">
+    <a class="vitrine__rayon {% if not rayon_courant %}est-actif{% endif %}"
+       href="{% url 'vitrine_catalogue' %}">Tout le marché</a>
+    {% for r in rayons %}
+      <a class="vitrine__rayon {% if rayon_courant and rayon_courant.code == r.code %}est-actif{% endif %}"
+         href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}">{{ r.libelle }}</a>
+    {% endfor %}
+  </nav>
+{% endblock %}
+
+<main class="vitrine__zone">
+  {% if messages %}
+    <div class="colonne" style="gap:8px;margin-bottom:16px">
+      {% for message in messages %}
+        <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% endif %}" role="status">
+          <svg><use href="#{% if message.tags == 'error' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block contenu %}{% endblock %}
+</main>
+
+<footer class="vitrine__pied">
+  <p class="t-legende">
+    HyperMarché — place de marché camerounaise. Chaque article est vendu par le
+    commerçant nommé sur sa fiche, qui en assure la livraison.
+  </p>
+  <a class="t-legende" href="{% url 'connexion' %}">Espace commerçant</a>
+</footer>
+</body>
+</html>

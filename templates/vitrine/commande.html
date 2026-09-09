@@ -1,0 +1,73 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}Commande {{ commande.numero }} — HyperMarché{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<section class="carte" style="margin-bottom:16px">
+  <div class="carte__corps colonne" style="gap:10px">
+    <span class="puce puce--bon" style="align-self:flex-start">
+      <svg><use href="#ic-check"></use></svg>Commande enregistrée
+    </span>
+    <h1 class="t-section" style="font-size:1.4rem">{{ commande.numero }}</h1>
+    <p class="t-2">
+      Merci. {% if parts|length > 1 %}Vos {{ parts|length }} commerçants vont{% else %}Le commerçant va{% endif %}
+      vous appeler au <span class="chiffre">{{ commande.acheteur.telephone }}</span> pour convenir
+      de la livraison.
+    </p>
+    <p class="t-legende">
+      Gardez cette page dans vos favoris : c'est votre suivi. Le numéro de
+      commande est ce que vous direz au commerçant au téléphone.
+    </p>
+  </div>
+</section>
+
+{% comment %}
+Une carte par commerçant, avec son propre état d'avancement. Une commande qui
+traverse deux boutiques avance à deux vitesses, et un état unique mentirait sur
+l'une des deux.
+{% endcomment %}
+<div class="colonne">
+  {% for part in parts %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">{{ part.boutique.enseigne }}</h2>
+        <span class="puce {% if part.etat == 'annulee' %}puce--critique{% elif part.etat == 'livree' %}puce--bon{% else %}puce--marque{% endif %}">
+          {{ part.get_etat_display }}
+        </span>
+      </header>
+      <div class="carte__corps colonne" style="gap:10px">
+        {% for ligne in part.lignes.all %}
+          <div class="rangee rangee--espace">
+            <span class="t-2">{{ ligne.libelle }} × {{ ligne.quantite|quantite }}</span>
+            <span class="chiffre">{{ ligne.total_ttc|fcfa }} FCFA</span>
+          </div>
+        {% endfor %}
+        <div class="rangee rangee--espace" style="border-top:1px solid var(--filet);padding-top:10px">
+          <span class="t-legende">Sous-total</span>
+          <span class="chiffre" style="font-weight:620">{{ part.total_ttc|fcfa }} FCFA</span>
+        </div>
+      </div>
+    </section>
+  {% endfor %}
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Livraison</h2></header>
+    <div class="carte__corps colonne" style="gap:8px">
+      <div class="rangee rangee--espace"><span class="t-2">Adresse</span><span>{{ commande.adresse_livraison|default:"—" }}</span></div>
+      {% if commande.note %}
+        <div class="rangee rangee--espace"><span class="t-2">Précisions</span><span>{{ commande.note }}</span></div>
+      {% endif %}
+      <div class="rangee rangee--espace">
+        <span class="t-2">Total</span>
+        <span class="chiffre" style="font-weight:620">{{ commande.total_ttc|fcfa }} FCFA</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="rangee" style="gap:10px;margin-top:16px">
+  <a class="btn btn--primaire" href="{% url 'vitrine_catalogue' %}">Retour au marché</a>
+</div>
+{% endblock %}

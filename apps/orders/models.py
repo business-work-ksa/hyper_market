@@ -56,6 +56,13 @@ class Commande(BaseModel):
         "affiliation.Revendeur", null=True, blank=True, on_delete=models.SET_NULL, related_name="commandes"
     )
 
+    adresse_livraison = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Texte libre : le découpage en zones et tarifs relève du lot 2.",
+    )
+    note = models.TextField(blank=True, help_text="Précisions de l'acheteur pour le marchand.")
+
     livree_le = models.DateTimeField(null=True, blank=True)
     operation_id = models.UUIDField(
         null=True,

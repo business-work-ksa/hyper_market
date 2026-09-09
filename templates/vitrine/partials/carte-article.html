@@ -1,0 +1,31 @@
+{% load hm %}
+{% comment %}
+La tuile du catalogue. Elle nomme toujours le commerçant : sur une place de
+marché, savoir qui vend est une information de premier plan — c'est lui qui
+livrera, et c'est à lui que l'acheteur aura affaire.
+
+Le stock n'y figure pas. Il appartient au marchand, il varie d'un dépôt à
+l'autre, et l'afficher à l'unité près en vitrine reviendrait à publier le rythme
+de ses ventes à ses concurrents.
+{% endcomment %}
+<article class="vitrine-tuile">
+  <a class="vitrine-tuile__lien" href="{% url 'vitrine_article' article.pk %}">
+    <span class="vitrine-tuile__image" aria-hidden="true">
+      <svg><use href="#ic-panier"></use></svg>
+    </span>
+    <span class="vitrine-tuile__titre">{{ article.produit.libelle }}</span>
+    {% if article.attributs %}
+      <span class="t-legende">{% for cle, valeur in article.attributs.items %}{{ valeur }}{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+    {% endif %}
+    <span class="vitrine-tuile__marchand">
+      <svg class="icone-ligne"><use href="#ic-boutique"></use></svg>
+      {{ article.boutique.enseigne }}
+    </span>
+    <span class="vitrine-tuile__prix">{{ article.prix_vente|fcfa }}<span class="unite">FCFA</span></span>
+  </a>
+  <form method="post" action="{% url 'vitrine_panier_ajouter' article.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="suite" value="{{ request.get_full_path }}">
+    <button class="btn btn--primaire btn--bloc" type="submit">Ajouter au panier</button>
+  </form>
+</article>

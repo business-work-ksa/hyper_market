@@ -30,6 +30,13 @@ const PAGES = [
   { nom: 'equipe', url: '/boutique/equipe/' },
 ];
 
+// La vitrine ne demande aucun compte : elle se capture sans se connecter, et
+// c'est précisément ce qu'il faut montrer.
+const PAGES_PUBLIQUES = [
+  { nom: 'vitrine-accueil', url: '/marche/' },
+  { nom: 'vitrine-catalogue', url: '/marche/catalogue/' },
+];
+
 // Chacun de ces comptes ouvre sur un écran différent : c'est précisément ce que
 // les captures doivent montrer (docs/18, §8.1).
 const COMPTES = {
@@ -111,6 +118,26 @@ async function connecter(page, compte = COMPTES.gerant) {
     }
 
     await contexte.close();
+
+    // La vitrine, dans un contexte neuf : pas de cookie de session, pas de
+    // compte. C'est ainsi qu'un acheteur la voit, et la capture doit le prouver
+    // plutôt que l'affirmer — un contexte réutilisé porterait la session du
+    // gérant et ne dirait rien.
+    const passant = await navigateur.newContext({
+      viewport: { width: 1440, height: 940 },
+      deviceScaleFactor: 2,
+      colorScheme: theme,
+      locale: 'fr-FR',
+    });
+    const visiteur = await passant.newPage();
+    await visiteur.goto(BASE + '/marche/');
+    await visiteur.evaluate((t) => localStorage.setItem('hm-theme', t), theme);
+    for (const p of PAGES_PUBLIQUES) {
+      await visiteur.goto(BASE + p.url, { waitUntil: 'networkidle' });
+      await visiteur.waitForTimeout(200);
+      await visiteur.screenshot({ path: `${SORTIE}/${p.nom}-${theme}.png` });
+    }
+    await passant.close();
   }
 
   // --- Les mêmes écrans, vus par d'autres rôles ----------------------------

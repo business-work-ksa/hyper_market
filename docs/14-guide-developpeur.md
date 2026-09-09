@@ -74,6 +74,9 @@ apps/
   api/             API REST v1 (DRF)
                    models.py — jeton porteur de la boutique (ADR-010)
                    acces.py — la même porte, les mêmes droits
+  vitrine/         catalogue public, panier, tunnel de commande
+                   catalogue.py — la seule porte du catalogue public
+                   panier.py — panier en session, relu à chaque affichage
 static/            CSS écrit à la main, service worker, file hors ligne (IndexedDB),
                    pilote d'imprimante thermique ESC/POS, icônes
 templates/         gabarits Django
@@ -267,6 +270,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_api.py` | **Le jeton porte la boutique** : `X-Boutique` ne déplace rien, un ticket voisin est introuvable, retirer l'accès ferme le jeton à la requête suivante, le coût d'achat est absent — pas vide — des réponses faites à un caissier |
 | `test_commandes.py` | Éclatement d'un panier multi-boutiques, **taux de commission figé à la commande**, chaque effet à son étape (écritures au paiement, stock à l'expédition, délai de retour à la livraison), retours au coût de sortie |
 | `test_backoffice_commandes.py` | L'écran de traitement : un bouton périmé n'agit pas, la part d'un confrère est introuvable, refus avant expédition et retour après |
+| `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
@@ -451,14 +455,69 @@ effectivement, ce que le palier 1 ne fait pas encore.
 
 ---
 
-## 8. Reste à faire sur le socle
+## 8. Vitrine publique
+
+`/marche/` — catalogue de tout le marché, panier, tunnel de commande. Implémentation dans
+`apps/vitrine/`.
+
+### 8.1 — Elle lit en contexte plateforme, et ce n'est pas une brèche
+
+C'est le seul endroit du produit qui le fait. Il le faut : un acheteur cherche « ciment » sur
+tout le marché, et les politiques d'isolation ne rendraient rien sans ce contexte.
+
+Ce que la barrière 3 protège, ce sont les données **privées** d'un commerçant — coût d'achat,
+marge, écritures, salariés. Un catalogue public n'en contient aucune : il contient ce que le
+marchand a délibérément mis en vitrine, c'est-à-dire ce qu'il paie un emplacement pour montrer.
+
+La distinction ne repose pas sur la bonne volonté de l'appelant : **elle est portée par
+`apps/vitrine/catalogue.py`**, seule porte du catalogue public. Aucune vue de la vitrine n'ouvre
+`contexte_plateforme()` elle-même, et aucune ne voit un `NiveauStock` ni une `EcritureComptable`.
+
+Une conséquence pratique : **le stock n'est pas publié.** Il appartient au marchand, il varie
+d'un dépôt à l'autre, et l'afficher à l'unité près reviendrait à publier le rythme de ses ventes
+à ses concurrents.
+
+### 8.2 — On ne demande l'identité qu'au moment de livrer
+
+Le panier vit en session : demander un compte pour poser un article dedans est le moyen le plus
+sûr de perdre l'acheteur. Il ne stocke que des identifiants et des quantités — un prix recopié en
+session finirait par diverger de celui du marchand, et l'acheteur verrait un total en paierait un
+autre.
+
+Passer commande crée un compte si le numéro est inconnu, mais **n'ouvre aucune session** : un
+numéro non vérifié ne doit pas donner accès à l'historique de son propriétaire. Et un numéro déjà
+connu n'est jamais renommé par le formulaire public — ce serait une prise de contrôle discrète du
+compte d'un gérant.
+
+Le suivi est adressé par l'identifiant de la commande, pas par son numéro : `CMD-00000042`
+s'incrémente, donc qui en connaît un les connaît tous.
+
+### 8.3 — Le parrainage se capte partout, se fige une fois
+
+`?ref=CODE` est retenu en session depuis **n'importe quelle** page — un revendeur partage le lien
+d'un produit, pas celui de l'accueil. L'attribution ne se fige qu'à la commande, et une
+attribution existante n'est jamais écrasée (docs/06, §6).
+
+### 8.4 — Ce que la vitrine ne fait pas
+
+**Elle n'encaisse pas.** La commande est enregistrée et arrive immédiatement sur l'écran de
+traitement du marchand ; le paiement est constaté hors ligne, comme au comptoir. C'est la même
+frontière que pour les appels d'opérateur : tant que la couche Mobile Money n'est pas écrite
+contre un bac à sable, un bouton « Payer » ici serait un mensonge.
+
+**Elle n'installe rien.** Ni service worker, ni file hors ligne : le hors-ligne est un besoin du
+commerçant à son comptoir, pas du visiteur qui découvre le marché.
+
+---
+
+## 9. Reste à faire sur le socle
 
 | Sujet | État | Référence |
 |---|---|---|
 | Appels HTTP vers MTN / Orange / Camtel | Contrat, routage, disjoncteur, idempotence et prestataire simulé écrits et testés ; **les appels réseau attendent un bac à sable d'opérateur** — ils ne seront pas écrits à l'aveugle | docs/09, §6 |
 | Impression thermique hors Bluetooth LE | Le pilote ESC/POS couvre le Bluetooth basse consommation sur Chromium ; USB, Wi-Fi, SPP et iOS demandent une application native | docs/18, §9 |
 | Entrée en stock et cycle d'achat en comptabilité | Le débit `311` / crédit `6031` d'une réception n'est pas écrit, ni la facture fournisseur `6011` + `4452` / `401` : le compte de stock ressort négatif | docs/07, §3.4 |
-| Vitrine publique et tunnel de commande | Le moteur de commande et l'écran marchand existent et sont testés ; **il n'y a pas encore de page où un acheteur compose son panier** | docs/05 |
+| Encaissement en ligne | La commande est passée puis payée hors ligne. Le paiement dans le tunnel attend la même chose que le socle de paiement : un bac à sable d'opérateur | docs/09, §6 |
 | Reversement du séquestre au marchand | Les ventes en ligne alimentent le `5313` ; le virement `5311` / `401` / `5313` n'est pas écrit tant qu'aucun versement réel n'a lieu | docs/07, §3.2 |
 | Logistique, séquestre avancé, WhatsApp, B2B | **Lot 2.** Critère de sortie : coût unitaire du dernier kilomètre prouvé (arbitrage A7) | docs/11, §5 |
 | Déclaration de TVA, espace de révision du cabinet | **Lot 3.** Le socle comptable est écrit ; ce qui reste doit être validé par le cabinet partenaire sur un exercice complet | docs/11, §6 |

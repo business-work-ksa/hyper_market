@@ -1,0 +1,50 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}HyperMarché — le marché de Douala et Yaoundé{% endblock %}
+
+{% block contenu %}
+<section class="vitrine__accroche">
+  <h1>Le marché, livré chez vous.</h1>
+  <p class="t-2">
+    Des commerçants de Douala et Yaoundé, leurs prix affichés sans intermédiaire.
+    Vous commandez, c'est le commerçant lui-même qui vous livre.
+  </p>
+</section>
+
+{% if articles %}
+  <section class="colonne">
+    <header class="rangee rangee--espace">
+      <h2 class="t-section">Au marché aujourd'hui</h2>
+      <a class="btn btn--discret" href="{% url 'vitrine_catalogue' %}">Voir tout</a>
+    </header>
+    <div class="grille-vitrine">
+      {% for article in articles %}
+        {% include "vitrine/partials/carte-article.html" %}
+      {% endfor %}
+    </div>
+  </section>
+{% else %}
+  <div class="vide">
+    <svg><use href="#ic-panier"></use></svg>
+    <p class="t-2">Aucun article en vitrine pour le moment.</p>
+  </div>
+{% endif %}
+
+{% if boutiques %}
+  <section class="colonne" style="margin-top:28px">
+    <h2 class="t-section">Les commerçants du marché</h2>
+    <div class="grille-boutiques">
+      {% for b in boutiques %}
+        <a class="boutique-tuile" href="{% url 'vitrine_boutique' b.slug %}">
+          <span class="jeton">{{ b.enseigne|initiales }}</span>
+          <span class="pile-sm">
+            <span class="principal">{{ b.enseigne }}</span>
+            <span class="t-legende">{{ b.ville }}{% if b.rayon_principal %} · {{ b.rayon_principal.libelle }}{% endif %}</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+{% endblock %}

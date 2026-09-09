@@ -123,7 +123,7 @@ ventes, marge brute, TVA collectée.
 
 | Hors périmètre | Quand |
 |---|---|
-| Vitrine publique, catalogue en ligne, panier acheteur | Palier 3 au plus tôt |
+| Vitrine publique, catalogue en ligne, panier acheteur | **Écrite** (§8.11) — mais pas dans l'argumentaire du palier 1 |
 | Livraison, transporteurs, zones, preuve de livraison | Après la preuve du coût unitaire (arbitrage A7) |
 | Encaissement en ligne, séquestre, portefeuille marchand | Quand on acceptera de manipuler l'argent d'autrui |
 | Commission sur GMV | Le palier 1 ne facture qu'un abonnement |
@@ -131,9 +131,15 @@ ventes, marge brute, TVA collectée.
 | Paie, bulletins, déclarations sociales | Bloqué par l'arbitrage A6 |
 | Commandes fournisseurs et encours | Palier 2 — l'entrée de stock manuelle suffit d'abord |
 
-**Le code du dépôt va plus loin que cette liste** : les modèles de commandes, de paiement et
-d'affiliation existent et sont testés. Ils ne sont simplement pas exposés dans l'interface. C'est
-délibéré : on ne montre pas au client une fonction qu'on ne sait pas encore opérer.
+**Le code du dépôt va plus loin que cette liste**, et l'écart s'est creusé : les commandes en
+ligne, la vitrine publique et le tunnel d'achat existent maintenant, écrans compris. Le socle de
+paiement et l'affiliation sont écrits et testés sans être exposés.
+
+Cela ne change pas ce qu'on vend au palier 1. **Un commerçant qu'on installe achète sa caisse, son
+stock et sa marge du jour** ; lui promettre en plus des commandes en ligne alors que personne n'a
+encore prouvé qu'il en recevra serait vendre une espérance. La vitrine est prête pour le jour où
+l'on décidera d'y amener du trafic — c'est une décision commerciale, pas un chantier technique, et
+c'est une bonne position d'être en avance de ce côté-là plutôt que l'inverse.
 
 ---
 
@@ -579,6 +585,37 @@ sorti, il n'y a rien à réintégrer ; **après expédition on retourne** — et
 au coût auquel elle est sortie, pas au coût moyen du jour, qui inventerait une plus-value que rien
 n'a produite.
 
+### 8.11 — La vitrine, et le contexte plateforme assumé
+
+Le palier 1 était un back-office sans devanture : le moteur de commande savait traiter ce qu'aucune
+page ne permettait de passer. La vitrine ferme cet écart.
+
+Elle pose une question que rien d'autre dans le produit n'avait posée : **la vitrine lit en
+contexte plateforme.** Un acheteur cherche sur tout le marché, et les politiques d'isolation ne
+rendraient rien sans cela.
+
+Ce n'est pas une brèche, et l'argument tient en une phrase : **la barrière 3 protège les données
+privées d'un commerçant — coût, marge, écritures, salariés — et un catalogue public n'en contient
+aucune.** Il contient ce que le marchand paie un emplacement pour montrer. La distinction ne
+repose pas sur la discipline de l'appelant : elle est portée par `apps/vitrine/catalogue.py`, seule
+porte du catalogue public, qui ne rend que des articles actifs de boutiques en état de vendre.
+Aucune vue de la vitrine n'ouvre le contexte elle-même, et **le stock n'est jamais publié** — il
+varie d'un dépôt à l'autre, et l'afficher reviendrait à donner le rythme des ventes aux concurrents.
+
+Trois autres choix méritent d'être nommés :
+
+**On ne demande l'identité qu'au moment de livrer.** Le panier vit en session ; exiger un compte
+pour y poser un article est le moyen le plus sûr de perdre l'acheteur.
+
+**Passer commande n'ouvre aucune session.** Un numéro non vérifié ne doit pas donner accès à
+l'historique de son propriétaire, et un formulaire public ne renomme jamais un compte existant —
+ce serait une prise de contrôle discrète. Le suivi s'adresse par l'identifiant de la commande, pas
+par son numéro : `CMD-00000042` s'incrémente.
+
+**La vitrine n'encaisse pas.** La commande part chez le marchand, le paiement se constate hors
+ligne. C'est la même frontière qu'au §8.8 : sans bac à sable d'opérateur, un bouton « Payer »
+serait un mensonge.
+
 ---
 
 ## 9. Ce qui reste avant d'ouvrir à un vrai client
@@ -587,7 +624,7 @@ n'a produite.
 |---|---|
 | **Couche HTTP des opérateurs** | Voir §8.8 : elle sera écrite contre un bac à sable, jamais à l'aveugle |
 | **Impression hors Bluetooth LE** | Voir §8.5 : USB, Wi-Fi, SPP et iOS demandent une application native |
-| **Vitrine et tunnel de commande** | Le moteur de commande et l'écran marchand existent (§8.10) ; **il n'y a pas encore de page où un acheteur compose son panier** |
+| **Encaissement en ligne** | Voir §8.11 : la commande se passe, le paiement se constate hors ligne — même attente que la couche opérateur |
 | **Entrée en stock en comptabilité** | Une réception n'écrit pas son `311` / `6031`, ni la facture fournisseur : le compte de stock ressort négatif. Manque antérieur au palier, il relève du lot 3 |
 
 Les deux premiers ne se règlent pas en écrivant du code : l'un attend un compte marchand, l'autre

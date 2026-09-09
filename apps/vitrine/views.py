@@ -132,8 +132,25 @@ def boutique(request, slug):
     return render(
         request,
         "vitrine/boutique.html",
-        _contexte(request, "catalogue", boutique=vue, articles=articles, nombre=len(articles)),
+        _contexte(
+            request,
+            "catalogue",
+            boutique=vue,
+            articles=articles,
+            nombre=len(articles),
+            # Sur **sa** page, le commerçant est chez lui : ses couleurs, son
+            # logo. Sur le catalogue de tout le marché, non — mélanger dix
+            # chartes sur une même grille ne servirait personne.
+            identite=identite_de_la_boutique(vue),
+        ),
     )
+
+
+def identite_de_la_boutique(boutique):
+    from apps.marketplace.models import IdentiteVisuelle
+
+    with contexte_plateforme():
+        return IdentiteVisuelle.objects.filter(boutique=boutique).first()
 
 
 # ---------------------------------------------------------------------------

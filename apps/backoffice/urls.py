@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from apps.backoffice import views, vues_commandes, vues_equipe
+from apps.backoffice import views, vues_commandes, vues_equipe, vues_identite
 
 urlpatterns = [
     path("", views.tableau_de_bord, name="tableau_de_bord"),
@@ -40,6 +40,10 @@ urlpatterns = [
     path("boutique/", views.boutique, name="boutique"),
     path("boutique/export/", views.export_donnees, name="export_donnees"),
     path("boutique/depots/nouveau/", views.nouveau_depot, name="nouveau_depot"),
+
+    path("boutique/identite/", vues_identite.identite, name="identite"),
+    path("boutique/identite/liens/", vues_identite.lien_creer, name="lien_creer"),
+    path("boutique/identite/liens/<uuid:lien_id>/retirer/", vues_identite.lien_retirer, name="lien_retirer"),
 
     path("boutique/equipe/", vues_equipe.equipe, name="equipe"),
     path("boutique/equipe/<uuid:appartenance_id>/role/", vues_equipe.equipe_role, name="equipe_role"),

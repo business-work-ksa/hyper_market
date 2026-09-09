@@ -60,6 +60,8 @@ TABLES_SCOPEES = [
     "inventory_ligneinventaire",
     "inventory_fournisseur",
     "inventory_lotstock",
+    "marketplace_identitevisuelle",
+    "marketplace_lienmarketing",
     "pos_sessioncaisse",
     "pos_ticket",
     "pos_ligneticket",

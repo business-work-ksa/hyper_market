@@ -23,7 +23,7 @@ from apps.accounts.permissions import LIBELLES, droits_de
 from apps.inventory.models import Depot, NiveauStock
 from apps.inventory.services import lots_a_surveiller
 from apps.marketplace.metiers import PEREMPTION
-from apps.marketplace.models import Boutique
+from apps.marketplace.models import Boutique, IdentiteVisuelle
 
 
 # ----------------------------------------------------------------------------
@@ -147,6 +147,7 @@ def contexte_commun(request, page: str) -> dict:
         "commandes_a_traiter": None,
         "metier": None,
         "peremptions": None,
+        "identite": None,
     }
     if boutique is None:
         request._contexte_backoffice = contexte
@@ -183,6 +184,10 @@ def contexte_commun(request, page: str) -> dict:
             "commandes_a_traiter": a_traiter,
             "metier": metier,
             "peremptions": peremptions,
+            # La charte est lue pour tous les rôles, pas seulement pour qui peut
+            # la modifier : un caissier travaille aussi dans les couleurs de sa
+            # boutique.
+            "identite": IdentiteVisuelle.objects.filter(boutique=boutique).first(),
         }
     )
     request._contexte_backoffice = contexte

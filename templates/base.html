@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#00806A">
 <title>{% block titre %}HyperMarché{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+{% include "partials/charte.html" %}
 <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
 <link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
 <script src="{% static 'js/hors-ligne.js' %}" defer></script>
@@ -25,9 +26,18 @@
 
 <div class="coquille">
   <nav class="rail" aria-label="Navigation principale">
+    {% comment %}
+    Le commerçant qui a mis son logo voit son logo. C'est lui qui loue
+    l'emplacement ; HyperMarché reste nommé en pied de page, là où le locataire
+    a besoin de savoir chez qui il est, pas dans son bandeau de travail.
+    {% endcomment %}
     <div class="rail__marque">
-      <span class="sceau" aria-hidden="true">HM</span>
-      <span class="rail__nom">HyperMarché</span>
+      {% if identite.logo %}
+        <img class="rail__logo" src="{{ identite.logo.url }}" alt="{{ boutique.enseigne }}">
+      {% else %}
+        <span class="sceau" aria-hidden="true">{{ boutique.enseigne|initiales|default:"HM" }}</span>
+      {% endif %}
+      <span class="rail__nom">{{ boutique.enseigne|default:"HyperMarché" }}</span>
     </div>
 
     {% comment %}

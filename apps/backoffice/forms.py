@@ -323,3 +323,91 @@ class FermetureCaisseForm(forms.Form):
         help_text="Comptez avant de regarder le montant théorique.",
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "numeric", "step": "100"}),
     )
+
+
+class CharteForm(forms.ModelForm):
+    """Logo, couleur de marque et police.
+
+    Le champ de couleur est un sélecteur natif : sur un téléphone d'entrée de
+    gamme, c'est la seule roue chromatique qui s'ouvre instantanément et que
+    l'utilisateur connaît déjà. Un composant maison coûterait du JavaScript pour
+    faire moins bien.
+    """
+
+    class Meta:
+        from apps.marketplace.models import IdentiteVisuelle
+
+        model = IdentiteVisuelle
+        fields = ["logo", "couleur_marque", "police"]
+        labels = {
+            "logo": "Votre logo",
+            "couleur_marque": "Couleur principale",
+            "police": "Caractère",
+        }
+        help_texts = {
+            "logo": "PNG ou JPEG. Ses couleurs vous seront proposées après enregistrement.",
+            "couleur_marque": (
+                "Elle sera vérifiée et corrigée si elle n'est pas lisible sur un "
+                "bouton ou un graphique — la correction vous sera montrée."
+            ),
+            "police": "Aucun fichier n'est téléchargé : ces caractères sont déjà sur l'appareil.",
+        }
+        widgets = {
+            "couleur_marque": forms.TextInput(attrs={"class": "champ champ--couleur", "type": "color"}),
+            "logo": forms.ClearableFileInput(attrs={"class": "champ", "accept": "image/*"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        from apps.marketplace.charte import CHOIX_POLICES
+
+        super().__init__(*args, **kwargs)
+        self.fields["police"] = forms.ChoiceField(
+            label="Caractère",
+            choices=CHOIX_POLICES,
+            initial=self.instance.police if self.instance else "systeme",
+            help_text=self.Meta.help_texts["police"],
+            widget=forms.Select(attrs=CHAMP),
+        )
+
+    def clean_couleur_marque(self):
+        couleur = (self.cleaned_data.get("couleur_marque") or "").strip()
+        from apps.marketplace.charte import _vers_rvb
+
+        try:
+            _vers_rvb(couleur)
+        except ValueError:
+            raise forms.ValidationError("Couleur illisible : attendu un code de la forme #1E88E5.")
+        # Minuscules : `<input type="color">` n'accepte pas les majuscules et
+        # repartirait du noir en rouvrant la page.
+        return couleur.lower()
+
+
+class LienMarketingForm(forms.Form):
+    """Création d'un lien court."""
+
+    libelle = forms.CharField(
+        label="À quoi sert ce lien",
+        max_length=120,
+        widget=forms.TextInput(
+            attrs={**CHAMP, "placeholder": "Flyer marché central, statut WhatsApp…"}
+        ),
+    )
+    article = forms.ChoiceField(
+        label="Vers", required=False, widget=forms.Select(attrs=CHAMP)
+    )
+    code_apporteur = forms.CharField(
+        label="Code apporteur (facultatif)",
+        max_length=12,
+        required=False,
+        help_text="Rattache les commandes venues de ce lien à un apporteur.",
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "HM-XXXXXX"}),
+    )
+
+    def __init__(self, *args, boutique=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.catalog.models import Variante
+
+        articles = Variante.objects.filter(actif=True).select_related("produit")[:200]
+        self.fields["article"].choices = [("", "Ma vitrine complète")] + [
+            (str(v.pk), v.produit.libelle) for v in articles
+        ]

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Mon identité — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Mon identité{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'boutique' %}">Ma boutique</a>
+  <a class="btn btn--primaire" href="{{ lien_vitrine }}" target="_blank" rel="noopener">
+    Voir ma vitrine
+  </a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <div class="duo">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Logo et couleurs</h2></header>
+      <form method="post" enctype="multipart/form-data" class="carte__corps colonne"
+            style="gap:16px" novalidate>
+        {% csrf_token %}
+        {% if identite.logo %}
+          <div class="rangee" style="gap:14px">
+            <img class="apercu-logo" src="{{ identite.logo.url }}" alt="Votre logo">
+            <span class="t-legende">
+              Il apparaît dans votre back-office et en tête de votre vitrine.
+            </span>
+          </div>
+        {% endif %}
+        {% include "partials/champ.html" with champ=formulaire.logo %}
+
+        {% if proposees %}
+          {% comment %}
+          Les couleurs sont proposées **après validation** : montrer une pastille
+          qu'on choisit et qui change ensuite serait le pire des deux mondes.
+          {% endcomment %}
+          <div class="colonne" style="gap:8px">
+            <span class="t-legende">Trouvées dans votre logo — cliquez pour choisir</span>
+            <div class="rangee" style="gap:8px;flex-wrap:wrap">
+              {% for p in proposees %}
+                <button type="button" class="pastille" data-couleur="{{ p.couleur }}"
+                        style="background:{{ p.couleur }}"
+                        title="{{ p.couleur }}{% if p.motif %} — {{ p.motif }}{% endif %}"
+                        aria-label="Choisir {{ p.couleur }}"></button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% include "partials/champ.html" with champ=formulaire.couleur_marque %}
+        {% include "partials/champ.html" with champ=formulaire.police %}
+
+        {% if identite.motif_ajustement %}
+          <div class="bandeau-info bandeau-info--alerte" role="status">
+            <svg><use href="#ic-info"></use></svg>
+            <span>
+              Votre couleur a été ajustée : {{ identite.motif_ajustement }}.
+              La teinte, elle, n'est jamais modifiée.
+            </span>
+          </div>
+        {% endif %}
+
+        <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+          Enregistrer ma charte
+        </button>
+      </form>
+    </section>
+
+    <div class="colonne">
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">Aperçu</h2></header>
+        <div class="carte__corps colonne" style="gap:14px">
+          <div class="rangee" style="gap:10px;flex-wrap:wrap">
+            <button type="button" class="btn btn--primaire">Encaisser</button>
+            <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>Actif</span>
+            <span class="jeton">{{ boutique.enseigne|initiales }}</span>
+          </div>
+          <p class="t-legende">
+            Ces éléments portent déjà votre couleur : ce que vous voyez ici est
+            ce que voient votre équipe et vos clients.
+          </p>
+          <div class="rangee rangee--espace">
+            <span class="t-2">Mode clair</span>
+            <span class="chiffre">{{ identite.couleur_marque }}</span>
+          </div>
+          <div class="rangee rangee--espace">
+            <span class="t-2">Mode sombre</span>
+            <span class="chiffre">{{ identite.couleur_marque_sombre }}</span>
+          </div>
+          <p class="t-legende">
+            La version sombre est <strong>éclaircie, jamais inversée</strong> :
+            une couleur retournée n'est plus la vôtre.
+          </p>
+        </div>
+      </section>
+
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">L'adresse de ma boutique</h2></header>
+        <div class="carte__corps colonne" style="gap:10px">
+          <code class="adresse-boutique">{{ lien_vitrine }}</code>
+          <p class="t-legende">
+            C'est votre vitrine publique. Elle fonctionne sans que vos clients
+            aient de compte.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Mes liens marketing</h2>
+      <span class="t-legende">Courts, dictables, et comptés</span>
+    </header>
+    <div class="carte__corps colonne" style="gap:16px">
+      <form method="post" action="{% url 'lien_creer' %}" class="rangee"
+            style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+        {% csrf_token %}
+        <div class="groupe-champ" style="flex:2;min-width:220px">
+          <label for="{{ formulaire_lien.libelle.id_for_label }}">{{ formulaire_lien.libelle.label }}</label>
+          {{ formulaire_lien.libelle }}
+        </div>
+        <div class="groupe-champ" style="flex:2;min-width:200px">
+          <label for="{{ formulaire_lien.article.id_for_label }}">{{ formulaire_lien.article.label }}</label>
+          {{ formulaire_lien.article }}
+        </div>
+        <div class="groupe-champ" style="flex:1;min-width:160px">
+          <label for="{{ formulaire_lien.code_apporteur.id_for_label }}">{{ formulaire_lien.code_apporteur.label }}</label>
+          {{ formulaire_lien.code_apporteur }}
+        </div>
+        <button class="btn btn--primaire" type="submit">Créer le lien</button>
+      </form>
+
+      {% if liens %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Lien</th>
+                <th scope="col">Usage</th>
+                <th scope="col">Vers</th>
+                <th scope="col" class="num">Clics</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lien in liens %}
+                <tr {% if not lien.actif %}style="opacity:.5"{% endif %}>
+                  <td class="principal chiffre">{{ request.get_host }}{{ lien.chemin }}</td>
+                  <td class="t-2">{{ lien.libelle }}</td>
+                  <td class="t-2">
+                    {% if lien.article %}{{ lien.article.produit.libelle|truncatechars:28 }}
+                    {% else %}<span class="t-muet">Ma vitrine</span>{% endif %}
+                    {% if lien.code_apporteur %}
+                      <span class="puce puce--marque">{{ lien.code_apporteur }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="num" style="font-weight:620">{{ lien.clics }}</td>
+                  <td class="num">
+                    {% if lien.actif %}
+                      <form method="post" action="{% url 'lien_retirer' lien.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn--discret" type="submit">Retirer</button>
+                      </form>
+                    {% else %}
+                      <span class="t-legende">Retiré</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="t-legende">
+          Le compteur compte des <strong>clics, pas des ventes</strong> : il dit
+          quel support amène du monde, pas qui a acheté.
+        </p>
+      {% else %}
+        <div class="vide">
+          <svg><use href="#ic-boutique"></use></svg>
+          <p class="t-2">Aucun lien pour l'instant.</p>
+          <p class="t-legende">
+            Un lien par support — flyer, statut WhatsApp, enseigne — et vous
+            saurez lequel travaille.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<script>
+  // Les pastilles remplissent le sélecteur de couleur. Aucun état intermédiaire :
+  // c'est le formulaire qui décide, la pastille ne fait que le pré-remplir.
+  (function () {
+    var champ = document.getElementById("id_couleur_marque");
+    if (!champ) return;
+    document.querySelectorAll(".pastille[data-couleur]").forEach(function (bouton) {
+      bouton.addEventListener("click", function () {
+        champ.value = bouton.dataset.couleur;
+      });
+    });
+  })();
+</script>
+{% endblock %}

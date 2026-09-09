@@ -59,6 +59,7 @@ apps/
                    permissions.py — matrice des droits, source de vérité      ★
   marketplace/     rayons, types d'emplacement, boutiques, baux, loyers
                    metiers.py — les 10 métiers, en code                      ★
+                   charte.py — validation des couleurs d'un commerçant
   catalog/         référentiel mutualisé, produits, variantes
   inventory/       dépôts, mouvements, CMP, inventaires   ★
   pos/             caisse, sessions, tickets                ★
@@ -272,6 +273,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_commandes.py` | Éclatement d'un panier multi-boutiques, **taux de commission figé à la commande**, chaque effet à son étape (écritures au paiement, stock à l'expédition, délai de retour à la livraison), retours au coût de sortie |
 | `test_backoffice_commandes.py` | L'écran de traitement : un bouton périmé n'agit pas, la part d'un confrère est introuvable, refus avant expédition et retour après |
 | `test_metiers.py` | Les 10 métiers : vocabulaire, valeurs par défaut, formulaire composé — et le suivi par lot, qui consomme **le plus proche de périmer** et reste inerte là où le métier ne l'active pas |
+| `test_identite.py` | **Le validateur de palette du produit, appliqué au logo du commerçant** : il retrouve le verdict qui avait rejeté le premier teal ; la teinte n'est jamais modifiée, la version sombre est éclaircie et non inversée, une couleur neutre est refusée plutôt qu'inventée |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
@@ -571,7 +573,66 @@ pharmacie paie cher ce genre de malentendu.
 
 ---
 
-## 10. Reste à faire sur le socle
+## 10. Espace personnalisé d'une boutique
+
+Le commerçant loue un emplacement : il est chez lui. Son back-office et sa vitrine portent son
+logo, ses couleurs et son caractère typographique. Écran : **Ma boutique → Mon identité**.
+
+### 10.1 — Les couleurs stockées sont déjà validées
+
+`apps/marketplace/charte.py` applique au logo du commerçant **exactement les règles que le produit
+s'applique à lui-même** (docs/19, §2.1) : plancher de chroma à 0,10, contraste minimal, version
+sombre éclaircie et non inversée. Un test reproduit le verdict qui avait rejeté le premier teal du
+produit — si le module cesse de le retrouver, il a cessé d'être le validateur du produit.
+
+Ce qui est écrit en base est donc **déjà utilisable** : aucun gabarit n'a à se demander si la
+couleur qu'il pose sur un bouton est lisible.
+
+Trois règles, et chacune protège quelque chose :
+
+* **la teinte n'est jamais modifiée** — c'est la seule chose que le commerçant reconnaît dans son
+  logo ; une marque dont on décale le bleu vers le violet n'est plus sa marque ;
+* **la correction est affichée** — une couleur changée sans explication passe pour un bogue ;
+* **une couleur neutre est refusée, pas inventée** — lui donner une teinte reviendrait à choisir sa
+  marque à sa place ; il garde la palette du produit et on lui dit pourquoi.
+
+Le ramené-dans-le-gamut se fait **par réduction de chroma**, jamais par écrêtage des canaux : sur
+un or assombri, l'écrêtage déplaçait la teinte de sept degrés — un jaune qui vire à l'olive.
+
+### 10.2 — Les polices sont des piles système
+
+Aucun fichier n'est téléchargé. Une police de titrage à 90 Ko est un coût que le commerçant paie
+sans le savoir, à chaque visiteur, sur une connexion facturée au mégaoctet. Le choix porte donc sur
+le caractère de la pile, pas sur une fonderie.
+
+### 10.3 — Où la charte s'applique, et où elle ne s'applique pas
+
+| Endroit | Charte |
+|---|---|
+| Back-office du commerçant | la sienne |
+| Page de sa vitrine (`/marche/boutique/<slug>/`) | la sienne |
+| Catalogue de tout le marché | celle du marché |
+
+Mélanger dix chartes sur une même grille ne servirait personne.
+
+### 10.4 — Liens marketing
+
+Un lien court par support — flyer, statut WhatsApp, enseigne — sous `/l/<code>/`. Le code est
+dictable : même alphabet que les codes d'apporteur, ni O/0 ni I/1, parce qu'un lien finit toujours
+par être lu à voix haute une fois.
+
+Un lien peut porter un code d'apporteur, qu'il transmet à la vitrine sous forme de `?ref=`.
+
+**Le compteur compte des clics, pas des ventes.** Rattacher une vente à un lien est le travail de
+l'attribution d'affiliation (docs/06), pas celui-ci — et l'écran le dit, faute de quoi un
+commerçant lirait « 40 » et comprendrait « 40 clients ».
+
+Un lien se **désactive**, il ne se supprime pas : il est peut-être imprimé sur un flyer distribué
+la semaine dernière.
+
+---
+
+## 11. Reste à faire sur le socle
 
 | Sujet | État | Référence |
 |---|---|---|

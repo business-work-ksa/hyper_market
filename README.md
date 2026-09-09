@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 362 tests
+make tester                     # 390 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -102,6 +102,23 @@ répond qu'à « quoi périme quand ».
 
 Ce que chaque métier prévoit **sans l'avoir encore** est affiché comme tel : lister une fonction
 non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas.
+
+## Chaque boutique chez elle
+
+Le commerçant loue un emplacement : son back-office et sa vitrine portent **son logo, ses couleurs
+et son caractère typographique**, et son adresse publique lui appartient
+(`/marche/boutique/<son-nom>/`). Il crée autant de **liens marketing courts** que de supports —
+flyer, statut WhatsApp, enseigne — chacun compté séparément, sous `/l/<code>/`.
+
+Les couleurs ne sont pas prises telles quelles.
+[`apps/marketplace/charte.py`](apps/marketplace/charte.py) leur applique **les règles que le
+produit s'applique à lui-même** : plancher de chroma, contraste minimal, version sombre éclaircie
+et jamais inversée. Ce qui est corrigé est **affiché** — une couleur changée sans explication passe
+pour un bogue — et la teinte, elle, n'est jamais touchée : c'est la seule chose que le commerçant
+reconnaît dans son logo.
+
+Aucune police n'est téléchargée : sur une connexion facturée au mégaoctet, un fichier de 90 Ko est
+un coût que le commerçant paie sans le savoir, à chaque visiteur.
 
 ## La vitrine publique
 
@@ -234,6 +251,8 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
   lien de parrainage *(l'encaissement en ligne attend le même bac à sable d'opérateur)*
 - [x] **Dix métiers** — vocabulaire, valeurs par défaut et formulaires adaptés ; suivi par lot et
   écran des péremptions pour les métiers qui en ont besoin
+- [x] **Espace personnalisé** — logo, charte graphique validée, adresse publique et liens
+  marketing courts, par boutique
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

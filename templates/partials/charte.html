@@ -1,0 +1,38 @@
+{% comment %}
+Charte du commerçant, injectée en tête de page.
+
+Trois blocs et pas un seul, parce que le thème a trois états (docs/19) : le choix
+explicite du commerçant, la préférence système, et le défaut. Redéfinir les
+jetons au seul `:root` condamnerait la boutique au mode clair — l'attribut
+`data-theme` gagne sur la requête média, et l'inverse est vrai aussi.
+
+Les couleurs viennent d'`IdentiteVisuelle` et sont **déjà validées** : plancher
+de chroma et contraste minimal ont été appliqués à l'enregistrement
+(`apps/marketplace/charte.py`). Aucun gabarit n'a donc à se demander si ce qu'il
+pose sur un bouton est lisible.
+{% endcomment %}
+{% if identite and identite.personnalisee %}
+<style>
+  :root {
+    --marque: {{ identite.couleur_marque }};
+    --marque-appui: {{ identite.couleur_marque }};
+    --marque-teinte: {{ identite.teinte }};
+    --serie: {{ identite.couleur_marque }};
+    --sans: {{ identite.pile_police }};
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --marque: {{ identite.couleur_marque_sombre }};
+      --marque-appui: {{ identite.couleur_marque_sombre }};
+      --marque-teinte: {{ identite.teinte_sombre }};
+      --serie: {{ identite.couleur_marque_sombre }};
+    }
+  }
+  :root[data-theme="dark"] {
+    --marque: {{ identite.couleur_marque_sombre }};
+    --marque-appui: {{ identite.couleur_marque_sombre }};
+    --marque-teinte: {{ identite.teinte_sombre }};
+    --serie: {{ identite.couleur_marque_sombre }};
+  }
+</style>
+{% endif %}

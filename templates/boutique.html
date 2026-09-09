@@ -90,6 +90,7 @@
       <header class="carte__entete">
         <h2 class="t-section">Équipe</h2>
         {% if 'boutique.administrer' in droits %}
+          <a class="btn" href="{% url 'identite' %}">Mon identité</a>
           <a class="btn" href="{% url 'equipe' %}">Gérer l'équipe</a>
         {% endif %}
       </header>

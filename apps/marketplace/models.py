@@ -12,7 +12,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
-from apps.core.models import BaseModel
+from apps.core.models import BaseModel, TenantScopedModel
 from apps.core.uuid7 import uuid7
 from apps.marketplace.metiers import METIER_DEFAUT, metier_de
 
@@ -294,3 +294,105 @@ class EmplacementPremium(BaseModel):
 
     def __str__(self):
         return f"{self.get_type_display()} {self.debut:%d/%m} → {self.fin:%d/%m}"
+
+
+class IdentiteVisuelle(TenantScopedModel):
+    """Logo et charte graphique d'une boutique.
+
+    Le commerçant loue un emplacement ; il est chez lui. Que son back-office et
+    sa vitrine portent ses couleurs n'est pas un ornement, c'est la différence
+    entre un outil qu'on lui prête et un outil qui est le sien.
+
+    **Les couleurs stockées ici sont déjà validées.** Elles ne sont jamais celles
+    du logo telles quelles : `apps/marketplace/charte.py` leur applique les mêmes
+    règles que le produit s'applique à lui-même — plancher de chroma, contraste
+    minimal, variante sombre choisie et non inversée — et corrige ce qui doit
+    l'être. La correction est conservée dans `motif_ajustement` pour être
+    montrée au commerçant : une couleur changée sans explication passe pour un
+    bogue.
+    """
+
+    logo = models.ImageField(upload_to="logos/%Y/%m/", blank=True)
+    couleur_marque = models.CharField(max_length=7, default="#00806a")
+    couleur_marque_sombre = models.CharField(max_length=7, default="#2fa98e")
+    teinte = models.CharField(max_length=7, default="#e2f0ec")
+    teinte_sombre = models.CharField(max_length=7, default="#14251f")
+    police = models.CharField(max_length=24, default="systeme")
+    motif_ajustement = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Ce que la validation a corrigé, et pourquoi. Montré au commerçant.",
+    )
+
+    class Meta:
+        verbose_name = "identité visuelle"
+        verbose_name_plural = "identités visuelles"
+        constraints = [
+            models.UniqueConstraint(fields=["boutique"], name="une_identite_par_boutique")
+        ]
+
+    def __str__(self):
+        return f"Charte de {self.boutique}"
+
+    @property
+    def pile_police(self) -> str:
+        from apps.marketplace.charte import PILES_POLICES
+
+        return PILES_POLICES.get(self.police, PILES_POLICES["systeme"])
+
+    @property
+    def personnalisee(self) -> bool:
+        from apps.marketplace.charte import PALETTE_PAR_DEFAUT
+
+        return (
+            self.couleur_marque != PALETTE_PAR_DEFAUT["marque"]
+            or self.police != "systeme"
+            or bool(self.logo)
+        )
+
+
+class LienMarketing(TenantScopedModel):
+    """Lien court d'une boutique, à coller dans WhatsApp ou sur un flyer.
+
+    Un commerçant ne partage pas `…/marche/boutique/quincaillerie-ateba/` : il
+    partage quelque chose qui tient dans un message et qu'il peut dicter. D'où le
+    code court, et d'où le compteur — sans lui, il n'a aucun moyen de savoir si
+    le flyer a servi ou si c'est le groupe WhatsApp qui travaille.
+
+    **Le compteur est un compteur de clics, pas de ventes.** Rattacher une vente
+    à un lien demande de suivre l'acheteur du clic à la commande, ce qui est le
+    travail de l'attribution d'affiliation (docs/06) et non celui-ci. Le libellé
+    de l'écran le dit, faute de quoi un commerçant lirait « 40 » et comprendrait
+    « 40 clients ».
+    """
+
+    libelle = models.CharField(
+        max_length=120, help_text="À quoi sert ce lien : « Flyer marché », « Statut WhatsApp »…"
+    )
+    code = models.CharField(max_length=16, unique=True, db_index=True)
+    article = models.ForeignKey(
+        "catalog.Variante",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="liens",
+        help_text="Vide : le lien ouvre la vitrine de la boutique.",
+    )
+    code_apporteur = models.CharField(
+        max_length=12,
+        blank=True,
+        help_text="Facultatif : rattache les commandes issues de ce lien à un apporteur.",
+    )
+    clics = models.PositiveIntegerField(default=0)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "lien marketing"
+        verbose_name_plural = "liens marketing"
+        ordering = ["-cree_le"]
+
+    def __str__(self):
+        return f"{self.libelle} (/l/{self.code})"
+
+    def chemin(self) -> str:
+        return f"/l/{self.code}/"

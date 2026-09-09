@@ -3,6 +3,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.backoffice import vues_identite
+
 admin.site.site_header = "HyperMarché — administration du marché"
 admin.site.site_title = "HyperMarché"
 admin.site.index_title = "Gestion de la place de marché"
@@ -11,6 +13,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("apps.api.urls")),
     path("marche/", include("apps.vitrine.urls")),
+    # Lien court d'une boutique : il est fait pour être dicté et imprimé, donc
+    # monté à la racine et pas sous /marche/.
+    path("l/<str:code>/", vues_identite.suivre_lien, name="suivre_lien"),
     path("", include("apps.backoffice.urls")),
 ]
 

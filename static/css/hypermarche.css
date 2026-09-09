@@ -997,6 +997,29 @@ body.vitrine { background: var(--plan); }
   .vitrine__pied { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 
+/* --- Identité de la boutique ---------------------------------------------
+   Le commerçant loue un emplacement : il est chez lui. Son logo remplace le
+   sceau du produit dans son rail, et ses couleurs remplacent les jetons de
+   marque (voir templates/partials/charte.html). */
+.rail__logo { width: 30px; height: 30px; border-radius: var(--r-sm); object-fit: contain; background: var(--surface-haute); }
+.vitrine__logo { width: 52px; height: 52px; border-radius: var(--r-md); object-fit: contain; background: var(--surface-haute); }
+.apercu-logo { width: 64px; height: 64px; border-radius: var(--r-md); object-fit: contain; background: var(--surface-creuse); flex-shrink: 0; }
+
+.pastille {
+  width: 34px; height: 34px; border-radius: var(--r-sm);
+  border: 1px solid rgba(20, 20, 15, 0.14); cursor: pointer;
+  transition: transform var(--t-rapide), box-shadow var(--t-rapide);
+}
+.pastille:hover { transform: scale(1.07); box-shadow: var(--ombre-2); }
+
+.champ--couleur { width: 72px; height: 40px; padding: 3px; cursor: pointer; }
+
+.adresse-boutique {
+  font-family: var(--mono); font-size: 13px;
+  background: var(--surface-creuse); border-radius: var(--r-sm);
+  padding: 10px 12px; word-break: break-all; user-select: all;
+}
+
 @media print {
   .rail, .bandeau__actions, .btn { display: none !important; }
   body { background: #fff; }

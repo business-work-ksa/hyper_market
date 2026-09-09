@@ -29,6 +29,7 @@ from apps.inventory.models import (
 
 __all__ = [
     "MouvementInvalide",
+    "lots_a_surveiller",
     "enregistrer_mouvement",
     "entrer_stock",
     "sortir_stock",
@@ -87,10 +88,16 @@ def _enregistrer_mouvement(
     operation_id=None,
     commentaire: str = "",
     cree_par=None,
+    date_peremption=None,
+    numero_lot: str = "",
 ) -> MouvementStock:
     """Corps de `enregistrer_mouvement` : mouvement écrit, niveau et CMP mis à jour.
 
     `quantite` est signée : positive pour une entrée, négative pour une sortie.
+
+    `date_peremption` et `numero_lot` n'ont de sens que pour les métiers qui
+    activent la fonction ; ailleurs ils restent vides et le suivi par lot est
+    entièrement inerte (voir `_repercuter_sur_les_lots`).
     """
     quantite = Decimal(quantite).quantize(QUANTUM)
     if quantite == 0:
@@ -145,7 +152,65 @@ def _enregistrer_mouvement(
     niveau.version = F("version") + 1
     niveau.save(update_fields=["quantite", "cmp", "version", "modifie_le"])
 
+    _repercuter_sur_les_lots(
+        depot=depot,
+        variante=variante,
+        quantite=quantite,
+        date_peremption=date_peremption,
+        numero_lot=numero_lot,
+    )
     return mouvement
+
+
+def _repercuter_sur_les_lots(*, depot, variante, quantite, date_peremption, numero_lot) -> None:
+    """Tient le suivi par lot, **là où il existe**.
+
+    Ce mécanisme est inerte pour les métiers qui n'activent pas la péremption :
+    aucune date n'est fournie à l'entrée, donc aucun lot n'est créé, et la sortie
+    ne trouve rien à consommer. Une quincaillerie ne paie pas le coût de la
+    fonction d'une pharmacie.
+
+    Les sorties consomment en **PEPS par péremption** (premier périmé, premier
+    sorti) : c'est ce que fait un commerçant qui range correctement son rayon, et
+    c'est le seul ordre qui minimise la perte. L'ordre de réception, lui, n'a
+    aucun intérêt ici — deux boîtes reçues le même jour peuvent périmer à six
+    mois d'écart.
+
+    Une sortie non couverte par les lots est possible et n'est pas une erreur :
+    le stock peut être négatif (ADR-005), et un lot manquant signifie seulement
+    qu'une entrée est passée sans date. La quantité restante sort du niveau
+    global sans être imputée — refuser la vente serait pire.
+    """
+    from apps.inventory.models import LotStock
+
+    if quantite > 0:
+        if date_peremption is None:
+            return
+        lot, _ = LotStock.objects_all_tenants.get_or_create(
+            boutique_id=depot.boutique_id,
+            depot=depot,
+            variante=variante,
+            numero=(numero_lot or "")[:64],
+            date_peremption=date_peremption,
+            defaults={"quantite": Decimal("0")},
+        )
+        LotStock.objects_all_tenants.filter(pk=lot.pk).update(quantite=F("quantite") + quantite)
+        return
+
+    reste = -quantite
+    lots = (
+        LotStock.objects_all_tenants.select_for_update()
+        .filter(
+            boutique_id=depot.boutique_id, depot=depot, variante=variante, quantite__gt=0
+        )
+        .order_by("date_peremption", "numero")
+    )
+    for lot in lots:
+        if reste <= 0:
+            break
+        pris = min(lot.quantite, reste)
+        LotStock.objects_all_tenants.filter(pk=lot.pk).update(quantite=F("quantite") - pris)
+        reste -= pris
 
 
 def _cmp_apres_entree(
@@ -270,6 +335,26 @@ def _regulariser_inventaire(inventaire, *, cree_par=None) -> list[MouvementStock
     inventaire.valide_le = timezone.now()
     inventaire.save(update_fields=["etat", "valide_le", "modifie_le"])
     return mouvements
+
+
+def lots_a_surveiller(*, depot=None, jours: int = 30):
+    """Lots périmés ou sur le point de l'être, pour la boutique courante.
+
+    Triés par date : le plus urgent d'abord, périmés compris. Les afficher
+    ensemble est délibéré — un lot déjà périmé demande une action (retrait,
+    destruction, retour), pas moins qu'un lot qui va périmer.
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.inventory.models import LotStock
+
+    limite = timezone.localdate() + timedelta(days=jours)
+    lots = LotStock.objects.filter(quantite__gt=0, date_peremption__lte=limite)
+    if depot is not None:
+        lots = lots.filter(depot=depot)
+    return lots.select_related("variante__produit", "depot").order_by("date_peremption")
 
 
 def valeur_stock(depot=None) -> Decimal:

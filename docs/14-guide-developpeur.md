@@ -58,6 +58,7 @@ apps/
   accounts/        utilisateurs (identifiés par téléphone), rôles, appartenances, KYC
                    permissions.py — matrice des droits, source de vérité      ★
   marketplace/     rayons, types d'emplacement, boutiques, baux, loyers
+                   metiers.py — les 10 métiers, en code                      ★
   catalog/         référentiel mutualisé, produits, variantes
   inventory/       dépôts, mouvements, CMP, inventaires   ★
   pos/             caisse, sessions, tickets                ★
@@ -270,6 +271,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_api.py` | **Le jeton porte la boutique** : `X-Boutique` ne déplace rien, un ticket voisin est introuvable, retirer l'accès ferme le jeton à la requête suivante, le coût d'achat est absent — pas vide — des réponses faites à un caissier |
 | `test_commandes.py` | Éclatement d'un panier multi-boutiques, **taux de commission figé à la commande**, chaque effet à son étape (écritures au paiement, stock à l'expédition, délai de retour à la livraison), retours au coût de sortie |
 | `test_backoffice_commandes.py` | L'écran de traitement : un bouton périmé n'agit pas, la part d'un confrère est introuvable, refus avant expédition et retour après |
+| `test_metiers.py` | Les 10 métiers : vocabulaire, valeurs par défaut, formulaire composé — et le suivi par lot, qui consomme **le plus proche de périmer** et reste inerte là où le métier ne l'active pas |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
@@ -510,7 +512,66 @@ commerçant à son comptoir, pas du visiteur qui découvre le marché.
 
 ---
 
-## 9. Reste à faire sur le socle
+## 9. Métiers
+
+Une boutique déclare **ce qu'elle vend**, et le logiciel en déduit trois choses.
+Référentiel dans `apps/marketplace/metiers.py`, en code — comme la matrice des droits, et pour la
+même raison : ce sont des règles, pas des données modifiables à chaud.
+
+| Métier | Fonctions actives |
+|---|---|
+| Commerce général & alimentation | *(le socle)* |
+| Pharmacie & parapharmacie | péremption, lot — **TVA exonérée par défaut** |
+| Quincaillerie & matériaux | poids/longueur variable |
+| Cosmétique & beauté | péremption, lot, déclinaisons |
+| Restauration & snack | péremption |
+| Boulangerie & pâtisserie | péremption, poids variable |
+| Mode & prêt-à-porter | déclinaisons |
+| Électronique & téléphonie | déclinaisons |
+| Pièces détachées auto & moto | *(aucune pour l'instant)* |
+| Produits frais | péremption, poids variable — **unité par défaut : le kilo** |
+
+### 9.1 — Ce que le métier change
+
+**Le vocabulaire.** `{{ metier.article }}` plutôt qu'« article » en dur : un pharmacien lit
+« médicament », un restaurateur « plat ». Ce n'est pas de l'habillage — c'est ce qui distingue un
+logiciel fait pour lui d'un logiciel générique reconfiguré.
+
+**Les valeurs par défaut.** Unité et régime de TVA. Un défaut qu'il faut corriger à chaque ligne
+finit par être subi, et la TVA déclarée devient fausse.
+
+**Les champs du formulaire.** La date de péremption n'apparaît que là où elle a un sens, le numéro
+de lot seulement là où il est suivi. Même mécanique que les droits côté API : ce qui n'est pas
+ouvert n'est pas affiché, pas grisé.
+
+### 9.2 — Le suivi par lot, et sa frontière
+
+`LotStock` répond à « qu'est-ce qui périme quand ». **Un lot ne porte pas de coût** : la
+valorisation reste au niveau `(dépôt, variante)`, en CMP. Les mêler aurait imposé une valorisation
+par lot, plus juste sur le papier et impraticable pour un commerçant qui reprend un stock existant.
+
+Les sorties consomment en **PEPS par péremption** — premier périmé, premier sorti. C'est ce que
+fait un commerçant qui range son rayon, et le seul ordre qui minimise la perte. L'ordre de
+réception n'a aucun intérêt : deux boîtes reçues le même jour peuvent périmer à six mois d'écart.
+
+Le mécanisme est **entièrement inerte** là où le métier ne l'active pas : aucune date fournie,
+donc aucun lot créé, donc rien à consommer. Une quincaillerie ne paie pas le coût de la fonction
+d'une pharmacie.
+
+**Ce qui n'est pas couvert :** quel lot est parti chez quel client. Cela demande une affectation
+ligne à ligne à la vente ; le rappel de lot au sens pharmacovigilance n'est donc pas là, et le
+libellé de la fonction ne le prétend pas.
+
+### 9.3 — Déclaré mais pas écrit
+
+Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : numéros de série et garantie,
+fiches techniques, production du jour, compatibilité véhicule, mention d'ordonnance. Lister une
+fonction non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une
+pharmacie paie cher ce genre de malentendu.
+
+---
+
+## 10. Reste à faire sur le socle
 
 | Sujet | État | Référence |
 |---|---|---|

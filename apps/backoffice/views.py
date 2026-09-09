@@ -22,7 +22,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Sum
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -59,14 +59,20 @@ from apps.inventory.models import (
 from apps.inventory.services import (
     MouvementInvalide,
     entrer_stock,
+    lots_a_surveiller,
     regulariser_inventaire,
     transferer_stock,
 )
+from apps.marketplace import metiers
 from apps.marketplace.models import Boutique
 from apps.pos import services as caisse_service
 from apps.pos.models import LigneTicket, ReglementTicket, Ticket
 
 JOURS_HISTORIQUE = 14
+
+# Horizon de l'écran des péremptions. Un mois est le délai à partir duquel un
+# commerçant peut encore agir : écouler, remiser, retourner au grossiste.
+JOURS_PEREMPTION = 30
 
 
 # ----------------------------------------------------------------------------
@@ -665,6 +671,7 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
         sku=donnees["sku"],
         libelle=donnees["libelle"],
         regime_tva=donnees["regime_tva"],
+        unite=donnees.get("unite") or boutique.metier_choisi.unite_defaut,
         cree_par=utilisateur,
     )
     variante = Variante.objects.create(
@@ -690,6 +697,10 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
             origine_type="backoffice.reprise",
             commentaire="Reprise de stock à l'installation",
             cree_par=utilisateur,
+            # Vides pour les métiers qui n'activent pas la fonction : le suivi
+            # par lot reste alors entièrement inerte.
+            date_peremption=donnees.get("date_peremption"),
+            numero_lot=donnees.get("numero_lot") or "",
         )
     return variante
 
@@ -1370,3 +1381,63 @@ def nouveau_depot(request):
 
     contexte.update({"formulaire": formulaire, "quota_depots": quota, "existants": existants})
     return render(request, "depot_nouveau.html", contexte)
+
+
+# ----------------------------------------------------------------------------
+# Péremptions — métiers qui suivent les dates (pharmacie, cosmétique, frais…)
+# ----------------------------------------------------------------------------
+@exige(droit.STOCK_VOIR)
+def peremptions(request):
+    """Ce qui périme, et dans quel ordre s'en occuper.
+
+    L'écran n'existe que pour les métiers qui activent la fonction : ailleurs il
+    répond 404, et non un tableau vide. Un tableau vide dirait « vous n'avez rien
+    qui périme » à un quincaillier, ce qui est vrai mais sans objet — et lui
+    laisserait croire que le logiciel surveille quelque chose pour lui.
+
+    Périmés et bientôt périmés sont dans le même écran, séparés en deux blocs :
+    ce sont deux gestes différents — retirer d'un côté, écouler de l'autre — mais
+    c'est la même tournée de rayon.
+    """
+    contexte = contexte_commun(request, "peremptions")
+    metier = contexte["metier"]
+    if metier is None or not metier.a(metiers.PEREMPTION):
+        raise Http404("Ce métier ne suit pas les dates de péremption.")
+
+    aujourd_hui = timezone.localdate()
+    lots = list(lots_a_surveiller(jours=JOURS_PEREMPTION))
+    for lot in lots:
+        lot.etat_calcule = lot.etat(aujourd_hui)
+        lot.jours = lot.jours_restants(aujourd_hui)
+
+    perimes = [l for l in lots if l.etat_calcule == "perime"]
+    bientot = [l for l in lots if l.etat_calcule == "bientot"]
+
+    contexte.update(
+        {
+            "perimes": perimes,
+            "bientot": bientot,
+            "horizon": JOURS_PEREMPTION,
+            # La valeur de ce qui périme n'a de sens que pour qui voit les coûts.
+            "valeur_perimee": (
+                sum(
+                    (l.quantite * _cmp_du_lot(l) for l in perimes), Decimal("0")
+                ).quantize(Decimal("0.01"))
+                if droit.COUT_VOIR in contexte["droits"]
+                else None
+            ),
+        }
+    )
+    return render(request, "peremptions.html", contexte)
+
+
+def _cmp_du_lot(lot) -> Decimal:
+    """Coût moyen pondéré du couple (dépôt, variante) auquel appartient le lot.
+
+    Le lot ne porte pas de coût — c'est la décision de conception du modèle : la
+    valorisation reste globale, le lot ne répond qu'à « quoi périme quand ». La
+    valeur affichée est donc une **estimation au CMP courant**, ce que le gabarit
+    dit explicitement plutôt que de la présenter comme un chiffre comptable.
+    """
+    niveau = NiveauStock.objects.filter(depot_id=lot.depot_id, variante_id=lot.variante_id).first()
+    return niveau.cmp if niveau else Decimal("0")

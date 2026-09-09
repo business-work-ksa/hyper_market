@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 332 tests
+make tester                     # 362 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -83,6 +83,25 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
+
+## Dix métiers, dix logiciels
+
+Une boutique déclare **ce qu'elle vend**, et l'interface s'adapte : commerce général, pharmacie,
+quincaillerie, cosmétique, restauration, boulangerie, mode, électronique, pièces auto, produits
+frais. Référentiel dans [`apps/marketplace/metiers.py`](apps/marketplace/metiers.py).
+
+Le métier change trois choses, et aucune n'est de l'habillage : **le vocabulaire** (un pharmacien
+lit « médicament », un restaurateur « plat »), **les valeurs par défaut** — une officine est
+exonérée de TVA, un poissonnier vend au kilo — et **les champs du formulaire**, la date de
+péremption n'apparaissant que là où elle a un sens.
+
+Pour les quatre métiers qui périment, le stock est suivi **lot par lot** : les sorties consomment
+le plus proche de périmer, et un écran dédié sépare ce qui est déjà perdu de ce qu'on peut encore
+écouler. Un lot ne porte pas de coût — la valorisation reste au coût moyen pondéré, le lot ne
+répond qu'à « quoi périme quand ».
+
+Ce que chaque métier prévoit **sans l'avoir encore** est affiché comme tel : lister une fonction
+non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas.
 
 ## La vitrine publique
 
@@ -213,6 +232,8 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
   effet à son étape, écran de traitement pour le marchand
 - [x] **Vitrine publique** — catalogue de tout le marché sans compte, panier, tunnel de commande,
   lien de parrainage *(l'encaissement en ligne attend le même bac à sable d'opérateur)*
+- [x] **Dix métiers** — vocabulaire, valeurs par défaut et formulaires adaptés ; suivi par lot et
+  écran des péremptions pour les métiers qui en ont besoin
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

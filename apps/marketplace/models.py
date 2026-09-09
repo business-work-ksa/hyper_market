@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from apps.core.models import BaseModel
 from apps.core.uuid7 import uuid7
+from apps.marketplace.metiers import METIER_DEFAUT, metier_de
 
 
 class Rayon(models.Model):
@@ -111,6 +112,16 @@ class Boutique(BaseModel):
     raison_sociale = models.CharField(max_length=180)
     enseigne = models.CharField(max_length=120, help_text="Nom commercial affiché aux acheteurs.")
     slug = models.SlugField(max_length=140, unique=True)
+    metier = models.CharField(
+        max_length=32,
+        default=METIER_DEFAUT,
+        db_index=True,
+        verbose_name="métier",
+        help_text=(
+            "Ce que la boutique vend. Détermine le vocabulaire des écrans, les "
+            "valeurs par défaut et les fonctions activées (apps/marketplace/metiers.py)."
+        ),
+    )
     rccm = models.CharField(max_length=64, blank=True, verbose_name="RCCM")
     niu = models.CharField(max_length=32, blank=True, verbose_name="NIU")
     regime_fiscal = models.CharField(max_length=24, choices=REGIMES, default=REEL_SIMPLIFIE)
@@ -129,6 +140,17 @@ class Boutique(BaseModel):
 
     def __str__(self):
         return self.enseigne
+
+    @property
+    def metier_choisi(self):
+        """Le métier, lu depuis le référentiel de code — jamais depuis la base.
+
+        `metier` ne stocke qu'un code. Tout ce qui en découle — vocabulaire,
+        valeurs par défaut, fonctions actives — se lit dans
+        `apps/marketplace/metiers.py`, pour la même raison que la matrice des
+        droits : ce sont des règles, pas des données.
+        """
+        return metier_de(self.metier)
 
     @property
     def bail_actif(self):

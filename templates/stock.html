@@ -11,7 +11,7 @@
   {% if 'stock.mouvementer' in droits %}
     <a class="btn" href="{% url 'inventaire' %}">Inventaire</a>
     <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
-      <svg><use href="#ic-plus"></use></svg> Nouvel article
+      <svg><use href="#ic-plus"></use></svg> Nouveau {{ metier.article }}
     </a>
   {% endif %}
 {% endblock %}

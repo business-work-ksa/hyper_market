@@ -21,6 +21,8 @@ from django.shortcuts import redirect, render
 
 from apps.accounts.permissions import LIBELLES, droits_de
 from apps.inventory.models import Depot, NiveauStock
+from apps.inventory.services import lots_a_surveiller
+from apps.marketplace.metiers import PEREMPTION
 from apps.marketplace.models import Boutique
 
 
@@ -143,6 +145,8 @@ def contexte_commun(request, page: str) -> dict:
         "depot_courant": None,
         "alertes": None,
         "commandes_a_traiter": None,
+        "metier": None,
+        "peremptions": None,
     }
     if boutique is None:
         request._contexte_backoffice = contexte
@@ -161,6 +165,15 @@ def contexte_commun(request, page: str) -> dict:
     if "commandes.traiter" in droits:
         a_traiter = commandes_a_traiter() or None
 
+    # Le métier décide du vocabulaire de tous les écrans. Il est lu une fois par
+    # requête et passé au gabarit : `{{ metier.articles }}` plutôt qu'« articles »
+    # en dur, pour qu'un pharmacien lise « médicaments ».
+    metier = boutique.metier_choisi
+
+    peremptions = None
+    if metier.a(PEREMPTION) and "stock.voir" in droits:
+        peremptions = lots_a_surveiller().count() or None
+
     contexte.update(
         {
             "droits": droits,
@@ -168,6 +181,8 @@ def contexte_commun(request, page: str) -> dict:
             "depot_courant": depot_courant(request) if depots else None,
             "alertes": alertes,
             "commandes_a_traiter": a_traiter,
+            "metier": metier,
+            "peremptions": peremptions,
         }
     )
     request._contexte_backoffice = contexte

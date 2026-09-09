@@ -13,6 +13,7 @@ from django import forms
 
 from apps.accounts.models import validateur_telephone
 from apps.catalog.models import Produit
+from apps.marketplace import metiers
 
 CHAMP = {"class": "champ"}
 CHAMP_GRAND = {"class": "champ champ--grand"}
@@ -63,9 +64,64 @@ class ArticleForm(forms.Form):
         widget=forms.Select(attrs=CHAMP),
     )
 
+    # Champs de métier : présents seulement là où le métier les active. Ils sont
+    # déclarés ici et retirés dans `__init__` — la même mécanique que les droits
+    # côté API : ce qui n'est pas ouvert n'est pas affiché, pas grisé.
+    date_peremption = forms.DateField(
+        label="Date de péremption",
+        required=False,
+        help_text="Laissez vide si cet article ne périme pas.",
+        widget=forms.DateInput(attrs={**CHAMP, "type": "date"}),
+    )
+    numero_lot = forms.CharField(
+        label="Numéro de lot",
+        max_length=64,
+        required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Lot du fabricant"}),
+    )
+    unite = forms.ChoiceField(
+        label="Unité de vente",
+        choices=Produit.UNITES,
+        required=False,
+        widget=forms.Select(attrs=CHAMP),
+    )
+
     def __init__(self, *args, boutique=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.boutique = boutique
+        self.metier = boutique.metier_choisi if boutique is not None else metiers.metier_de(None)
+        self._composer()
+
+    def _composer(self) -> None:
+        """Compose le formulaire pour le métier de la boutique.
+
+        Trois choses en découlent, et aucune n'est cosmétique :
+
+        * le **vocabulaire** — un pharmacien saisit un médicament, pas un article ;
+        * les **valeurs par défaut** — unité et régime de TVA du métier, parce
+          qu'un défaut qu'il faut corriger à chaque ligne finit par être subi ;
+        * les **champs présents** — la date de péremption n'apparaît que là où
+          elle a un sens, et le numéro de lot seulement là où il est suivi.
+        """
+        metier = self.metier
+
+        self.fields["libelle"].label = f"Nom {'du' if metier.article != 'pièce' else 'de la'} {metier.article}"
+        if metier.exemples:
+            self.fields["libelle"].widget.attrs["placeholder"] = metier.exemples[0]
+
+        self.fields["regime_tva"].initial = metier.regime_tva_defaut
+        self.fields["unite"].initial = metier.unite_defaut
+
+        if not metier.a(metiers.PEREMPTION):
+            del self.fields["date_peremption"]
+        if not metier.a(metiers.LOT):
+            del self.fields["numero_lot"]
+        if metier.unite_defaut == "U" and not metier.a(metiers.POIDS_VARIABLE):
+            # L'unité ne se pose pas dans un commerce où tout se vend à la pièce.
+            del self.fields["unite"]
+
+    def clean_unite(self):
+        return self.cleaned_data.get("unite") or self.metier.unite_defaut
 
     def clean_sku(self):
         sku = self.cleaned_data["sku"].strip().upper()
@@ -79,6 +135,19 @@ class ArticleForm(forms.Form):
         donnees = super().clean()
         prix = donnees.get("prix_vente")
         cout = donnees.get("cout_unitaire")
+        if (
+            self.metier.a(metiers.PEREMPTION)
+            and donnees.get("quantite")
+            and not donnees.get("date_peremption")
+        ):
+            # Un stock initial saisi sans date dans un métier qui périme est une
+            # perte annoncée : l'alerte ne pourra jamais se déclencher dessus.
+            self.add_error(
+                "date_peremption",
+                "Ce métier suit les péremptions : indiquez la date, ou saisissez "
+                "une quantité nulle et faites une réception ensuite.",
+            )
+
         if prix is not None and cout is not None and cout > prix:
             # Avertissement, pas blocage : une vente à perte se décide, elle
             # n'est pas interdite. Mais elle ne doit pas être une surprise.

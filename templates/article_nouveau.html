@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load hm %}
 
-{% block titre %}Nouvel article — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Nouvel article{% endblock %}
+{% block titre %}Nouveau {{ metier.article }} — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Nouveau {{ metier.article }}{% endblock %}
 
 {% block actions_entete %}
   <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
@@ -59,7 +59,7 @@
       <div class="carte__corps colonne" style="gap:12px">
         <p class="t-2">
           Saisissez les <strong>20 à 60 références qui font 80 % de votre chiffre d'affaires</strong>,
-          pas tout le magasin. Quarante articles bien tenus valent mieux que quatre cents
+          pas tout le magasin. Quarante {{ metier.articles }} bien tenus valent mieux que quatre cents
           abandonnés au bout d'une semaine.
         </p>
         <p class="t-2">

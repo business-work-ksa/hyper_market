@@ -43,10 +43,12 @@ NOM_REGLAGE = "hypermarche.boutique_id"
 VALEUR_PLATEFORME = "plateforme"
 NOM_POLITIQUE = "hm_isolation_boutique"
 
-# Tables scopées à la date de la migration `core.0002`. La liste est figée ici
-# volontairement — une migration est un instantané, pas une introspection. Le
-# garde-fou contre l'oubli d'un futur modèle est un test
-# (`tests/test_rls_postgres.py`), qui compare cette liste aux modèles réels.
+# Tables scopées, à jour. La liste est figée en code volontairement — une
+# migration est un instantané, pas une introspection — et chaque nouvelle table
+# scopée demande donc deux gestes : l'ajouter ici, et écrire la migration qui
+# installe sa politique. Le garde-fou contre l'oubli est un test
+# (`tests/test_rls_postgres.py`), qui compare cette liste aux modèles réels, et
+# `make securite`, qui compare la liste à l'état réel de la base.
 TABLES_SCOPEES = [
     "catalog_produit",
     "catalog_variante",
@@ -57,6 +59,7 @@ TABLES_SCOPEES = [
     "inventory_inventaire",
     "inventory_ligneinventaire",
     "inventory_fournisseur",
+    "inventory_lotstock",
     "pos_sessioncaisse",
     "pos_ticket",
     "pos_ligneticket",

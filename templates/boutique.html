@@ -16,12 +16,55 @@
         <div class="rangee rangee--espace"><span class="t-2">NIU</span><span class="chiffre">{{ boutique.niu|default:"—" }}</span></div>
         <div class="rangee rangee--espace"><span class="t-2">Ville</span><span>{{ boutique.ville }}</span></div>
         <div class="rangee rangee--espace">
+          <span class="t-2">Métier</span>
+          <span class="puce puce--marque">{{ metier.libelle }}</span>
+        </div>
+        <div class="rangee rangee--espace">
           <span class="t-2">Régime fiscal</span>
           <span class="puce puce--marque">{{ boutique.get_regime_fiscal_display }}</span>
         </div>
       </div>
     </section>
 
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Ce que votre métier change</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <p class="t-2">{{ metier.resume }}</p>
+        {% if metier.libelles_fonctions %}
+          <ul class="colonne" style="gap:8px">
+            {% for fonction in metier.libelles_fonctions %}
+              <li class="rangee" style="gap:8px;align-items:flex-start">
+                <svg class="icone-ligne" style="color:var(--bon);margin-top:3px"><use href="#ic-check"></use></svg>
+                <span class="t-2">{{ fonction }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="t-legende">
+            Aucune fonction particulière : le commerce général est le socle, et
+            tous les autres métiers en sont des variantes.
+          </p>
+        {% endif %}
+        {% if metier.a_venir %}
+          {% comment %}
+          Ce qui est annoncé comme à venir est annoncé comme tel. Lister une
+          fonction non écrite au milieu des autres donnerait au commerçant
+          l'impression d'un suivi qu'il n'a pas — et une pharmacie paie cher ce
+          genre de malentendu.
+          {% endcomment %}
+          <div class="bandeau-info" role="note" style="margin-top:4px">
+            <svg><use href="#ic-info"></use></svg>
+            <span>
+              Prévu pour ce métier, <strong>pas encore disponible</strong> :
+              {% for a in metier.a_venir %}{{ a|lower }}{% if not forloop.last %} ; {% endif %}{% endfor %}.
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="duo">
     <section class="carte">
       <header class="carte__entete"><h2 class="t-section">Emplacement loué</h2></header>
       <div class="carte__corps colonne" style="gap:14px">

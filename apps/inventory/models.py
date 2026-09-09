@@ -192,6 +192,72 @@ class LigneInventaire(TenantScopedModel):
         return self.qte_comptee - self.qte_theorique
 
 
+class LotStock(TenantScopedModel):
+    """Ce qui périme, et quand.
+
+    Réservé aux métiers qui l'activent (`apps/marketplace/metiers.py`) : une
+    quincaillerie n'a pas de dates de péremption, et lui en demander serait une
+    saisie de plus pour rien. Là où la fonction n'est pas activée, aucun lot
+    n'existe et tout le mécanisme est inerte.
+
+    **La décision de conception qui compte : un lot ne porte pas de coût.** La
+    valorisation reste au niveau `(dépôt, variante)`, en coût moyen pondéré —
+    le lot répond à « qu'est-ce qui périme quand », le CMP à « combien ça a
+    coûté ». Les mêler aurait imposé une valorisation par lot (FIFO réel), qui
+    est un autre modèle comptable, plus juste sur le papier et impraticable pour
+    un commerçant qui reprend un stock existant sans connaître le coût
+    d'acquisition ligne à ligne (voir l'en-tête de `apps/inventory/services.py`).
+
+    Deux réceptions du même lot à la même date **alimentent la même ligne** : un
+    numéro de lot désigne une fabrication, pas une livraison.
+    """
+
+    depot = models.ForeignKey(Depot, on_delete=models.CASCADE, related_name="lots")
+    variante = models.ForeignKey("catalog.Variante", on_delete=models.CASCADE, related_name="lots")
+    numero = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Numéro de lot du fabricant. Vide quand seule la date compte.",
+    )
+    date_peremption = models.DateField(db_index=True)
+    quantite = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
+
+    class Meta:
+        verbose_name = "lot"
+        verbose_name_plural = "lots"
+        ordering = ["date_peremption", "numero"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["depot", "variante", "numero", "date_peremption"], name="lot_unique"
+            )
+        ]
+        indexes = [models.Index(fields=["boutique", "date_peremption"])]
+
+    def __str__(self):
+        marque = f" lot {self.numero}" if self.numero else ""
+        return f"{self.variante}{marque} — {self.date_peremption:%d/%m/%Y}"
+
+    def jours_restants(self, aujourd_hui=None) -> int:
+        aujourd_hui = aujourd_hui or timezone.localdate()
+        return (self.date_peremption - aujourd_hui).days
+
+    def etat(self, aujourd_hui=None, seuil_alerte: int = 30) -> str:
+        """`perime`, `bientot` ou `bon`.
+
+        Le seuil par défaut est de 30 jours. Ce n'est pas une valeur universelle
+        — un yaourt et une boîte d'amoxicilline n'ont pas le même horizon — mais
+        c'est le délai à partir duquel un commerçant peut encore agir : écouler,
+        remiser, retourner au grossiste. En deçà, l'alerte ne sert plus qu'à
+        constater la perte.
+        """
+        jours = self.jours_restants(aujourd_hui)
+        if jours < 0:
+            return "perime"
+        if jours <= seuil_alerte:
+            return "bientot"
+        return "bon"
+
+
 class Fournisseur(TenantScopedModel):
     nom = models.CharField(max_length=180)
     contact = models.CharField(max_length=120, blank=True)

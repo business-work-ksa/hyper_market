@@ -20,6 +20,7 @@ urlpatterns = [
     path("stock/", views.stock, name="stock"),
     path("stock/nouvel-article/", views.nouvel_article, name="nouvel_article"),
     path("stock/inventaire/", views.inventaire, name="inventaire"),
+    path("stock/peremptions/", views.peremptions, name="peremptions"),
     path("stock/<uuid:variante_id>/", views.article, name="article"),
     path("stock/<uuid:variante_id>/entree/", views.entree_stock, name="entree_stock"),
     path("stock/<uuid:variante_id>/entree.json", views.entree_stock_json, name="entree_stock_json"),

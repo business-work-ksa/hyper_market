@@ -35,6 +35,7 @@ BOUTIQUES = [
         "raison_sociale": "Ateba & Fils SARL",
         "enseigne": "Quincaillerie Ateba",
         "slug": "quincaillerie-ateba",
+        "metier": "QUINCAILLERIE",
         "rayon": "quincaillerie",
         "offre": TypeEmplacement.BOUTIQUE,
         "rccm": "RC/DLA/2019/B/1842",
@@ -63,6 +64,7 @@ BOUTIQUES = [
         "raison_sociale": "Ngo Bell Distribution SARL",
         "enseigne": "Bella Cosmétiques",
         "slug": "bella-cosmetiques",
+        "metier": "COSMETIQUE",
         "rayon": "cosmetique-beaute",
         "offre": TypeEmplacement.GRANDE_SURFACE,
         "rccm": "RC/YAO/2021/B/0917",
@@ -78,6 +80,34 @@ BOUTIQUES = [
             ("COS-CRE-VIS", "Crème hydratante visage 100 ml", "8900", "5100", 340, 50),
             ("COS-HUI-ARG", "Huile d'argan pressée à froid 100 ml", "12500", "7900", 280, 40),
             ("COS-MAS-ARG", "Masque à l'argile verte 150 g", "3800", "2050", 520, 70),
+        ],
+    },
+    {
+        # Une pharmacie dans le jeu de démonstration n'est pas un décor : c'est
+        # le seul métier où le suivi des lots et des péremptions se voit
+        # réellement à l'écran, et donc le seul où l'on peut vérifier qu'il
+        # fonctionne sans lire le code.
+        "raison_sociale": "Officine du Wouri SARL",
+        "enseigne": "Pharmacie du Wouri",
+        "slug": "pharmacie-du-wouri",
+        "metier": "PHARMACIE",
+        "rayon": "cosmetique-beaute",
+        "offre": TypeEmplacement.BOUTIQUE,
+        "rccm": "RC/DLA/2022/B/3310",
+        "niu": "M032298765432C",
+        "ville": "Douala",
+        "gerant": ("+237655330011", "Dr Estelle Manga"),
+        "equipe": [("+237655330022", "Cédric Ondoa", Role.VENDEUR)],
+        "reserve": None,
+        # Les péremptions sont exprimées en jours à partir d'aujourd'hui : le jeu
+        # de démonstration doit montrer un périmé et un « bientôt » quel que soit
+        # le jour où on le charge.
+        "produits": [
+            ("PHA-PARA-500", "Paracétamol 500 mg — boîte de 20", "600", "380", 420, 60, "L24A118", 240),
+            ("PHA-AMOX-1G", "Amoxicilline 1 g — boîte de 12", "3200", "2100", 180, 30, "L24B072", 18),
+            ("PHA-SERU-PH", "Sérum physiologique 5 ml — 20 doses", "1500", "900", 260, 40, "L23K455", -6),
+            ("PHA-IBUP-400", "Ibuprofène 400 mg — boîte de 20", "900", "540", 300, 45, "L25C201", 400),
+            ("PHA-VITC-1G", "Vitamine C 1 g — 10 comprimés", "1200", "700", 210, 35, "L24D019", 25),
         ],
     },
 ]
@@ -215,6 +245,7 @@ class Command(BaseCommand):
                 "rccm": donnees["rccm"],
                 "niu": donnees["niu"],
                 "ville": donnees["ville"],
+                "metier": donnees.get("metier", "COMMERCE_GENERAL"),
                 "rayon_principal": rayon,
                 "etat": Boutique.ACTIVE,
                 "regime_fiscal": Boutique.REEL_SIMPLIFIE,
@@ -272,14 +303,24 @@ class Command(BaseCommand):
             defaults={"type": Depot.BOUTIQUE, "principal": True},
         )
 
+        # Les métiers qui suivent les péremptions apportent deux colonnes de
+        # plus : le numéro de lot et l'échéance, en jours à partir d'aujourd'hui.
+        metier = boutique.metier_choisi
         variantes = []
-        for sku, libelle, prix_ttc, cout, quantite, seuil in produits:
+        for ligne in produits:
+            sku, libelle, prix_ttc, cout, quantite, seuil = ligne[:6]
+            numero_lot, jours = (ligne[6], ligne[7]) if len(ligne) > 6 else ("", None)
+            peremption = (
+                timezone.localdate() + timedelta(days=jours) if jours is not None else None
+            )
             produit, _ = Produit.objects.get_or_create(
                 boutique=boutique,
                 sku=sku,
                 defaults={
                     "libelle": libelle,
                     "categorie": categorie,
+                    "unite": metier.unite_defaut,
+                    "regime_tva": metier.regime_tva_defaut,
                     "revente_autorisee": True,
                     "marge_revendeur": Decimal("0.10"),
                 },
@@ -301,6 +342,8 @@ class Command(BaseCommand):
                     origine_type="demo",
                     commentaire="Stock initial (état des lieux d'entrée)",
                     cree_par=gerant,
+                    date_peremption=peremption,
+                    numero_lot=numero_lot,
                 )
             variantes.append(variante)
 

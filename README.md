@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 213 tests
+make tester                     # 252 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -144,8 +144,31 @@ idempotent. Le catalogue est rangé à chaque passage en ligne, et ressorti dat�
 manque.
 
 ```bash
-node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie les 9 points
+node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie les 15 points
 ```
+
+### API REST
+
+`/api/v1/` — catalogue, stock, ventes, balance, encaissement et réception. Elle ne réimplémente
+aucune règle : elle appelle les services du back-office.
+
+```bash
+python manage.py creer_jeton_api +237699110011 --libelle "Tablette du comptoir 2"
+curl -H "Authorization: Bearer hm_…" http://localhost:8000/api/v1/moi/
+```
+
+**Le jeton porte la boutique** ([ADR-010](docs/adr/010-jeton-d-api-porteur-de-la-boutique.md)) :
+un client n'a aucun moyen d'en désigner une autre, et la base ne conserve du jeton qu'une
+empreinte. Les droits sont les mêmes qu'à l'écran, avec la même conséquence — le coût d'achat
+est **absent** de la réponse faite à une caissière, pas mis à `null`. Détails en
+[docs/14](docs/14-guide-developpeur.md), §6.
+
+## Décisions d'architecture
+
+Dix fiches dans [`docs/adr/`](docs/adr/), chacune nommant l'endroit du dépôt où la décision est
+**tenue par un test** — une fiche que rien ne vérifie décrit une intention, pas une architecture.
+Neuf sont actées ; [l'ADR-008](docs/adr/008-localisation-de-l-hebergement.md), sur la localisation
+de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non une analyse.
 
 ## État du projet
 
@@ -163,6 +186,8 @@ node scripts/verifier-hors-ligne.js   # coupe vraiment le réseau et vérifie le
 - [x] **Gestion de l'équipe** — embauche, rôles et retraits d'accès, sans passer par l'administration
 - [x] **Socle de paiement** — routage par opérateur, disjoncteur, idempotence, prestataire simulé
   *(les appels réseau MTN / Orange / Camtel attendent un bac à sable : ils ne seront pas écrits à l'aveugle)*
+- [x] **API REST** — jeton porteur de la boutique, mêmes droits qu'à l'écran, écritures idempotentes
+- [x] **Décisions d'architecture** — dix fiches, chacune rattachée au test qui la tient
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

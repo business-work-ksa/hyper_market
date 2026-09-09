@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 213 tests (17 ignorés sur SQLite)
+make tester      # 252 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -69,6 +69,9 @@ apps/
   backoffice/      vues et formulaires du back-office marchand
                    acces.py — boutique courante, dépôt courant, porte des droits
                    vues_equipe.py — embauche, rôles, retrait d'accès
+  api/             API REST v1 (DRF)
+                   models.py — jeton porteur de la boutique (ADR-010)
+                   acces.py — la même porte, les mêmes droits
 static/            CSS écrit à la main, service worker, file hors ligne (IndexedDB),
                    pilote d'imprimante thermique ESC/POS, icônes
 templates/         gabarits Django
@@ -259,6 +262,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_multi_depots.py` | Dépôt courant, transferts, quota d'ouverture, réception hors ligne idempotente, catalogue JSON |
 | `test_equipe.py` | Embauche, changement de rôle, retrait d'accès — **un accès se retire, un compte ne se supprime pas** ; les garde-fous qui empêchent un gérant de se fermer la porte |
 | `test_paiements.py` | Routage par préfixe, disjoncteur, **une clé d'idempotence ne débite qu'une fois**, un état terminal ne recule jamais |
+| `test_api.py` | **Le jeton porte la boutique** : `X-Boutique` ne déplace rien, un ticket voisin est introuvable, retirer l'accès ferme le jeton à la requête suivante, le coût d'achat est absent — pas vide — des réponses faites à un caissier |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
@@ -269,12 +273,117 @@ juridique qui vient d'être enfreinte. Dans les trois premiers cas, c'est une fu
 
 ---
 
-## 6. Reste à faire sur le socle
+## 6. API REST
+
+Base : `/api/v1/`. Implémentation dans `apps/api/`, décision dans
+[ADR-010](adr/010-jeton-d-api-porteur-de-la-boutique.md).
+
+### 6.1 — Obtenir un jeton
+
+```bash
+python manage.py creer_jeton_api +237699110011 --libelle "Tablette du comptoir 2"
+```
+
+Le secret s'affiche **une seule fois**. La base n'en conserve qu'une empreinte SHA-256 : un jeton
+perdu se remplace, il ne se retrouve pas. Il s'utilise en en-tête :
+
+```
+Authorization: Bearer hm_<préfixe>_<secret>
+```
+
+> **Le jeton porte la boutique.** Un client n'a aucun moyen d'en désigner une autre — l'en-tête
+> `X-Boutique`, que le middleware lit pour le back-office, n'est pas consulté par l'API. Un
+> comptable qui suit trois boutiques détient trois jetons.
+
+### 6.2 — Points d'entrée
+
+| Méthode | Adresse | Droit exigé |
+|---|---|---|
+| `GET` | `/api/v1/moi/` | *aucun* — dit qui vous êtes et ce que vous pouvez faire |
+| `GET` | `/api/v1/depots/` | `stock.voir` |
+| `GET` | `/api/v1/articles/` | `stock.voir` |
+| `GET` | `/api/v1/stock/mouvements/` | `stock.voir` |
+| `POST` | `/api/v1/stock/entrees/` | `stock.mouvementer` + `cout.voir` |
+| `GET` | `/api/v1/ventes/` | `ventes.voir` |
+| `POST` | `/api/v1/ventes/` | `caisse.encaisser` |
+| `GET` | `/api/v1/ventes/<id>/` | `ventes.voir` |
+| `GET` | `/api/v1/comptabilite/balance/` | `comptabilite.voir` |
+
+Filtres : `?q=` et `?alerte=1` sur les articles, `?depot=`, `?variante=`, `?type=` sur les
+mouvements, `?etat=`, `?depuis=` sur les ventes. Pagination `?limit=&offset=`, 50 par défaut,
+200 au maximum.
+
+**`GET /moi/` est le premier appel de tout client**, et le seul qui n'exige aucun droit. Il
+existe pour la même raison que le tableau de bord composé par rôle : un client doit construire
+son interface à partir de ce que le serveur autorise, plutôt qu'afficher des écrans qui
+refuseront de s'ouvrir.
+
+### 6.3 — Ce qu'un rôle ne voit pas est **absent**, pas vide
+
+```jsonc
+// GET /api/v1/articles/ vu par une caissière
+{ "libelle": "Brouette galvanisée", "prix_vente": "34500.00", "quantite": "18.0000" }
+
+// le même, vu par la gérante
+{ "libelle": "Brouette galvanisée", "prix_vente": "34500.00", "quantite": "18.0000",
+  "cmp": "13745.0980", "valeur_stock": "247411.76" }
+```
+
+Le champ n'est ni `null` ni vide : il n'est pas là. Un champ à `null` dirait au client qu'il
+existe et l'inviterait à le demander autrement. Sur un ticket, `marge` et `cout_marchandise` sont
+retirés du sérialiseur **avant** lecture — la requête qui les calcule n'a pas lieu.
+
+Un refus nomme le droit qui manque, plutôt que de rester muet :
+
+```json
+{ "detail": "Votre rôle ne permet pas cette opération.",
+  "droits_manquants": [{"code": "comptabilite.voir", "libelle": "Consulter la comptabilité"}] }
+```
+
+### 6.4 — Écrire : toujours avec une clé d'idempotence
+
+```bash
+curl -X POST http://localhost:8000/api/v1/ventes/ \
+  -H "Authorization: Bearer $JETON" -H "Content-Type: application/json" \
+  -d '{"operation_id": "01a08547-...", "moyen": "especes",
+       "encaisse_le": "2026-01-15T10:30:00Z",
+       "lignes": [{"variante": "01a08174-...", "quantite": "2"}]}'
+```
+
+`201` à la création, **`200` et `"rejoue": true`** si la même `operation_id` revient : rien n'a
+été créé cette fois-ci, et un client qui compte ses créations peut s'y fier. C'est la même clé et
+le même service que la caisse hors ligne (ADR-004).
+
+`encaisse_le` porte l'heure **réelle** de la vente. À fournir pour une vente hors ligne : les
+écritures comptables la portent, et le journal en ajout seul refusera de la corriger ensuite
+(ADR-003).
+
+### 6.5 — Ce que l'API ne fait pas
+
+Elle ne réimplémente aucune règle métier. Encaisser passe par `apps.pos.services.encaisser`,
+recevoir par `apps.inventory.services.entrer_stock`, lire une balance par
+`apps.accounting.services.balance` — les fonctions qu'appelle le back-office. C'est la seule
+façon d'éviter la dérive qui guette toute API greffée sur une application existante : une seconde
+implémentation, plus simple parce qu'elle ignore un cas limite, qui produit peu à peu des données
+que l'interface n'aurait jamais écrites.
+
+Un écart de politique subsiste, et il est délibéré : **une référence inconnue dans un panier est
+ignorée au comptoir et refusée par l'API.** Le caissier a le client devant lui ; un client d'API
+n'a personne pour rattraper un article silencieusement absent du ticket.
+
+---
+
+## 7. Reste à faire sur le socle
 
 | Sujet | État | Référence |
 |---|---|---|
-| API REST (DRF) | Sérialiseurs et vues à écrire | docs/05 |
 | Appels HTTP vers MTN / Orange / Camtel | Contrat, routage, disjoncteur, idempotence et prestataire simulé écrits et testés ; **les appels réseau attendent un bac à sable d'opérateur** — ils ne seront pas écrits à l'aveugle | docs/09, §6 |
 | Impression thermique hors Bluetooth LE | Le pilote ESC/POS couvre le Bluetooth basse consommation sur Chromium ; USB, Wi-Fi, SPP et iOS demandent une application native | docs/18, §9 |
-| Logistique, RH, paie, retail media | Lots 2 à 5 | docs/11 |
-| Fiches ADR dans `docs/adr/` | À créer à partir du tableau du docs/09, §10 | docs/09 |
+| Logistique, séquestre avancé, WhatsApp, B2B | **Lot 2.** Critère de sortie : coût unitaire du dernier kilomètre prouvé (arbitrage A7) | docs/11, §5 |
+| Déclaration de TVA, espace de révision du cabinet | **Lot 3.** Le socle comptable est écrit ; ce qui reste doit être validé par le cabinet partenaire sur un exercice complet | docs/11, §6 |
+| RH, paie, entrepôt mutualisé | **Lot 4**, ouverture conditionnée à l'arbitrage A6 | docs/11, §7 |
+| Retail media, financement de stock | **Lot 5.** Sans partenaire bancaire signé, la ligne crédit n'ouvre pas (arbitrage A3) | docs/11, §8 |
+
+Les quatre dernières lignes ne sont pas du code en attente d'être écrit : ce sont des lots de
+feuille de route, chacun avec un préalable que le projet s'est lui-même imposé. Les ouvrir avant
+que leur préalable ne soit levé reviendrait à contredire les arbitrages du document 04.

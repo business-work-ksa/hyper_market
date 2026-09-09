@@ -519,41 +519,25 @@ def caisse_encaisser(request):
             depot=depot, caissier=request.user, fonds_ouverture=Decimal("0")
         )
 
+    # Au comptoir, une référence inconnue est ignorée plutôt que de faire échouer
+    # la vente entière : le caissier a le client devant lui. L'API, elle, refuse
+    # — c'est la même opération, ce n'est pas la même situation.
+    panier = []
+    for ligne in lignes:
+        variante = Variante.objects.filter(pk=ligne.get("variante")).first()
+        if variante is None:
+            continue
+        panier.append((variante, Decimal(str(ligne.get("quantite", 1))), Decimal("0")))
+
     try:
-        ticket = caisse_service.creer_ticket(
+        ticket, rejoue = caisse_service.encaisser(
             session=session,
-            operation_id=charge.get("operation_id") or None,
-            client_nom=(charge.get("client") or "")[:180],
-        )
-        if ticket.etat == Ticket.CLOTURE:
-            # Retransmission d'une opération déjà appliquée : on renvoie le résultat
-            # précédent plutôt que de rejouer la vente (ADR-004).
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "numero": ticket.numero,
-                    "total": float(ticket.total_ttc),
-                    "rejoue": True,
-                }
-            )
-
-        for ligne in lignes:
-            variante = Variante.objects.filter(pk=ligne.get("variante")).first()
-            if variante is None:
-                continue
-            caisse_service.ajouter_ligne(
-                ticket=ticket,
-                variante=variante,
-                quantite=Decimal(str(ligne.get("quantite", 1))),
-            )
-
-        ticket.refresh_from_db()
-        caisse_service.regler(
-            ticket=ticket,
+            lignes=panier,
             moyen=charge.get("moyen") or "especes",
-            montant=ticket.total_ttc,
+            operation_id=charge.get("operation_id") or None,
+            client_nom=charge.get("client") or "",
+            cree_par=request.user,
         )
-        caisse_service.cloturer_ticket(ticket, cree_par=request.user)
     except caisse_service.TicketInvalide as erreur:
         return JsonResponse({"ok": False, "erreur": str(erreur)}, status=400)
 
@@ -563,7 +547,7 @@ def caisse_encaisser(request):
             "numero": ticket.numero,
             "total": float(ticket.total_ttc),
             "ticket_id": str(ticket.pk),
-            "rejoue": False,
+            "rejoue": rejoue,
         }
     )
 

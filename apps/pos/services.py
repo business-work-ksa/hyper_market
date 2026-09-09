@@ -15,7 +15,16 @@ from apps.inventory.models import Depot, MouvementStock
 from apps.inventory.services import sortir_stock
 from apps.pos.models import CENTIME, LigneTicket, ReglementTicket, SessionCaisse, Ticket
 
-__all__ = ["TicketInvalide", "ouvrir_session", "ajouter_ligne", "cloturer_ticket", "fermer_session"]
+__all__ = [
+    "TicketInvalide",
+    "ouvrir_session",
+    "creer_ticket",
+    "ajouter_ligne",
+    "regler",
+    "encaisser",
+    "cloturer_ticket",
+    "fermer_session",
+]
 
 
 class TicketInvalide(ValueError):
@@ -100,6 +109,67 @@ def regler(*, ticket: Ticket, moyen: str, montant, reference_psp: str = "") -> R
         montant=Decimal(montant),
         reference_psp=reference_psp,
     )
+
+
+def encaisser(
+    *,
+    session: SessionCaisse,
+    lignes,
+    moyen: str = ReglementTicket.ESPECES,
+    operation_id=None,
+    client_nom: str = "",
+    client_telephone: str = "",
+    reference_psp: str = "",
+    encaisse_le=None,
+    cree_par=None,
+) -> tuple[Ticket, bool]:
+    """Encaisse un panier complet et retourne `(ticket, rejoue)`.
+
+    Le geste que fait réellement un caissier : un panier entre, un ticket
+    clôturé sort — avec sa sortie de stock au CMP et ses écritures comptables.
+    Écrit ici et pas dans une vue parce que **deux chemins mènent à ce geste**,
+    le comptoir et l'API, et que deux implémentations du même encaissement
+    finiraient par diverger sur un détail qui compte : l'arrondi, le moyen de
+    règlement par défaut, ou la date portée par les écritures.
+
+    `lignes` est une suite de `(variante, quantite, remise)`. C'est à l'appelant
+    de résoudre les variantes : le comptoir ignore une référence inconnue, l'API
+    la refuse, et cette différence de politique lui appartient.
+
+    **Reprise d'un encaissement interrompu.** Une opération retransmise dont le
+    ticket existe déjà et porte déjà ses lignes n'est pas rejouée depuis le
+    début : elle est reprise là où elle s'était arrêtée. Sans cela, un client qui
+    perd le réseau entre l'ajout des lignes et la clôture doublerait le panier en
+    réessayant — la clé d'idempotence protège du doublon de ticket, pas du
+    doublon de lignes à l'intérieur d'un même ticket.
+    """
+    ticket = creer_ticket(
+        session=session,
+        operation_id=operation_id,
+        client_nom=client_nom[:180],
+        client_telephone=client_telephone[:16],
+    )
+    if ticket.etat == Ticket.CLOTURE:
+        # Déjà appliquée : on renvoie le résultat précédent (ADR-004).
+        return ticket, True
+
+    if not LigneTicket.objects_all_tenants.filter(ticket=ticket).exists():
+        for variante, quantite, remise in lignes:
+            ajouter_ligne(
+                ticket=ticket, variante=variante, quantite=quantite, remise=remise
+            )
+        ticket.refresh_from_db()
+
+    if ticket.reste_a_payer > 0:
+        regler(
+            ticket=ticket,
+            moyen=moyen,
+            montant=ticket.reste_a_payer,
+            reference_psp=reference_psp,
+        )
+
+    cloturer_ticket(ticket, cree_par=cree_par, cloture_le=encaisse_le)
+    return ticket, False
 
 
 @transaction.atomic

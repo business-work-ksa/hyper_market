@@ -16,7 +16,7 @@ Applique l'arbitrage **A12** : monolithe modulaire Django, schéma partagé avec
 | Tâches asynchrones | **Celery + Redis** | Écritures comptables différées, relances, notifications, rapprochements |
 | Cache & sessions | **Redis** | |
 | Recherche catalogue | `pg_trgm` + index GIN, puis **OpenSearch** si nécessaire | Ne pas ajouter un moteur de recherche avant d'en avoir la preuve |
-| Front public & marchand | **Django templates + HTMX + Alpine.js** | Pages légères, essentiel sur 3G. Pas de SPA lourde |
+| Front public & marchand | **Gabarits Django, CSS et JavaScript écrits à la main** | Pages légères, essentiel sur 3G. Pas de SPA, et — en pratique — aucun cadriciel front ni dépendance CDN ([ADR-007](adr/007-htmx-plutot-qu-une-spa.md)) |
 | Application caisse | **PWA** (service worker + IndexedDB) puis **Android natif** | Le hors-ligne est une contrainte, pas une option |
 | Fichiers | S3-compatible (MinIO en local) | Portabilité de l'hébergement |
 | Déploiement | Docker + Compose, puis orchestrateur si le besoin apparaît | Frugalité |
@@ -334,18 +334,21 @@ déploiement sans interruption, retour arrière possible en une commande.
 
 ---
 
-## 10. Décisions d'architecture à consigner
+## 10. Décisions d'architecture
 
-Chaque décision structurante fait l'objet d'une fiche courte dans `docs/adr/`.
+Chaque décision structurante fait l'objet d'une fiche dans **[`docs/adr/`](adr/)**. Les fiches
+sont écrites, et chacune nomme l'endroit du dépôt où la décision est **tenue par un test** — une
+fiche que rien ne vérifie décrit une intention, pas une architecture.
 
 | # | Décision | Statut |
 |---|---|---|
-| ADR-001 | Monolithe modulaire Django plutôt que microservices | Actée (A12) |
-| ADR-002 | Schéma partagé + `boutique_id` pour le multi-tenant | Actée (A12) |
-| ADR-003 | Journal comptable en ajout seul, contre-passation obligatoire | Actée (A12) |
-| ADR-004 | UUIDv7 générés côté client, journal d'opérations idempotent | Actée (A12) |
-| ADR-005 | Stock négatif autorisé, régularisation par inventaire | Actée |
-| ADR-006 | Abstraction multi-PSP, aucune dépendance à un opérateur | Actée |
-| ADR-007 | HTMX plutôt qu'une SPA sur le front marchand | Actée |
-| ADR-008 | Localisation de l'hébergement | **En attente de J4** (document 08) |
-| ADR-009 | Moteur de recherche : PostgreSQL d'abord, OpenSearch sur preuve | Actée |
+| [ADR-001](adr/001-monolithe-modulaire.md) | Monolithe modulaire Django plutôt que microservices | Actée (A12) |
+| [ADR-002](adr/002-multi-tenant-schema-partage.md) | Schéma partagé + `boutique_id`, protégé par trois barrières | Actée (A12) |
+| [ADR-003](adr/003-journal-comptable-ajout-seul.md) | Journal comptable en ajout seul, contre-passation obligatoire | Actée (A12) |
+| [ADR-004](adr/004-uuidv7-et-idempotence.md) | UUIDv7 générés côté client, journal d'opérations idempotent | Actée (A12) |
+| [ADR-005](adr/005-stock-negatif-autorise.md) | Stock négatif autorisé, régularisation par inventaire | Actée |
+| [ADR-006](adr/006-abstraction-multi-prestataire.md) | Abstraction multi-PSP, aucune dépendance à un opérateur | Actée |
+| [ADR-007](adr/007-htmx-plutot-qu-une-spa.md) | Pas de SPA sur le front marchand | Actée |
+| [ADR-008](adr/008-localisation-de-l-hebergement.md) | Localisation de l'hébergement | **En attente de J4** (document 08) |
+| [ADR-009](adr/009-recherche-postgresql-d-abord.md) | Moteur de recherche : PostgreSQL d'abord, OpenSearch sur preuve | Actée |
+| [ADR-010](adr/010-jeton-d-api-porteur-de-la-boutique.md) | Le jeton d'API porte la boutique, le client ne la déclare pas | Actée |

@@ -509,6 +509,35 @@ cas d'indisponibilité d'un opérateur ». **Le numéro du payeur décide de l'o
 MTN ne s'encaisse pas chez Orange. Ce qui bascule, c'est un agrégateur généraliste ; à défaut, on
 refuse franchement et on renvoie vers les espèces.
 
+### 8.9 — L'API, et la question qu'elle rouvrait
+
+Le palier 1 s'utilise dans un navigateur. Une API n'y ajoute aucun écran — elle est là pour ce qui
+vient après : une caisse Android native, une intégration comptable, un import de catalogue.
+
+Elle a rouvert une question que le back-office avait réglée sans la poser franchement : **qui
+décide de la boutique ?** Dans un navigateur, le middleware la résout avant l'authentification, à
+partir d'un en-tête, d'une session ou d'une appartenance unique — et si l'en-tête est falsifié, ce
+sont les droits, recalculés ensuite, qui referment la porte. Le montage tient, mais il tient parce
+qu'un second contrôle rattrape le premier.
+
+Pour une API à jeton porteur, ce montage ne tient plus : au moment où le middleware s'exécute,
+l'utilisateur n'est pas encore connu. Il ne reste que la valeur fournie par le client.
+
+**La boutique est donc portée par le jeton lui-même**, et l'en-tête n'est pas lu. Il n'y a plus
+rien à vérifier à chaque point d'entrée, parce que la question ne se pose plus — et une sécurité
+qui repose sur la répétition d'un contrôle est celle qui finit par céder sur le point d'entrée
+qu'on a ajouté un vendredi soir. Le raisonnement complet est dans
+[l'ADR-010](adr/010-jeton-d-api-porteur-de-la-boutique.md).
+
+Deux conséquences visibles :
+
+- **Un champ interdit est absent de la réponse, pas vide.** Un `null` dit au client que le champ
+  existe et l'invite à le demander autrement. Sur un ticket, la marge est retirée du sérialiseur
+  *avant* lecture : la requête qui la calcule n'a pas lieu.
+- **L'encaissement de l'API et celui du comptoir sont la même fonction.** Elle a été extraite dans
+  `apps.pos.services.encaisser` au passage : deux implémentations du même geste auraient fini par
+  diverger sur un arrondi ou sur la date portée par les écritures.
+
 ---
 
 ## 9. Ce qui reste avant d'ouvrir à un vrai client

@@ -51,6 +51,7 @@ LOCAL_APPS = [
     "apps.accounting",
     "apps.affiliation",
     "apps.backoffice",
+    "apps.api",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -148,15 +149,20 @@ CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/1")
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=DEBUG)
 
+# Les vues de l'API déclarent elles-mêmes leur authentification et leurs droits
+# (`apps/api/acces.py`) : ces valeurs par défaut sont un filet, pas la règle.
+# Elles sont volontairement fermées — une vue qui oublierait de déclarer sa porte
+# refuse au lieu d'ouvrir.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "apps.api.authentification.AuthentificationJeton",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 25,
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 50,
+    "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
 }
 
 LOGGING = {

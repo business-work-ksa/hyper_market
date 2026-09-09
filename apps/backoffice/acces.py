@@ -105,6 +105,20 @@ def niveaux_en_alerte():
     ).select_related("variante__produit", "depot")
 
 
+def commandes_a_traiter() -> int:
+    """Sous-commandes en attente d'un geste du marchand, dans la boutique courante."""
+    from apps.orders.models import SousCommande
+
+    return SousCommande.objects.filter(
+        etat__in=[
+            SousCommande.EN_ATTENTE,
+            SousCommande.ACCEPTEE,
+            SousCommande.PREPAREE,
+            SousCommande.EXPEDIEE,
+        ]
+    ).count()
+
+
 def contexte_commun(request, page: str) -> dict:
     """Socle passé à tous les gabarits : boutique, dépôts, droits, alertes.
 
@@ -128,6 +142,7 @@ def contexte_commun(request, page: str) -> dict:
         "depots": [],
         "depot_courant": None,
         "alertes": None,
+        "commandes_a_traiter": None,
     }
     if boutique is None:
         request._contexte_backoffice = contexte
@@ -140,12 +155,19 @@ def contexte_commun(request, page: str) -> dict:
     if "stock.voir" in droits:
         alertes = niveaux_en_alerte().count() or None
 
+    # Même règle que pour les alertes de stock : le compteur n'est calculé que
+    # pour qui a le droit de l'ouvrir. Une pastille est déjà une information.
+    a_traiter = None
+    if "commandes.traiter" in droits:
+        a_traiter = commandes_a_traiter() or None
+
     contexte.update(
         {
             "droits": droits,
             "depots": depots,
             "depot_courant": depot_courant(request) if depots else None,
             "alertes": alertes,
+            "commandes_a_traiter": a_traiter,
         }
     )
     request._contexte_backoffice = contexte

@@ -34,6 +34,7 @@ ECRANS = {
     "nouvel_article": "stock.mouvementer",
     "inventaire": "stock.mouvementer",
     "ventes": "ventes.voir",
+    "commandes": "commandes.traiter",
     "comptabilite": "comptabilite.voir",
     "boutique": "boutique.voir",
     "export_donnees": "exporter",

@@ -21,6 +21,7 @@ from rest_framework import serializers
 
 from apps.accounts.permissions import COUT_VOIR, MARGE_VOIR
 from apps.inventory.models import Depot, MouvementStock, NiveauStock
+from apps.orders.models import LigneCommande, SousCommande
 from apps.pos.models import LigneTicket, ReglementTicket, Ticket
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "MouvementStockSerialiseur",
     "TicketSerialiseur",
     "TicketDetailSerialiseur",
+    "SousCommandeSerialiseur",
     "LigneBalanceSerialiseur",
     "EntreeStockSerialiseur",
     "EncaissementSerialiseur",
@@ -225,6 +227,43 @@ class TicketDetailSerialiseur(ChampsSelonDroits, TicketSerialiseur):
 
     def get_marge(self, ticket) -> Decimal:
         return (ticket.total_ht - self._cout(ticket)).quantize(Decimal("0.01"))
+
+
+class LigneSousCommandeSerialiseur(serializers.ModelSerializer):
+    class Meta:
+        model = LigneCommande
+        fields = ["id", "variante", "libelle", "quantite", "pu_ttc", "taux_tva", "remise"]
+
+
+class SousCommandeSerialiseur(serializers.ModelSerializer):
+    """Part d'une commande revenant à cette boutique.
+
+    Le numéro de la commande d'ensemble est exposé — le marchand en a besoin pour
+    parler à l'acheteur — mais **rien de ce qui a été commandé ailleurs** ne l'est.
+    """
+
+    numero = serializers.CharField(source="commande.numero", read_only=True)
+    acheteur = serializers.CharField(source="commande.acheteur.nom_complet", read_only=True)
+    etat_libelle = serializers.CharField(source="get_etat_display", read_only=True)
+    lignes = LigneSousCommandeSerialiseur(many=True, read_only=True)
+
+    class Meta:
+        model = SousCommande
+        fields = [
+            "id",
+            "numero",
+            "acheteur",
+            "etat",
+            "etat_libelle",
+            "total_ht",
+            "total_tva",
+            "total_ttc",
+            "taux_commission",
+            "commission_plateforme",
+            "livree_le",
+            "cree_le",
+            "lignes",
+        ]
 
 
 class LigneBalanceSerialiseur(serializers.Serializer):

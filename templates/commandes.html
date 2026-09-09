@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Commandes — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Commandes en ligne{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-commandes"></use></svg><span class="t-sur-titre">À traiter</span></div>
+      <p class="tuile__valeur">{{ a_traiter }}</p>
+      <p class="tuile__note"><span class="t-muet">Commandes en attente d'un geste de votre part</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Montant en cours</span></div>
+      <p class="tuile__valeur">{{ montant_en_cours|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">Encaissé par la plateforme, reversé après livraison</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-camion"></use></svg><span class="t-sur-titre">Dépôt d'expédition</span></div>
+      <p class="tuile__valeur" style="font-size:1.15rem">{{ depot.libelle|default:"—" }}</p>
+      <p class="tuile__note"><span class="t-muet">Le stock en sortira à l'expédition</span></p>
+    </article>
+  </section>
+
+  {% for file in files %}
+    {% if file.parts %}
+      <section class="carte">
+        <header class="carte__entete">
+          <h2 class="t-section">{{ file.libelle }}</h2>
+          <span class="puce puce--marque">{{ file.nombre }}</span>
+        </header>
+        <div class="carte__corps--serre">
+          <div class="tableau-boite">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th scope="col">Commande</th>
+                  <th scope="col">Reçue</th>
+                  <th scope="col">Acheteur</th>
+                  <th scope="col">Articles</th>
+                  <th scope="col" class="num">Total</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for part in file.parts %}
+                  <tr>
+                    <td class="principal chiffre">{{ part.commande.numero }}</td>
+                    <td class="t-2 chiffre">{{ part.cree_le|date:"d/m/Y H:i" }}</td>
+                    <td class="t-2">{{ part.commande.acheteur.nom_complet }}</td>
+                    <td class="t-2">
+                      {% for ligne in part.lignes_affichees|slice:":2" %}
+                        {{ ligne.libelle|truncatechars:24 }}{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                      {% if part.lignes_affichees|length > 2 %}
+                        <span class="t-muet">+{{ part.lignes_affichees|length|add:"-2" }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="num" style="font-weight:620">{{ part.total_ttc|fcfa }}</td>
+                    <td class="num">
+                      <a class="btn btn--discret" href="{% url 'commande' part.pk %}">Ouvrir</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    {% endif %}
+  {% endfor %}
+
+  {% if not a_traiter %}
+    <section class="carte">
+      <div class="carte__corps">
+        <div class="vide">
+          <svg><use href="#ic-commandes"></use></svg>
+          <p class="t-2">Aucune commande en attente.</p>
+          <p class="t-legende">Les commandes passées en ligne arrivent ici dès qu'elles sont payées.</p>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if historique %}
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Terminées</h2></header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Commande</th>
+                <th scope="col">Acheteur</th>
+                <th scope="col">État</th>
+                <th scope="col" class="num">Total</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for part in historique %}
+                <tr>
+                  <td class="principal chiffre">{{ part.commande.numero }}</td>
+                  <td class="t-2">{{ part.commande.acheteur.nom_complet }}</td>
+                  <td class="t-2">
+                    <span class="puce {% if part.etat == 'annulee' %}puce--critique{% else %}puce--bon{% endif %}">
+                      <svg><use href="#{% if part.etat == 'annulee' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
+                      {{ part.get_etat_display }}
+                    </span>
+                  </td>
+                  <td class="num t-2">{{ part.total_ttc|fcfa }}</td>
+                  <td class="num"><a class="btn btn--discret" href="{% url 'commande' part.pk %}">Ouvrir</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -26,6 +26,8 @@ __all__ = [
     "passer_ecriture",
     "contrepasser",
     "comptabiliser_ticket",
+    "comptabiliser_vente_en_ligne",
+    "comptabiliser_expedition",
     "balance",
     "solde_compte",
 ]
@@ -288,6 +290,141 @@ def _cout_sorti(ticket, modele_mouvement) -> Decimal:
     )
     total = sum((abs(m.quantite) * m.cout_unitaire for m in mouvements), Decimal("0"))
     return total.quantize(CENTIME)
+
+
+# ---------------------------------------------------------------------------
+# Vente en ligne
+# ---------------------------------------------------------------------------
+def comptabiliser_vente_en_ligne(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:
+    """Vente en ligne encaissée : vente, séquestre, commission de place (docs/07, §3.2).
+
+    Trois écritures, et une différence de fond avec la vente au comptoir : **l'argent
+    n'arrive pas chez le marchand.** Il arrive sur le compte de séquestre de la
+    plateforme (`5313`), qui reversera plus tard, net de sa commission. Le marchand
+    voit donc une créance sur la plateforme, pas de la trésorerie — et c'est
+    exactement ce qui doit apparaître dans ses comptes.
+
+    La commission de place est une **charge du marchand** (`632`), pas une réduction
+    de son chiffre d'affaires : le prix payé par l'acheteur est intégralement du
+    chiffre d'affaires, et la place de marché facture son service par-dessus. La
+    confusion des deux fausserait le chiffre d'affaires déclaré, donc la TVA.
+
+    Ce qui n'est **pas** écrit ici : le reversement (`5311` / `401` / `5313`). Il a
+    lieu quand la plateforme paie effectivement, ce que le palier 1 ne fait pas
+    encore — écrire l'écriture d'un virement qui n'existe pas mettrait de la
+    trésorerie fictive dans les comptes du marchand.
+    """
+    with contexte_boutique(sous_commande.boutique_id):
+        return _comptabiliser_vente_en_ligne(sous_commande, date_ecriture=date_ecriture)
+
+
+def _comptabiliser_vente_en_ligne(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:
+    from django.conf import settings
+    from django.utils import timezone
+
+    boutique_id = sous_commande.boutique_id
+    date = date_ecriture or timezone.localdate()
+    numero = sous_commande.commande.numero
+    reference = {"origine_type": "orders.SousCommande", "origine_id": sous_commande.pk}
+    ecritures = []
+
+    # 1. Vente et TVA collectée
+    lignes_vente = [
+        (C_CLIENTS, sous_commande.total_ttc, Decimal("0")),
+        (C_VENTES_MARCHANDISES, Decimal("0"), sous_commande.total_ht),
+    ]
+    if sous_commande.total_tva > 0:
+        lignes_vente.append((C_TVA_FACTUREE, Decimal("0"), sous_commande.total_tva))
+    ecritures.append(
+        passer_ecriture(
+            boutique_id=boutique_id,
+            code_journal=Journal.VENTES,
+            date_ecriture=date,
+            libelle=f"Vente en ligne {numero}",
+            lignes=lignes_vente,
+            **reference,
+        )
+    )
+
+    # 2. Encaissement par la plateforme : la créance client devient une créance
+    #    sur la plateforme, pas de la trésorerie disponible.
+    ecritures.append(
+        passer_ecriture(
+            boutique_id=boutique_id,
+            code_journal=Journal.BANQUE,
+            date_ecriture=date,
+            libelle=f"Séquestre plateforme {numero}",
+            lignes=[
+                (C_COMPTE_PLATEFORME, sous_commande.total_ttc, Decimal("0")),
+                (C_CLIENTS, Decimal("0"), sous_commande.total_ttc),
+            ],
+            **reference,
+        )
+    )
+
+    # 3. Commission de place, TVA récupérable comprise
+    commission = Decimal(sous_commande.commission_plateforme)
+    if commission > 0:
+        tva = (commission * Decimal(settings.TAUX_TVA_DEFAUT) / 100).quantize(CENTIME)
+        ecritures.append(
+            passer_ecriture(
+                boutique_id=boutique_id,
+                code_journal=Journal.ACHATS,
+                date_ecriture=date,
+                libelle=f"Commission de place {numero}",
+                lignes=[
+                    (C_COMMISSIONS, commission, Decimal("0")),
+                    (C_TVA_DEDUCTIBLE, tva, Decimal("0")),
+                    (C_FOURNISSEURS, Decimal("0"), commission + tva),
+                ],
+                **reference,
+            )
+        )
+
+    return ecritures
+
+
+def comptabiliser_expedition(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:
+    """Sortie de stock d'une sous-commande expédiée, valorisée au CMP réellement appliqué.
+
+    Écrite à l'expédition et non à la commande, parce que c'est à l'expédition que
+    la marchandise quitte le dépôt. Une écriture de stock antérieure au mouvement
+    qu'elle décrit ne serait pas rattrapable : le journal est en ajout seul.
+    """
+    with contexte_boutique(sous_commande.boutique_id):
+        return _comptabiliser_expedition(sous_commande, date_ecriture=date_ecriture)
+
+
+def _comptabiliser_expedition(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:
+    from django.utils import timezone
+
+    from apps.inventory.models import MouvementStock
+
+    mouvements = MouvementStock.objects_all_tenants.filter(
+        boutique_id=sous_commande.boutique_id,
+        origine_type="orders.SousCommande",
+        origine_id=sous_commande.pk,
+    )
+    cout = sum((abs(m.quantite) * m.cout_unitaire for m in mouvements), Decimal("0")).quantize(
+        CENTIME
+    )
+    if cout <= 0:
+        return []
+
+    return [
+        passer_ecriture(
+            boutique_id=sous_commande.boutique_id,
+            code_journal=Journal.STOCK,
+            date_ecriture=date_ecriture or timezone.localdate(),
+            libelle=f"Sortie de stock {sous_commande.commande.numero}",
+            lignes=[
+                (C_VARIATION_STOCKS, cout, Decimal("0")),
+                (C_STOCK_MARCHANDISES, Decimal("0"), cout),
+            ],
+            origine_type="orders.SousCommande",
+            origine_id=sous_commande.pk,
+        )
+    ]
 
 
 def solde_compte(numero: str, *, boutique_id=None, jusqu_au=None) -> Decimal:

@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 252 tests (17 ignorés sur SQLite)
+make tester      # 304 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -62,6 +62,7 @@ apps/
   inventory/       dépôts, mouvements, CMP, inventaires   ★
   pos/             caisse, sessions, tickets                ★
   orders/          commandes, sous-commandes, retours
+                   services.py — éclatement, commission figée, effets par étape
   payments/        prestataires, transactions, séquestre, portefeuilles
                    adaptateurs.py — contrat multi-PSP, disjoncteur, simulateur
   accounting/      plan SYSCOHADA, journaux, écritures, balance
@@ -69,6 +70,7 @@ apps/
   backoffice/      vues et formulaires du back-office marchand
                    acces.py — boutique courante, dépôt courant, porte des droits
                    vues_equipe.py — embauche, rôles, retrait d'accès
+                   vues_commandes.py — traitement des commandes en ligne
   api/             API REST v1 (DRF)
                    models.py — jeton porteur de la boutique (ADR-010)
                    acces.py — la même porte, les mêmes droits
@@ -263,6 +265,8 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_equipe.py` | Embauche, changement de rôle, retrait d'accès — **un accès se retire, un compte ne se supprime pas** ; les garde-fous qui empêchent un gérant de se fermer la porte |
 | `test_paiements.py` | Routage par préfixe, disjoncteur, **une clé d'idempotence ne débite qu'une fois**, un état terminal ne recule jamais |
 | `test_api.py` | **Le jeton porte la boutique** : `X-Boutique` ne déplace rien, un ticket voisin est introuvable, retirer l'accès ferme le jeton à la requête suivante, le coût d'achat est absent — pas vide — des réponses faites à un caissier |
+| `test_commandes.py` | Éclatement d'un panier multi-boutiques, **taux de commission figé à la commande**, chaque effet à son étape (écritures au paiement, stock à l'expédition, délai de retour à la livraison), retours au coût de sortie |
+| `test_backoffice_commandes.py` | L'écran de traitement : un bouton périmé n'agit pas, la part d'un confrère est introuvable, refus avant expédition et retour après |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
@@ -307,6 +311,8 @@ Authorization: Bearer hm_<préfixe>_<secret>
 | `GET` | `/api/v1/ventes/` | `ventes.voir` |
 | `POST` | `/api/v1/ventes/` | `caisse.encaisser` |
 | `GET` | `/api/v1/ventes/<id>/` | `ventes.voir` |
+| `GET` | `/api/v1/commandes/` | `commandes.traiter` |
+| `POST` | `/api/v1/commandes/<id>/avancer/` | `commandes.traiter` |
 | `GET` | `/api/v1/comptabilite/balance/` | `comptabilite.voir` |
 
 Filtres : `?q=` et `?alerte=1` sur les articles, `?depot=`, `?variante=`, `?type=` sur les
@@ -371,14 +377,89 @@ Un écart de politique subsiste, et il est délibéré : **une référence incon
 ignorée au comptoir et refusée par l'API.** Le caissier a le client devant lui ; un client d'API
 n'a personne pour rattraper un article silencieusement absent du ticket.
 
+Sur `POST /commandes/<id>/avancer/`, l'action envoyée est confrontée à l'état réel et un
+décalage répond **409**, en nommant l'action attendue. Un client qui a lu la liste il y a dix
+minutes ne doit pas pouvoir expédier une commande refusée depuis.
+
 ---
 
-## 7. Reste à faire sur le socle
+## 7. Commandes en ligne
+
+Moteur dans `apps/orders/services.py`, écran marchand dans `apps/backoffice/vues_commandes.py`.
+
+### 7.1 — Un panier traverse les boutiques
+
+L'acheteur voit une commande et paie une fois ; chaque marchand ne gère que sa part. D'où
+l'éclatement en `SousCommande`, qui est **l'unité de travail du marchand et l'assiette de tout le
+reste** — comptabilité, commission de place, affiliation.
+
+```python
+commande = passer_commande(
+    acheteur=client,
+    lignes=[(brouette, Decimal("1")), (creme, Decimal("2"))],   # deux boutiques
+    code_apporteur="HM-768LPW",
+    operation_id=uuid_du_client,       # le double clic ne commande pas deux fois
+)
+marquer_payee(commande)
+```
+
+### 7.2 — Chaque effet tombe à son étape
+
+| Étape | Effet |
+|---|---|
+| Commande | Éclatement, **taux de commission figé**, attribution d'affiliation figée |
+| Paiement | Écritures de vente, séquestre et commission ; commissions d'affiliation à l'état *attendue* |
+| Expédition | **Sortie de stock au CMP**, et son écriture |
+| Livraison | Démarrage du délai de retour, au terme duquel les commissions s'acquièrent |
+
+Un effet avancé ou retardé produit des comptes faux qu'aucun rapprochement ne rattrape, puisque
+le journal est en ajout seul (ADR-003).
+
+**Le taux de commission est recopié du bail à la commande et ne bouge plus.** Une renégociation
+ne doit pas changer rétroactivement ce que la plateforme a prélevé sur des mois clos.
+
+### 7.3 — Le stock sort à l'expédition, pas à la commande
+
+C'est le choix le plus discutable du module, et il est assumé. Réserver le stock dès la commande
+le rendrait indisponible au comptoir alors que rien n'est parti, et une réservation jamais
+libérée est un stock fantôme que personne ne retrouve.
+
+Le prix de ce choix est la survente : le comptoir peut vendre le dernier article avant que la
+commande ne soit préparée. Le marchand refuse alors la sous-commande — un geste explicite plutôt
+qu'un compteur silencieusement faux (ADR-005).
+
+Deux chemins en découlent, jamais les deux à la fois :
+
+* **avant expédition, on refuse** — rien n'est sorti, il n'y a rien à réintégrer ;
+* **après expédition, on retourne** — la marchandise revient **au coût auquel elle est sortie**,
+  pas au CMP du jour, qui inventerait une plus-value que rien n'a produite.
+
+### 7.4 — La vente en ligne ne touche pas la caisse
+
+L'argent arrive sur le séquestre de la plateforme (`5313`), qui reversera net de sa commission.
+Le marchand voit une **créance**, pas de la trésorerie. La commission de place est une charge
+(`632`), pas une réduction du chiffre d'affaires : confondre les deux fausserait le chiffre
+d'affaires déclaré, donc la TVA.
+
+Le reversement (`5311` / `401` / `5313`) n'est pas écrit : il a lieu quand la plateforme paie
+effectivement, ce que le palier 1 ne fait pas encore.
+
+> **Manque connu, antérieur à ce module.** Aucune **entrée** en stock n'écrit sa contrepartie
+> comptable : le débit `311` / crédit `6031` de la table du document 07 §3.4 n'est pas branché,
+> pas plus que le cycle d'achat `6011` + `4452` / `401`. Le compte `311` ressort donc négatif dès
+> qu'on vend. Cela affecte aussi la vente au comptoir, et relève du lot 3.
+
+---
+
+## 8. Reste à faire sur le socle
 
 | Sujet | État | Référence |
 |---|---|---|
 | Appels HTTP vers MTN / Orange / Camtel | Contrat, routage, disjoncteur, idempotence et prestataire simulé écrits et testés ; **les appels réseau attendent un bac à sable d'opérateur** — ils ne seront pas écrits à l'aveugle | docs/09, §6 |
 | Impression thermique hors Bluetooth LE | Le pilote ESC/POS couvre le Bluetooth basse consommation sur Chromium ; USB, Wi-Fi, SPP et iOS demandent une application native | docs/18, §9 |
+| Entrée en stock et cycle d'achat en comptabilité | Le débit `311` / crédit `6031` d'une réception n'est pas écrit, ni la facture fournisseur `6011` + `4452` / `401` : le compte de stock ressort négatif | docs/07, §3.4 |
+| Vitrine publique et tunnel de commande | Le moteur de commande et l'écran marchand existent et sont testés ; **il n'y a pas encore de page où un acheteur compose son panier** | docs/05 |
+| Reversement du séquestre au marchand | Les ventes en ligne alimentent le `5313` ; le virement `5311` / `401` / `5313` n'est pas écrit tant qu'aucun versement réel n'a lieu | docs/07, §3.2 |
 | Logistique, séquestre avancé, WhatsApp, B2B | **Lot 2.** Critère de sortie : coût unitaire du dernier kilomètre prouvé (arbitrage A7) | docs/11, §5 |
 | Déclaration de TVA, espace de révision du cabinet | **Lot 3.** Le socle comptable est écrit ; ce qui reste doit être validé par le cabinet partenaire sur un exercice complet | docs/11, §6 |
 | RH, paie, entrepôt mutualisé | **Lot 4**, ouverture conditionnée à l'arbitrage A6 | docs/11, §7 |

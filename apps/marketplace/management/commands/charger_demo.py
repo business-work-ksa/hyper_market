@@ -104,8 +104,8 @@ class Command(BaseCommand):
             )
             return
 
-        if options["reinitialiser"]:
-            Boutique.objects.filter(slug__in=[b["slug"] for b in BOUTIQUES]).delete()
+        if options["reinitialiser"] and not self._reinitialiser():
+            return
 
         # Prestataire simulé : réservé aux démonstrations. Il n'est pas chargé par
         # `initialiser_referentiels` — un faux prestataire n'a rien à faire dans
@@ -121,12 +121,79 @@ class Command(BaseCommand):
 
         role_gerant = Role.objects.get(code=Role.GERANT)
 
+        boutiques = []
         for donnees in BOUTIQUES:
             boutique = self._creer_boutique(donnees, role_gerant)
+            boutiques.append(boutique)
             self.stdout.write(self.style.SUCCESS(f"  {boutique.enseigne} ({boutique.ville})"))
 
-        self._creer_reseau_affiliation()
+        acheteur = self._creer_reseau_affiliation()
+        self._creer_commandes_en_ligne(boutiques, acheteur)
         self.stdout.write(self.style.SUCCESS("Jeu de démonstration chargé."))
+
+    def _reinitialiser(self) -> bool:
+        """Efface les boutiques de démonstration, **si c'est encore possible**.
+
+        Ce n'est pas toujours le cas, et le refus est une bonne nouvelle : une
+        boutique qui a vendu porte des **écritures comptables validées**, que le
+        trigger d'ajout seul refuse de supprimer (ADR-003). C'est exactement ce
+        qu'on lui demande de faire, et le contourner ici — désactiver le trigger,
+        supprimer, le remettre — reviendrait à livrer dans le dépôt l'outil qui
+        sait effacer un journal comptable.
+
+        Sur une base de développement, la remise à zéro se fait donc au niveau de
+        la base, pas de l'application.
+        """
+        from django.db.models import ProtectedError
+
+        from apps.core.tenancy import contexte_plateforme
+
+        slugs = [b["slug"] for b in BOUTIQUES]
+        cibles = list(Boutique.objects.filter(slug__in=slugs))
+        if not cibles:
+            return True
+
+        # Le contexte plateforme est indispensable ici : `objects_all_tenants` ne
+        # contourne que le gestionnaire, pas les politiques d'isolation. Sans
+        # lui, ce contrôle ne verrait aucune écriture et conclurait à tort que la
+        # suppression est possible.
+        with contexte_plateforme():
+            validees = EcritureComptable.objects_all_tenants.filter(
+                boutique__in=cibles, validee=True
+            ).exists()
+
+        if validees:
+            self.stderr.write(
+                self.style.ERROR(
+                    "Ces boutiques de démonstration ont un journal comptable validé : "
+                    "il est en ajout seul et ne se supprime pas."
+                )
+            )
+            self.stderr.write(
+                "Pour repartir de zéro en développement, recréez la base :\n"
+                "  docker compose down -v && docker compose up -d db\n"
+                "  make migrer && make demo"
+            )
+            return False
+
+        # Le bail protège sa boutique : c'est un contrat, il ne disparaît pas
+        # parce qu'on efface le locataire. Il part donc explicitement, d'abord.
+        try:
+            with contexte_plateforme():
+                Bail.objects.filter(boutique__in=cibles).delete()
+                Boutique.objects.filter(slug__in=slugs).delete()
+        except ProtectedError as erreur:
+            self.stderr.write(
+                self.style.ERROR(f"Suppression impossible : {erreur.args[0]}")
+            )
+            self.stderr.write(
+                "Ces boutiques portent des données que le modèle protège. "
+                "Recréez la base plutôt que de forcer :\n"
+                "  docker compose down -v && docker compose up -d db\n"
+                "  make migrer && make demo"
+            )
+            return False
+        return True
 
     def _creer_boutique(self, donnees, role_gerant) -> Boutique:
         telephone, nom = donnees["gerant"]
@@ -419,3 +486,61 @@ class Command(BaseCommand):
             f"  filiation : {awa.code} → {junior.code} → {sandrine.code} "
             f"(N2 de Sandrine = {sandrine.parrain_n2.code if sandrine.parrain_n2 else '—'})"
         )
+        return acheteur
+
+    def _creer_commandes_en_ligne(self, boutiques, acheteur):
+        """Trois commandes, à trois étapes différentes du traitement.
+
+        Une démonstration qui ne montre que des commandes fraîches ne dit rien du
+        travail réel : l'intérêt de l'écran est justement de séparer ce qui
+        attend d'être accepté de ce qui est déjà en route. La commande
+        multi-boutiques est là pour rendre l'éclatement visible — un panier, deux
+        marchands, deux parts indépendantes.
+        """
+        from apps.orders.models import SousCommande
+        from apps.orders.services import (
+            accepter,
+            expedier,
+            marquer_payee,
+            passer_commande,
+            preparer,
+        )
+
+        articles = {}
+        for boutique in boutiques:
+            with contexte_boutique(boutique):
+                articles[boutique.pk] = list(
+                    Variante.objects.filter(actif=True).order_by("sku")[:2]
+                )
+
+        premiere = boutiques[0]
+        paniers = [
+            [(articles[premiere.pk][0], Decimal("2"))],
+            [(articles[premiere.pk][1], Decimal("1"))],
+        ]
+        if len(boutiques) > 1:
+            seconde = boutiques[1]
+            paniers.append(
+                [
+                    (articles[premiere.pk][0], Decimal("1")),
+                    (articles[seconde.pk][0], Decimal("3")),
+                ]
+            )
+
+        # Nombre de gestes déjà accomplis sur la part de la première boutique :
+        # une commande à accepter, une à préparer, une à expédier.
+        for panier, gestes in zip(paniers, [0, 1, 2]):
+            # Aucun code n'est passé : l'acheteur de démonstration porte déjà une
+            # attribution à Sandrine, posée juste au-dessus. Les commissions
+            # d'affiliation naissent donc seules, au paiement.
+            commande = passer_commande(acheteur=acheteur, lignes=panier)
+            marquer_payee(commande)
+
+            with contexte_boutique(premiere):
+                part = SousCommande.objects.filter(commande=commande).first()
+            if part is None:
+                continue
+            for avancer in (accepter, preparer, expedier)[:gestes]:
+                avancer(part)
+
+        self.stdout.write("  3 commandes en ligne, à trois étapes du traitement")

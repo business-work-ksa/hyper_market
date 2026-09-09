@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 252 tests
+make tester                     # 304 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -86,7 +86,7 @@ Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
 ## Le back-office marchand
 
-Quatorze écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
+Seize écrans, en français, mode clair et sombre, du bureau au téléphone d'entrée de gamme.
 Captures dans [`captures/`](captures/) — régénérables par `node scripts/captures.js`.
 
 | Écran | Ce qu'il fait |
@@ -95,6 +95,8 @@ Captures dans [`captures/`](captures/) — régénérables par `node scripts/cap
 | **Caisse** ★ | Grille tactile, recherche et code-barres, ticket, 3 moyens de paiement, encaissement idempotent |
 | **Stock** | Liste, filtres, filtre par dépôt, valeur au CMP, historique des mouvements par article |
 | **Ventes** | Journal des tickets clôturés, HT / TVA / TTC |
+| **Commandes** | Files de traitement des commandes en ligne : accepter, préparer, expédier, livrer |
+| **Commande** | Articles à servir, commission de place figée, refus avant expédition, retour après |
 | **Comptabilité** | Balance SYSCOHADA, dernières écritures, marge brute — en lecture seule |
 | **Ma boutique** | Identité, bail, équipe, dépôts, **droits de chaque rôle**, export intégral en CSV |
 | **Équipe** | Embaucher, changer un rôle, retirer un accès, régénérer un mot de passe |
@@ -112,7 +114,7 @@ bout.
 
 ### Rôles et droits
 
-Un rattachement à une boutique n'est pas un droit sur tout ce qu'elle contient. Onze droits
+Un rattachement à une boutique n'est pas un droit sur tout ce qu'elle contient. Douze droits
 élémentaires, attribués par rôle dans [`apps/accounts/permissions.py`](apps/accounts/permissions.py),
 séparent notamment **le coût d'achat** (que le magasinier saisit) de **la marge** (qui ne regarde
 que le gérant et le comptable).
@@ -188,6 +190,9 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
   *(les appels réseau MTN / Orange / Camtel attendent un bac à sable : ils ne seront pas écrits à l'aveugle)*
 - [x] **API REST** — jeton porteur de la boutique, mêmes droits qu'à l'écran, écritures idempotentes
 - [x] **Décisions d'architecture** — dix fiches, chacune rattachée au test qui la tient
+- [x] **Commandes en ligne** — éclatement d'un panier multi-boutiques, commission figée, chaque
+  effet à son étape, écran de traitement pour le marchand
+  *(le tunnel de commande côté acheteur reste à écrire)*
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

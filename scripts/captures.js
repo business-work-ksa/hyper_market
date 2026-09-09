@@ -23,6 +23,7 @@ const PAGES = [
   { nom: 'stock-nouvel-article', url: '/stock/nouvel-article/' },
   { nom: 'stock-inventaire', url: '/stock/inventaire/' },
   { nom: 'ventes', url: '/ventes/' },
+  { nom: 'commandes', url: '/commandes/' },
   { nom: 'comptabilite', url: '/comptabilite/' },
   { nom: 'boutique', url: '/boutique/' },
   { nom: 'boutique-depot', url: '/boutique/depots/nouveau/' },

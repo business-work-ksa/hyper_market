@@ -20,5 +20,7 @@ urlpatterns = [
     path("stock/entrees/", vues.EntreesStockVue.as_view(), name="stock-entrees"),
     path("ventes/", vues.VentesVue.as_view(), name="ventes"),
     path("ventes/<uuid:identifiant>/", vues.VenteDetailVue.as_view(), name="vente-detail"),
+    path("commandes/", vues.CommandesVue.as_view(), name="commandes"),
+    path("commandes/<uuid:identifiant>/avancer/", vues.CommandeAvancerVue.as_view(), name="commande-avancer"),
     path("comptabilite/balance/", vues.BalanceVue.as_view(), name="balance"),
 ]

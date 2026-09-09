@@ -42,6 +42,7 @@
         {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' 'Caisse' page %}{% endif %}
         {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' 'Stock' page alertes %}{% endif %}
         {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' 'Ventes' page %}{% endif %}
+        {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' 'Commandes' page commandes_a_traiter %}{% endif %}
       </div>
 
       {% if 'comptabilite.voir' in droits or 'boutique.voir' in droits %}

@@ -28,6 +28,7 @@ CAISSE_ENCAISSER = "caisse.encaisser"
 STOCK_VOIR = "stock.voir"
 STOCK_MOUVEMENTER = "stock.mouvementer"
 VENTES_VOIR = "ventes.voir"
+COMMANDES_TRAITER = "commandes.traiter"
 COMPTABILITE_VOIR = "comptabilite.voir"
 COUT_VOIR = "cout.voir"
 MARGE_VOIR = "marge.voir"
@@ -42,6 +43,7 @@ TOUS = frozenset(
         STOCK_VOIR,
         STOCK_MOUVEMENTER,
         VENTES_VOIR,
+        COMMANDES_TRAITER,
         COMPTABILITE_VOIR,
         COUT_VOIR,
         MARGE_VOIR,
@@ -57,6 +59,7 @@ LIBELLES = {
     STOCK_VOIR: "Consulter le stock",
     STOCK_MOUVEMENTER: "Entrer, inventorier et transférer du stock",
     VENTES_VOIR: "Consulter le journal des ventes",
+    COMMANDES_TRAITER: "Accepter, préparer et expédier les commandes en ligne",
     COMPTABILITE_VOIR: "Consulter la comptabilité",
     COUT_VOIR: "Voir les coûts d'achat et la valeur du stock",
     MARGE_VOIR: "Voir la marge",
@@ -73,9 +76,9 @@ LIBELLES = {
 DROITS_PAR_ROLE: dict[str, frozenset[str]] = {
     Role.GERANT: TOUS,
     Role.CAISSIER: frozenset({CAISSE_ENCAISSER, VENTES_VOIR, STOCK_VOIR}),
-    Role.VENDEUR: frozenset({CAISSE_ENCAISSER, VENTES_VOIR, STOCK_VOIR}),
+    Role.VENDEUR: frozenset({CAISSE_ENCAISSER, VENTES_VOIR, STOCK_VOIR, COMMANDES_TRAITER}),
     Role.MAGASINIER: frozenset(
-        {TABLEAU_DE_BORD, STOCK_VOIR, STOCK_MOUVEMENTER, COUT_VOIR}
+        {TABLEAU_DE_BORD, STOCK_VOIR, STOCK_MOUVEMENTER, COUT_VOIR, COMMANDES_TRAITER}
     ),
     Role.COMPTABLE: frozenset(
         {

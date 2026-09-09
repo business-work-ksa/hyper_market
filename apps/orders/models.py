@@ -57,6 +57,12 @@ class Commande(BaseModel):
     )
 
     livree_le = models.DateTimeField(null=True, blank=True)
+    operation_id = models.UUIDField(
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Clé d'idempotence du tunnel de commande (ADR-004).",
+    )
 
     class Meta:
         verbose_name = "commande"

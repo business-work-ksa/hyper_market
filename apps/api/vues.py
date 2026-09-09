@@ -30,12 +30,15 @@ from apps.api.serialiseurs import (
     EntreeStockSerialiseur,
     LigneBalanceSerialiseur,
     MouvementStockSerialiseur,
+    SousCommandeSerialiseur,
     TicketDetailSerialiseur,
     TicketSerialiseur,
 )
 from apps.catalog.models import Variante
 from apps.inventory.models import Depot, MouvementStock, NiveauStock
 from apps.inventory.services import MouvementInvalide, entrer_stock
+from apps.orders import services as commandes
+from apps.orders.models import SousCommande
 from apps.pos import services as caisse
 from apps.pos.models import SessionCaisse, Ticket
 
@@ -47,6 +50,8 @@ __all__ = [
     "EntreesStockVue",
     "VentesVue",
     "VenteDetailVue",
+    "CommandesVue",
+    "CommandeAvancerVue",
     "BalanceVue",
 ]
 
@@ -368,6 +373,86 @@ class VenteDetailVue(VueApi):
 # ---------------------------------------------------------------------------
 # Comptabilité
 # ---------------------------------------------------------------------------
+class CommandesVue(VueApi):
+    """Sous-commandes en ligne revenant à cette boutique.
+
+    Une application de préparation lit cette liste ; elle n'a pas besoin de plus
+    pour travailler, et ne doit rien savoir de ce que l'acheteur a commandé
+    ailleurs sur le marché.
+    """
+
+    droits_requis = (droit.COMMANDES_TRAITER,)
+
+    def get(self, requete):
+        parts = SousCommande.objects.select_related(
+            "commande", "commande__acheteur"
+        ).prefetch_related("lignes")
+
+        if etat := requete.query_params.get("etat"):
+            parts = parts.filter(etat=etat)
+        else:
+            parts = parts.filter(
+                etat__in=[
+                    SousCommande.EN_ATTENTE,
+                    SousCommande.ACCEPTEE,
+                    SousCommande.PREPAREE,
+                    SousCommande.EXPEDIEE,
+                ]
+            )
+
+        return _paginer(self, parts.order_by("cree_le"), SousCommandeSerialiseur)
+
+
+class CommandeAvancerVue(VueApi):
+    """Fait avancer une sous-commande d'un cran.
+
+    L'état attendu est envoyé par le client et confronté à l'état réel. Un client
+    qui a lu la liste il y a dix minutes ne doit pas pouvoir expédier une
+    commande refusée depuis — c'est la même garde que sur l'écran du marchand.
+    """
+
+    droits_requis = (droit.COMMANDES_TRAITER,)
+
+    GESTES = {
+        SousCommande.EN_ATTENTE: "accepter",
+        SousCommande.ACCEPTEE: "preparer",
+        SousCommande.PREPAREE: "expedier",
+        SousCommande.EXPEDIEE: "livrer",
+    }
+
+    def post(self, requete, identifiant):
+        part = SousCommande.objects.filter(pk=identifiant).select_related("commande").first()
+        if part is None:
+            return Response({"detail": "Commande introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        demandee = (requete.data.get("action") or "").strip()
+        attendue = self.GESTES.get(part.etat)
+        if demandee != attendue:
+            return Response(
+                {
+                    "detail": "Cette commande a changé d'état.",
+                    "etat": part.etat,
+                    "action_attendue": attendue,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            if demandee == "expedier":
+                commandes.expedier(part, depot=_depot_demande(self), cree_par=requete.user)
+            elif demandee == "accepter":
+                commandes.accepter(part)
+            elif demandee == "preparer":
+                commandes.preparer(part)
+            else:
+                commandes.livrer(part)
+        except commandes.CommandeInvalide as erreur:
+            return Response({"detail": str(erreur)}, status=status.HTTP_400_BAD_REQUEST)
+
+        part.refresh_from_db()
+        return Response(SousCommandeSerialiseur(part).data)
+
+
 class BalanceVue(VueApi):
     droits_requis = (droit.COMPTABILITE_VOIR,)
 

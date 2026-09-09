@@ -538,6 +538,47 @@ Deux conséquences visibles :
   `apps.pos.services.encaisser` au passage : deux implémentations du même geste auraient fini par
   diverger sur un arrondi ou sur la date portée par les écritures.
 
+### 8.10 — Les commandes en ligne, et l'étape où chaque effet tombe
+
+Le palier 1 vend au comptoir. La place de marché, elle, vend en ligne — et une commande en ligne
+n'est pas une vente au comptoir écrite autrement. Au comptoir tout est simultané : le client paie,
+prend sa marchandise, s'en va. En ligne, **le temps s'écoule** entre la commande et la livraison,
+et le marchand peut refuser à chaque étape.
+
+La question n'est donc pas « comment enregistrer une commande » mais **à quelle étape chaque effet
+tombe**. Un effet posé au mauvais moment produit des comptes faux qu'aucun rapprochement ne
+rattrape, puisque le journal est en ajout seul.
+
+| Étape | Effet |
+|---|---|
+| Commande | Éclatement en sous-commandes, taux de commission **figé**, attribution d'affiliation figée |
+| Paiement | Écritures de vente, séquestre et commission ; commissions d'affiliation à l'état *attendue* |
+| Expédition | Sortie de stock au CMP, et son écriture |
+| Livraison | Démarrage du délai de retour |
+
+Trois décisions y sont prises, et chacune se paie quelque part.
+
+**Le taux de commission est recopié du bail à la commande et n'en bouge plus.** Sans cela, une
+renégociation de bail changerait rétroactivement ce que la plateforme a prélevé sur des mois
+clos — et la comptabilité du marchand divergerait de celle de la plateforme sur des exercices
+déjà remis au cabinet.
+
+**Le stock sort à l'expédition, pas à la commande.** C'est le choix le plus discutable du module.
+Réserver dès la commande rendrait la marchandise indisponible au comptoir alors que rien n'est
+parti, et une réservation jamais libérée est un stock fantôme que personne ne retrouve. Le prix
+assumé est la survente : le comptoir peut vendre le dernier article avant que la commande ne soit
+préparée. Le marchand refuse alors la sous-commande — un geste explicite plutôt qu'un compteur
+silencieusement faux.
+
+**L'argent n'arrive pas chez le marchand.** Il arrive sur le séquestre de la plateforme (`5313`),
+qui reversera net de sa commission. Le marchand voit une créance, pas de la trésorerie, et c'est
+exactement ce qui doit apparaître dans ses comptes.
+
+Deux chemins en découlent, jamais les deux à la fois : **avant expédition on refuse** — rien n'est
+sorti, il n'y a rien à réintégrer ; **après expédition on retourne** — et la marchandise revient
+au coût auquel elle est sortie, pas au coût moyen du jour, qui inventerait une plus-value que rien
+n'a produite.
+
 ---
 
 ## 9. Ce qui reste avant d'ouvrir à un vrai client
@@ -546,7 +587,9 @@ Deux conséquences visibles :
 |---|---|
 | **Couche HTTP des opérateurs** | Voir §8.8 : elle sera écrite contre un bac à sable, jamais à l'aveugle |
 | **Impression hors Bluetooth LE** | Voir §8.5 : USB, Wi-Fi, SPP et iOS demandent une application native |
+| **Vitrine et tunnel de commande** | Le moteur de commande et l'écran marchand existent (§8.10) ; **il n'y a pas encore de page où un acheteur compose son panier** |
+| **Entrée en stock en comptabilité** | Une réception n'écrit pas son `311` / `6031`, ni la facture fournisseur : le compte de stock ressort négatif. Manque antérieur au palier, il relève du lot 3 |
 
-Aucun de ces deux points n'est une fuite de données ni une perte de saisie, et aucun des deux ne
-se règle en écrivant du code : l'un attend un compte marchand, l'autre une application native.
-C'est la différence avec la liste précédente.
+Les deux premiers ne se règlent pas en écrivant du code : l'un attend un compte marchand, l'autre
+une application native. Les deux suivants, si — et le dernier est le plus gênant des quatre pour
+un commerçant qui regarde son bilan.

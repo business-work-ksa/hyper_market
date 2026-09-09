@@ -469,3 +469,93 @@ class ContexteDeTenantTest(SocleApi):
         _, secret = self.porteur(Role.CAISSIER)
         self.assertEqual(self.appeler(reverse("api:balance"), secret).status_code, 403)
         self.assertIsNone(boutique_courante())
+
+
+class CommandesApiTest(SocleApi):
+    """Les commandes en ligne, vues par une application de préparation."""
+
+    def setUp(self):
+        super().setUp()
+        from apps.orders.services import marquer_payee, passer_commande
+
+        acheteur = fabrique.creer_utilisateur("Acheteur API")
+        self.commande = passer_commande(
+            acheteur=acheteur, lignes=[(self.variante, Decimal("2"))]
+        )
+        marquer_payee(self.commande)
+
+    def _part(self):
+        from apps.orders.models import SousCommande
+
+        with contexte_boutique(self.boutique):
+            return SousCommande.objects.get(commande=self.commande)
+
+    def test_la_liste_ne_montre_que_les_commandes_a_traiter(self):
+        _, secret = self.porteur(Role.MAGASINIER)
+        corps = self.appeler(reverse("api:commandes"), secret).json()
+
+        self.assertEqual(corps["count"], 1)
+        self.assertEqual(corps["results"][0]["numero"], self.commande.numero)
+        self.assertEqual(corps["results"][0]["etat"], "en_attente")
+
+    def test_un_caissier_ne_traite_pas_les_commandes(self):
+        _, secret = self.porteur(Role.CAISSIER)
+        self.assertEqual(self.appeler(reverse("api:commandes"), secret).status_code, 403)
+
+    def test_le_parcours_avance_d_un_cran_a_la_fois(self):
+        _, secret = self.porteur(Role.MAGASINIER)
+        adresse = reverse("api:commande-avancer", args=[self._part().pk])
+
+        for geste, attendu in (
+            ("accepter", "acceptee"),
+            ("preparer", "preparee"),
+            ("expedier", "expediee"),
+            ("livrer", "livree"),
+        ):
+            with self.subTest(geste=geste):
+                reponse = self.appeler(
+                    adresse, secret, methode="post", data='{"action": "%s"}' % geste
+                )
+                self.assertEqual(reponse.status_code, 200)
+                self.assertEqual(reponse.json()["etat"], attendu)
+
+    def test_une_action_perimee_repond_409_et_dit_ce_qui_est_attendu(self):
+        """Un client qui a lu la liste il y a dix minutes ne doit pas agir à l'aveugle."""
+        _, secret = self.porteur(Role.MAGASINIER)
+        adresse = reverse("api:commande-avancer", args=[self._part().pk])
+
+        reponse = self.appeler(adresse, secret, methode="post", data='{"action": "expedier"}')
+        self.assertEqual(reponse.status_code, 409)
+        self.assertEqual(reponse.json()["action_attendue"], "accepter")
+
+    def test_l_expedition_sort_le_stock(self):
+        _, secret = self.porteur(Role.MAGASINIER)
+        adresse = reverse("api:commande-avancer", args=[self._part().pk])
+        for geste in ("accepter", "preparer", "expedier"):
+            self.appeler(adresse, secret, methode="post", data='{"action": "%s"}' % geste)
+
+        with contexte_boutique(self.boutique):
+            niveau = NiveauStock.objects.get(variante=self.variante, depot=self.depot)
+        self.assertEqual(niveau.quantite, Decimal("8.0000"))
+
+    def test_la_commande_d_une_autre_boutique_est_introuvable(self):
+        voisine = fabrique.creer_boutique("Voisine commandes")
+        fabrique.creer_depot(voisine)
+        article = fabrique.creer_variante(voisine, prix="500")
+
+        from apps.orders.models import SousCommande
+        from apps.orders.services import passer_commande
+
+        acheteur = fabrique.creer_utilisateur("Autre acheteur")
+        autre = passer_commande(acheteur=acheteur, lignes=[(article, Decimal("1"))])
+        with contexte_boutique(voisine):
+            part = SousCommande.objects.get(commande=autre)
+
+        _, secret = self.porteur(Role.MAGASINIER)
+        reponse = self.appeler(
+            reverse("api:commande-avancer", args=[part.pk]),
+            secret,
+            methode="post",
+            data='{"action": "accepter"}',
+        )
+        self.assertEqual(reponse.status_code, 404)

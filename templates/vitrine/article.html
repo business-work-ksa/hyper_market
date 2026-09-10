@@ -28,6 +28,31 @@
         <p class="t-2">{{ article.produit.description|linebreaksbr }}</p>
       {% endif %}
 
+      {% if compatibilites %}
+        {% comment %}
+        Ce n'est pas une donnée privée du commerçant : c'est l'argument de vente.
+        Un acheteur en ligne qui ne peut pas vérifier que la pièce va sur sa
+        voiture n'achète pas — il vient demander au comptoir, ou il va ailleurs.
+        {% endcomment %}
+        <div class="colonne" style="gap:8px">
+          <h2 class="t-sur-titre">Se monte sur</h2>
+          <div class="rangee" style="gap:8px;flex-wrap:wrap">
+            {% for c in compatibilites %}
+              <span class="etiquette etiquette--simple">
+                {{ c.marque }}{% if c.modele %} {{ c.modele }}{% endif %}{% if c.motorisation %} · {{ c.motorisation }}{% endif %}{% if c.annees %} · {{ c.annees }}{% endif %}
+              </span>
+            {% endfor %}
+          </div>
+          {% if article.reference_constructeur %}
+            <p class="t-legende">Référence constructeur : {{ article.reference_constructeur }}</p>
+          {% endif %}
+          <p class="t-legende">
+            Liste déclarée par le commerçant, pas par le constructeur. En cas de
+            doute, vérifiez la référence gravée sur votre pièce d'origine.
+          </p>
+        </div>
+      {% endif %}
+
       <form method="post" action="{% url 'vitrine_panier_ajouter' article.pk %}" class="rangee" style="gap:10px">
         {% csrf_token %}
         <input type="hidden" name="suite" value="{{ request.get_full_path }}">

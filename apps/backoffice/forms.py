@@ -85,6 +85,13 @@ class ArticleForm(forms.Form):
         required=False,
         widget=forms.Select(attrs=CHAMP),
     )
+    reference_constructeur = forms.CharField(
+        label="Référence constructeur",
+        max_length=64,
+        required=False,
+        help_text="Celle qui est gravée sur la pièce d'origine.",
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "90915-YZZD4"}),
+    )
 
     def __init__(self, *args, boutique=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -105,7 +112,7 @@ class ArticleForm(forms.Form):
         """
         metier = self.metier
 
-        self.fields["libelle"].label = f"Nom {'du' if metier.article != 'pièce' else 'de la'} {metier.article}"
+        self.fields["libelle"].label = f"Nom {metier.du_article}"
         if metier.exemples:
             self.fields["libelle"].widget.attrs["placeholder"] = metier.exemples[0]
 
@@ -116,6 +123,8 @@ class ArticleForm(forms.Form):
             del self.fields["date_peremption"]
         if not metier.a(metiers.LOT):
             del self.fields["numero_lot"]
+        if not metier.a(metiers.COMPATIBILITE):
+            del self.fields["reference_constructeur"]
         if metier.unite_defaut == "U" and not metier.a(metiers.POIDS_VARIABLE):
             # L'unité ne se pose pas dans un commerce où tout se vend à la pièce.
             del self.fields["unite"]
@@ -585,3 +594,76 @@ class InvenduForm(forms.Form):
         if variante is None:
             raise forms.ValidationError("Ce produit n'est pas fabriqué dans votre boutique.")
         return variante
+
+
+# ----------------------------------------------------------------------------
+# Compatibilité véhicule — pièces détachées
+# ----------------------------------------------------------------------------
+class CompatibiliteForm(forms.Form):
+    """Déclaration : cette pièce se monte sur ce véhicule.
+
+    Le modèle et les années sont facultatifs, et ce n'est pas un relâchement.
+    Un vendeur sait « ça va sur les Corolla » ; il ne sait presque jamais en
+    quelle année le constructeur a changé la pièce. Exiger les bornes
+    produirait des bornes inventées — donc des compatibilités fausses, ce qui
+    est pire que des compatibilités larges.
+    """
+
+    marque = forms.CharField(
+        label="Marque", max_length=60,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Toyota", "list": "marques-connues"}),
+    )
+    modele = forms.CharField(
+        label="Modèle", max_length=80, required=False,
+        help_text="Vide si la pièce va sur toute la marque.",
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Corolla", "list": "modeles-connus"}),
+    )
+    motorisation = forms.CharField(
+        label="Motorisation", max_length=60, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "1.4 D-4D"}),
+    )
+    annee_debut = forms.IntegerField(
+        label="De l'année", min_value=1950, max_value=2100, required=False,
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "2012"}),
+    )
+    annee_fin = forms.IntegerField(
+        label="À l'année", min_value=1950, max_value=2100, required=False,
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "2018"}),
+    )
+
+    def __init__(self, *args, variante=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.variante = variante
+
+    def clean_marque(self):
+        from apps.catalog.vehicules import normaliser
+
+        return normaliser(self.cleaned_data["marque"])
+
+    def clean_modele(self):
+        from apps.catalog.vehicules import normaliser
+
+        return normaliser(self.cleaned_data.get("modele", ""))
+
+    def clean(self):
+        donnees = super().clean()
+        debut, fin = donnees.get("annee_debut"), donnees.get("annee_fin")
+        if debut and fin and fin < debut:
+            # Un intervalle vide rendrait la pièce compatible avec rien, sans que
+            # personne ne s'en aperçoive avant qu'un client reparte bredouille.
+            self.add_error("annee_fin", "L'année de fin précède l'année de début.")
+
+        if self.variante is not None and not self.errors:
+            from apps.catalog.models import CompatibiliteVehicule
+
+            doublon = CompatibiliteVehicule.objects.filter(
+                variante=self.variante,
+                marque=donnees.get("marque", ""),
+                modele=donnees.get("modele", ""),
+                motorisation=donnees.get("motorisation", ""),
+                annee_debut=debut,
+                annee_fin=fin,
+            ).exists()
+            if doublon:
+                self.add_error("marque", "Cette compatibilité est déjà déclarée.")
+        return donnees

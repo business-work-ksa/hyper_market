@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load hm %}
 
-{% block titre %}Nouveau {{ metier.article }} — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Nouveau {{ metier.article }}{% endblock %}
+{% block titre %}{{ metier.nouveau }} {{ metier.article }} — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}{{ metier.nouveau }} {{ metier.article }}{% endblock %}
 
 {% block actions_entete %}
   <a class="btn" href="{% url 'stock' %}">Retour au stock</a>

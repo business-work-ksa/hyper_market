@@ -47,6 +47,85 @@
     {% endif %}
   </section>
 
+  {% if compatibilites is not None %}
+    {% comment %}
+    Toute la carte est absente là où le métier n'active pas la fonction : la vue
+    ne compose ni la liste ni le formulaire (`compatibilites` vaut `None`), et
+    une quincaillerie ne voit pas une section « véhicules » vide.
+    {% endcomment %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Se monte sur</h2>
+        {% if variante.reference_constructeur %}
+          <span class="puce"><svg><use href="#ic-info"></use></svg>Réf. {{ variante.reference_constructeur }}</span>
+        {% endif %}
+      </header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% if compatibilites %}
+          <div class="rangee" style="gap:8px;flex-wrap:wrap">
+            {% for c in compatibilites %}
+              <span class="etiquette{% if not formulaire_compatibilite %} etiquette--simple{% endif %}">
+                <span>{{ c.marque }}{% if c.modele %} {{ c.modele }}{% endif %}{% if c.motorisation %} · {{ c.motorisation }}{% endif %}{% if c.annees %} · {{ c.annees }}{% endif %}</span>
+                {% if formulaire_compatibilite %}
+                  <form method="post" action="{% url 'compatibilite_retirer' variante_id=variante.pk compatibilite_id=c.pk %}">
+                    {% csrf_token %}
+                    <button class="etiquette__retirer" type="submit"
+                            aria-label="Retirer la compatibilité {{ c }}">×</button>
+                  </form>
+                {% endif %}
+              </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="t-legende">
+            Aucune compatibilité déclarée. Tant qu'il n'y en a pas, cette pièce
+            reste introuvable pour un client qui cherche par son véhicule — et
+            c'est ainsi que la plupart des clients cherchent.
+          </p>
+        {% endif %}
+
+        {% if formulaire_compatibilite %}
+          <datalist id="marques-connues">
+            {% for m in marques_connues %}<option value="{{ m }}"></option>{% endfor %}
+          </datalist>
+          <datalist id="modeles-connus">
+            {% for m in modeles_connus %}<option value="{{ m }}"></option>{% endfor %}
+          </datalist>
+          <form method="post" action="{% url 'compatibilite_ajouter' variante_id=variante.pk %}"
+                class="rangee" style="gap:10px;flex-wrap:wrap;align-items:flex-end" novalidate>
+            {% csrf_token %}
+            <div class="groupe-champ" style="flex:1;min-width:150px">
+              <label for="{{ formulaire_compatibilite.marque.id_for_label }}">{{ formulaire_compatibilite.marque.label }}</label>
+              {{ formulaire_compatibilite.marque }}
+            </div>
+            <div class="groupe-champ" style="flex:1;min-width:150px">
+              <label for="{{ formulaire_compatibilite.modele.id_for_label }}">{{ formulaire_compatibilite.modele.label }}</label>
+              {{ formulaire_compatibilite.modele }}
+            </div>
+            <div class="groupe-champ" style="flex:1;min-width:140px">
+              <label for="{{ formulaire_compatibilite.motorisation.id_for_label }}">{{ formulaire_compatibilite.motorisation.label }}</label>
+              {{ formulaire_compatibilite.motorisation }}
+            </div>
+            <div class="groupe-champ" style="min-width:110px">
+              <label for="{{ formulaire_compatibilite.annee_debut.id_for_label }}">{{ formulaire_compatibilite.annee_debut.label }}</label>
+              {{ formulaire_compatibilite.annee_debut }}
+            </div>
+            <div class="groupe-champ" style="min-width:110px">
+              <label for="{{ formulaire_compatibilite.annee_fin.id_for_label }}">{{ formulaire_compatibilite.annee_fin.label }}</label>
+              {{ formulaire_compatibilite.annee_fin }}
+            </div>
+            <button class="btn btn--primaire" type="submit">Ajouter</button>
+          </form>
+          <p class="t-legende">
+            Modèle et années sont facultatifs. Laissez-les vides plutôt que de
+            deviner : une compatibilité large se vérifie au comptoir, une
+            compatibilité inventée fait repartir un client avec la mauvaise pièce.
+          </p>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
   <section class="carte">
     <header class="carte__entete">
       <h2 class="t-section">Historique des mouvements</h2>

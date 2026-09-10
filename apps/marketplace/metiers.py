@@ -27,9 +27,9 @@ l'impression d'un suivi qu'il n'a pas — c'est exactement le genre de promesse
 qu'une pharmacie paie cher.
 
 Restent à écrire, et volontairement non déclarées : numéros de série et garantie
-(électronique), compatibilité véhicule (pièces auto), mention d'ordonnance
-(pharmacie). Le métier les prévoit dans son `a_venir`, qui sert à l'afficher au
-commerçant sans le lui promettre.
+(électronique), mention d'ordonnance (pharmacie), équivalences entre références
+de constructeurs. Le métier les prévoit dans son `a_venir`, qui sert à l'afficher
+au commerçant sans le lui promettre.
 
 Une limite à connaître sur les lots : le stock est suivi **lot par lot**, ce qui
 répond à « qu'est-ce qui périme quand » et « combien me reste-t-il de ce lot ».
@@ -52,6 +52,7 @@ __all__ = [
     "POIDS_VARIABLE",
     "DECLINAISONS",
     "RECETTE",
+    "COMPATIBILITE",
 ]
 
 # --- Fonctions réellement câblées -------------------------------------------
@@ -60,6 +61,7 @@ LOT = "lot"
 POIDS_VARIABLE = "poids_variable"
 DECLINAISONS = "declinaisons"
 RECETTE = "recette"
+COMPATIBILITE = "compatibilite"
 
 LIBELLES_FONCTIONS = {
     PEREMPTION: "Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard",
@@ -67,6 +69,7 @@ LIBELLES_FONCTIONS = {
     POIDS_VARIABLE: "Vente au poids ou à la longueur, quantités décimales",
     DECLINAISONS: "Déclinaisons d'un même modèle : taille, couleur, contenance",
     RECETTE: "Fiches techniques : produire consomme les ingrédients et calcule le coût de revient",
+    COMPATIBILITE: "Référence constructeur et compatibilité véhicule : marque, modèle, années",
 }
 
 
@@ -87,6 +90,11 @@ class Metier:
     # Vocabulaire de l'interface
     article: str
     articles: str
+    # Le genre du mot, porté ici plutôt que deviné à chaque écran. Sans lui,
+    # « Nouveau pièce » s'affiche en tête de l'écran du stock d'un vendeur de
+    # pièces détachées — et un logiciel qui écorche la langue du métier ne passe
+    # plus pour un logiciel fait pour ce métier.
+    feminin: bool = False
     reception: str = "Réception fournisseur"
 
     # Valeurs par défaut à la création d'un article
@@ -102,6 +110,33 @@ class Metier:
 
     def a(self, fonction: str) -> bool:
         return fonction in self.fonctions
+
+    @property
+    def nouveau(self) -> str:
+        """« Nouvel article », « Nouvelle pièce », « Nouveau plat ».
+
+        Trois formes, parce que le français en a trois : le masculin devant
+        voyelle prend « nouvel ». Le bouton le plus visible de l'écran du stock
+        n'a pas le droit d'être fautif.
+        """
+        if self.feminin:
+            return "Nouvelle"
+        return "Nouvel" if self._commence_par_une_voyelle else "Nouveau"
+
+    @property
+    def du_article(self) -> str:
+        """« du médicament », « de la pièce », « de l'article ».
+
+        L'élision est faite ici et non dans le gabarit : « Nom du article » est
+        exactement le genre de faute qui fait douter du reste du logiciel.
+        """
+        if self._commence_par_une_voyelle:
+            return f"de l'{self.article}"
+        return f"{'de la' if self.feminin else 'du'} {self.article}"
+
+    @property
+    def _commence_par_une_voyelle(self) -> bool:
+        return self.article[:1].lower() in "aeiouâéèêîôûy"
 
     @property
     def libelles_fonctions(self) -> list[str]:
@@ -207,11 +242,9 @@ METIERS: dict[str, Metier] = {
         resume="Pièces neuves et d'occasion, lubrifiants, pneumatiques.",
         article="pièce",
         articles="pièces",
-        fonctions=frozenset(),
-        a_venir=(
-            "Compatibilité véhicule : marque, modèle, années",
-            "Références constructeur et équivalences",
-        ),
+        feminin=True,
+        fonctions=frozenset({COMPATIBILITE}),
+        a_venir=("Équivalences entre références de constructeurs différents",),
         exemples=("Filtre à huile — Toyota Corolla", "Plaquettes de frein avant", "Huile 15W40 5 L"),
     ),
     "PRODUITS_FRAIS": Metier(

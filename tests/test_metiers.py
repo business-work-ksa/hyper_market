@@ -60,6 +60,32 @@ class ReferentielTest(TestCase):
                 with self.subTest(metier=metier.code, fonction=fonction):
                     self.assertIn(fonction, metiers.LIBELLES_FONCTIONS)
 
+    def test_le_vocabulaire_est_grammaticalement_juste(self):
+        """« Nouveau pièce » ou « Nom du article » font douter du reste du logiciel.
+
+        Le genre et l'élision sont portés par le référentiel, pas devinés dans
+        chaque gabarit : c'est le seul endroit où l'on peut les vérifier tous
+        d'un coup, et c'est ce que fait ce test.
+        """
+        attendus = {
+            "COMMERCE_GENERAL": ("Nouvel article", "de l'article"),
+            "PHARMACIE": ("Nouveau médicament", "du médicament"),
+            "PIECES_AUTO": ("Nouvelle pièce", "de la pièce"),
+            "ELECTRONIQUE": ("Nouvel appareil", "de l'appareil"),
+            "RESTAURATION": ("Nouveau plat", "du plat"),
+        }
+        for code, (nouveau, du) in attendus.items():
+            metier = metiers.METIERS[code]
+            with self.subTest(metier=code):
+                self.assertEqual(f"{metier.nouveau} {metier.article}", nouveau)
+                self.assertEqual(metier.du_article, du)
+
+    def test_aucun_metier_ne_produit_une_elision_manquante(self):
+        for metier in metiers.METIERS.values():
+            with self.subTest(metier=metier.code):
+                self.assertNotIn("du a", metier.du_article)
+                self.assertNotIn("Nouveau a", f"{metier.nouveau} {metier.article}")
+
     def test_le_commerce_general_n_active_rien(self):
         """C'est le socle, et donc le repli sûr : le plus petit dénominateur."""
         self.assertEqual(metiers.METIERS[metiers.METIER_DEFAUT].fonctions, frozenset())

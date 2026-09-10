@@ -12,7 +12,7 @@ cp .env.example .env    # DEBUG=True, sinon les fichiers statiques ne sont pas s
 
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
-make demo               # référentiels + 4 boutiques de démonstration
+make demo               # référentiels + 5 boutiques de démonstration
 make servir             # http://localhost:8000/
 ```
 
@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 426 tests (17 ignorés sur SQLite)
+make tester      # 457 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -45,10 +45,13 @@ Comptes de démonstration (mot de passe `demo1234`) :
 | `+237655330022` | Vendeur, Pharmacie du Wouri | Comptoir et stock — ni coût, ni marge |
 | `+237691440011` | Gérante, Boulangerie Bonapriso (Douala) | Tout — **fiches techniques, production du jour, invendus** |
 | `+237691440022` | Vendeur, Boulangerie Bonapriso | Comptoir et stock — **la production sans son coût** |
+| `+237677550011` | Gérant, Auto Pièces Ndokoti (Douala) | Tout — **recherche par véhicule, compatibilités** |
+| `+237677550022` | Vendeuse, Auto Pièces Ndokoti | Comptoir et stock — la recherche par véhicule, sans les coûts |
 
-Les deux dernières boutiques ne sont pas du décor : la pharmacie est le seul métier du jeu où le
-suivi par lot se voit à l'écran, et la boulangerie le seul où l'on fabrique. Ce sont donc les deux
-seuls endroits où ces fonctions se vérifient sans lire le code.
+Les trois dernières boutiques ne sont pas du décor. La pharmacie est le seul métier du jeu où le
+suivi par lot se voit à l'écran, la boulangerie le seul où l'on fabrique, et le vendeur de pièces
+le seul où l'on cherche par la voiture du client. Ce sont donc les trois seuls endroits où ces
+fonctions se vérifient sans lire le code.
 
 Se connecter successivement avec ces comptes est le moyen le plus rapide de voir
 ce que la matrice de droits change réellement à l'écran.
@@ -282,6 +285,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_backoffice_commandes.py` | L'écran de traitement : un bouton périmé n'agit pas, la part d'un confrère est introuvable, refus avant expédition et retour après |
 | `test_metiers.py` | Les 10 métiers : vocabulaire, valeurs par défaut, formulaire composé — et le suivi par lot, qui consomme **le plus proche de périmer** et reste inerte là où le métier ne l'active pas |
 | `test_identite.py` | **Le validateur de palette du produit, appliqué au logo du commerçant** : il retrouve le verdict qui avait rejeté le premier teal ; la teinte n'est jamais modifiée, la version sombre est éclaircie et non inversée, une couleur neutre est refusée plutôt qu'inventée |
+| `test_vehicules.py` | **Chercher une pièce par la voiture du client** : une compatibilité sans modèle couvre toute la marque, une année absente ne borne rien, une année illisible est ignorée plutôt que refusée — l'absence d'information ne produit jamais une absence de résultat |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
 | `test_production.py` | **Fabriquer ne crée ni ne détruit de valeur** : ce qui sort des ingrédients entre dans le produit fini au centime ; le coût de revient est calculé au moment où on le regarde, jamais figé sur la fiche ; un invendu est une perte et non un écart de comptage |
 
@@ -539,7 +543,7 @@ même raison : ce sont des règles, pas des données modifiables à chaud.
 | Boulangerie & pâtisserie | péremption, poids variable, **fiches techniques** |
 | Mode & prêt-à-porter | déclinaisons |
 | Électronique & téléphonie | déclinaisons |
-| Pièces détachées auto & moto | *(aucune pour l'instant)* |
+| Pièces détachées auto & moto | **référence constructeur, compatibilité véhicule** |
 | Produits frais | péremption, poids variable — **unité par défaut : le kilo** |
 
 ### 9.1 — Ce que le métier change
@@ -547,6 +551,11 @@ même raison : ce sont des règles, pas des données modifiables à chaud.
 **Le vocabulaire.** `{{ metier.article }}` plutôt qu'« article » en dur : un pharmacien lit
 « médicament », un restaurateur « plat ». Ce n'est pas de l'habillage — c'est ce qui distingue un
 logiciel fait pour lui d'un logiciel générique reconfiguré.
+
+Le **genre et l'élision** sont portés par le référentiel (`feminin`, `metier.nouveau`,
+`metier.du_article`), pas devinés dans chaque gabarit : « Nouveau pièce » en tête de l'écran du
+stock, ou « Nom du article » sur un formulaire, font douter du reste du logiciel. Un test les
+vérifie tous d'un coup.
 
 **Les valeurs par défaut.** Unité et régime de TVA. Un défaut qu'il faut corriger à chaque ligne
 finit par être subi, et la TVA déclarée devient fausse.
@@ -611,10 +620,37 @@ journée a jeté, et sur quoi.
 Le coût de revient suit le droit `cout.voir`, comme le CMP partout ailleurs : sans ce droit, il
 n'est **pas calculé** — pas masqué en CSS (§3.6).
 
-### 9.4 — Déclaré mais pas écrit
+### 9.4 — Chercher une pièce par la voiture du client
+
+Un client de pièces détachées ne demande pas « un filtre à huile » : il demande « le filtre à huile
+de ma Corolla de 2015 ». Écrans : la recherche par véhicule sur **Stock**, et la carte *Se monte
+sur* de la fiche article. La liste apparaît aussi sur la page publique — un acheteur en ligne qui ne
+peut pas vérifier que la pièce va sur sa voiture n'achète pas.
+
+Une règle gouverne tout l'appariement (`apps/catalog/vehicules.py`) : **l'absence d'information ne
+produit jamais une absence de résultat.**
+
+* Une compatibilité déclarée sans modèle couvre **toute la marque** — c'est ce que le vendeur a
+  voulu dire en laissant le champ vide.
+* Une borne d'année absente ne borne rien, et une année absente dans la recherche ne filtre rien.
+  Un vendeur ne sait presque jamais quand le constructeur arrêtera une pièce ; un client sait
+  rarement l'année exacte de sa voiture.
+* Une année illisible dans l'URL est **ignorée**, jamais refusée : « dans les 2015 » tapé « 15 »
+  doit donner la liste, pas un message d'erreur.
+
+Le risque assumé est de montrer une pièce de trop plutôt que d'en cacher une. Au comptoir, un
+vendeur écarte en trois secondes une pièce qui ne convient pas ; il ne peut rien contre une pièce
+qu'on ne lui a jamais montrée. L'écran le dit d'ailleurs : une compatibilité est une **déclaration
+du vendeur**, pas une donnée du constructeur.
+
+Les marques sont normalisées à l'écriture (`Toyota`, jamais `toyota` ni `TOYOTA`) et proposées en
+saisie assistée : sans cela, une faute de frappe rend la pièce introuvable, ce qui revient à ne pas
+l'avoir. La recherche, elle, reste insensible à la casse.
+
+### 9.5 — Déclaré mais pas écrit
 
 Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : numéros de série et garantie,
-compatibilité véhicule, mention d'ordonnance, service à table. Lister une fonction non écrite au
+mention d'ordonnance, équivalences entre références de constructeurs, service à table. Lister une fonction non écrite au
 milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une pharmacie paie cher ce
 genre de malentendu.
 

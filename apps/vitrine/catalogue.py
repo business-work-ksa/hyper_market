@@ -140,3 +140,21 @@ def article_par_identifiant(identifiant) -> Variante | None:
     if article is None or article.boutique_id not in autorisees:
         return None
     return article
+
+
+def compatibilites_de(article) -> list:
+    """Véhicules sur lesquels cet article se monte, pour la page publique.
+
+    Ce n'est pas une donnée privée du commerçant : c'est l'argument de vente
+    lui-même. Un acheteur en ligne qui ne peut pas vérifier que la pièce va sur
+    sa voiture n'achète pas — il vient au comptoir demander, ou il va ailleurs.
+
+    Vide dès que le métier n'active pas la fonction : aucune ligne n'existe, la
+    requête ne renvoie rien, et la page n'affiche pas de section.
+    """
+    from apps.catalog.models import CompatibiliteVehicule
+
+    if article is None:
+        return []
+    with contexte_plateforme():
+        return list(CompatibiliteVehicule.objects.filter(variante=article))

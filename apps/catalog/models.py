@@ -132,6 +132,12 @@ class Variante(TenantScopedModel):
     )
     prix_barre = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     actif = models.BooleanField(default=True)
+    reference_constructeur = models.CharField(
+        max_length=64,
+        blank=True,
+        db_index=True,
+        help_text="Référence d'origine du fabricant. Ex. 90915-YZZD4.",
+    )
 
     class Meta:
         verbose_name = "variante"
@@ -157,6 +163,90 @@ class Variante(TenantScopedModel):
     def prix_ht(self) -> Decimal:
         """Le prix affiché est TTC : c'est le prix que l'acheteur voit et paie."""
         return (self.prix_vente / (1 + self.taux_tva)).quantize(Decimal("0.01"))
+
+
+class CompatibiliteVehicule(TenantScopedModel):
+    """Sur quels véhicules cette pièce se monte.
+
+    Réservée au métier qui l'active. C'est la question que **tout** client de
+    pièces détachées pose en entrant, et la seule que le catalogue ne savait pas
+    entendre : on ne cherche pas « un filtre à huile », on cherche « le filtre à
+    huile de ma Corolla de 2015 ».
+
+    **Une pièce se monte sur plusieurs véhicules, et un véhicule accepte
+    plusieurs pièces.** D'où une table à part plutôt que trois colonnes sur la
+    variante : mettre « Toyota Corolla » dans un champ texte marcherait pour la
+    première pièce, et deviendrait illisible à la troisième compatibilité.
+
+    **Les bornes d'années sont facultatives des deux côtés.** Vide à gauche
+    signifie « depuis toujours », vide à droite « toujours d'actualité » — et
+    c'est le cas le plus fréquent, parce qu'un vendeur ne connaît presque jamais
+    l'année où le constructeur arrêtera une pièce. Exiger les deux produirait des
+    bornes inventées, donc des compatibilités fausses.
+
+    Aucune contrainte d'unicité : une déclaration de compatibilité en double est
+    inoffensive — elle s'affiche deux fois — là où un SKU en double casse le
+    stock. Le doublon exact est écarté à la saisie, ce qui suffit.
+    """
+
+    variante = models.ForeignKey(
+        Variante, on_delete=models.CASCADE, related_name="compatibilites"
+    )
+    marque = models.CharField(max_length=60, db_index=True)
+    modele = models.CharField(
+        max_length=80, blank=True, help_text="Vide si la pièce va sur toute la marque."
+    )
+    motorisation = models.CharField(
+        max_length=60, blank=True, help_text="Ex. 1.4 D-4D. Vide si indifférent."
+    )
+    annee_debut = models.PositiveSmallIntegerField(null=True, blank=True)
+    annee_fin = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "compatibilité véhicule"
+        verbose_name_plural = "compatibilités véhicule"
+        ordering = ["marque", "modele", "annee_debut"]
+        indexes = [models.Index(fields=["boutique", "marque", "modele"])]
+        constraints = [
+            # Une borne de fin antérieure au début décrirait un intervalle vide :
+            # la pièce ne serait compatible avec rien, et personne ne le verrait.
+            models.CheckConstraint(
+                condition=models.Q(annee_fin__isnull=True)
+                | models.Q(annee_debut__isnull=True)
+                | models.Q(annee_fin__gte=models.F("annee_debut")),
+                name="compatibilite_annees_dans_l_ordre",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.marque} {self.modele}".strip() + (f" ({self.annees})" if self.annees else "")
+
+    @property
+    def annees(self) -> str:
+        """Intervalle lisible : « 2012–2018 », « depuis 2012 », « jusqu'en 2018 »."""
+        if self.annee_debut and self.annee_fin:
+            return f"{self.annee_debut}–{self.annee_fin}"
+        if self.annee_debut:
+            return f"depuis {self.annee_debut}"
+        if self.annee_fin:
+            return f"jusqu'en {self.annee_fin}"
+        return ""
+
+    def couvre(self, annee: int | None) -> bool:
+        """L'année demandée tombe-t-elle dans l'intervalle ?
+
+        Une année non fournie couvre tout : un client qui ne connaît pas l'année
+        de sa voiture — le cas courant — doit voir la pièce, quitte à vérifier
+        ensuite. L'absence d'information ne doit jamais se traduire par une
+        absence de résultat.
+        """
+        if annee is None:
+            return True
+        if self.annee_debut and annee < self.annee_debut:
+            return False
+        if self.annee_fin and annee > self.annee_fin:
+            return False
+        return True
 
 
 class Recette(TenantScopedModel):

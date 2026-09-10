@@ -11,7 +11,7 @@
   {% if 'stock.mouvementer' in droits %}
     <a class="btn" href="{% url 'inventaire' %}">Inventaire</a>
     <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
-      <svg><use href="#ic-plus"></use></svg> Nouveau {{ metier.article }}
+      <svg><use href="#ic-plus"></use></svg> {{ metier.nouveau }} {{ metier.article }}
     </a>
   {% endif %}
 {% endblock %}
@@ -50,6 +50,55 @@
       </select>
     {% endif %}
   </form>
+
+  {% if metier and 'compatibilite' in metier.fonctions %}
+    {% comment %}
+    La recherche par véhicule est un second formulaire, pas trois champs de plus
+    dans le premier : ce n'est pas un filtre de la liste, c'est la question que
+    le client vient de poser à voix haute. « Il me faut le filtre à huile de ma
+    Corolla de 2015 » — on tape ce qu'on entend.
+    {% endcomment %}
+    <datalist id="marques-connues">
+      {% for m in marques_connues %}<option value="{{ m }}"></option>{% endfor %}
+    </datalist>
+    <datalist id="modeles-connus">
+      {% for m in modeles_connus %}<option value="{{ m }}"></option>{% endfor %}
+    </datalist>
+    <form class="carte carte__corps rangee" method="get"
+          style="gap:10px;flex-wrap:wrap;align-items:flex-end" role="search">
+      <div class="groupe-champ" style="flex:1;min-width:150px">
+        <label for="rech-marque">Marque du véhicule</label>
+        <input class="champ" id="rech-marque" name="marque" list="marques-connues"
+               value="{{ vehicule.marque|default:'' }}" placeholder="Toyota">
+      </div>
+      <div class="groupe-champ" style="flex:1;min-width:150px">
+        <label for="rech-modele">Modèle</label>
+        <input class="champ" id="rech-modele" name="modele" list="modeles-connus"
+               value="{{ vehicule.modele|default:'' }}" placeholder="Corolla">
+      </div>
+      <div class="groupe-champ" style="min-width:120px">
+        <label for="rech-annee">Année</label>
+        <input class="champ" id="rech-annee" name="annee" inputmode="numeric"
+               value="{{ vehicule.annee|default:'' }}" placeholder="2015">
+      </div>
+      <button class="btn btn--primaire" type="submit">Chercher la pièce</button>
+      {% if vehicule %}
+        <a class="btn btn--discret" href="{% url 'stock' %}">Effacer</a>
+      {% endif %}
+    </form>
+
+    {% if vehicule %}
+      <div class="bandeau-info" role="status">
+        <svg><use href="#ic-info"></use></svg>
+        <span>
+          {{ nb_compatibles }} pièce{{ nb_compatibles|pluralize }} déclarée{{ nb_compatibles|pluralize }}
+          compatible{{ nb_compatibles|pluralize }}.
+          Une compatibilité est une <strong>déclaration du vendeur</strong>, pas
+          une donnée du constructeur : elle se vérifie avant de monter.
+        </span>
+      </div>
+    {% endif %}
+  {% endif %}
 
   <section class="carte">
     <div class="carte__corps--serre">

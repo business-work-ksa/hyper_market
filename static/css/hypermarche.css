@@ -485,6 +485,43 @@ table { border-collapse: collapse; width: 100%; }
 }
 .puce svg { width: 12px; height: 12px; flex-shrink: 0; }
 
+
+/* Étiquette retirable : une puce assez haute pour porter son propre bouton.
+   Une compatibilité véhicule se lit d'un coup d'œil au milieu de dix autres, et
+   se retire là où on la lit — la reléguer dans un tableau ferait de dix lignes
+   un écran, pour dix mots. */
+.etiquette {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 6px 0 11px;
+  border-radius: var(--r-pilule);
+  font-size: 12.5px;
+  font-weight: 580;
+  background: var(--marque-teinte);
+  color: var(--marque);
+}
+.etiquette--simple { padding-right: 11px; }
+.etiquette form { display: flex; }
+.etiquette__retirer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  background: transparent;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+}
+.etiquette__retirer:hover { opacity: 1; background: var(--survol); }
+
 /* Icône posée dans une ligne de texte hors composant. Sans elle, un `<svg>` nu
    prend la taille de son conteneur : une puce d'alerte devenait un panneau de
    signalisation de 200 px de haut. */

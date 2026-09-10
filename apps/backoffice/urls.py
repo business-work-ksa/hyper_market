@@ -25,6 +25,8 @@ urlpatterns = [
     path("stock/<uuid:variante_id>/entree/", views.entree_stock, name="entree_stock"),
     path("stock/<uuid:variante_id>/entree.json", views.entree_stock_json, name="entree_stock_json"),
     path("stock/<uuid:variante_id>/transfert/", views.transfert_stock, name="transfert_stock"),
+    path("stock/<uuid:variante_id>/vehicules/", views.compatibilite_ajouter, name="compatibilite_ajouter"),
+    path("stock/<uuid:variante_id>/vehicules/<uuid:compatibilite_id>/retirer/", views.compatibilite_retirer, name="compatibilite_retirer"),
 
     path("production/", vues_production.production, name="production"),
     path("production/invendus/", vues_production.production_invendus, name="production_invendus"),

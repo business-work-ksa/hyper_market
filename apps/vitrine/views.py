@@ -35,6 +35,7 @@ from apps.vitrine.catalogue import (
     articles_en_vitrine,
     boutique_par_slug,
     boutiques_en_vitrine,
+    compatibilites_de,
     rayons_ouverts,
 )
 from apps.vitrine.forms import CommandeForm
@@ -119,7 +120,13 @@ def article(request, identifiant):
     return render(
         request,
         "vitrine/article.html",
-        _contexte(request, "catalogue", article=vendu, voisins=voisins),
+        _contexte(
+            request,
+            "catalogue",
+            article=vendu,
+            voisins=voisins,
+            compatibilites=compatibilites_de(vendu),
+        ),
     )
 
 

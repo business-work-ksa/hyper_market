@@ -23,7 +23,7 @@ from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Sum
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -42,13 +42,15 @@ from apps.backoffice.acces import (
 )
 from apps.backoffice.forms import (
     ArticleForm,
+    CompatibiliteForm,
     DepotForm,
     EntreeStockForm,
     FermetureCaisseForm,
     OuvertureCaisseForm,
     TransfertStockForm,
 )
-from apps.catalog.models import Produit, Variante
+from apps.catalog import vehicules
+from apps.catalog.models import CompatibiliteVehicule, Produit, Variante
 from apps.inventory.models import (
     Depot,
     Inventaire,
@@ -589,7 +591,15 @@ def stock(request):
         niveaux = niveaux.filter(
             Q(variante__produit__libelle__icontains=recherche)
             | Q(variante__sku__icontains=recherche)
+            # La référence du constructeur est celle qui est gravée sur la pièce :
+            # c'est souvent la seule chose que le client apporte.
+            | Q(variante__reference_constructeur__icontains=recherche)
         )
+
+    metier = contexte["metier"]
+    vehicule = _vehicule_demande(request) if metier and metier.a(metiers.COMPATIBILITE) else None
+    if vehicule:
+        niveaux = niveaux.filter(variante__in=vehicules.compatibles(**vehicule))
 
     niveaux = list(niveaux)
     if filtre == "rupture":
@@ -604,9 +614,47 @@ def stock(request):
             "filtre": filtre,
             "depot_filtre": depot_filtre,
             "valeur_totale": sum((n.quantite * n.cmp for n in niveaux), Decimal("0")),
+            "vehicule": vehicule,
+            # Le nombre de **pièces**, pas de lignes : un article présent dans
+            # deux dépôts fait deux lignes et reste une seule pièce, et annoncer
+            # « 5 pièces compatibles » pour quatre références est un mensonge que
+            # le vendeur repère au premier coup d'œil.
+            "nb_compatibles": len({n.variante_id for n in niveaux}) if vehicule else None,
+            "marques_connues": (
+                vehicules.marques_connues()
+                if metier and metier.a(metiers.COMPATIBILITE)
+                else []
+            ),
+            "modeles_connus": (
+                vehicules.modeles_connus(vehicule["marque"] if vehicule else "")
+                if metier and metier.a(metiers.COMPATIBILITE)
+                else []
+            ),
         }
     )
     return render(request, "stock.html", contexte)
+
+
+def _vehicule_demande(request) -> dict | None:
+    """Véhicule décrit dans l'URL, ou rien.
+
+    L'année illisible est **ignorée**, jamais une erreur : un client qui dit
+    « une Corolla, dans les 2015 » et un vendeur qui tape « 15 » ne doivent pas
+    tomber sur un message d'erreur mais sur la liste des filtres Corolla. Une
+    recherche au comptoir se fait en parlant à quelqu'un, pas en remplissant un
+    formulaire.
+    """
+    marque = (request.GET.get("marque") or "").strip()
+    modele = (request.GET.get("modele") or "").strip()
+    brut = (request.GET.get("annee") or "").strip()
+
+    annee = None
+    if brut.isdigit() and 1950 <= int(brut) <= 2100:
+        annee = int(brut)
+
+    if not marque and not modele and annee is None:
+        return None
+    return {"marque": marque, "modele": modele, "annee": annee}
 
 
 @exige(droit.STOCK_VOIR)
@@ -617,6 +665,9 @@ def article(request, variante_id):
     if variante is None:
         return redirect("stock")
 
+    metier = contexte["metier"]
+    suit_les_vehicules = metier is not None and metier.a(metiers.COMPATIBILITE)
+
     contexte.update(
         {
             "variante": variante,
@@ -624,9 +675,66 @@ def article(request, variante_id):
             "mouvements": MouvementStock.objects.filter(variante=variante).select_related(
                 "depot"
             )[:30],
+            # Ni la liste ni le formulaire ne sont composés là où le métier
+            # n'active pas la fonction : une quincaillerie n'a pas de véhicules.
+            "compatibilites": (
+                list(variante.compatibilites.all()) if suit_les_vehicules else None
+            ),
+            "formulaire_compatibilite": (
+                CompatibiliteForm(variante=variante)
+                if suit_les_vehicules and droit.STOCK_MOUVEMENTER in contexte["droits"]
+                else None
+            ),
+            "marques_connues": vehicules.marques_connues() if suit_les_vehicules else [],
+            "modeles_connus": vehicules.modeles_connus() if suit_les_vehicules else [],
         }
     )
     return render(request, "article.html", contexte)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def compatibilite_ajouter(request, variante_id):
+    contexte = contexte_commun(request, "stock")
+    metier = contexte["metier"]
+    if metier is None or not metier.a(metiers.COMPATIBILITE):
+        raise Http404("Ce métier ne suit pas les compatibilités véhicule.")
+
+    variante = get_object_or_404(Variante.objects, pk=variante_id)
+    formulaire = CompatibiliteForm(request.POST, variante=variante)
+    if not formulaire.is_valid():
+        for erreurs in formulaire.errors.values():
+            messages.error(request, erreurs[0])
+        return redirect("article", variante_id=variante.pk)
+
+    CompatibiliteVehicule.objects.create(
+        boutique=contexte["boutique"],
+        variante=variante,
+        marque=formulaire.cleaned_data["marque"],
+        modele=formulaire.cleaned_data.get("modele", ""),
+        motorisation=formulaire.cleaned_data.get("motorisation", "").strip(),
+        annee_debut=formulaire.cleaned_data.get("annee_debut"),
+        annee_fin=formulaire.cleaned_data.get("annee_fin"),
+        cree_par=request.user,
+    )
+    return redirect("article", variante_id=variante.pk)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def compatibilite_retirer(request, variante_id, compatibilite_id):
+    """Une compatibilité fausse se retire vraiment.
+
+    Contrairement à un lien marketing, elle n'a rien laissé dehors : c'est une
+    affirmation sur le montage d'une pièce, et une affirmation fausse ne se
+    conserve pas « pour l'historique ». La garder ferait repartir un client avec
+    la mauvaise pièce.
+    """
+    contexte_commun(request, "stock")
+    CompatibiliteVehicule.objects.filter(
+        pk=compatibilite_id, variante_id=variante_id
+    ).delete()
+    return redirect("article", variante_id=variante_id)
 
 
 # ----------------------------------------------------------------------------
@@ -680,6 +788,9 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
         sku=donnees["sku"],
         code_barres=donnees.get("code_barres") or "",
         prix_vente=donnees["prix_vente"],
+        # Vide partout sauf en pièces détachées : le champ n'y est même pas
+        # affiché ailleurs (`ArticleForm._composer`).
+        reference_constructeur=(donnees.get("reference_constructeur") or "").strip(),
         cree_par=utilisateur,
     )
     NiveauStock.objects.create(

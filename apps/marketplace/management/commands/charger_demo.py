@@ -155,6 +155,54 @@ BOUTIQUES = [
         # Fournées du matin, pour que l'écran ne s'ouvre pas sur du vide.
         "productions": [("BOU-BAG-250", "120"), ("BOU-CRO-BEU", "60")],
     },
+    {
+        # Même raison que la pharmacie et la boulangerie : c'est le seul métier
+        # du jeu où l'on cherche une pièce par la voiture du client, et donc le
+        # seul endroit où cette recherche se vérifie sans lire le code.
+        "raison_sociale": "Ndokoti Auto Pièces SARL",
+        "enseigne": "Auto Pièces Ndokoti",
+        "slug": "auto-pieces-ndokoti",
+        "metier": "PIECES_AUTO",
+        "rayon": "pieces-detachees",
+        "offre": TypeEmplacement.BOUTIQUE,
+        "rccm": "RC/DLA/2018/B/0994",
+        "niu": "M031855667788E",
+        "ville": "Douala",
+        "gerant": ("+237677550011", "Blaise Nkoulou"),
+        "equipe": [("+237677550022", "Aline Tchoumi", Role.VENDEUR)],
+        "reserve": "Réserve Ndokoti",
+        "produits": [
+            ("PAU-FIL-HUI", "Filtre à huile", "3500", "2100", 140, 20),
+            ("PAU-PLA-AVA", "Plaquettes de frein avant — jeu", "18500", "13000", 60, 10),
+            ("PAU-FIL-AIR", "Filtre à air", "4800", "2900", 95, 15),
+            ("PAU-AMO-ARR", "Amortisseur arrière", "34000", "25000", 24, 4),
+            ("PAU-HUI-15W40", "Huile moteur 15W40 — bidon 5 L", "12500", "9200", 180, 25),
+        ],
+        # (sku, référence constructeur, [(marque, modèle, motorisation, de, à)])
+        # Les vides sont volontaires : un vendeur sait « ça va sur les Hilux », il
+        # ne sait presque jamais en quelle année la pièce a changé.
+        "vehicules": [
+            ("PAU-FIL-HUI", "90915-YZZD4", [
+                ("Toyota", "Corolla", "1.4 D-4D", 2007, 2018),
+                ("Toyota", "Yaris", "", 2006, None),
+                ("Toyota", "Hilux", "", None, None),
+            ]),
+            ("PAU-PLA-AVA", "04465-0K090", [
+                ("Toyota", "Hilux", "", 2005, 2015),
+                ("Toyota", "Fortuner", "", 2005, 2015),
+            ]),
+            ("PAU-FIL-AIR", "17801-0C010", [
+                ("Toyota", "Hilux", "2.5 D-4D", 2005, 2015),
+                ("Nissan", "Navara", "", 2005, 2014),
+            ]),
+            ("PAU-AMO-ARR", "", [
+                ("Nissan", "Navara", "", 2005, 2014),
+            ]),
+            # Une huile va sur tout : aucune borne, aucun modèle. C'est
+            # exactement le cas que la recherche ne doit pas faire disparaître.
+            ("PAU-HUI-15W40", "", [("Toyota", "", "", None, None), ("Nissan", "", "", None, None)]),
+        ],
+    },
 ]
 
 
@@ -396,6 +444,8 @@ class Command(BaseCommand):
                     )
             variantes.append(variante)
 
+        self._declarer_les_vehicules(boutique, gerant, variantes, donnees)
+
         # Les fiches et les fournées viennent **avant** l'historique de ventes :
         # on ne vend pas des baguettes qui n'ont pas été cuites.
         ingredients = self._composer_les_fiches(boutique, depot, gerant, variantes, donnees)
@@ -408,6 +458,34 @@ class Command(BaseCommand):
         self._generer_historique(boutique, depot, gerant, au_comptoir)
         self._creer_etats_de_stock(depot, gerant, au_comptoir)
         self._ouvrir_reserve(boutique, depot, gerant, variantes, donnees.get("reserve"))
+
+    def _declarer_les_vehicules(self, boutique, gerant, variantes, donnees) -> None:
+        """Références constructeur et compatibilités, pour les pièces détachées.
+
+        Inerte ailleurs : la clé `vehicules` est absente et rien n'est écrit.
+        """
+        from apps.catalog.models import CompatibiliteVehicule
+
+        lignes = donnees.get("vehicules") or []
+        if not lignes:
+            return
+
+        par_sku = {v.sku: v for v in variantes}
+        for sku, reference, compatibilites in lignes:
+            variante = par_sku[sku]
+            if reference and not variante.reference_constructeur:
+                Variante.objects.filter(pk=variante.pk).update(reference_constructeur=reference)
+            for marque, modele, motorisation, debut, fin in compatibilites:
+                CompatibiliteVehicule.objects.get_or_create(
+                    boutique=boutique,
+                    variante=variante,
+                    marque=marque,
+                    modele=modele,
+                    motorisation=motorisation,
+                    annee_debut=debut,
+                    annee_fin=fin,
+                    defaults={"cree_par": gerant},
+                )
 
     def _composer_les_fiches(self, boutique, depot, gerant, variantes, donnees) -> set:
         """Fiches techniques et fournées du matin, pour les métiers qui fabriquent.

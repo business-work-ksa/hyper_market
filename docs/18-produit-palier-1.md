@@ -446,7 +446,7 @@ les chemins — et une application native reste nécessaire pour un pilotage com
 ### 8.6 — L'isolation au niveau ligne, et le piège qui la rendait décorative
 
 La troisième barrière du multi-tenant existait sur le papier depuis le document 09 ; elle n'existait
-pas en base. Elle y est désormais : une politique sur chacune des 24 tables scopées, pilotée par un
+pas en base. Elle y est désormais : une politique sur chacune des 29 tables scopées, pilotée par un
 réglage de session que le contexte Python pose à chaque changement de boutique. Réglage absent :
 rien n'est visible.
 

@@ -21,6 +21,7 @@ from django.db.models import F
 from apps.core.tenancy import contexte_boutique
 from apps.inventory.models import (
     QUANTUM,
+    QUANTUM_MONETAIRE,
     Depot,
     LigneInventaire,
     MouvementStock,
@@ -29,9 +30,12 @@ from apps.inventory.models import (
 
 __all__ = [
     "MouvementInvalide",
+    "cout_de_revient",
     "lots_a_surveiller",
     "enregistrer_mouvement",
     "entrer_stock",
+    "produire",
+    "production_du_jour",
     "sortir_stock",
     "transferer_stock",
     "regulariser_inventaire",
@@ -335,6 +339,196 @@ def _regulariser_inventaire(inventaire, *, cree_par=None) -> list[MouvementStock
     inventaire.valide_le = timezone.now()
     inventaire.save(update_fields=["etat", "valide_le", "modifie_le"])
     return mouvements
+
+
+# ---------------------------------------------------------------------------
+# Production : fabriquer, c'est transformer du stock en stock
+# ---------------------------------------------------------------------------
+# Une fournée n'est ni une entrée ni une sortie : c'est les deux, et le lien
+# entre les deux est ce qui donne son sens au coût de revient. La farine, le sel
+# et la levure sortent ; les baguettes entrent — et elles entrent **exactement à
+# ce que la farine, le sel et la levure ont coûté**. Aucune valeur n'est créée
+# par la cuisson, aucune n'est perdue : c'est la règle comptable, et c'est aussi
+# ce qu'un boulanger vérifie de tête.
+#
+# Rien n'est écrit sur la fiche technique au passage. Le coût de revient est
+# porté par le mouvement (`cmp_apres`), comme tous les autres coûts du système :
+# il devient un fait daté, et la fournée de mardi garde son coût même quand le
+# sac de farine augmente mercredi.
+
+
+def cout_de_revient(recette, *, depot) -> dict:
+    """Ce que coûte une exécution complète de la fiche, aux CMP du jour.
+
+    Renvoie le détail ligne à ligne **et** le total. Annoncer « 12 400 F » sans
+    dire d'où ça sort n'aide personne : ce qu'un boulanger cherche quand son coût
+    monte, c'est **quel ingrédient** a augmenté.
+
+    Un ingrédient jamais entré en stock a un CMP nul. Il est compté pour zéro
+    **et signalé** (`connu=False`) plutôt que passé sous silence : un coût de
+    revient faussement bas est exactement ce qui fait fixer un prix de vente à
+    perte.
+
+    Lit dans le contexte de la boutique courante, comme `lots_a_surveiller` : la
+    fonction est appelée depuis une vue, ou depuis `produire` qui a déjà établi
+    le contexte.
+    """
+    from apps.catalog.models import LigneRecette
+
+    lignes, total, complet = [], Decimal("0"), True
+    requete = (
+        LigneRecette.objects.filter(recette=recette)
+        .select_related("ingredient__produit")
+        .order_by("ingredient__produit__libelle")
+    )
+    niveaux = {
+        niveau.variante_id: niveau
+        for niveau in NiveauStock.objects.filter(
+            depot=depot, variante__in=[ligne.ingredient_id for ligne in requete]
+        )
+    }
+    for ligne in requete:
+        niveau = niveaux.get(ligne.ingredient_id)
+        connu = niveau is not None and niveau.cmp > 0
+        cout = niveau.cmp if niveau is not None else Decimal("0")
+        montant = (ligne.quantite * cout).quantize(QUANTUM_MONETAIRE)
+        complet = complet and connu
+        total += montant
+        lignes.append(
+            {
+                "ligne": ligne,
+                "cmp": cout,
+                "montant": montant,
+                "connu": connu,
+                "disponible": niveau.quantite if niveau is not None else Decimal("0"),
+            }
+        )
+
+    rendement = recette.rendement or Decimal("1")
+    return {
+        "lignes": lignes,
+        "total": total.quantize(QUANTUM_MONETAIRE),
+        "unitaire": (total / rendement).quantize(QUANTUM_MONETAIRE),
+        "complet": complet,
+    }
+
+
+def produire(*, depot, recette, quantite, cree_par=None, **kwargs):
+    """Fabrique `quantite` unités : sort les ingrédients, entre le produit fini."""
+    with contexte_boutique(depot.boutique_id):
+        return _produire(
+            depot=depot, recette=recette, quantite=quantite, cree_par=cree_par, **kwargs
+        )
+
+
+@transaction.atomic
+def _produire(*, depot, recette, quantite, cree_par=None, operation_id=None, commentaire=""):
+    """Corps de `produire` : les sorties, puis l'entrée valorisée à leur somme.
+
+    Le coût du produit fini n'est pas estimé, il est **constaté** : chaque sortie
+    d'ingrédient est valorisée au CMP courant par le moteur de stock, et le
+    produit fini entre à la somme de ces sorties. Recalculer le coût séparément
+    aurait ouvert la porte à un écart entre ce qui est sorti et ce qui est entré
+    — c'est-à-dire à de la valeur créée ou détruite par une erreur d'arrondi.
+
+    Renvoie `(entrée, sorties)`.
+    """
+    from apps.catalog.models import LigneRecette
+
+    quantite = Decimal(quantite).quantize(QUANTUM)
+    if quantite <= 0:
+        raise MouvementInvalide("Une production porte sur une quantité positive.")
+    if not recette.actif:
+        raise MouvementInvalide("Cette fiche technique est désactivée.")
+    if recette.boutique_id != depot.boutique_id:
+        raise MouvementInvalide("La fiche et le dépôt appartiennent à des boutiques différentes.")
+
+    lignes = list(
+        LigneRecette.objects_all_tenants.filter(
+            boutique_id=depot.boutique_id, recette=recette
+        ).select_related("ingredient")
+    )
+    if not lignes:
+        raise MouvementInvalide(
+            "Cette fiche n'a aucun ingrédient : il n'y a rien à consommer, donc "
+            "rien à produire."
+        )
+
+    facteur = quantite / (recette.rendement or Decimal("1"))
+    libelle = commentaire or f"Production {recette.variante}"
+
+    sorties, cout_total = [], Decimal("0")
+    for ligne in lignes:
+        consommee = (ligne.quantite * facteur).quantize(QUANTUM)
+        if consommee == 0:
+            # Une fraction de fournée peut ramener un ingrédient de trace sous le
+            # quantum. Rien ne sort, rien n'est compté : refuser la production
+            # entière pour un dixième de gramme de levure serait absurde.
+            continue
+        sortie = enregistrer_mouvement(
+            depot=depot,
+            variante=ligne.ingredient,
+            type_mouvement=MouvementStock.PRODUCTION,
+            quantite=-consommee,
+            origine_type="catalog.Recette",
+            origine_id=recette.pk,
+            commentaire=libelle,
+            cree_par=cree_par,
+        )
+        sorties.append(sortie)
+        cout_total += (sortie.cout_unitaire * consommee).quantize(QUANTUM_MONETAIRE)
+
+    if not sorties:
+        raise MouvementInvalide(
+            "La quantité demandée est trop faible pour consommer le moindre ingrédient."
+        )
+
+    entree = enregistrer_mouvement(
+        depot=depot,
+        variante=recette.variante,
+        type_mouvement=MouvementStock.PRODUCTION,
+        quantite=quantite,
+        cout_unitaire=(cout_total / quantite).quantize(QUANTUM),
+        origine_type="catalog.Recette",
+        origine_id=recette.pk,
+        operation_id=operation_id,
+        commentaire=libelle,
+        cree_par=cree_par,
+        # La date de péremption d'un produit fabriqué se calcule au moment où il
+        # est fabriqué — c'est la seule date que le boulanger n'a pas à saisir,
+        # et donc la seule qu'il ne peut pas se tromper en saisissant.
+        date_peremption=_peremption_de(recette),
+    )
+    return entree, sorties
+
+
+def _peremption_de(recette):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    if not recette.duree_conservation_jours:
+        return None
+    return timezone.localdate() + timedelta(days=recette.duree_conservation_jours)
+
+
+def production_du_jour(*, depot=None, jour=None):
+    """Ce qui est sorti du four aujourd'hui, pour la boutique courante.
+
+    Seules les **entrées** de production sont renvoyées : les sorties
+    d'ingrédients de la même fournée sont la contrepartie du même geste, et les
+    afficher côte à côte ferait lire « 40 baguettes, 12 kg de farine » comme deux
+    productions.
+    """
+    from django.utils import timezone
+
+    jour = jour or timezone.localdate()
+    mouvements = MouvementStock.objects.filter(
+        type=MouvementStock.PRODUCTION, quantite__gt=0, cree_le__date=jour
+    )
+    if depot is not None:
+        mouvements = mouvements.filter(depot=depot)
+    return mouvements.select_related("variante__produit", "depot").order_by("-cree_le")
 
 
 def lots_a_surveiller(*, depot=None, jours: int = 30):

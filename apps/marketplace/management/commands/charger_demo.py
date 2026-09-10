@@ -110,6 +110,51 @@ BOUTIQUES = [
             ("PHA-VITC-1G", "Vitamine C 1 g — 10 comprimés", "1200", "700", 210, 35, "L24D019", 25),
         ],
     },
+    {
+        # Une boulangerie non plus n'est pas un décor : c'est le seul métier du
+        # jeu où l'on **fabrique**, et donc le seul où l'écran de production, le
+        # coût de revient et les invendus se vérifient sans lire le code.
+        "raison_sociale": "Fournil de Bonapriso SARL",
+        "enseigne": "Boulangerie Bonapriso",
+        "slug": "boulangerie-bonapriso",
+        "metier": "BOULANGERIE",
+        "rayon": "alimentaire",
+        "offre": TypeEmplacement.BOUTIQUE,
+        "rccm": "RC/DLA/2020/B/2471",
+        "niu": "M032011223344D",
+        "ville": "Douala",
+        "gerant": ("+237691440011", "Rachel Mbappé"),
+        "equipe": [("+237691440022", "Ibrahim Sali", Role.VENDEUR)],
+        "reserve": None,
+        # Matières premières et produits finis entrent tous à l'état des lieux :
+        # une boulangerie qui installe le logiciel un mardi a du pain en rayon,
+        # et il vaut ce qu'il a coûté à cuire. Ce qui change ensuite, c'est que
+        # le pain se **refait** — les fournées ci-dessous — quand la farine, elle,
+        # se rachète.
+        "produits": [
+            ("BOU-FAR-T55", "Farine de blé T55 — sac de 50 kg", "32000", "26000", 40, 8),
+            ("BOU-LEV-1KG", "Levure boulangère — 1 kg", "4500", "3200", 25, 5),
+            ("BOU-SEL-25", "Sel fin — sac de 25 kg", "6000", "4200", 12, 3),
+            ("BOU-BEU-1KG", "Beurre de tourage — 1 kg", "7500", "5600", 30, 6),
+            ("BOU-BAG-250", "Baguette 250 g", "150", "102", 900, 60),
+            ("BOU-CRO-BEU", "Croissant au beurre", "300", "141", 400, 40),
+        ],
+        # (produit fini, rendement, jours de conservation, [(ingrédient, quantité)])
+        # Les quantités sont exprimées dans l'unité d'achat : la farine s'achète
+        # au sac, une fournée de 40 baguettes en consomme 0,15.
+        "fiches": [
+            (
+                "BOU-BAG-250", "40", 2,
+                [("BOU-FAR-T55", "0.15"), ("BOU-LEV-1KG", "0.05"), ("BOU-SEL-25", "0.008")],
+            ),
+            (
+                "BOU-CRO-BEU", "60", 2,
+                [("BOU-FAR-T55", "0.06"), ("BOU-BEU-1KG", "1.2"), ("BOU-LEV-1KG", "0.05")],
+            ),
+        ],
+        # Fournées du matin, pour que l'écran ne s'ouvre pas sur du vide.
+        "productions": [("BOU-BAG-250", "120"), ("BOU-CRO-BEU", "60")],
+    },
 ]
 
 
@@ -334,22 +379,91 @@ class Command(BaseCommand):
                 NiveauStock.objects.create(
                     boutique=boutique, depot=depot, variante=variante, seuil_alerte=Decimal(seuil)
                 )
-                entrer_stock(
-                    depot=depot,
-                    variante=variante,
-                    quantite=Decimal(quantite),
-                    cout_unitaire=Decimal(cout),
-                    origine_type="demo",
-                    commentaire="Stock initial (état des lieux d'entrée)",
-                    cree_par=gerant,
-                    date_peremption=peremption,
-                    numero_lot=numero_lot,
-                )
+                # Une quantité nulle ne produit pas de mouvement : un article
+                # peut légitimement entrer au catalogue sans stock, et un
+                # mouvement de zéro serait refusé par le moteur — à raison.
+                if Decimal(quantite) > 0:
+                    entrer_stock(
+                        depot=depot,
+                        variante=variante,
+                        quantite=Decimal(quantite),
+                        cout_unitaire=Decimal(cout),
+                        origine_type="demo",
+                        commentaire="Stock initial (état des lieux d'entrée)",
+                        cree_par=gerant,
+                        date_peremption=peremption,
+                        numero_lot=numero_lot,
+                    )
             variantes.append(variante)
 
-        self._generer_historique(boutique, depot, gerant, variantes)
-        self._creer_etats_de_stock(depot, gerant, variantes)
+        # Les fiches et les fournées viennent **avant** l'historique de ventes :
+        # on ne vend pas des baguettes qui n'ont pas été cuites.
+        ingredients = self._composer_les_fiches(boutique, depot, gerant, variantes, donnees)
+
+        # Une matière première ne passe pas en caisse. Un boulanger ne vend pas
+        # son sac de farine au comptoir, et l'y faire passer creuserait un stock
+        # négatif qui ne raconterait rien — sinon que le jeu de démonstration
+        # ignore ce qu'est un ingrédient.
+        au_comptoir = [v for v in variantes if v.pk not in ingredients]
+        self._generer_historique(boutique, depot, gerant, au_comptoir)
+        self._creer_etats_de_stock(depot, gerant, au_comptoir)
         self._ouvrir_reserve(boutique, depot, gerant, variantes, donnees.get("reserve"))
+
+    def _composer_les_fiches(self, boutique, depot, gerant, variantes, donnees) -> set:
+        """Fiches techniques et fournées du matin, pour les métiers qui fabriquent.
+
+        Rien n'est écrit ici pour les autres : la clé `fiches` est absente, la
+        méthode ne fait rien, et une quincaillerie de démonstration reste une
+        quincaillerie.
+
+        Renvoie les variantes qui servent d'ingrédient : l'appelant s'en sert
+        pour les tenir hors des ventes comptoir.
+        """
+        from apps.catalog.models import LigneRecette, Recette
+        from apps.inventory.services import produire
+
+        fiches = donnees.get("fiches") or []
+        if not fiches:
+            return set()
+
+        par_sku = {v.sku: v for v in variantes}
+        utilises = {
+            par_sku[sku_ingredient].pk
+            for _, _, _, ingredients in fiches
+            for sku_ingredient, _quantite in ingredients
+        }
+        recettes = {}
+        for sku, rendement, conservation, ingredients in fiches:
+            recette, cree = Recette.objects.get_or_create(
+                boutique=boutique,
+                variante=par_sku[sku],
+                defaults={
+                    "rendement": Decimal(rendement),
+                    "duree_conservation_jours": conservation,
+                    "cree_par": gerant,
+                },
+            )
+            recettes[sku] = recette
+            if not cree:
+                continue
+            for sku_ingredient, quantite in ingredients:
+                LigneRecette.objects.create(
+                    boutique=boutique,
+                    recette=recette,
+                    ingredient=par_sku[sku_ingredient],
+                    quantite=Decimal(quantite),
+                    cree_par=gerant,
+                )
+
+        for sku, quantite in donnees.get("productions") or []:
+            produire(
+                depot=depot,
+                recette=recettes[sku],
+                quantite=Decimal(quantite),
+                commentaire="Fournée du matin",
+                cree_par=gerant,
+            )
+        return utilises
 
     def _ouvrir_reserve(self, boutique, principal, gerant, variantes, libelle):
         """Second dépôt et transferts, pour que le multi-dépôts soit visible.

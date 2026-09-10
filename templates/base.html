@@ -59,6 +59,13 @@
         {% if metier and 'peremption' in metier.fonctions and 'stock.voir' in droits %}
           {% nav 'peremptions' 'ic-horloge' 'Péremptions' page peremptions %}
         {% endif %}
+        {% comment %}
+        Même règle pour la production : elle n'apparaît que là où la boutique
+        fabrique ce qu'elle vend. Un quincaillier n'a pas de fournée.
+        {% endcomment %}
+        {% if metier and 'recette' in metier.fonctions and 'stock.voir' in droits %}
+          {% nav 'production' 'ic-production' 'Production' page %}
+        {% endif %}
         {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' 'Ventes' page %}{% endif %}
         {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' 'Commandes' page commandes_a_traiter %}{% endif %}
       </div>

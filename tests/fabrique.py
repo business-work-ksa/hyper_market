@@ -91,12 +91,12 @@ def creer_depot_sans_contexte(boutique, libelle="Magasin", *, principal=True) ->
     )
 
 
-def creer_variante(boutique, *, prix="11925", sku=None) -> Variante:
+def creer_variante(boutique, *, prix="11925", sku=None, libelle=None) -> Variante:
     n = _suivant()
     sku = sku or f"SKU-{n}"
     with contexte_boutique(boutique):
         produit = Produit.objects.create(
-            boutique=boutique, sku=sku, libelle=f"Produit {n}"
+            boutique=boutique, sku=sku, libelle=libelle or f"Produit {n}"
         )
         return Variante.objects.create(
             boutique=boutique, produit=produit, sku=sku, prix_vente=Decimal(prix)

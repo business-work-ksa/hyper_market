@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Production — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Production du jour{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'fiches' %}">Fiches techniques</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">Fabrications</span></div>
+      <p class="tuile__valeur">{{ mouvements|length }}</p>
+      <p class="tuile__note"><span class="t-muet">Depuis ce matin, dans {{ depot_courant.libelle|default:"ce dépôt" }}</span></p>
+    </article>
+    {% if valeur_produite is not None %}
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Coût de production</span></div>
+        <p class="tuile__valeur">{{ valeur_produite|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">Ce que les ingrédients consommés ont coûté</span></p>
+      </article>
+    {% endif %}
+    {% if pertes is not None %}
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">Invendus déclarés</span></div>
+        <p class="tuile__valeur">{{ pertes|length }}</p>
+        <p class="tuile__note"><span class="t-muet">Déclarés aujourd'hui — à comparer à ce qui est sorti du four</span></p>
+      </article>
+    {% endif %}
+  </section>
+
+  {% if peut_produire %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Lancer une fabrication</h2>
+        <span class="t-legende">La quantité demandée est celle du produit fini</span>
+      </header>
+      <div class="carte__corps--serre">
+        {% if fiches %}
+          <div class="tableau-boite">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th scope="col">{{ metier.article|capfirst }}</th>
+                  <th scope="col" class="num">Rendement</th>
+                  <th scope="col">Conservation</th>
+                  <th scope="col" class="num">Quantité à produire</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in fiches %}
+                  <tr>
+                    <td class="principal">
+                      <a href="{% url 'fiche' recette_id=f.pk %}">{{ f.variante }}</a>
+                    </td>
+                    <td class="num t-2">{{ f.rendement|quantite }}</td>
+                    <td class="t-2">
+                      {% if f.duree_conservation_jours %}{{ f.duree_conservation_jours }} j{% else %}<span class="t-muet">—</span>{% endif %}
+                    </td>
+                    <td class="num" colspan="2">
+                      <form method="post" action="{% url 'production_lancer' recette_id=f.pk %}"
+                            class="rangee" style="gap:8px;justify-content:flex-end">
+                        {% csrf_token %}
+                        <input class="champ champ--compact" type="number" name="quantite"
+                               inputmode="decimal" step="1" min="0.0001" style="max-width:120px"
+                               value="{{ f.rendement|quantite }}"
+                               aria-label="Quantité à produire de {{ f.variante }}">
+                        <button class="btn btn--primaire" type="submit">Produire</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="carte__corps">
+            <div class="vide">
+              <svg><use href="#ic-production"></use></svg>
+              <p class="t-2">Aucune fiche technique active.</p>
+              <p class="t-legende">
+                Une fiche dit ce qu'il faut pour fabriquer un produit et combien
+                cela produit. Sans elle, la production ne peut ni sortir les
+                ingrédients ni calculer un coût de revient.
+              </p>
+              <a class="btn btn--primaire" href="{% url 'fiches' %}">Composer une fiche</a>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Sorti du four aujourd'hui</h2>
+      {% if mouvements %}<span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>{{ mouvements|length }}</span>{% endif %}
+    </header>
+    <div class="carte__corps--serre">
+      {% if mouvements %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Heure</th>
+                <th scope="col">{{ metier.article|capfirst }}</th>
+                <th scope="col" class="num">Quantité</th>
+                {% if 'cout.voir' in droits %}<th scope="col" class="num">Revient à</th>{% endif %}
+                <th scope="col">Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in mouvements %}
+                <tr>
+                  <td class="t-2 chiffre">{{ m.cree_le|date:"H:i" }}</td>
+                  <td class="principal">{{ m.variante.produit.libelle }}</td>
+                  <td class="num" style="font-weight:620">{{ m.quantite|quantite }}</td>
+                  {% if 'cout.voir' in droits %}
+                    <td class="num chiffre">{{ m.cout_unitaire|fcfa }}<span class="unite">FCFA</span></td>
+                  {% endif %}
+                  <td class="t-2">{{ m.commentaire|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte__corps">
+          <div class="vide">
+            <svg><use href="#ic-horloge"></use></svg>
+            <p class="t-2">Rien n'a encore été fabriqué aujourd'hui.</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if peut_produire and fiches %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Invendus</h2>
+        <span class="t-legende">Une perte, pas un écart de comptage</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:14px">
+        <form method="post" action="{% url 'production_invendus' %}" class="rangee"
+              style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+          {% csrf_token %}
+          <div class="groupe-champ" style="flex:2;min-width:220px">
+            <label for="{{ formulaire_invendu.variante.id_for_label }}">{{ formulaire_invendu.variante.label }}</label>
+            {{ formulaire_invendu.variante }}
+          </div>
+          <div class="groupe-champ" style="flex:1;min-width:140px">
+            <label for="{{ formulaire_invendu.quantite.id_for_label }}">{{ formulaire_invendu.quantite.label }}</label>
+            {{ formulaire_invendu.quantite }}
+          </div>
+          <div class="groupe-champ" style="flex:2;min-width:200px">
+            <label for="{{ formulaire_invendu.motif.id_for_label }}">{{ formulaire_invendu.motif.label }}</label>
+            {{ formulaire_invendu.motif }}
+          </div>
+          <button class="btn" type="submit">Déclarer</button>
+        </form>
+        <p class="t-legende">
+          Ce qui est déclaré ici sort du stock en <strong>perte</strong>, à son
+          coût de production. C'est ce qui permet de savoir en fin de mois combien
+          la fabrication a jeté — un ajustement d'inventaire effacerait cette
+          information.
+        </p>
+
+        {% if pertes %}
+          <div class="tableau-boite">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th scope="col">Heure</th>
+                  <th scope="col">{{ metier.article|capfirst }}</th>
+                  <th scope="col" class="num">Quantité</th>
+                  <th scope="col">Motif</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in pertes %}
+                  <tr>
+                    <td class="t-2 chiffre">{{ p.cree_le|date:"H:i" }}</td>
+                    <td class="principal">{{ p.variante.produit.libelle }}</td>
+                    <td class="num" style="font-weight:620">{{ p.quantite|quantite }}</td>
+                    <td class="t-2">{{ p.commentaire|default:"—" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

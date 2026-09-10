@@ -12,7 +12,7 @@ cp .env.example .env    # DEBUG=True, sinon les fichiers statiques ne sont pas s
 
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
-make demo               # référentiels + 2 boutiques de démonstration
+make demo               # référentiels + 4 boutiques de démonstration
 make servir             # http://localhost:8000/
 ```
 
@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 304 tests (17 ignorés sur SQLite)
+make tester      # 426 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -41,6 +41,14 @@ Comptes de démonstration (mot de passe `demo1234`) :
 | `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge**, pas la caisse |
 | `+237677220022` | Gérante, Bella Cosmétiques (Yaoundé) | Tout |
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
+| `+237655330011` | Gérante, Pharmacie du Wouri (Douala) | Tout — **lots et péremptions**, dont un lot déjà périmé |
+| `+237655330022` | Vendeur, Pharmacie du Wouri | Comptoir et stock — ni coût, ni marge |
+| `+237691440011` | Gérante, Boulangerie Bonapriso (Douala) | Tout — **fiches techniques, production du jour, invendus** |
+| `+237691440022` | Vendeur, Boulangerie Bonapriso | Comptoir et stock — **la production sans son coût** |
+
+Les deux dernières boutiques ne sont pas du décor : la pharmacie est le seul métier du jeu où le
+suivi par lot se voit à l'écran, et la boulangerie le seul où l'on fabrique. Ce sont donc les deux
+seuls endroits où ces fonctions se vérifient sans lire le code.
 
 Se connecter successivement avec ces comptes est le moyen le plus rapide de voir
 ce que la matrice de droits change réellement à l'écran.
@@ -275,6 +283,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_metiers.py` | Les 10 métiers : vocabulaire, valeurs par défaut, formulaire composé — et le suivi par lot, qui consomme **le plus proche de périmer** et reste inerte là où le métier ne l'active pas |
 | `test_identite.py` | **Le validateur de palette du produit, appliqué au logo du commerçant** : il retrouve le verdict qui avait rejeté le premier teal ; la teinte n'est jamais modifiée, la version sombre est éclaircie et non inversée, une couleur neutre est refusée plutôt qu'inventée |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
+| `test_production.py` | **Fabriquer ne crée ni ne détruit de valeur** : ce qui sort des ingrédients entre dans le produit fini au centime ; le coût de revient est calculé au moment où on le regarde, jamais figé sur la fiche ; un invendu est une perte et non un écart de comptage |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
 réseau du navigateur et rejoue le parcours d'un caissier en panne de connexion.
@@ -526,8 +535,8 @@ même raison : ce sont des règles, pas des données modifiables à chaud.
 | Pharmacie & parapharmacie | péremption, lot — **TVA exonérée par défaut** |
 | Quincaillerie & matériaux | poids/longueur variable |
 | Cosmétique & beauté | péremption, lot, déclinaisons |
-| Restauration & snack | péremption |
-| Boulangerie & pâtisserie | péremption, poids variable |
+| Restauration & snack | péremption, **fiches techniques** |
+| Boulangerie & pâtisserie | péremption, poids variable, **fiches techniques** |
 | Mode & prêt-à-porter | déclinaisons |
 | Électronique & téléphonie | déclinaisons |
 | Pièces détachées auto & moto | *(aucune pour l'instant)* |
@@ -564,12 +573,53 @@ d'une pharmacie.
 ligne à ligne à la vente ; le rappel de lot au sens pharmacovigilance n'est donc pas là, et le
 libellé de la fonction ne le prétend pas.
 
-### 9.3 — Déclaré mais pas écrit
+### 9.3 — Fabriquer : fiches techniques et production
+
+Restauration et boulangerie ne revendent pas : elles **fabriquent**. Écran : **Production**, et
+`Production → Fiches techniques`.
+
+**Fabriquer, c'est transformer du stock en stock.** La farine sort, les baguettes entrent — et
+elles entrent *exactement* à ce que la farine a coûté. Le mouvement de production est signé, comme
+un transfert : un seul type, une entrée et *n* sorties, toutes rattachées à la fiche par
+`origine_id`. Aucune valeur n'est créée par la cuisson, aucune n'est perdue.
+
+C'est la propriété que `test_production.py` protège en priorité : une production qui perdrait un
+franc en chemin ferait dériver la valeur du stock sans que personne ne le voie, et une
+valorisation qui dérive silencieusement se découvre à l'inventaire annuel — un an trop tard.
+
+**Le coût de revient n'est jamais stocké.** Il est recalculé à chaque affichage sur les CMP du jour,
+et historisé par le mouvement (`cmp_apres`) au moment de la fabrication. Un coût figé sur la fiche
+serait faux dès que le sac de farine change de prix, et un boulanger qui fixe son prix de vente sur
+un chiffre périmé vend à perte sans le voir. Corollaire assumé : un ingrédient jamais reçu a un CMP
+nul, il est compté pour zéro **et signalé** — masquer la ligne donnerait un coût faussement bas,
+ce qui est précisément l'erreur qu'on cherche à éviter.
+
+**Le rendement est explicite.** Une fiche produit *quarante* baguettes, pas « une ». Un boulanger
+raisonne en fournée ; l'obliger à diviser ses quantités par quarante à la saisie est le meilleur
+moyen d'obtenir une fiche fausse. La quantité demandée à la production est celle du produit fini,
+et le rapport au rendement est l'affaire du logiciel.
+
+**Une fiche ne se cascade pas.** Produire consomme du **stock**, pas les recettes des ingrédients.
+Une boulangerie qui fait sa pâte puis ses baguettes enregistre deux productions — ce qu'elle fait
+réellement, à deux moments de la matinée. Une cascade fabriquerait de la pâte fantôme jamais
+pétrie, et le stock cesserait de décrire le fournil.
+
+**Un invendu est une perte, pas un écart de comptage.** Le pain a existé, il a coûté, il ne sera pas
+vendu. L'écrire en ajustement d'inventaire effacerait la seule information qui vaille : combien la
+journée a jeté, et sur quoi.
+
+Le coût de revient suit le droit `cout.voir`, comme le CMP partout ailleurs : sans ce droit, il
+n'est **pas calculé** — pas masqué en CSS (§3.6).
+
+### 9.4 — Déclaré mais pas écrit
 
 Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : numéros de série et garantie,
-fiches techniques, production du jour, compatibilité véhicule, mention d'ordonnance. Lister une
-fonction non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une
-pharmacie paie cher ce genre de malentendu.
+compatibilité véhicule, mention d'ordonnance, service à table. Lister une fonction non écrite au
+milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une pharmacie paie cher ce
+genre de malentendu.
+
+Un test le tient dans les deux sens : ce qui vient d'être câblé doit **sortir** de `a_venir`, faute
+de quoi la liste ment à l'envers.
 
 ---
 

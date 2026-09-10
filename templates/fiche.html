@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}{{ recette.variante }} — fiche technique{% endblock %}
+{% block entete %}{{ recette.variante }}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'fiches' %}">Toutes les fiches</a>
+  {% if 'stock.mouvementer' in droits %}
+    <form method="post" action="{% url 'fiche_basculer' recette_id=recette.pk %}" style="display:inline">
+      {% csrf_token %}
+      <button class="btn" type="submit">
+        {% if recette.actif %}Retirer de la production{% else %}Remettre en service{% endif %}
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  {% if not recette.actif %}
+    <div class="bandeau-info bandeau-info--alerte" role="status">
+      <svg><use href="#ic-info"></use></svg>
+      <span>
+        Cette fiche est retirée de la production. Elle reste lisible : elle
+        explique les fabrications déjà enregistrées dans le journal du stock.
+      </span>
+    </div>
+  {% endif %}
+
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">Rendement</span></div>
+      <p class="tuile__valeur">{{ recette.rendement|quantite }}</p>
+      <p class="tuile__note"><span class="t-muet">Unités par exécution complète</span></p>
+    </article>
+    {% if revient %}
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Coût de revient</span></div>
+        <p class="tuile__valeur">{{ revient.unitaire|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">Par unité, aux coûts moyens du jour</span></p>
+      </article>
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Prix de vente</span></div>
+        <p class="tuile__valeur">{{ recette.variante.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note">
+          {% if revient.unitaire >= recette.variante.prix_vente %}
+            <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>Vendu à perte</span>
+          {% else %}
+            <span class="t-muet">Marge sur coût de production : {{ marge_production|fcfa }} FCFA</span>
+          {% endif %}
+        </p>
+      </article>
+    {% endif %}
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Ingrédients</h2>
+      <span class="t-legende">Pour {{ recette.rendement|quantite }} {{ metier.articles }}</span>
+    </header>
+    <div class="carte__corps--serre">
+      {% if lignes %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Ingrédient</th>
+                <th scope="col" class="num">Quantité</th>
+                {% if revient %}
+                  <th scope="col" class="num">Coût moyen</th>
+                  <th scope="col" class="num">Montant</th>
+                  <th scope="col" class="num">En stock</th>
+                {% endif %}
+                {% if 'stock.mouvementer' in droits %}<th scope="col"></th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% if revient %}
+                {% for d in revient.lignes %}
+                  <tr>
+                    <td class="principal">{{ d.ligne.ingredient }}</td>
+                    <td class="num" style="font-weight:620">{{ d.ligne.quantite|quantite }}</td>
+                    <td class="num chiffre">
+                      {% if d.connu %}
+                        {{ d.cmp|fcfa }}<span class="unite">FCFA</span>
+                      {% else %}
+                        <span class="puce puce--alerte" title="Cet ingrédient n'est jamais entré en stock : son coût est inconnu et compté pour zéro."><svg><use href="#ic-alerte"></use></svg>Inconnu</span>
+                      {% endif %}
+                    </td>
+                    <td class="num chiffre">{{ d.montant|fcfa }}<span class="unite">FCFA</span></td>
+                    <td class="num t-2">{{ d.disponible|quantite }}</td>
+                    {% if 'stock.mouvementer' in droits %}
+                      <td class="num">
+                        <form method="post" action="{% url 'fiche_ingredient_retirer' recette_id=recette.pk ligne_id=d.ligne.pk %}">
+                          {% csrf_token %}
+                          <button class="btn btn--discret" type="submit"
+                                  aria-label="Retirer {{ d.ligne.ingredient }}">Retirer</button>
+                        </form>
+                      </td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+              {% else %}
+                {% for ligne in lignes %}
+                  <tr>
+                    <td class="principal">{{ ligne.ingredient }}</td>
+                    <td class="num" style="font-weight:620">{{ ligne.quantite|quantite }}</td>
+                    {% if 'stock.mouvementer' in droits %}
+                      <td class="num">
+                        <form method="post" action="{% url 'fiche_ingredient_retirer' recette_id=recette.pk ligne_id=ligne.pk %}">
+                          {% csrf_token %}
+                          <button class="btn btn--discret" type="submit"
+                                  aria-label="Retirer {{ ligne.ingredient }}">Retirer</button>
+                        </form>
+                      </td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+            {% if revient %}
+              <tfoot>
+                <tr>
+                  <td class="principal">Total pour une exécution</td>
+                  <td></td>
+                  <td></td>
+                  <td class="num chiffre" style="font-weight:680">{{ revient.total|fcfa }}<span class="unite">FCFA</span></td>
+                  <td></td>
+                  {% if 'stock.mouvementer' in droits %}<td></td>{% endif %}
+                </tr>
+              </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      {% else %}
+        <div class="carte__corps">
+          <div class="vide">
+            <svg><use href="#ic-stock"></use></svg>
+            <p class="t-2">Cette fiche n'a pas encore d'ingrédient.</p>
+            <p class="t-legende">
+              Tant qu'elle est vide, elle ne peut rien produire : il n'y a rien à
+              consommer, donc rien à valoriser.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if revient and not revient.complet %}
+    <div class="bandeau-info bandeau-info--alerte" role="status">
+      <svg><use href="#ic-alerte"></use></svg>
+      <span>
+        Un ingrédient au moins n'est jamais entré en stock : son coût est compté
+        pour zéro. Le coût de revient affiché est donc <strong>plus bas que le
+        vrai</strong> — faites-y une réception avant de fixer un prix dessus.
+      </span>
+    </div>
+  {% endif %}
+
+  {% if 'stock.mouvementer' in droits %}
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Ajouter un ingrédient</h2></header>
+      <form method="post" action="{% url 'fiche_ingredient' recette_id=recette.pk %}"
+            class="carte__corps rangee" style="gap:10px;flex-wrap:wrap;align-items:flex-end" novalidate>
+        {% csrf_token %}
+        <div class="groupe-champ" style="flex:2;min-width:240px">
+          <label for="{{ formulaire_ingredient.ingredient.id_for_label }}">{{ formulaire_ingredient.ingredient.label }}</label>
+          {{ formulaire_ingredient.ingredient }}
+        </div>
+        <div class="groupe-champ" style="flex:1;min-width:160px">
+          <label for="{{ formulaire_ingredient.quantite.id_for_label }}">{{ formulaire_ingredient.quantite.label }}</label>
+          {{ formulaire_ingredient.quantite }}
+          <span class="t-legende">{{ formulaire_ingredient.quantite.help_text }}</span>
+        </div>
+        <button class="btn btn--primaire" type="submit">Ajouter</button>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if recette.note %}
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Mode opératoire</h2></header>
+      <div class="carte__corps">
+        <p class="t-2" style="white-space:pre-line">{{ recette.note }}</p>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

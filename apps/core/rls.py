@@ -53,6 +53,8 @@ TABLES_SCOPEES = [
     "catalog_produit",
     "catalog_variante",
     "catalog_mediaproduit",
+    "catalog_recette",
+    "catalog_lignerecette",
     "inventory_depot",
     "inventory_niveaustock",
     "inventory_mouvementstock",

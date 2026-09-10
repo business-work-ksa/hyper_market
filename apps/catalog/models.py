@@ -159,6 +159,100 @@ class Variante(TenantScopedModel):
         return (self.prix_vente / (1 + self.taux_tva)).quantize(Decimal("0.01"))
 
 
+class Recette(TenantScopedModel):
+    """Fiche technique : ce qu'il faut pour fabriquer, et combien ça produit.
+
+    Réservée aux métiers qui l'activent (`apps/marketplace/metiers.py`) : une
+    boulangerie et un restaurant **fabriquent** ce qu'ils vendent, une
+    quincaillerie revend ce qu'elle a acheté. Demander une fiche technique à la
+    seconde serait une saisie de plus pour rien.
+
+    Trois décisions de conception, et chacune protège quelque chose.
+
+    **Le coût de revient n'est pas stocké.** Il est recalculé à chaque affichage
+    à partir des CMP du jour, et historisé par le mouvement de production
+    (`cmp_apres`) au moment où la fabrication a lieu. Un coût figé sur la fiche
+    serait faux dès que le sac de farine change de prix — c'est-à-dire tout le
+    temps — et un boulanger qui fixe son prix de vente sur un chiffre périmé
+    vend à perte sans le voir.
+
+    **Le rendement est explicite.** Une recette produit *quarante* baguettes,
+    pas « une ». Un boulanger raisonne en fournée, pas à l'unité, et l'obliger à
+    diviser ses quantités par quarante à la saisie est le meilleur moyen
+    d'obtenir une fiche fausse.
+
+    **Une fiche ne se cascade pas.** Fabriquer un produit consomme du **stock**,
+    pas les recettes de ses ingrédients. Une boulangerie qui fait sa pâte puis
+    ses baguettes enregistre deux productions — ce qu'elle fait réellement, à
+    deux moments différents de la matinée. Une production en cascade fabriquerait
+    de la pâte fantôme jamais pétrie, et le stock cesserait de décrire le fournil.
+    """
+
+    variante = models.OneToOneField(
+        Variante,
+        on_delete=models.CASCADE,
+        related_name="recette",
+        help_text="Le produit fini que cette fiche fabrique.",
+    )
+    rendement = models.DecimalField(
+        max_digits=14,
+        decimal_places=4,
+        default=Decimal("1"),
+        validators=[MinValueValidator(Decimal("0.0001"))],
+        help_text="Combien d'unités une exécution de la fiche produit. Ex. 40 baguettes.",
+    )
+    duree_conservation_jours = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Nombre de jours de conservation. Vide si le produit ne périme pas.",
+    )
+    note = models.TextField(blank=True, help_text="Mode opératoire, tour de main, température.")
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "fiche technique"
+        verbose_name_plural = "fiches techniques"
+        ordering = ["variante__produit__libelle"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(rendement__gt=0), name="recette_rendement_positif")
+        ]
+
+    def __str__(self):
+        return f"Fiche technique · {self.variante}"
+
+
+class LigneRecette(TenantScopedModel):
+    """Un ingrédient et sa quantité, pour une exécution complète de la fiche.
+
+    L'ingrédient est une variante ordinaire du stock : la farine que le boulanger
+    reçoit du grossiste est un article comme un autre, avec son CMP. C'est ce qui
+    permet au coût de revient d'être un vrai coût et non une estimation.
+    """
+
+    recette = models.ForeignKey(Recette, on_delete=models.CASCADE, related_name="lignes")
+    ingredient = models.ForeignKey(Variante, on_delete=models.PROTECT, related_name="entre_dans")
+    quantite = models.DecimalField(
+        max_digits=14,
+        decimal_places=4,
+        validators=[MinValueValidator(Decimal("0.0001"))],
+        help_text="Quantité pour le rendement complet de la fiche, dans l'unité de l'ingrédient.",
+    )
+
+    class Meta:
+        verbose_name = "ingrédient"
+        verbose_name_plural = "ingrédients"
+        ordering = ["ingredient__produit__libelle"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["recette", "ingredient"], name="ligne_recette_unique_par_ingredient"
+            ),
+            models.CheckConstraint(condition=models.Q(quantite__gt=0), name="ligne_recette_quantite_positive"),
+        ]
+
+    def __str__(self):
+        return f"{self.quantite} × {self.ingredient}"
+
+
 class MediaProduit(TenantScopedModel):
     produit = models.ForeignKey(Produit, on_delete=models.CASCADE, related_name="medias")
     fichier = models.ImageField(upload_to="produits/%Y/%m/")

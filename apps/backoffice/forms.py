@@ -411,3 +411,177 @@ class LienMarketingForm(forms.Form):
         self.fields["article"].choices = [("", "Ma vitrine complète")] + [
             (str(v.pk), v.produit.libelle) for v in articles
         ]
+
+
+# ----------------------------------------------------------------------------
+# Fiches techniques et production — métiers qui fabriquent
+# ----------------------------------------------------------------------------
+# Le vocabulaire de ces formulaires suit le métier : un restaurateur compose un
+# plat, un boulanger une fournée. Les libellés sont donc posés dans `__init__`
+# et non en dur, comme dans `ArticleForm`.
+class FicheForm(forms.Form):
+    """Ouverture d'une fiche technique sur un produit fini déjà au catalogue.
+
+    Le produit fabriqué n'est pas créé ici : c'est un article ordinaire, avec son
+    prix, son stock et son CMP. Une fiche ne fait qu'expliquer **d'où il vient**.
+    En créer un second par la fiche donnerait deux baguettes au catalogue, dont
+    une invendable.
+    """
+
+    variante = forms.ChoiceField(label="Produit fabriqué", widget=forms.Select(attrs=CHAMP_GRAND))
+    rendement = forms.DecimalField(
+        label="Rendement",
+        min_value=Decimal("0.0001"),
+        decimal_places=4,
+        initial=Decimal("1"),
+        help_text="Combien d'unités une fiche complète produit. Une fournée, pas une pièce.",
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
+    )
+    duree_conservation_jours = forms.IntegerField(
+        label="Conservation (jours)",
+        min_value=0,
+        max_value=3650,
+        required=False,
+        help_text="La date de péremption sera calculée à chaque production.",
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
+    )
+    note = forms.CharField(
+        label="Mode opératoire",
+        required=False,
+        widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "placeholder": "Pétrissage 12 min, repos 1 h…"}),
+    )
+
+    def __init__(self, *args, boutique=None, metier=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.catalog.models import Recette, Variante
+
+        self.metier = metier or metiers.metier_de(boutique)
+        deja = Recette.objects.values_list("variante_id", flat=True)
+        candidats = (
+            Variante.objects.filter(actif=True)
+            .exclude(pk__in=list(deja))
+            .select_related("produit")
+            .order_by("produit__libelle")[:300]
+        )
+        self.disponibles = {str(v.pk): v for v in candidats}
+        self.fields["variante"].choices = [("", "Choisir…")] + [
+            (cle, str(v)) for cle, v in self.disponibles.items()
+        ]
+        self.fields["variante"].label = f"{self.metier.article.capitalize()} fabriqué"
+
+    def clean_variante(self):
+        variante = self.disponibles.get(self.cleaned_data["variante"])
+        if variante is None:
+            raise forms.ValidationError(
+                "Cet article n'existe pas dans votre boutique, ou il a déjà une fiche."
+            )
+        return variante
+
+
+class IngredientForm(forms.Form):
+    """Ajout d'un ingrédient à une fiche.
+
+    L'ingrédient est un article du stock, pas un texte libre : c'est ce qui
+    permet au coût de revient d'être un vrai coût, calculé sur le CMP, et à la
+    production de sortir réellement la marchandise du dépôt.
+    """
+
+    ingredient = forms.ChoiceField(label="Ingrédient", widget=forms.Select(attrs=CHAMP_GRAND))
+    quantite = forms.DecimalField(
+        label="Quantité",
+        min_value=Decimal("0.0001"),
+        decimal_places=4,
+        help_text="Pour une fiche complète, dans l'unité de l'ingrédient.",
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "0.01"}),
+    )
+
+    def __init__(self, *args, recette=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.catalog.models import Variante
+
+        self.recette = recette
+        deja = []
+        exclus = []
+        if recette is not None:
+            deja = list(recette.lignes.values_list("ingredient_id", flat=True))
+            # Un produit ne peut pas être son propre ingrédient : la production
+            # consommerait ce qu'elle fabrique, et le stock ne voudrait plus rien
+            # dire.
+            exclus = deja + [recette.variante_id]
+        candidats = (
+            Variante.objects.filter(actif=True)
+            .exclude(pk__in=exclus)
+            .select_related("produit")
+            .order_by("produit__libelle")[:300]
+        )
+        self.disponibles = {str(v.pk): v for v in candidats}
+        self.fields["ingredient"].choices = [("", "Choisir…")] + [
+            (cle, str(v)) for cle, v in self.disponibles.items()
+        ]
+
+    def clean_ingredient(self):
+        variante = self.disponibles.get(self.cleaned_data["ingredient"])
+        if variante is None:
+            raise forms.ValidationError(
+                "Cet ingrédient n'est pas disponible : il est déjà dans la fiche, "
+                "c'est le produit fabriqué lui-même, ou il n'existe pas ici."
+            )
+        return variante
+
+
+class ProductionForm(forms.Form):
+    """Lancement d'une fabrication.
+
+    La quantité demandée est celle du **produit fini** — quarante baguettes — et
+    non un nombre de fiches. C'est ce que le boulanger sait avant de commencer ;
+    le rapport au rendement est l'affaire du logiciel.
+    """
+
+    quantite = forms.DecimalField(
+        label="Quantité produite",
+        min_value=Decimal("0.0001"),
+        decimal_places=4,
+        widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
+    )
+    commentaire = forms.CharField(
+        label="Commentaire", max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Fournée du matin"}),
+    )
+
+
+class InvenduForm(forms.Form):
+    """Déclaration d'invendus en fin de journée.
+
+    Un invendu est une **perte**, pas un ajustement d'inventaire : la marchandise
+    a existé, elle a coûté, et elle ne sera pas vendue. L'écrire comme un écart
+    de comptage effacerait la seule information qui vaille — combien la journée a
+    jeté, et sur quel produit.
+    """
+
+    variante = forms.ChoiceField(label="Produit", widget=forms.Select(attrs=CHAMP_GRAND))
+    quantite = forms.DecimalField(
+        label="Quantité jetée",
+        min_value=Decimal("0.0001"),
+        decimal_places=4,
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
+    )
+    motif = forms.CharField(
+        label="Motif", max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Invendus du soir"}),
+    )
+
+    def __init__(self, *args, recettes=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Restreint aux produits fabriqués : les invendus d'une journée portent
+        # sur ce qui est sorti du four, pas sur les bouteilles en rayon — celles-là
+        # se régularisent à l'inventaire.
+        self.disponibles = {str(r.variante_id): r.variante for r in (recettes or [])}
+        self.fields["variante"].choices = [("", "Choisir…")] + [
+            (cle, str(v)) for cle, v in self.disponibles.items()
+        ]
+
+    def clean_variante(self):
+        variante = self.disponibles.get(self.cleaned_data["variante"])
+        if variante is None:
+            raise forms.ValidationError("Ce produit n'est pas fabriqué dans votre boutique.")
+        return variante

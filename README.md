@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 2 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 390 tests
+make tester                     # 426 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -81,6 +81,8 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge** |
 | `+237677220022` | Gérante, Bella Cosmétiques | Tout |
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
+| `+237655330011` | Gérante, Pharmacie du Wouri | Tout — **lots et péremptions**, dont un déjà périmé |
+| `+237691440011` | Gérante, Boulangerie Bonapriso | Tout — **fiches techniques et production du jour** |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
@@ -99,6 +101,14 @@ Pour les quatre métiers qui périment, le stock est suivi **lot par lot** : les
 le plus proche de périmer, et un écran dédié sépare ce qui est déjà perdu de ce qu'on peut encore
 écouler. Un lot ne porte pas de coût — la valorisation reste au coût moyen pondéré, le lot ne
 répond qu'à « quoi périme quand ».
+
+Pour les deux métiers qui **fabriquent** — restauration, boulangerie — une fiche technique dit ce
+qu'il faut pour faire un plat ou une fournée, et la production sort réellement les ingrédients du
+stock. Le produit fini entre à **exactement** ce que les ingrédients ont coûté : fabriquer ne crée
+pas de valeur et n'en détruit pas. Le coût de revient n'est jamais figé sur la fiche — il est
+recalculé sur les coûts du jour, parce qu'un boulanger qui fixe son prix sur le prix de la farine
+du mois dernier vend à perte sans le voir. Et un invendu sort en **perte**, jamais en écart de
+comptage : c'est la seule manière de savoir en fin de mois ce que la fabrication a jeté.
 
 Ce que chaque métier prévoit **sans l'avoir encore** est affiché comme tel : lister une fonction
 non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas.
@@ -180,7 +190,7 @@ voyage quand même sur le réseau.
 ### Isolation entre boutiques
 
 Trois barrières indépendantes, dont aucune ne suffit seule : le contexte de requête, le
-gestionnaire filtrant, et des **politiques PostgreSQL au niveau ligne** sur les 24 tables scopées.
+gestionnaire filtrant, et des **politiques PostgreSQL au niveau ligne** sur les 29 tables scopées.
 La troisième protège de ce que les deux premières ne voient pas — une requête brute, un script,
 un gestionnaire non filtré. Réglage de session absent : rien n'est visible.
 

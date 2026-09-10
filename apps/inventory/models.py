@@ -95,6 +95,7 @@ class MouvementStock(TenantScopedModel):
     AJUSTEMENT = "AJUSTEMENT"
     PERTE = "PERTE"
     CASSE = "CASSE"
+    PRODUCTION = "PRODUCTION"
     TYPES = [
         (ENTREE, "Entrée"),
         (SORTIE, "Sortie"),
@@ -102,6 +103,7 @@ class MouvementStock(TenantScopedModel):
         (AJUSTEMENT, "Ajustement d'inventaire"),
         (PERTE, "Perte"),
         (CASSE, "Casse"),
+        (PRODUCTION, "Production"),
     ]
 
     depot = models.ForeignKey(Depot, on_delete=models.PROTECT, related_name="mouvements")

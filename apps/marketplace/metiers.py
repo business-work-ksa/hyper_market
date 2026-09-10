@@ -27,8 +27,7 @@ l'impression d'un suivi qu'il n'a pas — c'est exactement le genre de promesse
 qu'une pharmacie paie cher.
 
 Restent à écrire, et volontairement non déclarées : numéros de série et garantie
-(électronique), fiches techniques et production du jour (restauration,
-boulangerie), compatibilité véhicule (pièces auto), mention d'ordonnance
+(électronique), compatibilité véhicule (pièces auto), mention d'ordonnance
 (pharmacie). Le métier les prévoit dans son `a_venir`, qui sert à l'afficher au
 commerçant sans le lui promettre.
 
@@ -52,6 +51,7 @@ __all__ = [
     "LOT",
     "POIDS_VARIABLE",
     "DECLINAISONS",
+    "RECETTE",
 ]
 
 # --- Fonctions réellement câblées -------------------------------------------
@@ -59,12 +59,14 @@ PEREMPTION = "peremption"
 LOT = "lot"
 POIDS_VARIABLE = "poids_variable"
 DECLINAISONS = "declinaisons"
+RECETTE = "recette"
 
 LIBELLES_FONCTIONS = {
     PEREMPTION: "Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard",
     LOT: "Numéro de lot à la réception, et stock suivi lot par lot",
     POIDS_VARIABLE: "Vente au poids ou à la longueur, quantités décimales",
     DECLINAISONS: "Déclinaisons d'un même modèle : taille, couleur, contenance",
+    RECETTE: "Fiches techniques : produire consomme les ingrédients et calcule le coût de revient",
 }
 
 
@@ -163,11 +165,8 @@ METIERS: dict[str, Metier] = {
         article="plat",
         articles="plats",
         reception="Réception des denrées",
-        fonctions=frozenset({PEREMPTION}),
-        a_venir=(
-            "Fiches techniques : un plat consomme ses ingrédients",
-            "Service à table et commandes en cours",
-        ),
+        fonctions=frozenset({PEREMPTION, RECETTE}),
+        a_venir=("Service à table et commandes en cours",),
         exemples=("Poulet DG", "Ndolé aux crevettes", "Jus de bissap 50 cl"),
     ),
     "BOULANGERIE": Metier(
@@ -177,8 +176,7 @@ METIERS: dict[str, Metier] = {
         article="produit",
         articles="produits",
         reception="Réception des matières premières",
-        fonctions=frozenset({PEREMPTION, POIDS_VARIABLE}),
-        a_venir=("Production du jour et invendus", "Recettes et coût de revient au gramme"),
+        fonctions=frozenset({PEREMPTION, POIDS_VARIABLE, RECETTE}),
         exemples=("Baguette 250 g", "Croissant au beurre", "Gâteau d'anniversaire 1 kg"),
     ),
     "MODE": Metier(

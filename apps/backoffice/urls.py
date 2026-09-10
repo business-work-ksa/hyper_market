@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from apps.backoffice import views, vues_commandes, vues_equipe, vues_identite
+from apps.backoffice import views, vues_commandes, vues_equipe, vues_identite, vues_production
 
 urlpatterns = [
     path("", views.tableau_de_bord, name="tableau_de_bord"),
@@ -25,6 +25,16 @@ urlpatterns = [
     path("stock/<uuid:variante_id>/entree/", views.entree_stock, name="entree_stock"),
     path("stock/<uuid:variante_id>/entree.json", views.entree_stock_json, name="entree_stock_json"),
     path("stock/<uuid:variante_id>/transfert/", views.transfert_stock, name="transfert_stock"),
+
+    path("production/", vues_production.production, name="production"),
+    path("production/invendus/", vues_production.production_invendus, name="production_invendus"),
+    path("production/fiches/", vues_production.fiches, name="fiches"),
+    path("production/fiches/nouvelle/", vues_production.fiche_creer, name="fiche_creer"),
+    path("production/fiches/<uuid:recette_id>/", vues_production.fiche, name="fiche"),
+    path("production/fiches/<uuid:recette_id>/produire/", vues_production.production_lancer, name="production_lancer"),
+    path("production/fiches/<uuid:recette_id>/basculer/", vues_production.fiche_basculer, name="fiche_basculer"),
+    path("production/fiches/<uuid:recette_id>/ingredients/", vues_production.fiche_ingredient, name="fiche_ingredient"),
+    path("production/fiches/<uuid:recette_id>/ingredients/<uuid:ligne_id>/retirer/", vues_production.fiche_ingredient_retirer, name="fiche_ingredient_retirer"),
 
     path("ventes/", views.ventes, name="ventes"),
     path("ventes/<uuid:ticket_id>/ticket/", views.ticket, name="ticket"),

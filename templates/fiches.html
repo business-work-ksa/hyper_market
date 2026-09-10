@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Fiches techniques — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Fiches techniques{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'production' %}">Production du jour</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  {% if formulaire %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Ouvrir une fiche</h2>
+        <span class="t-legende">Sur un produit déjà au catalogue</span>
+      </header>
+      <form method="post" action="{% url 'fiche_creer' %}" class="carte__corps colonne"
+            style="gap:16px" novalidate>
+        {% csrf_token %}
+        {% include "partials/champ.html" with champ=formulaire.variante %}
+        <div class="duo">
+          {% include "partials/champ.html" with champ=formulaire.rendement %}
+          {% include "partials/champ.html" with champ=formulaire.duree_conservation_jours %}
+        </div>
+        {% include "partials/champ.html" with champ=formulaire.note %}
+        <p class="t-legende">
+          Le produit fabriqué n'est pas créé ici : c'est un article ordinaire de
+          votre stock, avec son prix et son coût moyen. La fiche explique
+          seulement <strong>d'où il vient</strong>.
+        </p>
+        <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+          Ouvrir la fiche
+        </button>
+      </form>
+    </section>
+  {% endif %}
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Mes fiches</h2>
+      {% if fiches %}<span class="t-legende">{{ fiches|length }}</span>{% endif %}
+    </header>
+    <div class="carte__corps--serre">
+      {% if fiches %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">{{ metier.article|capfirst }}</th>
+                <th scope="col" class="num">Rendement</th>
+                <th scope="col" class="num">Ingrédients</th>
+                <th scope="col">Conservation</th>
+                <th scope="col">État</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in fiches %}
+                <tr>
+                  <td class="principal">
+                    <a href="{% url 'fiche' recette_id=f.pk %}">{{ f.variante }}</a>
+                  </td>
+                  <td class="num t-2">{{ f.rendement|quantite }}</td>
+                  <td class="num t-2">{{ f.lignes.count }}</td>
+                  <td class="t-2">
+                    {% if f.duree_conservation_jours %}{{ f.duree_conservation_jours }} j{% else %}<span class="t-muet">—</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if f.actif %}
+                      <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>En service</span>
+                    {% else %}
+                      <span class="puce"><svg><use href="#ic-verrou"></use></svg>Retirée</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte__corps">
+          <div class="vide">
+            <svg><use href="#ic-production"></use></svg>
+            <p class="t-2">Aucune fiche technique.</p>
+            <p class="t-legende">
+              Une fiche dit ce qu'il faut pour fabriquer un produit, et combien
+              une exécution en produit. C'est elle qui permet à une production de
+              sortir réellement les ingrédients du stock et de calculer ce que le
+              produit fini a coûté.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

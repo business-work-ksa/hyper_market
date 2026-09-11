@@ -67,9 +67,9 @@ make installer                  # environnement virtuel + dépendances
 cp .env.example .env            # DEBUG=True, sinon le CSS n'est pas servi
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
-make demo                       # référentiels + 2 boutiques, 20 jours de ventes
+make demo                       # référentiels + 5 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 457 tests
+make tester                     # 484 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -81,7 +81,7 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge** |
 | `+237677220022` | Gérante, Bella Cosmétiques | Tout |
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
-| `+237655330011` | Gérante, Pharmacie du Wouri | Tout — **lots et péremptions**, dont un déjà périmé |
+| `+237655330011` | Gérante, Pharmacie du Wouri | Tout — **lots, péremptions et ordonnancier** |
 | `+237691440011` | Gérante, Boulangerie Bonapriso | Tout — **fiches techniques et production du jour** |
 | `+237677550011` | Gérant, Auto Pièces Ndokoti | Tout — **recherche par véhicule et compatibilités** |
 
@@ -110,6 +110,12 @@ pas de valeur et n'en détruit pas. Le coût de revient n'est jamais figé sur l
 recalculé sur les coûts du jour, parce qu'un boulanger qui fixe son prix sur le prix de la farine
 du mois dernier vend à perte sans le voir. Et un invendu sort en **perte**, jamais en écart de
 comptage : c'est la seule manière de savoir en fin de mois ce que la fabrication a jeté.
+
+En **officine**, un médicament peut être marqué « délivré sur ordonnance ». Il disparaît alors de
+la vente en ligne — le pharmacien doit voir l'ordonnance, et un panier ne la montre pas — et la
+caisse réclame le prescripteur, réseau ou pas. Une vente qui arrive sans mention n'est pourtant
+**pas refusée** : la boîte est partie avec le client, et la refuser n'effacerait que la trace.
+L'ordonnancier remonte ce qui reste à consigner.
 
 Chez un vendeur de **pièces détachées**, on cherche par la voiture du client : marque, modèle,
 année. Une compatibilité déclarée sans modèle couvre toute la marque, une borne d'année absente ne

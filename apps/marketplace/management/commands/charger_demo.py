@@ -109,6 +109,10 @@ BOUTIQUES = [
             ("PHA-IBUP-400", "Ibuprofène 400 mg — boîte de 20", "900", "540", 300, 45, "L25C201", 400),
             ("PHA-VITC-1G", "Vitamine C 1 g — 10 comprimés", "1200", "700", 210, 35, "L24D019", 25),
         ],
+        # Un antibiotique ne se délivre pas sans ordonnance, et ne se vend pas
+        # en ligne. Le marquer ici est ce qui rend l'ordonnancier et le retrait
+        # de la vitrine vérifiables sans lire le code.
+        "sur_ordonnance": ["PHA-AMOX-1G"],
     },
     {
         # Une boulangerie non plus n'est pas un décor : c'est le seul métier du
@@ -444,6 +448,7 @@ class Command(BaseCommand):
                     )
             variantes.append(variante)
 
+        self._marquer_les_ordonnances(boutique, variantes, donnees)
         self._declarer_les_vehicules(boutique, gerant, variantes, donnees)
 
         # Les fiches et les fournées viennent **avant** l'historique de ventes :
@@ -456,8 +461,41 @@ class Command(BaseCommand):
         # ignore ce qu'est un ingrédient.
         au_comptoir = [v for v in variantes if v.pk not in ingredients]
         self._generer_historique(boutique, depot, gerant, au_comptoir)
+        self._consigner_quelques_ordonnances(boutique)
         self._creer_etats_de_stock(depot, gerant, au_comptoir)
         self._ouvrir_reserve(boutique, depot, gerant, variantes, donnees.get("reserve"))
+
+    def _marquer_les_ordonnances(self, boutique, variantes, donnees) -> None:
+        """Médicaments délivrés sur ordonnance. Inerte ailleurs."""
+        skus = set(donnees.get("sur_ordonnance") or [])
+        if not skus:
+            return
+        Produit.objects.filter(boutique=boutique, sku__in=skus).update(sur_ordonnance=True)
+
+        # Et sur les objets déjà en mémoire : l'historique de ventes qui suit lit
+        # `variante.produit.sur_ordonnance` pour figer le drapeau sur la ligne de
+        # ticket. Un `UPDATE` en base ne rafraîchit pas un objet Python déjà
+        # chargé, et l'ordonnancier de démonstration serait resté vide sans que
+        # rien ne le signale.
+        for variante in variantes:
+            if variante.sku in skus:
+                variante.produit.sur_ordonnance = True
+
+    def _consigner_quelques_ordonnances(self, boutique) -> None:
+        """Consigne le registre, **sauf les deux dernières délivrances**.
+
+        Un ordonnancier de démonstration entièrement rempli ne montrerait pas le
+        cas qui compte : celui où il reste quelque chose à faire. Deux lignes en
+        attente, c'est ce qu'un pharmacien trouve un lundi matin.
+        """
+        from apps.pos.services import consigner_ordonnance, delivrances_sur_ordonnance
+
+        delivrances = list(delivrances_sur_ordonnance())
+        for numero, ticket in enumerate(delivrances[2:], start=1):
+            consigner_ordonnance(
+                ticket,
+                mention=f"Dr Manga — ordonnance n° {numero:03d}",
+            )
 
     def _declarer_les_vehicules(self, boutique, gerant, variantes, donnees) -> None:
         """Références constructeur et compatibilités, pour les pièces détachées.

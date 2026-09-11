@@ -67,6 +67,14 @@
           {% nav 'production' 'ic-production' 'Production' page %}
         {% endif %}
         {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' 'Ventes' page %}{% endif %}
+        {% comment %}
+        L'ordonnancier n'existe que là où l'on délivre sur ordonnance. La
+        pastille compte ce qui reste à consigner : sans elle, un registre
+        incomplet le resterait sans que personne ne le sache.
+        {% endcomment %}
+        {% if metier and 'ordonnance' in metier.fonctions and 'ventes.voir' in droits %}
+          {% nav 'ordonnancier' 'ic-ordonnance' 'Ordonnancier' page ordonnances_a_consigner %}
+        {% endif %}
         {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' 'Commandes' page commandes_a_traiter %}{% endif %}
       </div>
 

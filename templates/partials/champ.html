@@ -1,12 +1,28 @@
 {% comment %}
 Rend un champ de formulaire avec son libellé, son aide et ses erreurs.
 Les widgets portent déjà leurs classes (voir apps/backoffice/forms.py).
+
+Une case à cocher se pose **avant** son libellé, sur la même ligne : au-dessus,
+elle flotte seule à gauche d'un vide et on ne sait plus ce qu'elle coche.
 {% endcomment %}
-<div class="groupe-champ">
-  <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
-  {{ champ }}
-  {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
-  {% for erreur in champ.errors %}
-    <span class="t-petit" style="color:var(--critique);font-weight:550">{{ erreur }}</span>
-  {% endfor %}
-</div>
+{% if champ.field.widget.input_type == "checkbox" %}
+  <div class="groupe-champ">
+    <label class="case-ligne" for="{{ champ.id_for_label }}">
+      {{ champ }}
+      <span>{{ champ.label }}</span>
+    </label>
+    {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+    {% for erreur in champ.errors %}
+      <span class="t-petit" style="color:var(--critique);font-weight:550">{{ erreur }}</span>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="groupe-champ">
+    <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+    {{ champ }}
+    {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+    {% for erreur in champ.errors %}
+      <span class="t-petit" style="color:var(--critique);font-weight:550">{{ erreur }}</span>
+    {% endfor %}
+  </div>
+{% endif %}

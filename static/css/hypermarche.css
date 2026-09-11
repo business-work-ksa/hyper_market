@@ -522,6 +522,24 @@ table { border-collapse: collapse; width: 100%; }
 }
 .etiquette__retirer:hover { opacity: 1; background: var(--survol); }
 
+/* Case à cocher : la case avant son libellé, sur la même ligne, et la zone
+   cliquable couvrant les deux. Une case de 14 px seule est une cible qu'on rate
+   debout, une main occupée. */
+.case-ligne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.case {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  accent-color: var(--marque);
+  cursor: pointer;
+}
+
 /* Icône posée dans une ligne de texte hors composant. Sans elle, un `<svg>` nu
    prend la taille de son conteneur : une puce d'alerte devenait un panneau de
    signalisation de 200 px de haut. */

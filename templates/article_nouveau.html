@@ -37,6 +37,21 @@
 
       {% include "partials/champ.html" with champ=formulaire.regime_tva %}
 
+      {% comment %}
+      Les champs que le métier ajoute, dans l'ordre que le formulaire décide.
+      La boucle plutôt qu'une liste en dur : un champ composé par le formulaire
+      et oublié ici serait invisible **et pourtant exigé** par la validation —
+      c'est exactement ce qui est arrivé à la date de péremption.
+      {% endcomment %}
+      {% if formulaire.champs_de_metier %}
+        <div class="colonne" style="gap:14px;padding-top:4px">
+          <p class="t-sur-titre">{{ metier.libelle }}</p>
+          {% for champ in formulaire.champs_de_metier %}
+            {% include "partials/champ.html" with champ=champ %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
       {% if formulaire.non_field_errors %}
         <div class="bandeau-info bandeau-info--alerte">
           <svg><use href="#ic-alerte"></use></svg>

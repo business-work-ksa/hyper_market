@@ -52,8 +52,12 @@
         <button class="article-tuile" type="button"
                 data-id="{{ a.id }}" data-libelle="{{ a.libelle }}" data-prix="{{ a.prix }}"
                 data-sku="{{ a.sku }}" data-stock="{{ a.stock }}"
+                data-ordonnance="{% if a.sur_ordonnance %}1{% endif %}"
                 data-recherche="{{ a.libelle|lower }} {{ a.sku|lower }}">
           <span class="article-tuile__nom">{{ a.libelle }}</span>
+          {% if a.sur_ordonnance %}
+            <span class="puce puce--alerte"><svg><use href="#ic-info"></use></svg>Ordonnance</span>
+          {% endif %}
           <span class="article-tuile__pied">
             <span class="article-tuile__prix">{{ a.prix|fcfa }}</span>
             <span class="t-legende chiffre">{{ a.stock|quantite }} en stock</span>
@@ -104,6 +108,21 @@
         </button>
       </div>
 
+      {% comment %}
+      Demandée au comptoir, pendant que le client est là — réseau ou pas : le
+      drapeau voyage jusque dans le catalogue hors ligne. Le rattrapage par
+      l'ordonnancier est le filet, pas le chemin normal.
+      {% endcomment %}
+      <div class="groupe-champ" id="bloc-ordonnance" hidden>
+        <label for="mention-ordonnance">Ordonnance — prescripteur et date</label>
+        <input class="champ" id="mention-ordonnance" autocomplete="off"
+               placeholder="Dr Manga, 11/09/2026">
+        <span class="t-legende">
+          Ce ticket contient un médicament délivré sur ordonnance. La mention
+          part à l'ordonnancier.
+        </span>
+      </div>
+
       <button class="btn btn--primaire btn--grand btn--bloc" type="button" id="encaisser" disabled>
         Encaisser
       </button>
@@ -133,6 +152,8 @@
   var elEncaisser= document.getElementById("encaisser");
   var elMessage  = document.getElementById("message-caisse");
   var elRecherche= document.getElementById("recherche-article");
+  var elOrdonnance = document.getElementById("mention-ordonnance");
+  var elBlocOrdonnance = document.getElementById("bloc-ordonnance");
 
   function fcfa(n) {
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -142,7 +163,15 @@
   function ajouter(donnees) {
     var ligne = panier.get(donnees.id);
     if (ligne) { ligne.quantite += 1; }
-    else { panier.set(donnees.id, { id: donnees.id, libelle: donnees.libelle, prix: parseFloat(donnees.prix), quantite: 1 }); }
+    else {
+      panier.set(donnees.id, {
+        id: donnees.id,
+        libelle: donnees.libelle,
+        prix: parseFloat(donnees.prix),
+        quantite: 1,
+        ordonnance: donnees.ordonnance === "1",
+      });
+    }
     rendre();
   }
 
@@ -159,7 +188,9 @@
     elVide.hidden = panier.size > 0;
 
     var ttc = 0;
+    var ordonnance = false;
     panier.forEach(function (ligne) {
+      if (ligne.ordonnance) ordonnance = true;
       var total = ligne.prix * ligne.quantite;
       ttc += total;
 
@@ -188,6 +219,11 @@
     elHT.textContent  = fcfa(ht);
     elTVA.textContent = fcfa(ttc - ht);
     elTTC.textContent = fcfa(ttc);
+
+    // Le champ n'est pas grisé quand il ne sert pas : il n'est pas là. Même
+    // règle que partout ailleurs — ce qui ne s'applique pas ne s'affiche pas.
+    elBlocOrdonnance.hidden = !ordonnance;
+    if (!ordonnance) elOrdonnance.value = "";
     elEncaisser.disabled = panier.size === 0;
   }
 
@@ -217,6 +253,7 @@
       tuile.dataset.prix = a.prix;
       tuile.dataset.sku = a.sku;
       tuile.dataset.stock = a.stock;
+      tuile.dataset.ordonnance = a.sur_ordonnance ? "1" : "";
       tuile.dataset.recherche = (
         a.libelle + " " + a.sku + " " + (a.code_barres || "")
       ).toLowerCase();
@@ -237,6 +274,12 @@
       pied.appendChild(stock);
 
       tuile.appendChild(nom);
+      if (a.sur_ordonnance) {
+        var marque = document.createElement("span");
+        marque.className = "puce puce--alerte";
+        marque.textContent = "Ordonnance";
+        tuile.appendChild(marque);
+      }
       tuile.appendChild(pied);
       fragment.appendChild(tuile);
     });
@@ -349,6 +392,16 @@
     // réseau ne créera jamais deux ventes (ADR-004). C'est elle qui autorise la
     // file d'attente à rejouer sans risque.
     var charge = { operation_id: uuid(), lignes: lignes, moyen: moyen };
+    if (!elBlocOrdonnance.hidden) {
+      var mention = elOrdonnance.value.trim();
+      if (!mention) {
+        elMessage.textContent =
+          "Indiquez le prescripteur et la date de l'ordonnance avant d'encaisser.";
+        elOrdonnance.focus();
+        return;
+      }
+      charge.mention_ordonnance = mention;
+    }
 
     elEncaisser.disabled = true;
     elEncaisser.textContent = "Encaissement…";
@@ -367,6 +420,7 @@
           lien.style.fontWeight = "580";
           elMessage.appendChild(lien);
           panier.clear();
+          elOrdonnance.value = "";
           rendre();
         } else if (resultat.etat === "en_attente") {
           elMessage.textContent =

@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 457 tests (17 ignorés sur SQLite)
+make tester      # 484 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -41,8 +41,8 @@ Comptes de démonstration (mot de passe `demo1234`) :
 | `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge**, pas la caisse |
 | `+237677220022` | Gérante, Bella Cosmétiques (Yaoundé) | Tout |
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
-| `+237655330011` | Gérante, Pharmacie du Wouri (Douala) | Tout — **lots et péremptions**, dont un lot déjà périmé |
-| `+237655330022` | Vendeur, Pharmacie du Wouri | Comptoir et stock — ni coût, ni marge |
+| `+237655330011` | Gérante, Pharmacie du Wouri (Douala) | Tout — **lots, péremptions, ordonnancier**, dont un lot déjà périmé |
+| `+237655330022` | Vendeur, Pharmacie du Wouri | Comptoir, stock et ordonnancier — ni coût, ni marge |
 | `+237691440011` | Gérante, Boulangerie Bonapriso (Douala) | Tout — **fiches techniques, production du jour, invendus** |
 | `+237691440022` | Vendeur, Boulangerie Bonapriso | Comptoir et stock — **la production sans son coût** |
 | `+237677550011` | Gérant, Auto Pièces Ndokoti (Douala) | Tout — **recherche par véhicule, compatibilités** |
@@ -285,6 +285,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_backoffice_commandes.py` | L'écran de traitement : un bouton périmé n'agit pas, la part d'un confrère est introuvable, refus avant expédition et retour après |
 | `test_metiers.py` | Les 10 métiers : vocabulaire, valeurs par défaut, formulaire composé — et le suivi par lot, qui consomme **le plus proche de périmer** et reste inerte là où le métier ne l'active pas |
 | `test_identite.py` | **Le validateur de palette du produit, appliqué au logo du commerçant** : il retrouve le verdict qui avait rejeté le premier teal ; la teinte n'est jamais modifiée, la version sombre est éclaircie et non inversée, une couleur neutre est refusée plutôt qu'inventée |
+| `test_ordonnance.py` | **Deux règles de nature différente** : le retrait de la vente en ligne est une interdiction posée à la seule porte du catalogue ; la consignation, elle, ne bloque aucune vente et se rattrape à l'ordonnancier. Plus l'accord entre les champs qu'un métier compose et ceux que l'écran rend |
 | `test_vehicules.py` | **Chercher une pièce par la voiture du client** : une compatibilité sans modèle couvre toute la marque, une année absente ne borne rien, une année illisible est ignorée plutôt que refusée — l'absence d'information ne produit jamais une absence de résultat |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
 | `test_production.py` | **Fabriquer ne crée ni ne détruit de valeur** : ce qui sort des ingrédients entre dans le produit fini au centime ; le coût de revient est calculé au moment où on le regarde, jamais figé sur la fiche ; un invendu est une perte et non un écart de comptage |
@@ -536,7 +537,7 @@ même raison : ce sont des règles, pas des données modifiables à chaud.
 | Métier | Fonctions actives |
 |---|---|
 | Commerce général & alimentation | *(le socle)* |
-| Pharmacie & parapharmacie | péremption, lot — **TVA exonérée par défaut** |
+| Pharmacie & parapharmacie | péremption, lot, **ordonnance** — TVA exonérée par défaut |
 | Quincaillerie & matériaux | poids/longueur variable |
 | Cosmétique & beauté | péremption, lot, déclinaisons |
 | Restauration & snack | péremption, **fiches techniques** |
@@ -647,10 +648,35 @@ Les marques sont normalisées à l'écriture (`Toyota`, jamais `toyota` ni `TOYO
 saisie assistée : sans cela, une faute de frappe rend la pièce introuvable, ce qui revient à ne pas
 l'avoir. La recherche, elle, reste insensible à la casse.
 
-### 9.5 — Déclaré mais pas écrit
+### 9.5 — Ce qui ne se délivre que sur ordonnance
+
+Écran : **Ordonnancier**. Deux règles s'y jouent, et elles ne sont pas de même nature.
+
+**Le retrait de la vente en ligne est une interdiction.** Un médicament sur ordonnance ne se
+commande pas sur un site : le pharmacien doit voir l'ordonnance, et un panier ne la montre pas. Le
+filtre est posé dans `_requete_de_base` — la **seule** porte du catalogue public — donc il couvre
+du même geste la liste, la recherche, la page de l'article et l'ajout au panier. Posé dans chaque
+vue, il aurait fini par manquer à l'une d'elles.
+
+**La consignation, elle, ne bloque rien.** La caisse réclame le prescripteur pendant que le client
+est là — le drapeau voyage jusque dans le catalogue hors ligne, pour que la question se pose même
+sans réseau. Mais une vente qui arrive sans mention n'est **pas refusée** : la boîte est partie
+avec le client, et la refuser n'effacerait que la trace. Même règle que le stock négatif
+(ADR-005) : le logiciel encaisse, puis réclame. L'ordonnancier remonte les délivrances non
+consignées, et la pastille du rail les compte.
+
+La mention est le **seul champ d'un ticket clôturé qui reste modifiable**. Les montants, eux, sont
+partis en comptabilité, où le journal est en ajout seul : un registre doit pouvoir être complété,
+une écriture jamais.
+
+Le drapeau est **figé sur la ligne de ticket**, comme le libellé et le prix : un médicament que
+l'autorité reclasse l'an prochain ne doit pas réécrire l'ordonnancier de cette année.
+
+### 9.6 — Déclaré mais pas écrit
 
 Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : numéros de série et garantie,
-mention d'ordonnance, équivalences entre références de constructeurs, service à table. Lister une fonction non écrite au
+dénomination commune internationale, équivalences entre références de constructeurs, service à
+table. Lister une fonction non écrite au
 milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une pharmacie paie cher ce
 genre de malentendu.
 

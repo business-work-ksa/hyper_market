@@ -85,6 +85,12 @@ class ArticleForm(forms.Form):
         required=False,
         widget=forms.Select(attrs=CHAMP),
     )
+    sur_ordonnance = forms.BooleanField(
+        label="Délivré sur ordonnance",
+        required=False,
+        help_text="Sera consigné à l'ordonnancier, et retiré de la vente en ligne.",
+        widget=forms.CheckboxInput(attrs={"class": "case"}),
+    )
     reference_constructeur = forms.CharField(
         label="Référence constructeur",
         max_length=64,
@@ -93,11 +99,32 @@ class ArticleForm(forms.Form):
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "90915-YZZD4"}),
     )
 
+    # Ordre d'affichage des champs que le métier ajoute. La liste est ici et non
+    # dans le gabarit : un champ composé par `_composer` mais oublié par l'écran
+    # est **invisible et pourtant exigé** — c'est ce qui est arrivé à la date de
+    # péremption, réclamée par la validation sur un écran qui ne la proposait pas.
+    CHAMPS_DE_METIER = (
+        "unite",
+        "date_peremption",
+        "numero_lot",
+        "sur_ordonnance",
+        "reference_constructeur",
+    )
+
     def __init__(self, *args, boutique=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.boutique = boutique
         self.metier = boutique.metier_choisi if boutique is not None else metiers.metier_de(None)
         self._composer()
+
+    @property
+    def champs_de_metier(self):
+        """Les champs que le métier a laissés dans le formulaire, dans l'ordre.
+
+        Le gabarit boucle là-dessus plutôt que de les nommer un à un : ajouter un
+        champ de métier ne doit plus demander de penser à deux endroits.
+        """
+        return [self[nom] for nom in self.CHAMPS_DE_METIER if nom in self.fields]
 
     def _composer(self) -> None:
         """Compose le formulaire pour le métier de la boutique.
@@ -116,6 +143,11 @@ class ArticleForm(forms.Form):
         if metier.exemples:
             self.fields["libelle"].widget.attrs["placeholder"] = metier.exemples[0]
 
+        # La référence proposée suit le métier elle aussi. Montrer « QUI-CIM-50 »
+        # à un pharmacien, c'est lui montrer la référence d'un sac de ciment :
+        # l'exemple est là pour donner une forme, pas pour dépayser.
+        self.fields["sku"].widget.attrs["placeholder"] = f"{metier.code[:3]}-001"
+
         self.fields["regime_tva"].initial = metier.regime_tva_defaut
         self.fields["unite"].initial = metier.unite_defaut
 
@@ -125,6 +157,8 @@ class ArticleForm(forms.Form):
             del self.fields["numero_lot"]
         if not metier.a(metiers.COMPATIBILITE):
             del self.fields["reference_constructeur"]
+        if not metier.a(metiers.ORDONNANCE):
+            del self.fields["sur_ordonnance"]
         if metier.unite_defaut == "U" and not metier.a(metiers.POIDS_VARIABLE):
             # L'unité ne se pose pas dans un commerce où tout se vend à la pièce.
             del self.fields["unite"]

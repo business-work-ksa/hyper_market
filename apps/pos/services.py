@@ -23,6 +23,8 @@ __all__ = [
     "regler",
     "encaisser",
     "cloturer_ticket",
+    "consigner_ordonnance",
+    "delivrances_sur_ordonnance",
     "fermer_session",
 ]
 
@@ -86,6 +88,11 @@ def ajouter_ligne(*, ticket: Ticket, variante, quantite, remise=Decimal("0")) ->
         pu_ttc=variante.prix_vente,
         taux_tva=variante.taux_tva,
         remise=Decimal(remise),
+        # Figé comme le libellé et le prix. Un médicament que l'autorité reclasse
+        # l'an prochain ne doit pas réécrire l'ordonnancier de cette année —
+        # c'est un registre, et un registre décrit ce qui était vrai au moment
+        # de la délivrance.
+        sur_ordonnance=variante.produit.sur_ordonnance,
     )
     _recalculer_totaux(ticket)
     return ligne
@@ -122,6 +129,7 @@ def encaisser(
     reference_psp: str = "",
     encaisse_le=None,
     cree_par=None,
+    mention_ordonnance: str = "",
 ) -> tuple[Ticket, bool]:
     """Encaisse un panier complet et retourne `(ticket, rejoue)`.
 
@@ -148,6 +156,7 @@ def encaisser(
         operation_id=operation_id,
         client_nom=client_nom[:180],
         client_telephone=client_telephone[:16],
+        mention_ordonnance=mention_ordonnance[:180],
     )
     if ticket.etat == Ticket.CLOTURE:
         # Déjà appliquée : on renvoie le résultat précédent (ADR-004).
@@ -219,6 +228,55 @@ def cloturer_ticket(ticket: Ticket, *, cree_par=None, cloture_le=None) -> Ticket
     from apps.accounting.services import comptabiliser_ticket
 
     comptabiliser_ticket(ticket)
+    return ticket
+
+
+# ---------------------------------------------------------------------------
+# Ordonnancier
+# ---------------------------------------------------------------------------
+# Un médicament sur ordonnance délivré doit être consigné : quoi, quand, à qui,
+# prescrit par qui. C'est un registre, et un registre incomplet est un registre
+# qui ne sert à rien le jour où on le demande.
+#
+# **La délivrance manquante n'est pas refusée, elle est rendue visible.** C'est
+# la même règle que le stock négatif (ADR-005) : la boîte est physiquement partie
+# avec le client, et refuser d'enregistrer la vente ne la ferait pas revenir —
+# cela ferait seulement disparaître la trace. Le logiciel encaisse, puis réclame.
+#
+# La caisse, elle, demande la mention **avant** de mettre la vente en file : au
+# comptoir, la question se pose pendant que le client est là. Le rattrapage par
+# l'ordonnancier est le filet, pas le chemin normal.
+
+
+def delivrances_sur_ordonnance(*, depuis=None, incompletes_seulement=False):
+    """Tickets clôturés portant au moins un médicament sur ordonnance.
+
+    Lit dans le contexte de la boutique courante. Les incomplets d'abord : ce
+    sont les seuls sur lesquels il reste quelque chose à faire.
+    """
+    tickets = Ticket.objects.filter(
+        etat=Ticket.CLOTURE, lignes__sur_ordonnance=True
+    ).distinct()
+    if depuis is not None:
+        tickets = tickets.filter(cloture_le__gte=depuis)
+    if incompletes_seulement:
+        tickets = tickets.filter(mention_ordonnance="")
+    return tickets.order_by("mention_ordonnance", "-cloture_le")
+
+
+def consigner_ordonnance(ticket: Ticket, *, mention: str) -> Ticket:
+    """Complète l'ordonnancier après coup.
+
+    Le seul champ d'un ticket clôturé qui reste modifiable, et c'est assumé :
+    le registre doit pouvoir être complété, alors que les montants, eux, sont
+    figés — ils sont déjà partis en comptabilité, où le journal est en ajout seul.
+    """
+    mention = (mention or "").strip()[:180]
+    if not mention:
+        raise TicketInvalide("Une mention d'ordonnance vide ne consigne rien.")
+
+    Ticket.objects_all_tenants.filter(pk=ticket.pk).update(mention_ordonnance=mention)
+    ticket.mention_ordonnance = mention
     return ticket
 
 

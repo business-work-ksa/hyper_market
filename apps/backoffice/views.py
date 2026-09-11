@@ -438,6 +438,10 @@ def _articles_caisse(depot) -> list[dict]:
                 "categorie": (
                     variante.produit.categorie.libelle if variante.produit.categorie else ""
                 ),
+                # Porté jusque dans le catalogue hors ligne : c'est la caisse
+                # qui doit réclamer l'ordonnance pendant que le client est là,
+                # réseau ou pas.
+                "sur_ordonnance": variante.produit.sur_ordonnance,
             }
         )
     return articles
@@ -545,6 +549,9 @@ def caisse_encaisser(request):
             operation_id=charge.get("operation_id") or None,
             client_nom=charge.get("client") or "",
             cree_par=request.user,
+            # Absente, elle ne bloque pas la vente : la boîte est partie avec le
+            # client. Le ticket ressort dans l'ordonnancier, à compléter.
+            mention_ordonnance=charge.get("mention_ordonnance") or "",
         )
     except caisse_service.TicketInvalide as erreur:
         return JsonResponse({"ok": False, "erreur": str(erreur)}, status=400)
@@ -780,6 +787,9 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
         libelle=donnees["libelle"],
         regime_tva=donnees["regime_tva"],
         unite=donnees.get("unite") or boutique.metier_choisi.unite_defaut,
+        # Faux partout sauf en officine : la case n'y est même pas affichée
+        # ailleurs (`ArticleForm._composer`).
+        sur_ordonnance=bool(donnees.get("sur_ordonnance")),
         cree_par=utilisateur,
     )
     variante = Variante.objects.create(

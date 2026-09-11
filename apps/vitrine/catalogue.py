@@ -76,10 +76,21 @@ def rayons_ouverts():
 
 
 def _requete_de_base(identifiants_boutiques):
+    """Ce qui est vendable en ligne, et rien d'autre.
+
+    Le filtre sur `sur_ordonnance` est **ici et pas dans les vues** : c'est une
+    règle, pas une préférence d'affichage. Un médicament qui ne se délivre que
+    sur ordonnance ne se commande pas sur un site — le pharmacien doit voir
+    l'ordonnance, et un panier ne la montre pas. Posé à la seule porte du
+    catalogue, il couvre du même geste la liste, la recherche, la page d'un
+    article et l'ajout au panier ; posé dans chaque vue, il aurait fini par
+    manquer à l'une d'elles.
+    """
     return (
         Variante.objects.filter(
             actif=True,
             produit__actif=True,
+            produit__sur_ordonnance=False,
             boutique_id__in=identifiants_boutiques,
         )
         .select_related("produit", "produit__categorie", "boutique")
@@ -132,13 +143,10 @@ def article_par_identifiant(identifiant) -> Variante | None:
         return None
 
     with contexte_plateforme():
-        article = (
-            Variante.objects.filter(pk=identifiant, actif=True, produit__actif=True)
-            .select_related("produit", "produit__categorie", "boutique")
-            .first()
-        )
-    if article is None or article.boutique_id not in autorisees:
-        return None
+        # `_requete_de_base` porte les conditions de vente en ligne, dont le
+        # retrait des médicaments sur ordonnance : les répéter ici les ferait
+        # diverger le jour où l'une change.
+        article = _requete_de_base(list(autorisees)).filter(pk=identifiant).first()
     return article
 
 

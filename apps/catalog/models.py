@@ -86,6 +86,10 @@ class Produit(TenantScopedModel):
     unite = models.CharField(max_length=4, choices=UNITES, default=UNITE)
     regime_tva = models.CharField(max_length=16, choices=REGIMES_TVA, default=NORMAL)
     actif = models.BooleanField(default=True)
+    sur_ordonnance = models.BooleanField(
+        default=False,
+        help_text="Ne se délivre que sur ordonnance, et ne se vend pas en ligne.",
+    )
     revente_autorisee = models.BooleanField(
         default=False, help_text="Le produit peut être poussé par les revendeurs affiliés."
     )

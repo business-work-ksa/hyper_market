@@ -76,6 +76,11 @@ class Ticket(TenantScopedModel):
     total_ttc = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     etat = models.CharField(max_length=16, choices=ETATS, default=BROUILLON, db_index=True)
     cloture_le = models.DateTimeField(null=True, blank=True)
+    mention_ordonnance = models.CharField(
+        max_length=180,
+        blank=True,
+        help_text="Prescripteur et date de l'ordonnance, pour l'ordonnancier.",
+    )
     operation_id = models.UUIDField(
         null=True, blank=True, unique=True, help_text="Clé d'idempotence du mode hors ligne."
     )
@@ -106,6 +111,13 @@ class LigneTicket(TenantScopedModel):
     pu_ttc = models.DecimalField(max_digits=12, decimal_places=2)
     taux_tva = models.DecimalField(max_digits=5, decimal_places=4)
     remise = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    sur_ordonnance = models.BooleanField(
+        default=False,
+        help_text=(
+            "Figé à la vente, comme le libellé et le prix : un médicament reclassé "
+            "l'an prochain ne doit pas réécrire l'ordonnancier de cette année."
+        ),
+    )
 
     class Meta:
         verbose_name = "ligne de ticket"

@@ -27,9 +27,9 @@ l'impression d'un suivi qu'il n'a pas — c'est exactement le genre de promesse
 qu'une pharmacie paie cher.
 
 Restent à écrire, et volontairement non déclarées : numéros de série et garantie
-(électronique), mention d'ordonnance (pharmacie), équivalences entre références
-de constructeurs. Le métier les prévoit dans son `a_venir`, qui sert à l'afficher
-au commerçant sans le lui promettre.
+(électronique), dénomination commune internationale (pharmacie), équivalences
+entre références de constructeurs. Le métier les prévoit dans son `a_venir`, qui
+sert à l'afficher au commerçant sans le lui promettre.
 
 Une limite à connaître sur les lots : le stock est suivi **lot par lot**, ce qui
 répond à « qu'est-ce qui périme quand » et « combien me reste-t-il de ce lot ».
@@ -53,6 +53,7 @@ __all__ = [
     "DECLINAISONS",
     "RECETTE",
     "COMPATIBILITE",
+    "ORDONNANCE",
 ]
 
 # --- Fonctions réellement câblées -------------------------------------------
@@ -62,6 +63,7 @@ POIDS_VARIABLE = "poids_variable"
 DECLINAISONS = "declinaisons"
 RECETTE = "recette"
 COMPATIBILITE = "compatibilite"
+ORDONNANCE = "ordonnance"
 
 LIBELLES_FONCTIONS = {
     PEREMPTION: "Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard",
@@ -70,6 +72,7 @@ LIBELLES_FONCTIONS = {
     DECLINAISONS: "Déclinaisons d'un même modèle : taille, couleur, contenance",
     RECETTE: "Fiches techniques : produire consomme les ingrédients et calcule le coût de revient",
     COMPATIBILITE: "Référence constructeur et compatibilité véhicule : marque, modèle, années",
+    ORDONNANCE: "Médicaments sur ordonnance : ordonnancier, et retrait de la vente en ligne",
 }
 
 
@@ -168,11 +171,8 @@ METIERS: dict[str, Metier] = {
         # est donc « exonéré » : c'est le cas le plus fréquent en officine, et
         # un défaut qui oblige à corriger chaque ligne finit par être ignoré.
         regime_tva_defaut="exonere",
-        fonctions=frozenset({PEREMPTION, LOT}),
-        a_venir=(
-            "Mention d'ordonnance à la délivrance",
-            "Dénomination commune internationale et équivalences",
-        ),
+        fonctions=frozenset({PEREMPTION, LOT, ORDONNANCE}),
+        a_venir=("Dénomination commune internationale et équivalences",),
         exemples=("Paracétamol 500 mg — boîte de 20", "Amoxicilline 1 g", "Sérum physiologique"),
     ),
     "QUINCAILLERIE": Metier(

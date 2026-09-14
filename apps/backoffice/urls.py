@@ -9,6 +9,7 @@ from apps.backoffice import (
     vues_identite,
     vues_ordonnancier,
     vues_production,
+    vues_sav,
 )
 
 urlpatterns = [
@@ -32,6 +33,7 @@ urlpatterns = [
     path("stock/<uuid:variante_id>/entree/", views.entree_stock, name="entree_stock"),
     path("stock/<uuid:variante_id>/entree.json", views.entree_stock_json, name="entree_stock_json"),
     path("stock/<uuid:variante_id>/transfert/", views.transfert_stock, name="transfert_stock"),
+    path("stock/<uuid:variante_id>/exemplaires/", views.exemplaires_declarer, name="exemplaires_declarer"),
     path("stock/<uuid:variante_id>/vehicules/", views.compatibilite_ajouter, name="compatibilite_ajouter"),
     path("stock/<uuid:variante_id>/vehicules/<uuid:compatibilite_id>/retirer/", views.compatibilite_retirer, name="compatibilite_retirer"),
 
@@ -47,6 +49,10 @@ urlpatterns = [
 
     path("ventes/", views.ventes, name="ventes"),
     path("ventes/<uuid:ticket_id>/ticket/", views.ticket, name="ticket"),
+
+    path("garantie/", vues_sav.garantie, name="garantie"),
+    path("garantie/<uuid:exemplaire_id>/atelier/", vues_sav.atelier_entrer, name="atelier_entrer"),
+    path("garantie/<uuid:exemplaire_id>/atelier/sortie/", vues_sav.atelier_sortir, name="atelier_sortir"),
 
     path("ordonnancier/", vues_ordonnancier.ordonnancier, name="ordonnancier"),
     path("ordonnancier/<uuid:ticket_id>/consigner/", vues_ordonnancier.ordonnancier_consigner, name="ordonnancier_consigner"),

@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Garantie — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Garantie et atelier{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'ventes' %}">Toutes les ventes</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+
+  {# ---- La recherche est la page ---------------------------------------- #}
+  {% comment %}
+  Premier élément, focus au chargement, soumission à la touche Entrée : une
+  douchette qui lit l'IMEI et envoie Entrée obtient la réponse sans qu'on touche
+  l'écran. C'est la seule manière de répondre à un client debout au comptoir.
+  {% endcomment %}
+  <section class="carte">
+    <div class="carte__corps colonne" style="gap:12px">
+      <form method="get" action="{% url 'garantie' %}" class="caisse__barre">
+        <div class="recherche">
+          <svg><use href="#ic-recherche"></use></svg>
+          <input class="champ" type="search" name="numero" id="numero-recherche"
+                 value="{{ recherche }}" autocomplete="off" spellcheck="false"
+                 placeholder="Numéro de série ou IMEI — scannez l'appareil"
+                 aria-label="Rechercher un appareil par son numéro">
+        </div>
+        <button class="btn btn--primaire" type="submit">Rechercher</button>
+      </form>
+
+      {% if introuvable %}
+        <p class="bandeau-info bandeau-info--alerte" role="status">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>
+            Aucun appareil ne porte le numéro « {{ recherche }} » dans cette
+            boutique. Il peut venir d'ailleurs, ou avoir été vendu avant que le
+            suivi à l'unité ne soit activé.
+          </span>
+        </p>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ---- L'appareil trouvé ------------------------------------------------ #}
+  {% if trouve %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">{{ trouve.variante.produit.libelle }}</h2>
+        <span class="puce chiffre"><svg><use href="#ic-verrou"></use></svg>{{ trouve.numero }}</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:16px">
+
+        <div class="tuiles">
+          <article class="tuile">
+            <div class="tuile__libelle"><svg><use href="#ic-stock"></use></svg><span class="t-sur-titre">État</span></div>
+            <p class="tuile__valeur" style="font-size:22px">{{ trouve.get_etat_display }}</p>
+            <p class="tuile__note"><span class="t-muet">Reçu le {{ trouve.recu_le|date:"d/m/Y" }} · {{ trouve.depot.libelle }}</span></p>
+          </article>
+
+          {% if suit_la_garantie %}
+            <article class="tuile">
+              <div class="tuile__libelle"><svg><use href="#ic-garantie"></use></svg><span class="t-sur-titre">Garantie</span></div>
+              {% if trouve.garantie_fin %}
+                <p class="tuile__valeur" style="font-size:22px;color:{% if trouve.sous_garantie %}var(--bon){% else %}var(--critique){% endif %}">
+                  {% if trouve.sous_garantie %}Sous garantie{% else %}Expirée{% endif %}
+                </p>
+                <p class="tuile__note">
+                  <span class="t-muet">
+                    Jusqu'au {{ trouve.garantie_fin|date:"d/m/Y" }}
+                    {% with jours=trouve.jours_de_garantie %}
+                      {% if jours >= 0 %}· encore {{ jours }} jour{{ jours|pluralize }}
+                      {% else %}· depuis {{ jours|slice:"1:" }} jour{{ jours|pluralize }}{% endif %}
+                    {% endwith %}
+                  </span>
+                </p>
+              {% else %}
+                <p class="tuile__valeur" style="font-size:22px">—</p>
+                <p class="tuile__note"><span class="t-muet">
+                  {% if trouve.vendu_le %}Vendu sans garantie{% else %}Pas encore vendu{% endif %}
+                </span></p>
+              {% endif %}
+            </article>
+          {% endif %}
+
+          {% if trouve.vendu_le %}
+            <article class="tuile">
+              <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">Vendu</span></div>
+              <p class="tuile__valeur" style="font-size:22px">{{ trouve.vendu_le|date:"d/m/Y" }}</p>
+              <p class="tuile__note"><span class="t-muet">
+                {% if trouve.ticket_id %}
+                  <a href="{% url 'ticket' ticket_id=trouve.ticket_id %}">Ticket {{ trouve.ticket_numero }}</a>
+                {% else %}Ticket inconnu{% endif %}
+                {% if trouve.client %} · {{ trouve.client }}{% endif %}
+              </span></p>
+            </article>
+          {% endif %}
+        </div>
+
+        {% if trouve.commentaire %}
+          <p class="t-legende">{{ trouve.commentaire }}</p>
+        {% endif %}
+
+        {# ---- Atelier ----------------------------------------------------- #}
+        {% if suit_la_garantie and peut_agir %}
+          {% if trouve.etat == 'atelier' %}
+            <form method="post" action="{% url 'atelier_sortir' exemplaire_id=trouve.pk %}"
+                  class="rangee" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+              {% csrf_token %}
+              <div class="groupe-champ" style="flex:1;min-width:240px">
+                <label for="{{ formulaire_sortie.resultat.id_for_label }}">{{ formulaire_sortie.resultat.label }}</label>
+                {{ formulaire_sortie.resultat }}
+              </div>
+              <button class="btn btn--primaire" type="submit">Rendre l'appareil</button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'atelier_entrer' exemplaire_id=trouve.pk %}"
+                  class="rangee" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+              {% csrf_token %}
+              <div class="groupe-champ" style="flex:1;min-width:240px">
+                <label for="{{ formulaire_atelier.motif.id_for_label }}">{{ formulaire_atelier.motif.label }}</label>
+                {{ formulaire_atelier.motif }}
+              </div>
+              <button class="btn" type="submit">
+                <svg><use href="#ic-atelier"></use></svg> Déposer à l'atelier
+              </button>
+            </form>
+            {% comment %}
+            La couverture est annoncée avant le dépôt, pas après : c'est ce que
+            le client demande à ce moment précis, et c'est ce qui décide s'il
+            laisse l'appareil.
+            {% endcomment %}
+            <p class="t-legende">
+              {% if trouve.sous_garantie %}
+                La réparation sera enregistrée sous garantie — elle l'est au jour
+                du dépôt, même si l'atelier rend l'appareil après l'échéance.
+              {% else %}
+                La réparation sera enregistrée hors garantie.
+              {% endif %}
+            </p>
+          {% endif %}
+        {% endif %}
+
+        {# ---- Historique des passages -------------------------------------- #}
+        {% if passages %}
+          <div class="colonne" style="gap:8px">
+            <p class="t-sur-titre">Passages à l'atelier</p>
+            {% for p in passages %}
+              <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
+                <span class="t-2">
+                  <span class="chiffre">{{ p.entre_le|date:"d/m/Y" }}</span> · {{ p.motif }}
+                  {% if p.resultat %}<span class="t-muet"> → {{ p.resultat }}</span>{% endif %}
+                </span>
+                <span class="rangee" style="gap:6px">
+                  {% if p.sous_garantie %}
+                    <span class="puce puce--bon">Sous garantie</span>
+                  {% else %}
+                    <span class="puce">Hors garantie</span>
+                  {% endif %}
+                  {% if p.en_cours %}
+                    <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>En cours</span>
+                  {% else %}
+                    <span class="puce">Rendu le {{ p.sorti_le|date:"d/m/Y" }}</span>
+                  {% endif %}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ---- Ce qui attend à l'atelier ---------------------------------------- #}
+  {% if en_atelier %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">À l'atelier</h2>
+        <span class="puce puce--alerte"><svg><use href="#ic-atelier"></use></svg>{{ en_atelier|length }}</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:10px">
+        <p class="t-legende">
+          Chacun de ces appareils appartient à quelqu'un qui attend. Le plus
+          ancien dépôt est en tête — c'est celui dont le client rappelle.
+        </p>
+        {% for e in en_atelier %}
+          <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
+            <span class="t-2">
+              <a href="{% url 'garantie' %}?numero={{ e.numero|urlencode }}" class="principal">{{ e.numero }}</a>
+              <span class="t-muet"> · {{ e.variante.produit.libelle }}</span>
+            </span>
+            <span class="t-legende">{{ e.client|default:"Client non nommé" }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ---- Écarts de numérotation ------------------------------------------- #}
+  {% if ecarts %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">En stock sans numéro</h2>
+        <span class="puce"><svg><use href="#ic-info"></use></svg>{{ ecarts|length }}</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:10px">
+        <p class="t-legende">
+          Ces appareils sont comptés dans le stock mais ne sont nommés par aucun
+          numéro : ils sortiront sans qu'on puisse dire lequel est parti, et leur
+          garantie ne sera opposable à rien. Ce n'est pas une erreur de comptage —
+          c'est une réception passée sans les numéros, et elle se rattrape depuis
+          la fiche de l'article.
+        </p>
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">{{ metier.article|capfirst }}</th>
+                <th scope="col">Dépôt</th>
+                <th scope="col" class="num">En stock</th>
+                <th scope="col" class="num">Nommés</th>
+                <th scope="col" class="num">Sans numéro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in ecarts %}
+                <tr>
+                  <td class="principal">
+                    <a href="{% url 'article' variante_id=e.variante.pk %}">{{ e.variante.produit.libelle }}</a>
+                  </td>
+                  <td class="t-2">{{ e.depot.libelle }}</td>
+                  <td class="num">{{ e.en_stock|quantite }}</td>
+                  <td class="num t-2">{{ e.nommes }}</td>
+                  <td class="num" style="font-weight:620;color:var(--critique)">{{ e.manquants }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {# ---- Ventes récentes --------------------------------------------------- #}
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Derniers appareils vendus</h2>
+      <span class="t-legende">Pour le client qui a perdu son ticket</span>
+    </header>
+    <div class="carte__corps--serre">
+      {% if ventes %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Vendu le</th>
+                <th scope="col">Numéro</th>
+                <th scope="col">{{ metier.article|capfirst }}</th>
+                <th scope="col">Client</th>
+                {% if suit_la_garantie %}<th scope="col">Garantie</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in ventes %}
+                <tr>
+                  <td class="t-2 chiffre">{{ e.vendu_le|date:"d/m/Y H:i" }}</td>
+                  <td class="principal">
+                    <a href="{% url 'garantie' %}?numero={{ e.numero|urlencode }}">{{ e.numero }}</a>
+                  </td>
+                  <td class="t-2">{{ e.variante.produit.libelle }}</td>
+                  <td class="t-2">{{ e.client|default:"—" }}</td>
+                  {% if suit_la_garantie %}
+                    <td class="t-2">
+                      {% if e.garantie_fin %}
+                        {% if e.sous_garantie %}
+                          <span class="puce puce--bon">Jusqu'au {{ e.garantie_fin|date:"d/m/Y" }}</span>
+                        {% else %}
+                          <span class="puce">Expirée le {{ e.garantie_fin|date:"d/m/Y" }}</span>
+                        {% endif %}
+                      {% else %}—{% endif %}
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte__corps">
+          <div class="vide">
+            <svg><use href="#ic-garantie"></use></svg>
+            <p class="t-2">Aucun appareil vendu avec son numéro.</p>
+            <p class="t-legende">
+              Un {{ metier.article }} n'apparaît ici que s'il est marqué « suivi à
+              l'unité » dans sa fiche. Sans cette marque, la caisse ne demande pas
+              de numéro et il n'y a rien à retrouver.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Le champ prend le focus si rien n'a encore été cherché : l'écran s'ouvre
+  // prêt à recevoir un scan. Il ne le vole pas quand un résultat est affiché —
+  // le vendeur est alors en train de lire, pas de taper.
+  (function () {
+    var champ = document.getElementById("numero-recherche");
+    if (champ && !champ.value) champ.focus();
+  })();
+</script>
+{% endblock %}

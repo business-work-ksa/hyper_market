@@ -321,7 +321,15 @@ class VentesVue(VueApi):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             panier.append(
-                (variante, ligne["quantite"], ligne.get("remise") or Decimal("0"))
+                (
+                    variante,
+                    ligne["quantite"],
+                    ligne.get("remise") or Decimal("0"),
+                    # Ignorés là où l'article n'est pas suivi : un client d'API ne
+                    # doit pas pouvoir créer des exemplaires sur un article qui
+                    # n'en a pas.
+                    ligne.get("numeros") or () if variante.suivi_unitaire else (),
+                )
             )
 
         session = SessionCaisse.objects.filter(

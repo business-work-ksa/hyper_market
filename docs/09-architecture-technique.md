@@ -119,7 +119,7 @@ class TenantScopedModel(BaseModel):
 ```
 
 **Barrière 3 — Sécurité au niveau ligne PostgreSQL.** *Implémentée* (`apps/core/rls.py`, migration
-`core.0002`). Une politique sur **chacune des 30 tables scopées** compare `boutique_id` au réglage
+`core.0002`). Une politique sur **chacune des 32 tables scopées** compare `boutique_id` au réglage
 de session `hypermarche.boutique_id`, posé par le contexte Python à chaque changement de boutique.
 Même une requête SQL brute mal écrite ne franchit pas la frontière.
 

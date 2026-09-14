@@ -67,9 +67,9 @@ make installer                  # environnement virtuel + dépendances
 cp .env.example .env            # DEBUG=True, sinon le CSS n'est pas servi
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
-make demo                       # référentiels + 5 boutiques, 20 jours de ventes
+make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 484 tests
+make tester                     # 545 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -84,6 +84,7 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237655330011` | Gérante, Pharmacie du Wouri | Tout — **lots, péremptions et ordonnancier** |
 | `+237691440011` | Gérante, Boulangerie Bonapriso | Tout — **fiches techniques et production du jour** |
 | `+237677550011` | Gérant, Auto Pièces Ndokoti | Tout — **recherche par véhicule et compatibilités** |
+| `+237698660011` | Gérant, Nkolo Électronique | Tout — **numéros de série, garantie et atelier** |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
 
@@ -123,6 +124,14 @@ borne rien — parce qu'un vendeur ne sait presque jamais quand une pièce a cha
 sait rarement l'année exacte de sa voiture. Le risque assumé est de montrer une pièce de trop
 plutôt que d'en cacher une : au comptoir, on écarte en trois secondes une pièce qui ne convient
 pas ; on ne peut rien contre une pièce qu'on ne nous a jamais montrée.
+
+En **électronique**, un appareil se suit exemplaire par exemplaire : numéro de série ou IMEI relevé
+à la réception, réclamé à la caisse, et retrouvé plus tard en le scannant. L'écran dit alors d'où il
+vient, à qui il a été vendu, si la garantie court encore et combien de fois il est passé à
+l'atelier. L'échéance est **figée le jour de la vente** — ramener la garantie du catalogue de douze
+à six mois vaut pour les ventes futures, pas pour les engagements déjà pris. La quantité, elle,
+reste la source de vérité : une livraison saisie sans les numéros n'est pas refusée, elle produit un
+écart que l'écran chiffre et qui se rattrape depuis la fiche de l'article.
 
 Ce que chaque métier prévoit **sans l'avoir encore** est affiché comme tel : lister une fonction
 non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas.
@@ -204,7 +213,7 @@ voyage quand même sur le réseau.
 ### Isolation entre boutiques
 
 Trois barrières indépendantes, dont aucune ne suffit seule : le contexte de requête, le
-gestionnaire filtrant, et des **politiques PostgreSQL au niveau ligne** sur les 30 tables scopées.
+gestionnaire filtrant, et des **politiques PostgreSQL au niveau ligne** sur les 32 tables scopées.
 La troisième protège de ce que les deux premières ne voient pas — une requête brute, un script,
 un gestionnaire non filtré. Réglage de session absent : rien n'est visible.
 
@@ -274,7 +283,8 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
 - [x] **Vitrine publique** — catalogue de tout le marché sans compte, panier, tunnel de commande,
   lien de parrainage *(l'encaissement en ligne attend le même bac à sable d'opérateur)*
 - [x] **Dix métiers** — vocabulaire, valeurs par défaut et formulaires adaptés ; suivi par lot et
-  écran des péremptions pour les métiers qui en ont besoin
+  péremptions, fiches techniques et production, compatibilité véhicule, ordonnancier, suivi à
+  l'unité et garantie — chacun réservé aux métiers qui en ont besoin
 - [x] **Espace personnalisé** — logo, charte graphique validée, adresse publique et liens
   marketing courts, par boutique
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation

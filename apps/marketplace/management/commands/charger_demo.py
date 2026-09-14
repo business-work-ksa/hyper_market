@@ -1,8 +1,14 @@
-"""Jeu de démonstration : deux boutiques de Douala, du stock, des ventes, une filiation.
+"""Jeu de démonstration : six boutiques de Douala et Yaoundé, du stock, des ventes, une filiation.
 
 Sert aux démonstrations commerciales et à la recette. Les données sont volontairement réalistes
 (prix, assortiment, marges) : une démonstration avec des « Produit A » à 100 F ne convainc aucun
 commerçant.
+
+Chaque métier représenté l'est pour une raison : la pharmacie est le seul endroit
+où les lots, les péremptions et l'ordonnancier se vérifient à l'écran ; la
+boulangerie le seul où l'on fabrique ; les pièces détachées le seul où l'on
+cherche par la voiture du client ; l'électronique le seul où un appareil se suit
+exemplaire par exemplaire, avec sa garantie et son atelier.
 """
 
 import random
@@ -205,6 +211,70 @@ BOUTIQUES = [
             # Une huile va sur tout : aucune borne, aucun modèle. C'est
             # exactement le cas que la recherche ne doit pas faire disparaître.
             ("PAU-HUI-15W40", "", [("Toyota", "", "", None, None), ("Nissan", "", "", None, None)]),
+        ],
+    },
+    {
+        # Même raison que les trois précédentes : c'est le seul métier du jeu où
+        # un appareil se suit exemplaire par exemplaire. Sans cette boutique, la
+        # garantie, l'atelier et la recherche par IMEI ne se vérifient qu'en
+        # lisant le code.
+        "raison_sociale": "Nkolo Télécom SARL",
+        "enseigne": "Nkolo Électronique",
+        "slug": "nkolo-electronique",
+        "metier": "ELECTRONIQUE",
+        "rayon": "petit-electronique",
+        "offre": TypeEmplacement.BOUTIQUE,
+        "rccm": "RC/DLA/2021/B/5127",
+        "niu": "M032166778899F",
+        "ville": "Douala",
+        "gerant": ("+237698660011", "Armand Nkolo"),
+        "equipe": [("+237698660022", "Chantal Mvondo", Role.VENDEUR)],
+        "reserve": None,
+        "produits": [
+            ("ELE-TEL-128", "Téléphone 128 Go — double SIM", "185000", "148000", 5, 2),
+            ("ELE-TEL-64", "Téléphone 64 Go — double SIM", "119000", "92000", 4, 2),
+            ("ELE-TEL-REC", "Téléphone reconditionné 64 Go", "62000", "44000", 3, 1),
+            ("ELE-ORD-15", "Ordinateur portable 15 pouces", "425000", "352000", 3, 1),
+            ("ELE-CHA-25W", "Chargeur rapide 25 W", "6500", "3400", 140, 20),
+            ("ELE-ECO-BLU", "Écouteurs sans fil", "12500", "7200", 85, 15),
+            ("ELE-CAR-64", "Carte mémoire 64 Go", "7500", "4300", 120, 20),
+        ],
+        # (sku, garantie en mois, numéros reçus)
+        # Les accessoires n'y sont pas : un chargeur n'a pas de numéro de série,
+        # et en réclamer un à chaque réception ferait abandonner le suivi. Le
+        # téléphone reconditionné, lui, est garanti un mois — c'est l'usage, et
+        # c'est ce qui met une garantie expirée dans le jeu sans antidater une
+        # vente hors de l'exercice comptable.
+        "appareils": [
+            ("ELE-TEL-128", 12, [
+                "356938035643809", "356938035643810", "356938035643811",
+                "356938035643812", "356938035643813",
+            ]),
+            # Trois numéros pour quatre téléphones en stock : l'écart est
+            # **voulu**. C'est la livraison saisie un jour de presse, sans
+            # relever le dernier IMEI — le cas que l'écran de garantie doit
+            # savoir montrer, et qu'un jeu de démonstration parfait cacherait.
+            ("ELE-TEL-64", 12, [
+                "351756051523999", "351756051524000", "351756051524001",
+            ]),
+            ("ELE-TEL-REC", 1, [
+                "862011048873210", "862011048873211", "862011048873212",
+            ]),
+            ("ELE-ORD-15", 24, ["5CD9482KJ7", "5CD9482KJ8", "5CD9482KJ9"]),
+        ],
+        # (sku, numéro, jours de recul, nom du client)
+        "ventes_appareils": [
+            ("ELE-TEL-128", "356938035643809", 9, "Marthe Ngo Bisseck"),
+            ("ELE-TEL-128", "356938035643810", 3, "Serge Owona"),
+            ("ELE-ORD-15", "5CD9482KJ7", 12, "Cabinet Mballa & Associés"),
+            # Vendu il y a six semaines avec un mois de garantie : échue, et
+            # l'écran doit le dire sans ambiguïté au client qui revient.
+            ("ELE-TEL-REC", "862011048873210", 44, "Patrick Essomba"),
+        ],
+        # (numéro, motif, jours de recul, rendu ou non)
+        "atelier": [
+            ("356938035643809", "Ne charge plus — nappe de charge suspectée", 2, False),
+            ("862011048873210", "Écran fissuré, tactile mort en bas", 20, True),
         ],
     },
 ]
@@ -450,6 +520,7 @@ class Command(BaseCommand):
 
         self._marquer_les_ordonnances(boutique, variantes, donnees)
         self._declarer_les_vehicules(boutique, gerant, variantes, donnees)
+        suivis = self._suivre_les_appareils(boutique, depot, gerant, variantes, donnees)
 
         # Les fiches et les fournées viennent **avant** l'historique de ventes :
         # on ne vend pas des baguettes qui n'ont pas été cuites.
@@ -459,9 +530,15 @@ class Command(BaseCommand):
         # son sac de farine au comptoir, et l'y faire passer creuserait un stock
         # négatif qui ne raconterait rien — sinon que le jeu de démonstration
         # ignore ce qu'est un ingrédient.
-        au_comptoir = [v for v in variantes if v.pk not in ingredients]
+        #
+        # Un appareil suivi à l'unité en est écarté pour une raison voisine : le
+        # tirage aléatoire de l'historique vendrait des téléphones sans leur
+        # IMEI, et laisserait des exemplaires « en stock » qui ne sont plus là.
+        # Ces ventes-là sont écrites nommément, plus bas.
+        au_comptoir = [v for v in variantes if v.pk not in ingredients and v.pk not in suivis]
         self._generer_historique(boutique, depot, gerant, au_comptoir)
         self._consigner_quelques_ordonnances(boutique)
+        self._vendre_quelques_appareils(boutique, depot, gerant, variantes, donnees)
         self._creer_etats_de_stock(depot, gerant, au_comptoir)
         self._ouvrir_reserve(boutique, depot, gerant, variantes, donnees.get("reserve"))
 
@@ -524,6 +601,101 @@ class Command(BaseCommand):
                     annee_fin=fin,
                     defaults={"cree_par": gerant},
                 )
+
+    def _suivre_les_appareils(self, boutique, depot, gerant, variantes, donnees) -> set:
+        """Marque les articles suivis à l'unité et nomme les exemplaires reçus.
+
+        Inerte ailleurs : la clé `appareils` est absente et rien n'est écrit.
+        Renvoie les variantes suivies, que l'historique de ventes doit éviter.
+        """
+        from apps.inventory import series
+
+        lignes = donnees.get("appareils") or []
+        if not lignes:
+            return set()
+
+        par_sku = {v.sku: v for v in variantes}
+        suivis = set()
+        for sku, garantie, numeros in lignes:
+            variante = par_sku[sku]
+            Variante.objects.filter(pk=variante.pk).update(
+                suivi_unitaire=True, garantie_mois=garantie
+            )
+            # Et sur l'objet en mémoire : `declarer` refuse un article qui n'est
+            # pas suivi, et un `UPDATE` ne rafraîchit pas un objet déjà chargé.
+            variante.suivi_unitaire = True
+            variante.garantie_mois = garantie
+
+            series.declarer(
+                depot=depot,
+                variante=variante,
+                numeros=numeros,
+                # Reçus avant d'être vendus, sinon l'écran de garantie
+                # afficherait un appareil vendu six semaines avant son arrivée —
+                # une incohérence qu'un commerçant remarque tout de suite.
+                recu_le=self._recul(60).date(),
+                cree_par=gerant,
+                commentaire="Réception à l'installation",
+            )
+            suivis.add(variante.pk)
+        return suivis
+
+    def _vendre_quelques_appareils(self, boutique, depot, gerant, variantes, donnees) -> None:
+        """Ventes nommées d'appareils, puis leurs passages à l'atelier.
+
+        Écrites une par une plutôt que tirées au sort : chacune illustre un cas
+        que l'écran de garantie doit savoir dire — sous garantie, échue, en
+        réparation. Un tirage aléatoire ne garantirait aucun des trois.
+        """
+        from apps.inventory import series
+
+        ventes = donnees.get("ventes_appareils") or []
+        if not ventes:
+            return
+
+        par_sku = {v.sku: v for v in variantes}
+        session = caisse.ouvrir_session(
+            depot=depot, caissier=gerant, fonds_ouverture=Decimal("50000")
+        )
+
+        for sku, numero, recul, client in ventes:
+            horodatage = self._recul(recul)
+            ticket, _ = caisse.encaisser(
+                session=session,
+                lignes=[(par_sku[sku], Decimal("1"), Decimal("0"), [numero])],
+                moyen="especes",
+                client_nom=client,
+                encaisse_le=horodatage,
+                cree_par=gerant,
+            )
+            self._antidater(ticket, horodatage)
+
+        for numero, motif, recul, rendu in donnees.get("atelier") or []:
+            exemplaire = series.rechercher(numero)
+            if exemplaire is None:
+                continue
+            passage = series.entrer_a_l_atelier(exemplaire, motif=motif, cree_par=gerant)
+            from apps.inventory.models import PassageAtelier
+
+            PassageAtelier.objects.filter(pk=passage.pk).update(entre_le=self._recul(recul))
+            if rendu:
+                series.sortir_de_l_atelier(exemplaire, resultat="Écran remplacé, testé au comptoir")
+
+    @staticmethod
+    def _recul(jours: int):
+        """Horodatage à `jours` en arrière, sans sortir de l'exercice comptable.
+
+        Le plan comptable d'une boutique ouvre un exercice sur l'année civile
+        courante (`apps/accounting/referentiel.py`). Une vente antidatée avant le
+        1er janvier n'aurait aucun exercice pour la recevoir, et le chargement
+        échouerait — un jour de janvier seulement, ce qui est la pire façon de
+        découvrir un défaut.
+        """
+        jour = max(
+            timezone.localdate() - timedelta(days=jours),
+            timezone.localdate().replace(month=1, day=1),
+        )
+        return timezone.make_aware(datetime.combine(jour, dtime(11, 30)))
 
     def _composer_les_fiches(self, boutique, depot, gerant, variantes, donnees) -> set:
         """Fiches techniques et fournées du matin, pour les métiers qui fabriquent.

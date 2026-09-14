@@ -455,6 +455,17 @@ table { border-collapse: collapse; width: 100%; }
   box-shadow: 0 0 0 3px var(--actif);
 }
 .champ--grand { height: 46px; font-size: 16px; padding: 0 14px; }
+/* Une zone de texte hérite de la hauteur fixe de `.champ` et s'écrase sur une
+   ligne : `rows="4"` est alors ignoré, et le champ ment sur ce qu'il attend.
+   C'est le cas du mode opératoire d'une fiche technique comme des numéros de
+   série d'une réception — on y colle plusieurs lignes. */
+textarea.champ {
+  height: auto;
+  min-height: 76px;
+  padding: 9px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
 
 .groupe-champ { display: flex; flex-direction: column; gap: 6px; }
 .groupe-champ > label { font-size: 12.5px; font-weight: 560; color: var(--encre-2); }
@@ -724,6 +735,14 @@ table { border-collapse: collapse; width: 100%; }
 .ligne-ticket__nom { font-size: 13.5px; font-weight: 550; }
 .ligne-ticket__total { font-variant-numeric: tabular-nums; font-weight: 620; font-size: 14px; }
 .ligne-ticket__meta { font-size: 11.5px; color: var(--encre-muette); grid-column: 1; }
+/* Les numéros de série prennent toute la largeur de la ligne : ils se scannent
+   l'un après l'autre, et un champ écrasé contre la quantité se raterait. */
+.ligne-ticket__series {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 4px;
+}
+.ligne-ticket__series input { font-variant-numeric: tabular-nums; }
 
 .pas-a-pas { display: flex; align-items: center; gap: 2px; }
 .pas-a-pas button {

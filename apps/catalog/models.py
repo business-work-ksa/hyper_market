@@ -142,6 +142,18 @@ class Variante(TenantScopedModel):
         db_index=True,
         help_text="Référence d'origine du fabricant. Ex. 90915-YZZD4.",
     )
+    # Porté par la variante et non par le produit, parce que c'est la variante
+    # qui porte le stock : un exemplaire est une unité d'une variante, pas d'un
+    # modèle. Un téléphone 128 Go et le même en 64 Go ont des IMEI distincts et
+    # des stocks distincts — c'est le même objet de gestion.
+    suivi_unitaire = models.BooleanField(
+        default=False,
+        help_text="Chaque exemplaire porte un numéro de série ou un IMEI, suivi individuellement.",
+    )
+    garantie_mois = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Durée de garantie offerte à l'acheteur, en mois. Zéro : aucune garantie.",
+    )
 
     class Meta:
         verbose_name = "variante"

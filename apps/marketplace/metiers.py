@@ -26,10 +26,10 @@ fonction qui ne ferait qu'apparaître dans une liste donnerait au commerçant
 l'impression d'un suivi qu'il n'a pas — c'est exactement le genre de promesse
 qu'une pharmacie paie cher.
 
-Restent à écrire, et volontairement non déclarées : numéros de série et garantie
-(électronique), dénomination commune internationale (pharmacie), équivalences
-entre références de constructeurs. Le métier les prévoit dans son `a_venir`, qui
-sert à l'afficher au commerçant sans le lui promettre.
+Restent à écrire, et volontairement non déclarées : dénomination commune
+internationale (pharmacie), équivalences entre références de constructeurs
+(pièces auto), service à table (restauration). Le métier les prévoit dans son
+`a_venir`, qui sert à l'afficher au commerçant sans le lui promettre.
 
 Une limite à connaître sur les lots : le stock est suivi **lot par lot**, ce qui
 répond à « qu'est-ce qui périme quand » et « combien me reste-t-il de ce lot ».
@@ -37,6 +37,13 @@ Il ne répond pas à « quel lot est parti chez quel client » — cela demande 
 affectation ligne à ligne à la vente, et c'est un autre chantier. Le rappel de
 lot au sens pharmacovigilance n'est donc pas couvert, et le libellé de la
 fonction ne le prétend pas.
+
+Le suivi à l'unité, lui, **répond** à cette question — c'est toute sa raison
+d'être. Un lot compte des quantités ; un numéro de série nomme un exemplaire, et
+c'est ce qui permet de dire « ce téléphone-là est sorti d'ici le 3 mars, vendu à
+madame Ngo, garanti jusqu'au 3 mars prochain ». Les deux mécanismes coexistent
+sans se remplacer : ils ne répondent pas à la même question, et aucun métier
+n'active les deux.
 """
 
 from dataclasses import dataclass, field
@@ -54,6 +61,8 @@ __all__ = [
     "RECETTE",
     "COMPATIBILITE",
     "ORDONNANCE",
+    "SERIE",
+    "GARANTIE",
 ]
 
 # --- Fonctions réellement câblées -------------------------------------------
@@ -64,6 +73,8 @@ DECLINAISONS = "declinaisons"
 RECETTE = "recette"
 COMPATIBILITE = "compatibilite"
 ORDONNANCE = "ordonnance"
+SERIE = "serie"
+GARANTIE = "garantie"
 
 LIBELLES_FONCTIONS = {
     PEREMPTION: "Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard",
@@ -73,6 +84,8 @@ LIBELLES_FONCTIONS = {
     RECETTE: "Fiches techniques : produire consomme les ingrédients et calcule le coût de revient",
     COMPATIBILITE: "Référence constructeur et compatibilité véhicule : marque, modèle, années",
     ORDONNANCE: "Médicaments sur ordonnance : ordonnancier, et retrait de la vente en ligne",
+    SERIE: "Numéros de série et IMEI suivis exemplaire par exemplaire, de la réception à la vente",
+    GARANTIE: "Garantie : durée, échéance figée à la vente, et passages à l'atelier",
 }
 
 
@@ -229,11 +242,7 @@ METIERS: dict[str, Metier] = {
         resume="Téléphones, accessoires, informatique, réparation.",
         article="appareil",
         articles="appareils",
-        fonctions=frozenset({DECLINAISONS}),
-        a_venir=(
-            "Numéro de série et IMEI suivis à l'unité",
-            "Garantie : durée, échéance, retour atelier",
-        ),
+        fonctions=frozenset({DECLINAISONS, SERIE, GARANTIE}),
         exemples=("Téléphone 64 Go", "Chargeur rapide 25 W", "Écouteurs sans fil"),
     ),
     "PIECES_AUTO": Metier(

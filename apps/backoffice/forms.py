@@ -98,6 +98,24 @@ class ArticleForm(forms.Form):
         help_text="Celle qui est gravée sur la pièce d'origine.",
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "90915-YZZD4"}),
     )
+    suivi_unitaire = forms.BooleanField(
+        label="Suivre chaque exemplaire (numéro de série ou IMEI)",
+        required=False,
+        help_text=(
+            "À réserver aux appareils qui en portent un. Un câble n'a pas d'IMEI, "
+            "et en réclamer un à chaque réception fait abandonner le suivi."
+        ),
+        widget=forms.CheckboxInput(attrs={"class": "case"}),
+    )
+    garantie_mois = forms.IntegerField(
+        label="Garantie (mois)",
+        min_value=0,
+        max_value=120,
+        required=False,
+        initial=0,
+        help_text="Zéro si l'article n'est pas garanti. L'échéance sera figée à la vente.",
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
+    )
 
     # Ordre d'affichage des champs que le métier ajoute. La liste est ici et non
     # dans le gabarit : un champ composé par `_composer` mais oublié par l'écran
@@ -109,6 +127,8 @@ class ArticleForm(forms.Form):
         "numero_lot",
         "sur_ordonnance",
         "reference_constructeur",
+        "suivi_unitaire",
+        "garantie_mois",
     )
 
     def __init__(self, *args, boutique=None, **kwargs):
@@ -159,6 +179,10 @@ class ArticleForm(forms.Form):
             del self.fields["reference_constructeur"]
         if not metier.a(metiers.ORDONNANCE):
             del self.fields["sur_ordonnance"]
+        if not metier.a(metiers.SERIE):
+            del self.fields["suivi_unitaire"]
+        if not metier.a(metiers.GARANTIE):
+            del self.fields["garantie_mois"]
         if metier.unite_defaut == "U" and not metier.a(metiers.POIDS_VARIABLE):
             # L'unité ne se pose pas dans un commerce où tout se vend à la pièce.
             del self.fields["unite"]
@@ -201,6 +225,37 @@ class ArticleForm(forms.Form):
         return donnees
 
 
+class ExemplairesForm(forms.Form):
+    """Déclaration de numéros de série, un par ligne.
+
+    Un champ libre plutôt que N cases : une réception d'appareils se saisit en
+    collant la liste du bon de livraison, ou en scannant les étiquettes à la
+    suite. Une douchette envoie un retour à la ligne après chaque code — c'est
+    exactement ce que ce champ attend.
+    """
+
+    numeros = forms.CharField(
+        label="Numéros de série",
+        widget=forms.Textarea(
+            attrs={
+                **CHAMP,
+                "rows": 4,
+                "placeholder": "Un numéro par ligne — scannez à la suite",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            }
+        ),
+    )
+
+    def clean_numeros(self):
+        from apps.inventory.series import numeros_propres
+
+        numeros = numeros_propres(self.cleaned_data["numeros"].splitlines())
+        if not numeros:
+            raise forms.ValidationError("Aucun numéro lisible dans cette saisie.")
+        return numeros
+
+
 class EntreeStockForm(forms.Form):
     """Réception fournisseur sur un article existant."""
 
@@ -216,6 +271,69 @@ class EntreeStockForm(forms.Form):
     commentaire = forms.CharField(
         label="Commentaire", max_length=255, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Bon de livraison n° …"}),
+    )
+    numeros_serie = forms.CharField(
+        label="Numéros de série reçus",
+        required=False,
+        help_text="Un par ligne. Facultatifs : ce qui n'est pas nommé reste du stock ordinaire.",
+        widget=forms.Textarea(
+            attrs={
+                **CHAMP,
+                "rows": 4,
+                "placeholder": "Un numéro par ligne — scannez à la suite",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            }
+        ),
+    )
+
+    def __init__(self, *args, variante=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.variante = variante
+        if variante is None or not variante.suivi_unitaire:
+            # Même règle que partout : ce qui ne s'applique pas n'est pas grisé,
+            # il est absent.
+            del self.fields["numeros_serie"]
+
+    def clean_numeros_serie(self):
+        from apps.inventory.series import numeros_propres
+
+        return numeros_propres(self.cleaned_data["numeros_serie"].splitlines())
+
+    def clean(self):
+        donnees = super().clean()
+        numeros = donnees.get("numeros_serie") or []
+        quantite = donnees.get("quantite")
+        if numeros and quantite is not None and len(numeros) > quantite:
+            # Plus de numéros que d'appareils : c'est une ligne de trop collée,
+            # ou la quantité qui est fausse. Les accepter créerait des exemplaires
+            # qui ne sont dans aucun carton.
+            self.add_error(
+                "numeros_serie",
+                f"{len(numeros)} numéros pour {quantite:.0f} reçus : "
+                "corrigez la quantité ou retirez les numéros en trop.",
+            )
+        return donnees
+
+
+class AtelierForm(forms.Form):
+    """Dépôt d'un appareil en réparation."""
+
+    motif = forms.CharField(
+        label="Panne constatée",
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={**CHAMP, "placeholder": "Écran cassé, ne charge plus, redémarre seul…"}
+        ),
+    )
+
+
+class SortieAtelierForm(forms.Form):
+    resultat = forms.CharField(
+        label="Ce qui a été fait",
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Nappe de charge remplacée"}),
     )
 
 

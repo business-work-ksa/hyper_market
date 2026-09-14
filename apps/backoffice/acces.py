@@ -22,7 +22,7 @@ from django.shortcuts import redirect, render
 from apps.accounts.permissions import LIBELLES, droits_de
 from apps.inventory.models import Depot, NiveauStock
 from apps.inventory.services import lots_a_surveiller
-from apps.marketplace.metiers import ORDONNANCE, PEREMPTION
+from apps.marketplace.metiers import GARANTIE, ORDONNANCE, PEREMPTION
 from apps.marketplace.models import Boutique, IdentiteVisuelle
 
 
@@ -148,6 +148,7 @@ def contexte_commun(request, page: str) -> dict:
         "metier": None,
         "peremptions": None,
         "ordonnances_a_consigner": None,
+        "appareils_a_l_atelier": None,
         "identite": None,
     }
     if boutique is None:
@@ -185,6 +186,15 @@ def contexte_commun(request, page: str) -> dict:
 
         a_consigner = delivrances_sur_ordonnance(incompletes_seulement=True).count() or None
 
+    # Un appareil laissé en réparation appartient à quelqu'un qui attend. La
+    # pastille compte ce qui est encore à l'atelier : c'est la seule partie de
+    # l'écran de garantie sur laquelle il reste un geste à faire.
+    a_l_atelier = None
+    if metier.a(GARANTIE) and "ventes.voir" in droits:
+        from apps.inventory.series import en_atelier
+
+        a_l_atelier = en_atelier().count() or None
+
     contexte.update(
         {
             "droits": droits,
@@ -195,6 +205,7 @@ def contexte_commun(request, page: str) -> dict:
             "metier": metier,
             "peremptions": peremptions,
             "ordonnances_a_consigner": a_consigner,
+            "appareils_a_l_atelier": a_l_atelier,
             # La charte est lue pour tous les rôles, pas seulement pour qui peut
             # la modifier : un caissier travaille aussi dans les couleurs de sa
             # boutique.

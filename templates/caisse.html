@@ -53,10 +53,14 @@
                 data-id="{{ a.id }}" data-libelle="{{ a.libelle }}" data-prix="{{ a.prix }}"
                 data-sku="{{ a.sku }}" data-stock="{{ a.stock }}"
                 data-ordonnance="{% if a.sur_ordonnance %}1{% endif %}"
+                data-serie="{% if a.suivi_unitaire %}1{% endif %}"
                 data-recherche="{{ a.libelle|lower }} {{ a.sku|lower }}">
           <span class="article-tuile__nom">{{ a.libelle }}</span>
           {% if a.sur_ordonnance %}
             <span class="puce puce--alerte"><svg><use href="#ic-info"></use></svg>Ordonnance</span>
+          {% endif %}
+          {% if a.suivi_unitaire %}
+            <span class="puce"><svg><use href="#ic-verrou"></use></svg>Numéro de série</span>
           {% endif %}
           <span class="article-tuile__pied">
             <span class="article-tuile__prix">{{ a.prix|fcfa }}</span>
@@ -170,16 +174,30 @@
         prix: parseFloat(donnees.prix),
         quantite: 1,
         ordonnance: donnees.ordonnance === "1",
+        serie: donnees.serie === "1",
+        // Les numéros saisis vivent sur la ligne du panier, pas dans le DOM :
+        // la liste est redessinée à chaque changement de quantité, et des
+        // valeurs qui n'existeraient que dans les champs disparaîtraient au
+        // premier « + ».
+        numeros: [],
       });
     }
+    ajusterNumeros(panier.get(donnees.id));
     rendre();
+  }
+
+  function ajusterNumeros(ligne) {
+    if (!ligne.serie) return;
+    while (ligne.numeros.length < ligne.quantite) ligne.numeros.push("");
+    ligne.numeros.length = ligne.quantite;
   }
 
   function modifier(id, delta) {
     var ligne = panier.get(id);
     if (!ligne) return;
     ligne.quantite += delta;
-    if (ligne.quantite <= 0) panier.delete(id);
+    if (ligne.quantite <= 0) { panier.delete(id); }
+    else { ajusterNumeros(ligne); }
     rendre();
   }
 
@@ -211,6 +229,29 @@
           modifier(ligne.id, b.dataset.action === "plus" ? 1 : -1);
         });
       });
+
+      // Un champ par exemplaire vendu, pas un champ à séparateurs : l'appareil
+      // est sur le comptoir, on scanne son étiquette et on passe au suivant.
+      if (ligne.serie) {
+        var bloc = document.createElement("span");
+        bloc.className = "ligne-ticket__series";
+        ligne.numeros.forEach(function (valeur, index) {
+          var champ = document.createElement("input");
+          champ.className = "champ champ--compact";
+          champ.type = "text";
+          champ.value = valeur;
+          champ.autocomplete = "off";
+          champ.spellcheck = false;
+          champ.placeholder = "N° de série " + (index + 1);
+          champ.setAttribute("aria-label", "Numéro de série " + (index + 1) + " — " + ligne.libelle);
+          champ.addEventListener("input", function () {
+            ligne.numeros[index] = champ.value;
+          });
+          bloc.appendChild(champ);
+        });
+        noeud.appendChild(bloc);
+      }
+
       elLignes.appendChild(noeud);
     });
 
@@ -254,6 +295,7 @@
       tuile.dataset.sku = a.sku;
       tuile.dataset.stock = a.stock;
       tuile.dataset.ordonnance = a.sur_ordonnance ? "1" : "";
+      tuile.dataset.serie = a.suivi_unitaire ? "1" : "";
       tuile.dataset.recherche = (
         a.libelle + " " + a.sku + " " + (a.code_barres || "")
       ).toLowerCase();
@@ -279,6 +321,12 @@
         marque.className = "puce puce--alerte";
         marque.textContent = "Ordonnance";
         tuile.appendChild(marque);
+      }
+      if (a.suivi_unitaire) {
+        var marqueSerie = document.createElement("span");
+        marqueSerie.className = "puce";
+        marqueSerie.textContent = "Numéro de série";
+        tuile.appendChild(marqueSerie);
       }
       tuile.appendChild(pied);
       fragment.appendChild(tuile);
@@ -385,8 +433,35 @@
   elEncaisser.addEventListener("click", function () {
     if (panier.size === 0) return;
 
+    // Le numéro se lit sur l'appareil posé sur le comptoir. Le réclamer ici est
+    // le seul moment où il est lisible ; l'écran de garantie ne pourrait le
+    // rattraper qu'en le demandant de mémoire. Le serveur, lui, ne refuse rien —
+    // une vente encaissée n'est jamais annulée pour un registre (ADR-005).
+    var incomplete = null;
+    panier.forEach(function (l) {
+      if (!incomplete && l.serie && l.numeros.some(function (n) { return !n.trim(); })) {
+        incomplete = l;
+      }
+    });
+    if (incomplete) {
+      elMessage.textContent =
+        "Saisissez le numéro de série de chaque « " + incomplete.libelle + " » avant d'encaisser.";
+      // `querySelector("[value='']")` ne marcherait pas : les champs sont
+      // remplis par la propriété `value`, qui ne modifie pas l'attribut.
+      var vides = Array.prototype.filter.call(
+        elLignes.querySelectorAll(".ligne-ticket__series input"),
+        function (champ) { return !champ.value.trim(); }
+      );
+      if (vides.length) vides[0].focus();
+      return;
+    }
+
     var lignes = [];
-    panier.forEach(function (l) { lignes.push({ variante: l.id, quantite: l.quantite }); });
+    panier.forEach(function (l) {
+      var entree = { variante: l.id, quantite: l.quantite };
+      if (l.serie) entree.numeros = l.numeros.map(function (n) { return n.trim(); });
+      lignes.push(entree);
+    });
 
     // Clé d'idempotence générée côté client : une retransmission après coupure
     // réseau ne créera jamais deux ventes (ADR-004). C'est elle qui autorise la

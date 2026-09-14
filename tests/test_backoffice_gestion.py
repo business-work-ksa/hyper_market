@@ -335,6 +335,11 @@ class ExportTest(BaseGestionTest):
                     "mouvements_stock.csv",
                     "tickets.csv",
                     "lignes_ticket.csv",
+                    # Présente même sans aucun exemplaire : la réversibilité est
+                    # une promesse sur la forme de l'archive, pas sur son
+                    # contenu du jour. Un repreneur qui trouve le fichier vide
+                    # sait qu'il n'a rien manqué.
+                    "exemplaires.csv",
                     "ecritures_comptables.csv",
                 ]
             ),

@@ -140,9 +140,11 @@ def encaisser(
     finiraient par diverger sur un détail qui compte : l'arrondi, le moyen de
     règlement par défaut, ou la date portée par les écritures.
 
-    `lignes` est une suite de `(variante, quantite, remise)`. C'est à l'appelant
-    de résoudre les variantes : le comptoir ignore une référence inconnue, l'API
-    la refuse, et cette différence de politique lui appartient.
+    `lignes` est une suite de `(variante, quantite, remise)`, ou de
+    `(variante, quantite, remise, numeros)` pour les articles suivis à l'unité.
+    C'est à l'appelant de résoudre les variantes : le comptoir ignore une
+    référence inconnue, l'API la refuse, et cette différence de politique lui
+    appartient.
 
     **Reprise d'un encaissement interrompu.** Une opération retransmise dont le
     ticket existe déjà et porte déjà ses lignes n'est pas rejouée depuis le
@@ -151,6 +153,8 @@ def encaisser(
     réessayant — la clé d'idempotence protège du doublon de ticket, pas du
     doublon de lignes à l'intérieur d'un même ticket.
     """
+    panier = [_normaliser_entree(entree) for entree in lignes]
+
     ticket = creer_ticket(
         session=session,
         operation_id=operation_id,
@@ -163,7 +167,7 @@ def encaisser(
         return ticket, True
 
     if not LigneTicket.objects_all_tenants.filter(ticket=ticket).exists():
-        for variante, quantite, remise in lignes:
+        for variante, quantite, remise, _ in panier:
             ajouter_ligne(
                 ticket=ticket, variante=variante, quantite=quantite, remise=remise
             )
@@ -178,7 +182,48 @@ def encaisser(
         )
 
     cloturer_ticket(ticket, cree_par=cree_par, cloture_le=encaisse_le)
+    _consigner_les_exemplaires(ticket, panier, cree_par=cree_par)
     return ticket, False
+
+
+def _normaliser_entree(entree):
+    """Ramène une ligne de panier à `(variante, quantite, remise, numeros)`.
+
+    La forme à trois éléments reste valide et majoritaire : la plupart des
+    métiers ne suivent rien à l'unité, et leur imposer un quatrième élément vide
+    aurait touché tous les appelants pour le bénéfice d'un seul.
+    """
+    variante, quantite, remise = entree[0], entree[1], entree[2]
+    numeros = entree[3] if len(entree) > 3 else ()
+    return variante, quantite, remise, tuple(numeros or ())
+
+
+def _consigner_les_exemplaires(ticket: Ticket, panier, *, cree_par=None) -> None:
+    """Attache les numéros de série vendus à leurs exemplaires.
+
+    **Après la clôture, et hors de sa transaction.** Un numéro mal saisi ne doit
+    pas annuler une vente encaissée : la marchandise est partie, le règlement est
+    pris, les écritures sont écrites. C'est la même hiérarchie que l'ordonnancier
+    — la vente d'abord, le registre ensuite, et l'incomplet se rattrape.
+    """
+    numerotees = [(v, n) for v, _, _, n in panier if n]
+    if not numerotees:
+        return
+
+    from apps.inventory.series import vendre as vendre_exemplaires
+
+    depot = ticket.session.depot
+    for variante, numeros in numerotees:
+        vendre_exemplaires(
+            depot=depot,
+            variante=variante,
+            numeros=numeros,
+            ticket_id=ticket.pk,
+            ticket_numero=ticket.numero,
+            client=ticket.client_nom,
+            vendu_le=ticket.cloture_le,
+            cree_par=cree_par,
+        )
 
 
 @transaction.atomic

@@ -283,6 +283,15 @@ class LigneEncaissementSerialiseur(serializers.Serializer):
     remise = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, default=Decimal("0"), min_value=Decimal("0")
     )
+    numeros = serializers.ListField(
+        child=serializers.CharField(max_length=64),
+        required=False,
+        default=list,
+        help_text=(
+            "Numéros de série ou IMEI des exemplaires vendus, pour les articles "
+            "suivis à l'unité. Ignorés ailleurs."
+        ),
+    )
 
 
 class EncaissementSerialiseur(serializers.Serializer):

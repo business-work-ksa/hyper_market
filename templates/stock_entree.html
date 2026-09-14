@@ -30,6 +30,15 @@
       {% include "partials/champ.html" with champ=formulaire.quantite %}
       {% include "partials/champ.html" with champ=formulaire.cout_unitaire %}
       {% include "partials/champ.html" with champ=formulaire.commentaire %}
+      {% comment %}
+      Présent seulement si l'article est suivi à l'unité : le formulaire ne
+      compose le champ que dans ce cas (`EntreeStockForm.__init__`). C'est le
+      moment où les numéros se lisent — les cartons sont ouverts, la douchette
+      est en main.
+      {% endcomment %}
+      {% if formulaire.numeros_serie %}
+        {% include "partials/champ.html" with champ=formulaire.numeros_serie %}
+      {% endif %}
       <button class="btn btn--primaire btn--grand btn--bloc" type="submit" id="valider-entree">
         Enregistrer l'entrée
       </button>
@@ -107,6 +116,10 @@
       quantite: donnees.get("quantite"),
       cout_unitaire: donnees.get("cout_unitaire"),
       commentaire: donnees.get("commentaire") || "",
+      // Les numéros voyagent avec la réception plutôt que d'être saisis après
+      // coup : une réception mise en file un jour de coupure doit arriver
+      // complète, sinon les numéros seraient à ressaisir de mémoire.
+      numeros_serie: donnees.get("numeros_serie") || "",
       depot: formulaire.dataset.depot || null,
     };
 

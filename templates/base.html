@@ -75,6 +75,14 @@
         {% if metier and 'ordonnance' in metier.fonctions and 'ventes.voir' in droits %}
           {% nav 'ordonnancier' 'ic-ordonnance' 'Ordonnancier' page ordonnances_a_consigner %}
         {% endif %}
+        {% comment %}
+        Même règle pour la garantie : l'entrée n'existe que là où les appareils
+        sont suivis un par un. La pastille compte ce qui dort à l'atelier —
+        c'est-à-dire les clients qui attendent.
+        {% endcomment %}
+        {% if metier and 'serie' in metier.fonctions and 'ventes.voir' in droits %}
+          {% nav 'garantie' 'ic-garantie' 'Garantie' page appareils_a_l_atelier %}
+        {% endif %}
         {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' 'Commandes' page commandes_a_traiter %}{% endif %}
       </div>
 

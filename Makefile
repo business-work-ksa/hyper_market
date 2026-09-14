@@ -15,7 +15,7 @@ migrer:               ## Applique les migrations
 referentiels:         ## Charge rôles, rayons, offres, prestataires et plan comptable
 	$(PY) manage.py initialiser_referentiels
 
-demo: referentiels    ## Charge un jeu de démonstration (2 boutiques de Douala/Yaoundé)
+demo: referentiels    ## Charge un jeu de démonstration (6 boutiques de Douala/Yaoundé)
 	$(PY) manage.py charger_demo
 
 servir:               ## Lance le serveur de développement

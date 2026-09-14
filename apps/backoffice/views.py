@@ -25,6 +25,7 @@ from django.db.models import Sum
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.template.defaultfilters import pluralize
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -45,6 +46,7 @@ from apps.backoffice.forms import (
     CompatibiliteForm,
     DepotForm,
     EntreeStockForm,
+    ExemplairesForm,
     FermetureCaisseForm,
     OuvertureCaisseForm,
     TransfertStockForm,
@@ -57,7 +59,9 @@ from apps.inventory.models import (
     LigneInventaire,
     MouvementStock,
     NiveauStock,
+    NumeroSerie,
 )
+from apps.inventory import series
 from apps.inventory.services import (
     MouvementInvalide,
     entrer_stock,
@@ -442,6 +446,9 @@ def _articles_caisse(depot) -> list[dict]:
                 # qui doit réclamer l'ordonnance pendant que le client est là,
                 # réseau ou pas.
                 "sur_ordonnance": variante.produit.sur_ordonnance,
+                # Même raison : l'IMEI se lit sur l'appareil posé sur le
+                # comptoir. Le demander après coup, c'est ne jamais l'avoir.
+                "suivi_unitaire": variante.suivi_unitaire,
             }
         )
     return articles
@@ -539,7 +546,16 @@ def caisse_encaisser(request):
         variante = Variante.objects.filter(pk=ligne.get("variante")).first()
         if variante is None:
             continue
-        panier.append((variante, Decimal(str(ligne.get("quantite", 1))), Decimal("0")))
+        panier.append(
+            (
+                variante,
+                Decimal(str(ligne.get("quantite", 1))),
+                Decimal("0"),
+                # Ignorés là où l'article n'est pas suivi : une caisse d'un autre
+                # métier ne doit pas pouvoir créer des exemplaires par accident.
+                ligne.get("numeros") or () if variante.suivi_unitaire else (),
+            )
+        )
 
     try:
         ticket, rejoue = caisse_service.encaisser(
@@ -674,10 +690,25 @@ def article(request, variante_id):
 
     metier = contexte["metier"]
     suit_les_vehicules = metier is not None and metier.a(metiers.COMPATIBILITE)
+    # La carte des exemplaires ne s'ouvre pas sur tout le métier, mais sur
+    # l'article : une boutique d'électronique vend des téléphones et des câbles,
+    # et le câble n'a rien à y montrer.
+    suit_les_exemplaires = (
+        metier is not None and metier.a(metiers.SERIE) and variante.suivi_unitaire
+    )
 
     contexte.update(
         {
             "variante": variante,
+            "exemplaires": (
+                list(series.exemplaires_de(variante)[:60]) if suit_les_exemplaires else None
+            ),
+            "formulaire_exemplaires": (
+                ExemplairesForm()
+                if suit_les_exemplaires and droit.STOCK_MOUVEMENTER in contexte["droits"]
+                else None
+            ),
+            "etat_en_stock": NumeroSerie.EN_STOCK,
             "niveaux": NiveauStock.objects.filter(variante=variante).select_related("depot"),
             "mouvements": MouvementStock.objects.filter(variante=variante).select_related(
                 "depot"
@@ -697,6 +728,46 @@ def article(request, variante_id):
         }
     )
     return render(request, "article.html", contexte)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def exemplaires_declarer(request, variante_id):
+    """Nomme des exemplaires déjà en rayon.
+
+    La réception a sa propre porte (`entree_stock`), qui nomme au moment où la
+    marchandise arrive. Celle-ci sert au reste : la reprise d'un stock existant à
+    l'installation, et les cartons reçus un jour où personne n'a eu le temps de
+    scanner. Sans elle, un écart de numérotation ne pourrait jamais être rattrapé
+    autrement qu'en inventant une réception.
+    """
+    contexte = contexte_commun(request, "stock")
+    metier = contexte["metier"]
+    if metier is None or not metier.a(metiers.SERIE):
+        raise Http404("Ce métier ne suit pas les exemplaires à l'unité.")
+
+    variante = get_object_or_404(Variante.objects, pk=variante_id)
+    formulaire = ExemplairesForm(request.POST)
+    if not formulaire.is_valid():
+        messages.error(request, _premiere_erreur(formulaire))
+        return redirect("article", variante_id=variante.pk)
+
+    try:
+        declares = series.declarer(
+            depot=contexte["depot_courant"],
+            variante=variante,
+            numeros=formulaire.cleaned_data["numeros"],
+            cree_par=request.user,
+            commentaire="Déclaration depuis la fiche article",
+        )
+    except series.NumeroInvalide as erreur:
+        messages.error(request, str(erreur))
+        return redirect("article", variante_id=variante.pk)
+
+    messages.success(
+        request, f"{len(declares)} exemplaire{pluralize(len(declares))} nommé{pluralize(len(declares))}."
+    )
+    return redirect("article", variante_id=variante.pk)
 
 
 @require_POST
@@ -801,6 +872,9 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
         # Vide partout sauf en pièces détachées : le champ n'y est même pas
         # affiché ailleurs (`ArticleForm._composer`).
         reference_constructeur=(donnees.get("reference_constructeur") or "").strip(),
+        # Faux et nul partout sauf en électronique, pour la même raison.
+        suivi_unitaire=bool(donnees.get("suivi_unitaire")),
+        garantie_mois=donnees.get("garantie_mois") or 0,
         cree_par=utilisateur,
     )
     NiveauStock.objects.create(
@@ -839,25 +913,43 @@ def entree_stock(request, variante_id):
     niveau = NiveauStock.objects.filter(variante=variante, depot=depot).first()
 
     if request.method == "POST":
-        formulaire = EntreeStockForm(request.POST)
+        formulaire = EntreeStockForm(request.POST, variante=variante)
         if formulaire.is_valid():
+            commentaire = formulaire.cleaned_data["commentaire"] or "Réception fournisseur"
             mouvement = entrer_stock(
                 depot=depot,
                 variante=variante,
                 quantite=formulaire.cleaned_data["quantite"],
                 cout_unitaire=formulaire.cleaned_data["cout_unitaire"],
                 origine_type="backoffice.reception",
-                commentaire=formulaire.cleaned_data["commentaire"] or "Réception fournisseur",
+                commentaire=commentaire,
                 cree_par=request.user,
             )
-            messages.success(
-                request,
-                f"Entrée enregistrée. Nouveau coût moyen : {mouvement.cmp_apres:.0f} FCFA.",
-            )
+            annonce = f"Entrée enregistrée. Nouveau coût moyen : {mouvement.cmp_apres:.0f} FCFA."
+
+            # Les numéros sont nommés **après** le mouvement, et jamais dans sa
+            # transaction : un numéro déjà porté par un autre appareil ne doit
+            # pas faire échouer une réception de marchandise réellement arrivée.
+            numeros = formulaire.cleaned_data.get("numeros_serie") or []
+            if numeros:
+                try:
+                    declares = series.declarer(
+                        depot=depot,
+                        variante=variante,
+                        numeros=numeros,
+                        cree_par=request.user,
+                        commentaire=commentaire,
+                    )
+                except series.NumeroInvalide as erreur:
+                    messages.error(request, str(erreur))
+                    return redirect("article", variante_id=variante.pk)
+                annonce += f" {len(declares)} exemplaire{pluralize(len(declares))} nommé{pluralize(len(declares))}."
+
+            messages.success(request, annonce)
             return redirect("article", variante_id=variante.pk)
     else:
         initial = {"cout_unitaire": niveau.cmp.quantize(Decimal("1"))} if niveau else {}
-        formulaire = EntreeStockForm(initial=initial)
+        formulaire = EntreeStockForm(initial=initial, variante=variante)
 
     contexte.update({"formulaire": formulaire, "variante": variante, "niveau": niveau})
     return render(request, "stock_entree.html", contexte)
@@ -893,7 +985,9 @@ def entree_stock_json(request, variante_id):
             "quantite": charge.get("quantite"),
             "cout_unitaire": charge.get("cout_unitaire"),
             "commentaire": charge.get("commentaire") or "",
-        }
+            "numeros_serie": charge.get("numeros_serie") or "",
+        },
+        variante=variante,
     )
     if not formulaire.is_valid():
         return JsonResponse(
@@ -915,12 +1009,32 @@ def entree_stock_json(request, variante_id):
     except MouvementInvalide as erreur:
         return JsonResponse({"ok": False, "erreur": str(erreur)}, status=400)
 
+    # Nommer les exemplaires est idempotent : un numéro déjà en rayon n'est pas
+    # redéclaré. Une réception rejouée par la file hors ligne repasse donc ici
+    # sans dédoubler quoi que ce soit.
+    numeros = formulaire.cleaned_data.get("numeros_serie") or []
+    declares = []
+    if numeros:
+        try:
+            declares = series.declarer(
+                depot=depot,
+                variante=variante,
+                numeros=numeros,
+                cree_par=request.user,
+                commentaire=formulaire.cleaned_data["commentaire"] or "Réception fournisseur",
+            )
+        except series.NumeroInvalide as erreur:
+            # L'entrée de stock, elle, est passée : la marchandise est arrivée.
+            # On le dit sans la défaire.
+            return JsonResponse({"ok": False, "erreur": str(erreur)}, status=400)
+
     return JsonResponse(
         {
             "ok": True,
             "variante": str(variante.pk),
             "quantite_apres": float(mouvement.quantite_apres),
             "cmp_apres": float(mouvement.cmp_apres),
+            "exemplaires": len(declares),
             "url": f"/stock/{variante.pk}/",
         }
     )
@@ -1261,6 +1375,7 @@ def _tables_export(boutique) -> list[tuple]:
     mouvements = MouvementStock.objects.select_related("variante", "depot").order_by("cree_le")
     tickets = Ticket.objects.select_related("session__caissier").order_by("cree_le")
     lignes_ticket = LigneTicket.objects.select_related("ticket").order_by("cree_le")
+    exemplaires = NumeroSerie.objects.select_related("variante", "depot").order_by("numero")
     ecritures = LigneEcriture.objects.select_related("ecriture__journal", "compte").order_by(
         "ecriture__date_ecriture"
     )
@@ -1312,6 +1427,23 @@ def _tables_export(boutique) -> list[tuple]:
             [
                 [l.ticket.numero, l.libelle, l.quantite, l.pu_ttc, l.taux_tva, l.remise, l.total_ttc]
                 for l in lignes_ticket
+            ],
+        ),
+        # Les exemplaires suivis à l'unité partent avec le reste : ils portent la
+        # garantie due à des clients nommés, et un commerçant qui s'en va sans
+        # eux devrait rouvrir chaque ticket pour savoir ce qu'il doit encore.
+        (
+            "exemplaires",
+            ["numero", "sku", "depot", "etat", "recu_le", "vendu_le", "garantie_fin", "ticket", "client"],
+            [
+                [
+                    e.numero, e.variante.sku, e.depot.libelle, e.etat,
+                    e.recu_le.isoformat(),
+                    timezone.localtime(e.vendu_le).isoformat(timespec="seconds") if e.vendu_le else "",
+                    e.garantie_fin.isoformat() if e.garantie_fin else "",
+                    e.ticket_numero, e.client,
+                ]
+                for e in exemplaires
             ],
         ),
         (

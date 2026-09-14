@@ -126,6 +126,84 @@
     </section>
   {% endif %}
 
+  {% if exemplaires is not None %}
+    {% comment %}
+    La carte n'existe que pour un article réellement suivi à l'unité : la vue
+    laisse `exemplaires` à `None` partout ailleurs, jusque dans une boutique
+    d'électronique — un câble n'a pas d'IMEI et n'a pas à montrer une liste vide.
+    {% endcomment %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Exemplaires suivis</h2>
+        <span class="rangee" style="gap:6px">
+          {% if variante.garantie_mois %}
+            <span class="puce puce--bon"><svg><use href="#ic-garantie"></use></svg>Garantie {{ variante.garantie_mois }} mois</span>
+          {% endif %}
+          <span class="puce">{{ exemplaires|length }}</span>
+        </span>
+      </header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% if exemplaires %}
+          <div class="tableau-boite">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th scope="col">Numéro</th>
+                  <th scope="col">État</th>
+                  <th scope="col">Dépôt</th>
+                  <th scope="col">Reçu le</th>
+                  <th scope="col">Vendu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in exemplaires %}
+                  <tr>
+                    <td class="principal chiffre">
+                      <a href="{% url 'garantie' %}?numero={{ e.numero|urlencode }}">{{ e.numero }}</a>
+                    </td>
+                    <td class="t-2">
+                      {% if e.etat == etat_en_stock %}
+                        <span class="puce puce--bon">{{ e.get_etat_display }}</span>
+                      {% else %}
+                        <span class="puce">{{ e.get_etat_display }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="t-2">{{ e.depot.libelle }}</td>
+                    <td class="t-2 chiffre">{{ e.recu_le|date:"d/m/Y" }}</td>
+                    <td class="t-2">
+                      {% if e.vendu_le %}{{ e.vendu_le|date:"d/m/Y" }}{% if e.client %} · {{ e.client }}{% endif %}{% else %}—{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="t-legende">
+            Aucun exemplaire nommé. Tant qu'il n'y en a pas, ces appareils
+            sortiront du stock sans qu'on puisse dire lequel est parti — et la
+            garantie de celui-là ne sera opposable à rien.
+          </p>
+        {% endif %}
+
+        {% if formulaire_exemplaires %}
+          <form method="post" action="{% url 'exemplaires_declarer' variante_id=variante.pk %}"
+                class="colonne" style="gap:10px" novalidate>
+            {% csrf_token %}
+            {% include "partials/champ.html" with champ=formulaire_exemplaires.numeros %}
+            <div class="rangee" style="gap:10px">
+              <button class="btn btn--primaire" type="submit">Déclarer ces numéros</button>
+              <span class="t-legende">
+                Pour rattraper une réception saisie sans les numéros. Les
+                exemplaires seront rattachés à {{ depot_courant.libelle|default:"votre dépôt" }}.
+              </span>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
   <section class="carte">
     <header class="carte__entete">
       <h2 class="t-section">Historique des mouvements</h2>

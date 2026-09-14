@@ -12,7 +12,7 @@ cp .env.example .env    # DEBUG=True, sinon les fichiers statiques ne sont pas s
 
 docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
-make demo               # référentiels + 5 boutiques de démonstration
+make demo               # référentiels + 6 boutiques de démonstration
 make servir             # http://localhost:8000/
 ```
 
@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 484 tests (17 ignorés sur SQLite)
+make tester      # 545 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -47,11 +47,14 @@ Comptes de démonstration (mot de passe `demo1234`) :
 | `+237691440022` | Vendeur, Boulangerie Bonapriso | Comptoir et stock — **la production sans son coût** |
 | `+237677550011` | Gérant, Auto Pièces Ndokoti (Douala) | Tout — **recherche par véhicule, compatibilités** |
 | `+237677550022` | Vendeuse, Auto Pièces Ndokoti | Comptoir et stock — la recherche par véhicule, sans les coûts |
+| `+237698660011` | Gérant, Nkolo Électronique (Douala) | Tout — **numéros de série, garantie, atelier**, dont une garantie échue et un appareil en réparation |
+| `+237698660022` | Vendeuse, Nkolo Électronique | Comptoir, stock et garantie — ni coût, ni marge |
 
-Les trois dernières boutiques ne sont pas du décor. La pharmacie est le seul métier du jeu où le
-suivi par lot se voit à l'écran, la boulangerie le seul où l'on fabrique, et le vendeur de pièces
-le seul où l'on cherche par la voiture du client. Ce sont donc les trois seuls endroits où ces
-fonctions se vérifient sans lire le code.
+Les quatre dernières boutiques ne sont pas du décor. La pharmacie est le seul métier du jeu où le
+suivi par lot se voit à l'écran, la boulangerie le seul où l'on fabrique, le vendeur de pièces le
+seul où l'on cherche par la voiture du client, et la boutique d'électronique le seul où un appareil
+se suit exemplaire par exemplaire. Ce sont donc les quatre seuls endroits où ces fonctions se
+vérifient sans lire le code.
 
 Se connecter successivement avec ces comptes est le moyen le plus rapide de voir
 ce que la matrice de droits change réellement à l'écran.
@@ -73,6 +76,7 @@ apps/
                    charte.py — validation des couleurs d'un commerçant
   catalog/         référentiel mutualisé, produits, variantes
   inventory/       dépôts, mouvements, CMP, inventaires   ★
+                   series.py — exemplaires suivis à l'unité, garantie, atelier
   pos/             caisse, sessions, tickets                ★
   orders/          commandes, sous-commandes, retours
                    services.py — éclatement, commission figée, effets par étape
@@ -84,6 +88,7 @@ apps/
                    acces.py — boutique courante, dépôt courant, porte des droits
                    vues_equipe.py — embauche, rôles, retrait d'accès
                    vues_commandes.py — traitement des commandes en ligne
+                   vues_sav.py — garantie et atelier, recherche par numéro de série
   api/             API REST v1 (DRF)
                    models.py — jeton porteur de la boutique (ADR-010)
                    acces.py — la même porte, les mêmes droits
@@ -288,6 +293,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_ordonnance.py` | **Deux règles de nature différente** : le retrait de la vente en ligne est une interdiction posée à la seule porte du catalogue ; la consignation, elle, ne bloque aucune vente et se rattrape à l'ordonnancier. Plus l'accord entre les champs qu'un métier compose et ceux que l'écran rend |
 | `test_vehicules.py` | **Chercher une pièce par la voiture du client** : une compatibilité sans modèle couvre toute la marque, une année absente ne borne rien, une année illisible est ignorée plutôt que refusée — l'absence d'information ne produit jamais une absence de résultat |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
+| `test_series.py` | **Un exemplaire nommé, pas une quantité** : la garantie est figée à la vente et la couverture d'une réparation au jour du dépôt ; un numéro inconnu à la caisse est créé plutôt que refusé ; l'écart entre ce que le stock compte et ce que les numéros nomment est chiffré au lieu d'être interdit |
 | `test_production.py` | **Fabriquer ne crée ni ne détruit de valeur** : ce qui sort des ingrédients entre dans le produit fini au centime ; le coût de revient est calculé au moment où on le regarde, jamais figé sur la fiche ; un invendu est une perte et non un écart de comptage |
 
 Le mode hors ligne ne se teste pas là : `node scripts/verifier-hors-ligne.js` coupe réellement le
@@ -543,7 +549,7 @@ même raison : ce sont des règles, pas des données modifiables à chaud.
 | Restauration & snack | péremption, **fiches techniques** |
 | Boulangerie & pâtisserie | péremption, poids variable, **fiches techniques** |
 | Mode & prêt-à-porter | déclinaisons |
-| Électronique & téléphonie | déclinaisons |
+| Électronique & téléphonie | déclinaisons, **numéro de série et IMEI, garantie et atelier** |
 | Pièces détachées auto & moto | **référence constructeur, compatibilité véhicule** |
 | Produits frais | péremption, poids variable — **unité par défaut : le kilo** |
 
@@ -672,13 +678,50 @@ une écriture jamais.
 Le drapeau est **figé sur la ligne de ticket**, comme le libellé et le prix : un médicament que
 l'autorité reclasse l'an prochain ne doit pas réécrire l'ordonnancier de cette année.
 
-### 9.6 — Déclaré mais pas écrit
+### 9.6 — Un appareil suivi exemplaire par exemplaire
 
-Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : numéros de série et garantie,
-dénomination commune internationale, équivalences entre références de constructeurs, service à
-table. Lister une fonction non écrite au
-milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une pharmacie paie cher ce
-genre de malentendu.
+Écran : **Garantie et atelier**. Le stock ordinaire compte : « il me reste quatre téléphones ».
+Cela suffit pour réapprovisionner et pour rien d'autre le jour où quelqu'un pose un appareil sur
+le comptoir en demandant s'il est encore garanti. Cette question-là ne se répond pas avec une
+quantité, mais avec un exemplaire nommé — d'où `inventory.NumeroSerie`, et `apps/inventory/series.py`
+qui en tient les gestes.
+
+**Le numéro ne remplace pas la quantité, il la double nominativement.** `NiveauStock` reste la
+source de vérité et la base de la valorisation ; les exemplaires ne la contredisent jamais. Les
+deux peuvent diverger, et c'est voulu : une réception saisie sans les IMEI ajoute quatre téléphones
+au stock et zéro exemplaire. Refuser cette réception aurait été pire — la marchandise est là, le
+camion est reparti — alors l'écart est **chiffré et montré** (`ecarts_de_numerotation`), et il se
+rattrape depuis la fiche de l'article.
+
+**Le suivi se décide article par article, pas métier par métier.** Une boutique d'électronique vend
+des téléphones *et* des câbles : `Variante.suivi_unitaire` porte la décision. Réclamer un IMEI pour
+un chargeur est le meilleur moyen de faire abandonner le suivi dès la deuxième livraison.
+
+**L'échéance de garantie est figée à la vente**, comme `sur_ordonnance` l'est sur la ligne de
+ticket. Ramener la garantie du catalogue de douze à six mois vaut pour les ventes futures ; les
+engagements déjà pris ne se reprennent pas. Le décalage se fait en mois de calendrier — un 31
+janvier plus un mois donne le 28 février.
+
+**La couverture d'une réparation est figée au dépôt**, pas à la sortie. Un appareil déposé la
+veille de l'échéance est réparé sous garantie même rendu trois semaines plus tard : ce qui compte
+est le jour où la panne a été déclarée. Recalculer à la sortie ferait facturer une réparation déjà
+promise gratuite.
+
+À la caisse, le numéro est réclamé **avant** la mise en file — le drapeau voyage jusque dans le
+catalogue hors ligne, comme celui de l'ordonnance. Mais le serveur, lui, ne refuse rien : un numéro
+inconnu est **créé** à l'état vendu plutôt que rejeté, parce que l'appareil est parti avec le
+client et que refuser n'effacerait que la trace (ADR-005).
+
+Le lien vers la vente est un identifiant nu (`ticket_id`), pas une clé étrangère : `pos` est
+au-dessus d'`inventory` dans le graphe de dépendances (§2), et le stock ne remonte jamais vers la
+caisse. Même construction que `MouvementStock.origine_id`.
+
+### 9.7 — Déclaré mais pas écrit
+
+Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : dénomination commune
+internationale, équivalences entre références de constructeurs, service à table. Lister une
+fonction non écrite au milieu des autres donnerait l'impression d'un suivi qu'on n'a pas — et une
+pharmacie paie cher ce genre de malentendu.
 
 Un test le tient dans les deux sens : ce qui vient d'être câblé doit **sortir** de `a_venir`, faute
 de quoi la liste ment à l'envers.

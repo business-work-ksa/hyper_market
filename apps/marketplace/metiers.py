@@ -151,6 +151,18 @@ class Metier:
         return f"{'de la' if self.feminin else 'du'} {self.article}"
 
     @property
+    def l_article(self) -> str:
+        """« l'article », « la pièce », « le médicament ».
+
+        L'article défini, pour les titres d'écran : « Modifier l'article ».
+        Sans lui, un gabarit qui se rabat sur `du_article` écrit « Modifier de
+        l'article », et le premier titre que voit le commerçant est fautif.
+        """
+        if self._commence_par_une_voyelle:
+            return f"l'{self.article}"
+        return f"{'la' if self.feminin else 'le'} {self.article}"
+
+    @property
     def _commence_par_une_voyelle(self) -> bool:
         return self.article[:1].lower() in "aeiouâéèêîôûy"
 

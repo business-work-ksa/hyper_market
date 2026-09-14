@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Modifier {{ variante.produit.libelle }} — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Modifier {{ metier.l_article }}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'article' variante.pk %}">Retour à la fiche</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{{ variante.produit.libelle }}</h2>
+      <span class="puce chiffre">{{ variante.sku }}</span>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+
+      {% include "partials/champ.html" with champ=formulaire.libelle %}
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.sku %}
+        {% include "partials/champ.html" with champ=formulaire.code_barres %}
+      </div>
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.prix_vente %}
+        {% include "partials/champ.html" with champ=formulaire.seuil_alerte %}
+      </div>
+
+      {% include "partials/champ.html" with champ=formulaire.regime_tva %}
+
+      {% comment %}
+      Les champs du métier, dans l'ordre que le formulaire décide — même boucle
+      que l'écran de création, pour la même raison : un champ ajouté au
+      formulaire et oublié ici serait invisible et pourtant validé.
+      {% endcomment %}
+      {% if formulaire.champs_de_metier %}
+        <div class="colonne" style="gap:14px;padding-top:4px">
+          <p class="t-sur-titre">{{ metier.libelle }}</p>
+          {% for champ in formulaire.champs_de_metier %}
+            {% include "partials/champ.html" with champ=champ %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="colonne" style="gap:14px;padding-top:4px">
+        <p class="t-sur-titre">Disponibilité</p>
+        {% include "partials/champ.html" with champ=formulaire.actif %}
+      </div>
+
+      {% if formulaire.non_field_errors %}
+        <div class="bandeau-info bandeau-info--alerte">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>{{ formulaire.non_field_errors|join:" " }}</span>
+        </div>
+      {% endif %}
+
+      <div class="rangee" style="gap:9px">
+        <button class="btn btn--primaire btn--grand" type="submit">Enregistrer</button>
+        <a class="btn btn--grand" href="{% url 'article' variante.pk %}">Annuler</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="colonne">
+    <div class="carte">
+      <header class="carte__entete"><h2 class="t-section">Ce qui ne se corrige pas ici</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        {% comment %}
+        Dire pourquoi un champ manque vaut mieux que de le griser : le
+        commerçant qui cherche « la quantité » doit apprendre où elle se
+        corrige, pas conclure que l'écran est cassé.
+        {% endcomment %}
+        <p class="t-2">
+          <strong>La quantité et le coût d'achat</strong> ne sont pas des
+          attributs de {{ metier.du_article }} : ce sont des mouvements. Ils se
+          corrigent par une
+          <a href="{% url 'entree_stock' variante.pk %}">entrée de stock</a> ou
+          par un <a href="{% url 'inventaire' %}">inventaire</a>, qui laissent
+          tous deux une trace datée dans le journal.
+        </p>
+        <p class="t-2">
+          Un écran de fiche qui les proposerait donnerait le moyen d'écrire du
+          stock sans passer par son journal — et le coût moyen pondéré cesserait
+          d'être vérifiable.
+        </p>
+      </div>
+    </div>
+
+    <div class="carte">
+      <header class="carte__entete"><h2 class="t-section">Retirer cet article</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        {% if empeche_la_suppression %}
+          <p class="t-2">{{ empeche_la_suppression }}</p>
+          <p class="t-legende">
+            Décochez <strong>« En vente »</strong> ci-contre : l'article
+            disparaît de la caisse et de la vitrine, garde son stock, et son
+            libellé reste lisible sur les tickets et les écritures qui le citent.
+          </p>
+        {% else %}
+          <p class="t-2">
+            Cet article n'a encore aucune histoire : ni mouvement de stock, ni
+            exemplaire suivi. Il peut donc être <strong>réellement supprimé</strong>
+            depuis la liste du stock, sans laisser de trace.
+          </p>
+          <a class="btn" href="{% url 'stock' %}">Aller à la liste</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

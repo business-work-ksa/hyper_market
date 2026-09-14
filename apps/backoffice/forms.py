@@ -19,12 +19,33 @@ CHAMP = {"class": "champ"}
 CHAMP_GRAND = {"class": "champ champ--grand"}
 
 
-class ArticleForm(forms.Form):
-    """Création d'un article avec son stock initial — l'écran de l'installation.
+def nombre_court(valeur):
+    """`10.0000` devient `10`, `3200.00` devient `3200`, `0.5` reste `0.5`.
 
-    Un seul formulaire produit le produit, la variante, le niveau de stock et le
-    mouvement d'entrée valorisé. C'est volontaire : pendant un comptage debout
-    dans une réserve, on ne remplit pas quatre écrans par référence.
+    Les quantités sont stockées à quatre décimales et les prix à deux, parce que
+    le stock en a besoin. Les **réafficher** ainsi dans un formulaire donne
+    « 10.0000 » dans un champ « Seuil d'alerte » — un chiffre qu'aucun commerçant
+    n'écrirait, et qu'il faut effacer entièrement pour en saisir un autre.
+    """
+    if valeur is None:
+        return valeur
+    entier = valeur.to_integral_value()
+    return entier if valeur == entier else valeur.normalize()
+
+
+class SocleArticleForm(forms.Form):
+    """Ce qu'un article est, indépendamment de son stock.
+
+    Partagé par la création (`ArticleForm`) et la modification
+    (`ArticleModifierForm`). La frontière entre les deux n'est pas arbitraire :
+    **ce qui décrit l'article** — son nom, son prix, son régime de TVA, ce que
+    son métier lui ajoute — se corrige librement ; **ce qui décrit son stock** —
+    une quantité, un coût d'achat, une date de péremption — n'est pas un
+    attribut mais un mouvement, et se corrige par un autre mouvement.
+
+    Un écran de modification qui proposerait de retaper la quantité écrirait du
+    stock sans passer par son journal. C'est précisément ce que l'en-tête de ce
+    module interdit.
     """
 
     libelle = forms.CharField(
@@ -44,15 +65,6 @@ class ArticleForm(forms.Form):
     prix_vente = forms.DecimalField(
         label="Prix de vente TTC", min_value=Decimal("0"), decimal_places=2,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
-    )
-    cout_unitaire = forms.DecimalField(
-        label="Coût d'achat unitaire", min_value=Decimal("0"), decimal_places=2,
-        help_text="Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle.",
-        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
-    )
-    quantite = forms.DecimalField(
-        label="Quantité comptée", min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
-        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     seuil_alerte = forms.DecimalField(
         label="Seuil d'alerte", min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
@@ -131,6 +143,10 @@ class ArticleForm(forms.Form):
         "garantie_mois",
     )
 
+    # Ce qui ne décrit pas l'article mais son stock initial : retiré là où il n'y
+    # a pas de stock initial à saisir, c'est-à-dire à la modification.
+    CHAMPS_DE_STOCK = ("date_peremption", "numero_lot")
+
     def __init__(self, *args, boutique=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.boutique = boutique
@@ -191,12 +207,43 @@ class ArticleForm(forms.Form):
         return self.cleaned_data.get("unite") or self.metier.unite_defaut
 
     def clean_sku(self):
+        """Référence en capitales, et unique dans la boutique.
+
+        `exclut` permet à la modification de ne pas se heurter à sa propre
+        référence : sans lui, rouvrir une fiche et l'enregistrer sans rien
+        changer serait refusé.
+        """
         sku = self.cleaned_data["sku"].strip().upper()
         from apps.catalog.models import Variante
 
-        if Variante.objects.filter(sku=sku).exists():
+        deja = Variante.objects.filter(sku=sku)
+        if self.exclut is not None:
+            deja = deja.exclude(pk=self.exclut)
+        if deja.exists():
             raise forms.ValidationError("Cette référence existe déjà dans votre boutique.")
         return sku
+
+    # Identifiant de la variante que la validation d'unicité doit ignorer.
+    exclut = None
+
+
+class ArticleForm(SocleArticleForm):
+    """Création d'un article avec son stock initial — l'écran de l'installation.
+
+    Un seul formulaire produit le produit, la variante, le niveau de stock et le
+    mouvement d'entrée valorisé. C'est volontaire : pendant un comptage debout
+    dans une réserve, on ne remplit pas quatre écrans par référence.
+    """
+
+    cout_unitaire = forms.DecimalField(
+        label="Coût d'achat unitaire", min_value=Decimal("0"), decimal_places=2,
+        help_text="Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle.",
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
+    )
+    quantite = forms.DecimalField(
+        label="Quantité comptée", min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
+        widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
+    )
 
     def clean(self):
         donnees = super().clean()
@@ -223,6 +270,61 @@ class ArticleForm(forms.Form):
                 "Le coût d'achat dépasse le prix de vente : vous vendriez à perte.",
             )
         return donnees
+
+
+class ArticleModifierForm(SocleArticleForm):
+    """Correction d'un article existant.
+
+    Ce qui manque ici est aussi important que ce qui y est : **ni quantité, ni
+    coût d'achat**. Les deux sont l'affaire d'un mouvement de stock, et les
+    offrir sur un écran de fiche donnerait le moyen d'écrire du stock sans
+    journal — l'inverse exact de ce que le moteur garantit.
+
+    `actif` remplace la suppression quand l'article a une histoire : un article
+    vendu ne s'efface pas, il se retire du catalogue.
+    """
+
+    actif = forms.BooleanField(
+        label="En vente",
+        required=False,
+        initial=True,
+        help_text="Décoché, l'article disparaît de la caisse et de la vitrine, et garde son stock.",
+        widget=forms.CheckboxInput(attrs={"class": "case"}),
+    )
+
+    def __init__(self, *args, variante=None, **kwargs):
+        self.variante = variante
+        self.exclut = variante.pk if variante is not None else None
+        if variante is not None and "initial" not in kwargs and not args:
+            kwargs["initial"] = self.valeurs_de(variante)
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def valeurs_de(variante) -> dict:
+        """Ce que la fiche affiche à l'ouverture, lu sur l'objet réel."""
+        niveau = variante.niveaux.first()
+        return {
+            "libelle": variante.produit.libelle,
+            "sku": variante.sku,
+            "code_barres": variante.code_barres,
+            "prix_vente": nombre_court(variante.prix_vente),
+            "seuil_alerte": nombre_court(niveau.seuil_alerte if niveau else Decimal("0")),
+            "regime_tva": variante.produit.regime_tva,
+            "unite": variante.produit.unite,
+            "sur_ordonnance": variante.produit.sur_ordonnance,
+            "reference_constructeur": variante.reference_constructeur,
+            "suivi_unitaire": variante.suivi_unitaire,
+            "garantie_mois": variante.garantie_mois,
+            "actif": variante.actif,
+        }
+
+    def _composer(self) -> None:
+        super()._composer()
+        # Une date de péremption et un numéro de lot décrivent une **réception**,
+        # pas un article : ils se saisissent à l'entrée de marchandise, où ils ont
+        # un sens, et pas sur une fiche qu'on rouvre six mois plus tard.
+        for nom in self.CHAMPS_DE_STOCK:
+            self.fields.pop(nom, None)
 
 
 class ExemplairesForm(forms.Form):

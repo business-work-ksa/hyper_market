@@ -10,44 +10,34 @@
   {% endif %}
   {% if 'stock.mouvementer' in droits %}
     <a class="btn" href="{% url 'inventaire' %}">Inventaire</a>
-    <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
-      <svg><use href="#ic-plus"></use></svg> {{ metier.nouveau }} {{ metier.article }}
-    </a>
   {% endif %}
 {% endblock %}
 
 {% block contenu %}
 <div class="colonne">
 
-  {# Les filtres tiennent sur une seule rangée, au-dessus du tableau. #}
-  <form class="rangee" method="get" role="search">
-    <div class="recherche" style="flex:1;max-width:400px">
+  {% comment %}
+  La recherche reste **dehors**, au-dessus du tableau : c'est le geste le plus
+  fréquent de l'écran, et l'enfermer dans une boîte de filtres lui coûterait un
+  clic à chaque fois. Le reste — état du stock, dépôt, articles qui dorment —
+  vit dans la boîte, où il ne prend de place que quand on le demande.
+  {% endcomment %}
+  <form class="rangee" method="get" role="search" style="flex-wrap:wrap">
+    <div class="recherche" style="flex:1;min-width:240px;max-width:420px">
       <svg><use href="#ic-recherche"></use></svg>
       <input class="champ" type="search" name="q" value="{{ recherche }}"
              placeholder="Rechercher un article ou une référence" aria-label="Rechercher">
     </div>
-
-    <div class="rangee" style="gap:6px" role="group" aria-label="Filtrer par état">
-      <button class="btn {% if filtre == 'tous' %}btn--primaire{% endif %}" name="etat" value="tous" type="submit">Tous</button>
-      <button class="btn {% if filtre == 'alerte' %}btn--primaire{% endif %}" name="etat" value="alerte" type="submit">Sous le seuil</button>
-      <button class="btn {% if filtre == 'rupture' %}btn--primaire{% endif %}" name="etat" value="rupture" type="submit">Rupture</button>
-    </div>
-
     {% comment %}
-    Le filtre de dépôt de cette liste est distinct du dépôt d'exploitation de
-    l'en-tête : ici on consulte, là-bas on travaille. Un gérant veut voir tout
-    son stock d'un coup ; un magasinier veut compter une réserve précise.
+    Les autres filtres voyagent en champs cachés : chercher un mot ne doit pas
+    effacer le dépôt qu'on venait de choisir.
     {% endcomment %}
-    {% if depots|length > 1 %}
-      <select class="champ champ--compact" name="depot" aria-label="Filtrer par dépôt"
-              onchange="this.form.submit()">
-        <option value="tous">Tous les dépôts</option>
-        {% for d in depots %}
-          <option value="{{ d.pk }}" {% if depot_filtre == d.pk|stringformat:'s' %}selected{% endif %}>
-            {{ d.libelle }}
-          </option>
-        {% endfor %}
-      </select>
+    {% for cle, valeur in conserver_dans_recherche.items %}
+      <input type="hidden" name="{{ cle }}" value="{{ valeur }}">
+    {% endfor %}
+    <button class="btn" type="submit">Rechercher</button>
+    {% if recherche %}
+      <a class="btn btn--discret" href="{% url 'stock' %}">Effacer</a>
     {% endif %}
   </form>
 
@@ -100,70 +90,89 @@
     {% endif %}
   {% endif %}
 
-  <section class="carte">
-    <div class="carte__corps--serre">
-      <div class="tableau-boite">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th scope="col">Article</th>
-              <th scope="col">Référence</th>
-              <th scope="col">Dépôt</th>
-              <th scope="col" class="num">Quantité</th>
-              {% comment %}
-              Le coût d'achat ne s'affiche pas au comptoir. C'est l'information
-              qu'un caissier n'a aucune raison de connaître, et celle qui circule
-              le plus vite dans un quartier une fois lue sur un écran.
-              {% endcomment %}
-              {% if 'cout.voir' in droits %}
-                <th scope="col" class="num">Coût moyen</th>
-                <th scope="col" class="num">Valeur</th>
-              {% endif %}
-              <th scope="col">État</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for niveau in niveaux %}
-              <tr onclick="location.href='{% url 'article' niveau.variante_id %}'" style="cursor:pointer">
-                <td class="principal">{{ niveau.variante.produit.libelle }}</td>
-                <td class="t-2 chiffre">{{ niveau.variante.sku }}</td>
-                <td class="t-2">{{ niveau.depot.libelle }}</td>
-                <td class="num" style="font-weight:620">{{ niveau.quantite|quantite }}</td>
-                {% if 'cout.voir' in droits %}
-                  <td class="num t-2">{{ niveau.cmp|fcfa }}</td>
-                  <td class="num">{{ niveau.valeur|fcfa }}</td>
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="{{ metier.article }}" data-noms="{{ metier.articles }}"
+           data-accord="{% if metier.feminin %}e{% endif %}">
+    {% include "partials/tableau_barre.html" with nom="article" noms=metier.articles creer_url=url_creer creer_libelle=libelle_creer modifier_possible=peut_mouvementer supprimer_url=url_supprimer supprimer_libelle="Supprimer" filtres_id="filtres-stock" filtres_actifs=filtres.actifs aide=aide_stock avertissement_suppression="Un article qui a déjà bougé en stock est retiré de la vente au lieu d'être supprimé : son libellé reste lisible sur les tickets et les écritures qui le citent." %}
+
+    <div class="tableau-boite tableau-boite--haute">
+      <table class="tableau">
+        <thead>
+          <tr>
+            <th scope="col">{{ metier.article|capfirst }}</th>
+            <th scope="col">Référence</th>
+            <th scope="col">Dépôt</th>
+            <th scope="col" class="num">Quantité</th>
+            {% comment %}
+            Le coût d'achat ne s'affiche pas au comptoir. C'est l'information
+            qu'un caissier n'a aucune raison de connaître, et celle qui circule
+            le plus vite dans un quartier une fois lue sur un écran.
+            {% endcomment %}
+            {% if 'cout.voir' in droits %}
+              <th scope="col" class="num">Coût moyen</th>
+              <th scope="col" class="num">Valeur</th>
+            {% endif %}
+            <th scope="col">État</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for niveau in niveaux %}
+            <tr data-id="{{ niveau.variante_id }}"
+                data-libelle="{{ niveau.variante.produit.libelle }}"
+                data-ouvrir="{% url 'article' niveau.variante_id %}"
+                {% if 'stock.mouvementer' in droits %}data-modifier="{% url 'article_modifier' niveau.variante_id %}"{% endif %}
+                {% if niveau.note %}data-note="{{ niveau.note }}"{% endif %}>
+              <td class="principal">
+                <a href="{% url 'article' niveau.variante_id %}">{{ niveau.variante.produit.libelle }}</a>
+                {% if not niveau.variante.actif %}
+                  <span class="puce">Retiré de la vente</span>
                 {% endif %}
-                <td>{% puce_stock niveau %}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="7">
-                  <div class="vide">
-                    <svg><use href="#ic-stock"></use></svg>
-                    <p class="t-2">Aucun article ne correspond.</p>
-                    {% if 'stock.mouvementer' in droits %}
-                      <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
-                        <svg><use href="#ic-plus"></use></svg> Ajouter un article
-                      </a>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+              </td>
+              <td class="t-2 chiffre">{{ niveau.variante.sku }}</td>
+              <td class="t-2">{{ niveau.depot.libelle }}</td>
+              <td class="num" style="font-weight:620">{{ niveau.quantite|quantite }}</td>
+              {% if 'cout.voir' in droits %}
+                <td class="num t-2">{{ niveau.cmp|fcfa }}</td>
+                <td class="num">{{ niveau.valeur|fcfa }}</td>
+              {% endif %}
+              <td>{% puce_stock niveau %}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="vide">
+                  <svg><use href="#ic-stock"></use></svg>
+                  <p class="t-2">Aucun {{ metier.article }} ne correspond.</p>
+                  {% if filtres.actifs or recherche %}
+                    <p class="t-legende">
+                      {{ filtres.actifs }} filtre{{ filtres.actifs|pluralize }} en place —
+                      la liste complète est peut-être derrière.
+                    </p>
+                    <a class="btn" href="{% url 'stock' %}">Retirer les filtres</a>
+                  {% elif 'stock.mouvementer' in droits %}
+                    <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
+                      <svg><use href="#ic-plus"></use></svg> {{ metier.nouveau }} {{ metier.article }}
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
     {% if niveaux %}
-      <footer class="carte__pied rangee rangee--espace">
-        <span class="t-legende">{{ niveaux|length }} article{{ niveaux|length|pluralize }} affiché{{ niveaux|length|pluralize }}</span>
+      <footer class="tableau-pied">
+        <span>{{ niveaux|length }} ligne{{ niveaux|length|pluralize }} affichée{{ niveaux|length|pluralize }}</span>
         {% if 'cout.voir' in droits %}
           <span class="t-petit">Valeur totale <strong class="chiffre">{{ valeur_totale|fcfa }} FCFA</strong></span>
         {% endif %}
       </footer>
     {% endif %}
   </section>
+
+  {% include "partials/modal_filtres.html" with id="filtres-stock" formulaire=filtres action=url_stock conserver=conserver_dans_filtres titre="Filtrer le stock" aide="Les filtres restent dans l'adresse de la page : elle se partage telle quelle." %}
 
   <div class="bandeau-info">
     <svg><use href="#ic-info"></use></svg>

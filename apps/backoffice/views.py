@@ -24,6 +24,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.template.defaultfilters import pluralize
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -41,8 +42,10 @@ from apps.backoffice.acces import (
     exige_json,
     page_d_accueil,
 )
+from apps.backoffice.filtres import FiltresStockForm, conserver
 from apps.backoffice.forms import (
     ArticleForm,
+    ArticleModifierForm,
     CompatibiliteForm,
     DepotForm,
     EntreeStockForm,
@@ -51,6 +54,7 @@ from apps.backoffice.forms import (
     OuvertureCaisseForm,
     TransfertStockForm,
 )
+from apps.catalog import services as catalogue_services
 from apps.catalog import vehicules
 from apps.catalog.models import CompatibiliteVehicule, Produit, Variante
 from apps.inventory.models import (
@@ -75,6 +79,11 @@ from apps.pos import services as caisse_service
 from apps.pos.models import LigneTicket, ReglementTicket, Ticket
 
 JOURS_HISTORIQUE = 14
+
+# Au-delà d'un mois sans le moindre mouvement, un article dort : il immobilise
+# de la trésorerie sans rien rapporter, et aucun autre écran ne le dit — le
+# tableau de bord montre ce qui se vend, pas ce qui ne bouge pas.
+JOURS_DORMANT = 30
 
 # Horizon de l'écran des péremptions. Un mois est le délai à partir duquel un
 # commerçant peut encore agir : écouler, remiser, retourner au grossiste.
@@ -590,23 +599,16 @@ def caisse_encaisser(request):
 def stock(request):
     contexte = contexte_commun(request, "stock")
 
-    recherche = (request.GET.get("q") or "").strip()
-    filtre = request.GET.get("etat") or "tous"
-
-    # Le filtre de dépôt est confronté à la liste réelle plutôt qu'injecté tel
-    # quel : un identifiant fantaisiste dans l'URL doit produire « tous », pas
-    # une erreur de conversion.
-    connus = {str(d.pk) for d in contexte["depots"]}
-    depot_filtre = request.GET.get("depot") or "tous"
-    if depot_filtre not in connus:
-        depot_filtre = "tous"
+    filtres = FiltresStockForm(request.GET, depots=contexte["depots"])
+    valeurs = filtres.valeurs
+    recherche = (valeurs.get("q") or "").strip()
 
     niveaux = NiveauStock.objects.select_related(
         "variante__produit", "variante__produit__categorie", "depot"
     ).order_by("variante__produit__libelle")
 
-    if depot_filtre != "tous":
-        niveaux = niveaux.filter(depot_id=depot_filtre)
+    if valeurs.get("depot"):
+        niveaux = niveaux.filter(depot_id=valeurs["depot"])
 
     if recherche:
         from django.db.models import Q
@@ -619,23 +621,53 @@ def stock(request):
             | Q(variante__reference_constructeur__icontains=recherche)
         )
 
+    if valeurs.get("sans_mouvement") == "dormant":
+        # Ce qui dort en rayon immobilise de la trésorerie, et ne se voit sur
+        # aucun autre écran : le tableau de bord montre ce qui se vend.
+        recents = MouvementStock.objects.filter(
+            cree_le__gte=timezone.now() - timedelta(days=JOURS_DORMANT)
+        ).values("variante_id")
+        niveaux = niveaux.exclude(variante_id__in=recents)
+
     metier = contexte["metier"]
     vehicule = _vehicule_demande(request) if metier and metier.a(metiers.COMPATIBILITE) else None
     if vehicule:
         niveaux = niveaux.filter(variante__in=vehicules.compatibles(**vehicule))
 
     niveaux = list(niveaux)
+    filtre = valeurs.get("etat") or ""
     if filtre == "rupture":
         niveaux = [n for n in niveaux if n.quantite <= 0]
     elif filtre == "alerte":
         niveaux = [n for n in niveaux if 0 < n.quantite <= n.seuil_alerte]
+    elif filtre == "negatif":
+        niveaux = [n for n in niveaux if n.quantite < 0]
+
+    _marquer_ce_qui_a_une_histoire(niveaux)
+    peut_mouvementer = droit.STOCK_MOUVEMENTER in contexte["droits"]
 
     contexte.update(
         {
             "niveaux": niveaux,
             "recherche": recherche,
+            "filtres": filtres,
             "filtre": filtre,
-            "depot_filtre": depot_filtre,
+            "url_stock": reverse("stock"),
+            # Les gestes de la barre d'outils ne sont pas *grisés* pour un
+            # caissier : ils ne sont pas composés du tout. Un écran ne décide
+            # jamais seul de ce qu'il montre (docs/09, §3.6).
+            "peut_mouvementer": peut_mouvementer,
+            "url_creer": reverse("nouvel_article") if peut_mouvementer else "",
+            "libelle_creer": f"{metier.nouveau} {metier.article}" if metier else "Nouvel article",
+            "url_supprimer": reverse("articles_supprimer") if peut_mouvementer else "",
+            "aide_stock": (
+                f"Sélectionnez {'une' if metier and metier.feminin else 'un'} "
+                f"{metier.article if metier else 'article'} pour le modifier ou le retirer."
+            ),
+            "conserver_dans_recherche": conserver(
+                request, "etat", "depot", "sans_mouvement", "marque", "modele", "annee"
+            ),
+            "conserver_dans_filtres": conserver(request, "marque", "modele", "annee"),
             "valeur_totale": sum((n.quantite * n.cmp for n in niveaux), Decimal("0")),
             "vehicule": vehicule,
             # Le nombre de **pièces**, pas de lignes : un article présent dans
@@ -656,6 +688,42 @@ def stock(request):
         }
     )
     return render(request, "stock.html", contexte)
+
+
+def _marquer_ce_qui_a_une_histoire(niveaux) -> None:
+    """Pose sur chaque ligne la conséquence d'une suppression, ou rien.
+
+    **En deux requêtes pour toute la liste**, jamais deux par ligne : interroger
+    `supprimable()` article par article ferait quatre cents requêtes sur une
+    liste de deux cents lignes, et l'écran du stock est celui qu'on ouvre le plus
+    souvent.
+
+    Ce n'est **pas** une protection : la suppression reste offerte, elle produit
+    simplement un retrait de la vente au lieu d'un effacement. Griser le bouton
+    aurait été l'erreur inverse — un geste légitime refusé sans raison lisible.
+    La conséquence est donc annoncée, sur la ligne et dans la confirmation.
+    """
+    identifiants = {n.variante_id for n in niveaux}
+    if not identifiants:
+        return
+
+    bougees = set(
+        MouvementStock.objects.filter(variante_id__in=identifiants)
+        .values_list("variante_id", flat=True)
+        .distinct()
+    )
+    nommees = set(
+        NumeroSerie.objects.filter(variante_id__in=identifiants)
+        .values_list("variante_id", flat=True)
+        .distinct()
+    )
+    for niveau in niveaux:
+        if niveau.variante_id in bougees:
+            niveau.note = "A déjà bougé en stock : sera retiré de la vente, pas supprimé."
+        elif niveau.variante_id in nommees:
+            niveau.note = "Des exemplaires sont suivis : sera retiré de la vente, pas supprimé."
+        else:
+            niveau.note = ""
 
 
 def _vehicule_demande(request) -> dict | None:
@@ -898,6 +966,145 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
             numero_lot=donnees.get("numero_lot") or "",
         )
     return variante
+
+
+@exige(droit.STOCK_MOUVEMENTER)
+def article_modifier(request, variante_id):
+    """Correction d'un article existant — nom, prix, seuil, champs du métier.
+
+    Ni quantité ni coût d'achat : ils relèvent d'un mouvement de stock, pas d'un
+    attribut. Un écran de fiche qui les proposerait donnerait le moyen d'écrire
+    du stock sans passer par son journal.
+    """
+    contexte = contexte_commun(request, "stock")
+    boutique = contexte["boutique"]
+
+    variante = (
+        Variante.objects.filter(pk=variante_id).select_related("produit").first()
+    )
+    if variante is None:
+        return redirect("stock")
+
+    if request.method == "POST":
+        formulaire = ArticleModifierForm(request.POST, boutique=boutique, variante=variante)
+        if formulaire.is_valid():
+            _appliquer_les_corrections(variante, formulaire.cleaned_data, contexte["depot_courant"])
+            messages.success(request, f"« {formulaire.cleaned_data['libelle']} » mis à jour.")
+            return redirect("article", variante_id=variante.pk)
+    else:
+        formulaire = ArticleModifierForm(boutique=boutique, variante=variante)
+
+    contexte.update(
+        {
+            "formulaire": formulaire,
+            "variante": variante,
+            "empeche_la_suppression": catalogue_services.supprimable(variante),
+        }
+    )
+    return render(request, "article_modifier.html", contexte)
+
+
+@transaction.atomic
+def _appliquer_les_corrections(variante, donnees, depot) -> None:
+    """Écrit les corrections sur le produit, la variante et le seuil.
+
+    Le seuil d'alerte est rangé sur le `NiveauStock` et non sur l'article : il
+    répond à « en dessous de combien faut-il recommander **ici** », et une
+    réserve et un comptoir n'ont pas le même seuil. On corrige donc celui du
+    dépôt d'exploitation courant, comme la création l'avait posé.
+    """
+    produit = variante.produit
+    produit.libelle = donnees["libelle"]
+    produit.regime_tva = donnees["regime_tva"]
+    produit.unite = donnees.get("unite") or produit.unite
+    produit.sur_ordonnance = bool(donnees.get("sur_ordonnance"))
+    produit.actif = bool(donnees.get("actif"))
+    produit.save(
+        update_fields=["libelle", "regime_tva", "unite", "sur_ordonnance", "actif", "modifie_le"]
+    )
+
+    variante.sku = donnees["sku"]
+    variante.code_barres = donnees.get("code_barres") or ""
+    variante.prix_vente = donnees["prix_vente"]
+    variante.reference_constructeur = (donnees.get("reference_constructeur") or "").strip()
+    variante.suivi_unitaire = bool(donnees.get("suivi_unitaire"))
+    variante.garantie_mois = donnees.get("garantie_mois") or 0
+    variante.actif = bool(donnees.get("actif"))
+    variante.save(
+        update_fields=[
+            "sku", "code_barres", "prix_vente", "reference_constructeur",
+            "suivi_unitaire", "garantie_mois", "actif", "modifie_le",
+        ]
+    )
+
+    seuil = donnees.get("seuil_alerte")
+    if seuil is not None and depot is not None:
+        NiveauStock.objects.filter(variante=variante, depot=depot).update(seuil_alerte=seuil)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def articles_supprimer(request):
+    """Supprime — ou retire de la vente — les articles sélectionnés.
+
+    La distinction est faite article par article par
+    `apps.catalog.services.retirer_du_catalogue`, et **annoncée** : « supprimé »
+    et « retiré de la vente » ne sont pas la même chose, et laisser croire à l'un
+    quand c'est l'autre ferait chercher longtemps un article encore là.
+    """
+    contexte_commun(request, "stock")
+
+    identifiants = request.POST.getlist("ids")
+    variantes = list(
+        Variante.objects.filter(pk__in=identifiants).select_related("produit")
+    )
+    if not variantes:
+        messages.error(request, "Aucun article à supprimer.")
+        return _retour_liste(request, "stock")
+
+    supprimes, retires = [], []
+    for variante in variantes:
+        libelle = variante.produit.libelle
+        if catalogue_services.retirer_du_catalogue(variante) == catalogue_services.SUPPRIME:
+            supprimes.append(libelle)
+        else:
+            retires.append(libelle)
+
+    if supprimes:
+        messages.success(
+            request,
+            f"{len(supprimes)} article{pluralize(len(supprimes))} supprimé{pluralize(len(supprimes))} : "
+            + _enumerer(supprimes),
+        )
+    if retires:
+        messages.success(
+            request,
+            f"{len(retires)} article{pluralize(len(retires))} retiré{pluralize(len(retires))} de la vente "
+            f"(l'historique les garde) : " + _enumerer(retires),
+        )
+    return _retour_liste(request, "stock")
+
+
+def _enumerer(libelles, maximum: int = 4) -> str:
+    """« A, B et 3 autres ». Nommer les premiers vaut mieux que compter."""
+    if len(libelles) <= maximum:
+        return ", ".join(libelles) + "."
+    debut = ", ".join(libelles[:maximum])
+    return f"{debut} et {len(libelles) - maximum} autre{pluralize(len(libelles) - maximum)}."
+
+
+def _retour_liste(request, defaut: str):
+    """Revient là d'où l'action est partie, filtres compris.
+
+    Renvoyer vers la liste nue ferait perdre le filtre qui avait servi à trouver
+    les lignes — et obligerait à le reposer pour vérifier le résultat.
+    """
+    suite = request.POST.get("suite") or ""
+    if suite and url_has_allowed_host_and_scheme(
+        suite, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(suite)
+    return redirect(defaut)
 
 
 @exige(droit.STOCK_MOUVEMENTER)

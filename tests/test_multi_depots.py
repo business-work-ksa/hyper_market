@@ -56,8 +56,13 @@ class DepotCourantTest(TestCase):
         self.assertEqual(reponse.context["depot_courant"], self.comptoir)
 
     def test_le_selecteur_n_apparait_qu_a_partir_de_deux_depots(self):
+        """Un commerçant qui n'a qu'un dépôt n'a pas à choisir entre une option.
+
+        Le filtre vit désormais dans la boîte de filtres de la liste : c'est le
+        champ du formulaire qui existe ou non, pas un `<select>` grisé.
+        """
         reponse = self.client.get(reverse("stock"))
-        self.assertContains(reponse, "Filtrer par dépôt")
+        self.assertIn("depot", reponse.context["filtres"].fields)
 
         seule = fabrique.creer_boutique("Un seul dépôt")
         with contexte_boutique(seule):
@@ -66,7 +71,7 @@ class DepotCourantTest(TestCase):
         rattacher(solo, seule, Role.GERANT)
 
         self.client.force_login(solo)
-        self.assertNotContains(self.client.get(reverse("stock")), "Filtrer par dépôt")
+        self.assertNotIn("depot", self.client.get(reverse("stock")).context["filtres"].fields)
 
     def test_le_choix_de_depot_est_retenu_en_session(self):
         self._basculer(self.reserve)
@@ -94,9 +99,14 @@ class DepotCourantTest(TestCase):
         self.assertTrue(all(n.depot_id == self.reserve.pk for n in reponse.context["niveaux"]))
 
     def test_un_filtre_de_depot_fantaisiste_retombe_sur_tous(self):
+        """Ces URL se bricolent à la main : un identifiant de travers n'est pas une panne.
+
+        Le filtre est confronté à la liste réelle des dépôts ouverts ; ce qui
+        n'y figure pas ne filtre rien, et la liste complète s'affiche.
+        """
         reponse = self.client.get(reverse("stock"), {"depot": "pas-un-uuid"})
         self.assertEqual(reponse.status_code, 200)
-        self.assertEqual(reponse.context["depot_filtre"], "tous")
+        self.assertEqual(reponse.context["filtres"].valeurs.get("depot"), "")
         self.assertEqual(len(reponse.context["niveaux"]), 2)
 
     def test_l_encaissement_sort_le_stock_du_depot_courant(self):

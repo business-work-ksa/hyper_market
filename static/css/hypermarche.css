@@ -422,6 +422,37 @@ table { border-collapse: collapse; width: 100%; }
 .btn:active { transform: translateY(0.5px); }
 .btn svg { width: 15px; height: 15px; }
 
+/* Un bouton indisponible doit *se voir* indisponible, sinon on clique et rien
+   n'arrive — et on recommence. Le curseur d'aide plutôt que l'interdiction :
+   ces boutons portent un `title` qui dit *pourquoi*, et le curseur invite à
+   aller le lire. */
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.42;
+  cursor: help;
+  transform: none;
+}
+.btn:disabled:hover,
+.btn[aria-disabled="true"]:hover { background: var(--surface-haute); }
+.btn--primaire:disabled:hover { background: var(--marque); }
+.btn--discret:disabled:hover { background: transparent; }
+
+/* Action destructrice : rouge seulement au survol et dans la boîte de
+   confirmation. Un bouton rouge en permanence dans une barre d'outils finit par
+   ne plus rien signaler du tout. */
+.btn--danger { color: var(--critique); border-color: var(--filet-fort); }
+.btn--danger:hover:not(:disabled) {
+  background: var(--critique-teinte);
+  border-color: var(--critique);
+}
+.btn--danger-plein {
+  background: var(--critique);
+  border-color: var(--critique);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+.btn--danger-plein:hover:not(:disabled) { background: #B93232; border-color: #B93232; }
+
 .btn--primaire {
   background: var(--marque);
   border-color: var(--marque);
@@ -606,6 +637,184 @@ textarea.champ {
 .tableau tbody tr:hover { background: var(--survol); }
 .tableau .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tableau .principal { font-weight: 560; }
+
+/* ---- Tableau de données : sélection, barre d'outils, assistance ----
+   Un tableau qui ne fait que montrer oblige à quitter l'écran pour agir. Ici la
+   ligne se sélectionne, et la barre au-dessus dit **ce que chaque bouton fera
+   de cette ligne-là**. La règle qui gouverne le reste : on ne modifie qu'une
+   ligne à la fois — deux lignes différentes n'ont pas la même correction à
+   apporter — alors qu'on supprime ce qu'on veut d'un geste. */
+.tableau-panneau { position: relative; }
+
+.tableau-barre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--filet);
+  background: var(--surface);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+.tableau-barre__titre { font-weight: 620; font-size: 14px; margin-right: 2px; }
+.tableau-barre__separateur {
+  width: 1px; height: 20px; background: var(--filet); margin: 0 2px;
+}
+
+/* La phrase d'assistance : elle change à chaque sélection, et c'est tout son
+   intérêt. Elle occupe une ligne réservée en permanence — sinon l'apparition du
+   texte ferait sauter le tableau de quinze pixels à chaque clic. */
+.tableau-assistance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--filet);
+  background: var(--surface-creuse);
+  font-size: 12.5px;
+  color: var(--encre-2);
+}
+.tableau-assistance svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--encre-muette); }
+.tableau-assistance[data-selection="1"] { background: var(--marque-teinte); color: var(--marque); }
+.tableau-assistance[data-selection="1"] svg { color: var(--marque); }
+.tableau-assistance[data-selection="n"] { background: var(--or-teinte); color: var(--or); }
+.tableau-assistance[data-selection="n"] svg { color: var(--or); }
+.tableau-assistance b { font-weight: 640; }
+
+/* Colonne de sélection : posée par `tableau.js`, jamais dans le gabarit. Une
+   case à cocher inerte servie à un navigateur sans JavaScript serait un piège. */
+.tableau th.col-sel, .tableau td.col-sel {
+  width: 38px; padding-left: 14px; padding-right: 0;
+}
+.tableau td.col-sel input, .tableau th.col-sel input {
+  width: 17px; height: 17px; accent-color: var(--marque); cursor: pointer;
+  vertical-align: middle;
+}
+
+.tableau--selectionnable tbody tr { cursor: pointer; }
+.tableau--selectionnable tbody tr[aria-selected="true"] {
+  background: var(--marque-teinte);
+  box-shadow: inset 3px 0 0 var(--marque);
+}
+.tableau--selectionnable tbody tr[aria-selected="true"]:hover { background: var(--marque-teinte); }
+.tableau--selectionnable tbody tr:focus-visible {
+  outline: 2px solid var(--marque);
+  outline-offset: -2px;
+  border-radius: 0;
+}
+/* Une ligne qu'on ne peut pas supprimer le dit avant qu'on essaie. */
+.tableau tbody tr[data-protege] td.col-sel { opacity: 0.4; }
+
+/* En-tête collant : sur une liste de deux cents articles, perdre les intitulés
+   de colonnes au premier défilement oblige à remonter pour lire un chiffre. */
+.tableau-boite--haute { max-height: 62vh; overflow-y: auto; }
+.tableau-boite--haute .tableau thead th { position: sticky; top: 0; z-index: 4; }
+
+.tableau-pied {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: 1px solid var(--filet);
+  background: var(--surface-creuse);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  font-size: 12.5px; color: var(--encre-2);
+}
+
+/* Compteur de filtres actifs : sans lui, on cherche pourquoi la liste est vide
+   alors qu'un filtre posé la veille est encore en place. */
+.pastille-compteur {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: var(--r-pilule);
+  background: var(--marque); color: var(--marque-encre);
+  font-size: 11px; font-weight: 680; font-variant-numeric: tabular-nums;
+}
+
+/* ---- Boîte de dialogue ----
+   `<dialog>` natif : le navigateur gère le focus piégé, Échap, et l'inertie de
+   l'arrière-plan. Le refaire à la main coûterait cent lignes pour faire moins
+   bien, et mal sur un lecteur d'écran. */
+.modale {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(86vh, 760px);
+  /* Explicite, et pas par héritage : la réinitialisation de ce fichier pose
+     `* { margin: 0 }`, ce qui écrase le `margin: auto` que le navigateur donne
+     à `<dialog>` — la boîte se collait alors en haut à gauche de l'écran. */
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--filet);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: var(--ombre-3);
+  overflow: hidden;
+}
+.modale--large { width: min(760px, calc(100vw - 32px)); }
+.modale::backdrop {
+  background: rgba(12, 14, 12, 0.42);
+  backdrop-filter: blur(2px);
+}
+.modale[open] { animation: modale-entree var(--t-normal) both; }
+@keyframes modale-entree {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+.modale__entete {
+  display: flex; align-items: center; gap: 10px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--filet);
+}
+.modale__entete > h2 { margin-right: auto; }
+.modale__corps { padding: 18px; overflow-y: auto; max-height: 60vh; }
+.modale__pied {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+  flex-wrap: wrap;
+  padding: 13px 18px;
+  border-top: 1px solid var(--filet);
+  background: var(--surface-creuse);
+}
+.modale__pied .pousse-gauche { margin-right: auto; }
+
+/* Grille des filtres : deux colonnes tant qu'il y a la place, une seule sur un
+   téléphone. Les filtres se remplissent debout, sur l'écran qu'on a. */
+.grille-filtres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+.grille-filtres .pleine-largeur { grid-column: 1 / -1; }
+
+/* Liste des lignes visées par une suppression : on les nomme avant de les
+   détruire. « Supprimer 3 éléments ? » ne permet pas de vérifier qu'on n'a pas
+   attrapé une ligne de trop au passage. */
+.liste-visee {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 210px; overflow-y: auto;
+}
+.liste-visee li {
+  padding: 7px 11px;
+  border-radius: var(--r-sm);
+  background: var(--surface-creuse);
+  font-size: 13px;
+}
+.liste-visee li[data-protege] { opacity: 0.6; text-decoration: line-through; }
+
+@media (max-width: 680px) {
+  /* Sur un téléphone, une boîte de dialogue centrée laisse le clavier la
+     recouvrir. Ancrée en bas, elle reste au-dessus de lui. */
+  .modale {
+    width: 100vw; max-width: 100vw;
+    margin: auto 0 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    max-height: 88vh;
+  }
+  .tableau-barre { position: static; }
+}
 
 /* ------------------------------------------------------------------ */
 /* 9. Graphique — un seul type de marque, une seule série              */

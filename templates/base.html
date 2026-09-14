@@ -11,6 +11,13 @@
 <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
 <link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
 <script src="{% static 'js/hors-ligne.js' %}" defer></script>
+{% comment %}
+Chargé partout : les tableaux de données sont le mode d'affichage principal du
+back-office, et un script par écran finirait par diverger d'un écran à l'autre.
+`defer` : il attend le document, et n'entre en action que là où un panneau
+`data-tableau` existe.
+{% endcomment %}
+<script src="{% static 'js/tableau.js' %}" defer></script>
 <script>
   // Restaure le thème avant le premier rendu : évite le flash de bascule.
   (function () {

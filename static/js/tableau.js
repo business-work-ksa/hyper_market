@@ -27,7 +27,8 @@
  *     <table class="tableau">
  *       <tbody>
  *         <tr data-id="…" data-libelle="…"
- *             data-modifier="/url/"        (facultatif)
+ *             data-modifier="/url/" | "#modale"   (facultatif)
+ *             data-champs='{"nom": "valeur"}'      (pré-remplissage de la modale)
  *             data-note="conséquence"      (facultatif : l'action aura un effet
  *                                           particulier sur cette ligne-là)
  *             data-protege="motif">        (facultatif : ligne non supprimable)
@@ -42,6 +43,12 @@
   "use strict";
 
   var CLIQUABLES = "a, button, input, select, textarea, label, summary";
+
+  // Marque-place d'un identifiant dans l'action d'un formulaire de boîte. Un
+  // `{% url %}` ne peut pas produire « __ID__ » quand la route attend un UUID :
+  // le gabarit passe donc l'UUID nul, et c'est lui qu'on remplace. Les deux
+  // formes sont acceptées pour que les routes sans contrainte restent lisibles.
+  var UUID_NUL = "00000000-0000-0000-0000-000000000000";
 
   function parametres(panneau) {
     return {
@@ -189,9 +196,20 @@
       assistance.dataset.selection = "1";
       var ligne = choisies[0];
       var suite = [];
-      if (ligne.dataset.modifier) suite.push("<b>Modifier</b> ouvre sa fiche");
+      if (ligne.dataset.modifier) {
+        // Le libellé réel du bouton, pas le mot « Modifier » : la barre peut
+        // annoncer « Gérer l'accès » ou « Renommer », et la phrase doit
+        // désigner le bouton qu'on voit.
+        var verbe = modifier ? modifier.textContent.trim() : "Modifier";
+        suite.push(
+          "<b>" +
+            echapper(verbe) +
+            "</b> " +
+            (ligne.dataset.modifier.charAt(0) === "#" ? "ouvre ses réglages" : "ouvre sa fiche")
+        );
+      }
       if (supprimer && !ligne.hasAttribute("data-protege")) {
-        suite.push("<b>Supprimer</b> la retire");
+        suite.push("<b>" + echapper(supprimer.textContent.trim()) + "</b> s'y applique");
       }
       // La protection empêche ; la note prévient. Les deux se disent, jamais
       // de la même façon.
@@ -371,11 +389,80 @@
     refleter(panneau);
   }
 
+  // --- Modification -------------------------------------------------------
+  // Deux formes, et le choix n'est pas cosmétique : une correction qui demande
+  // un écran entier — un article, sa fiche, ses champs de métier — mérite une
+  // page ; changer un rôle ou renommer un lien n'en mérite pas une, et faire
+  // aller-retour sur une page pour un champ coûte deux chargements et le fil de
+  // la liste. Une cible qui commence par `#` ouvre donc une boîte de dialogue.
+  function ouvrirLaModification(cible, ligne) {
+    if (cible.charAt(0) !== "#") {
+      window.location.href = cible;
+      return;
+    }
+    var boite = document.querySelector(cible);
+    if (!boite) return;
+
+    // Tous les formulaires de la boîte, pas seulement le premier : une même
+    // ligne porte souvent plusieurs gestes — changer un rôle, refaire un mot de
+    // passe — et un seul d'entre eux pointerait sinon vers la bonne personne.
+    var formulaires = boite.querySelectorAll("form[data-action-modele]");
+    formulaires.forEach(function (formulaire) {
+      // Le gabarit garde la main sur la route — `{% url %}` continue de la
+      // vérifier — et on n'y substitue que l'identifiant.
+      formulaire.action = formulaire.dataset.actionModele
+        .replace("__ID__", ligne.dataset.id)
+        .replace(UUID_NUL, ligne.dataset.id);
+    });
+    var formulaire = formulaires[0];
+
+    var nom = boite.querySelector("[data-cible-libelle]");
+    if (nom) nom.textContent = ligne.dataset.libelle || "";
+
+    // Les valeurs viennent de la ligne en un seul bloc JSON : un attribut par
+    // champ obligerait à retraduire `data-champ-mon-champ` en `monChamp`, et
+    // c'est exactement le genre de correspondance qui casse en silence.
+    if (formulaire && ligne.dataset.champs) {
+      var valeurs = {};
+      try {
+        valeurs = JSON.parse(ligne.dataset.champs);
+      } catch (e) {
+        console.error("Valeurs de ligne illisibles", e);
+      }
+      Object.keys(valeurs).forEach(function (nomChamp) {
+        var champ = formulaire.elements[nomChamp];
+        if (!champ) return;
+        if (champ.type === "checkbox") champ.checked = !!valeurs[nomChamp];
+        else champ.value = valeurs[nomChamp] == null ? "" : valeurs[nomChamp];
+      });
+    }
+
+    // Ce qui ne s'applique pas à cette ligne-là n'est pas grisé, il est absent :
+    // « Rendre l'accès » n'a rien à faire devant quelqu'un qui l'a déjà.
+    boite.querySelectorAll("[data-si], [data-sinon]").forEach(function (bloc) {
+      var champs = {};
+      try {
+        champs = JSON.parse(ligne.dataset.champs || "{}");
+      } catch (e) {}
+      if (bloc.hasAttribute("data-si")) bloc.hidden = !champs[bloc.getAttribute("data-si")];
+      if (bloc.hasAttribute("data-sinon")) bloc.hidden = !!champs[bloc.getAttribute("data-sinon")];
+    });
+
+    boite.showModal();
+    var premier = boite.querySelector(
+      "input:not([type=hidden]):not([disabled]), select, textarea"
+    );
+    if (premier) premier.focus();
+  }
+
   function activerLaBarre(panneau) {
     var modifier = panneau.querySelector("[data-action='modifier']");
     if (modifier) {
       modifier.addEventListener("click", function () {
-        if (modifier.dataset.cible) window.location.href = modifier.dataset.cible;
+        var choisies = selectionnees(panneau);
+        if (modifier.dataset.cible && choisies.length === 1) {
+          ouvrirLaModification(modifier.dataset.cible, choisies[0]);
+        }
       });
     }
 
@@ -417,6 +504,12 @@
         if (evt.target === boite) boite.close();
       });
     });
+
+    // Une saisie refusée revient par un rechargement complet de la page : sans
+    // cela, la boîte se rouvrirait vide et le commerçant croirait sa saisie
+    // perdue alors que le serveur la lui rend avec ses erreurs.
+    var aRouvrir = document.querySelector("dialog[data-ouvrir-au-chargement]");
+    if (aRouvrir) aRouvrir.showModal();
   }
 
   function demarrer() {

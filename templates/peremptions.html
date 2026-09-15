@@ -26,6 +26,15 @@
     {% endif %}
   </section>
 
+  {% comment %}
+  Une seule barre pour les deux tableaux : périmés et bientôt périmés sont deux
+  gestes — retirer, écouler — mais une seule tournée de rayon, et un seul filtre.
+  Rien ne s'y crée ni ne s'y supprime : un lot est une conséquence de réceptions
+  et de ventes, pas une ligne qu'on tient à la main.
+  {% endcomment %}
+  <section class="carte tableau-panneau">
+    {% include "partials/tableau_barre.html" with nom="lot" noms="lots" titre="Ce qui périme" filtres_id="filtres-peremptions" filtres_actifs=filtres.actifs aide="Un lot naît d'une réception datée et se consomme à la vente : il ne se crée ni ne se supprime à la main. Pour le sortir du stock, passez par une perte ou un inventaire." %}
+  </section>
 
   {% if perimes %}
     <section class="carte">
@@ -113,9 +122,14 @@
             Les dates sont saisies à la réception. Un lot reçu sans date n'apparaît
             pas ici — et ne déclenchera jamais d'alerte.
           </p>
+          {% if filtres.actifs %}
+            <a class="btn" href="{% url 'peremptions' %}">Retirer les filtres</a>
+          {% endif %}
         </div>
       </div>
     </section>
   {% endif %}
+
+  {% include "partials/modal_filtres.html" with id="filtres-peremptions" formulaire=filtres action=url_peremptions titre="Filtrer les péremptions" aide="L'horizon par défaut est de trente jours : le délai à partir duquel on peut encore écouler, remiser ou retourner au grossiste." %}
 </div>
 {% endblock %}

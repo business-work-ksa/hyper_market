@@ -34,6 +34,8 @@ __all__ = [
     "FiltresPeremptionsForm",
     "FiltresCommandesForm",
     "FiltresEcrituresForm",
+    "FiltresOrdonnancierForm",
+    "FiltresProductionForm",
 ]
 
 
@@ -318,3 +320,39 @@ class FiltresEcrituresForm(FiltreForm):
         self.fields["journal"].choices = [("", "Tous")] + [
             (j.code, f"{j.code} — {j.libelle}") for j in (journaux or [])
         ]
+
+
+class FiltresOrdonnancierForm(FiltreForm):
+    """Registre des délivrances sur ordonnance.
+
+    « À compléter » est un filtre à part entière : c'est la seule partie du
+    registre sur laquelle il reste un geste à faire, et un pharmacien la cherche
+    plus souvent qu'il ne cherche une date.
+    """
+
+    q = forms.CharField(
+        label="Rechercher",
+        widget=forms.TextInput(
+            attrs={**CHAMP, "type": "search", "placeholder": "Ticket, client ou prescripteur"}
+        ),
+    )
+    etat = ChoixTolerant(
+        label="Consignation",
+        choices=[("", "Toutes"), ("incomplete", "À compléter"), ("consignee", "Consignées")],
+        widget=forms.Select(attrs=CHAMP),
+    )
+    depuis = DateTolerante(label="Depuis le", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+
+
+class FiltresProductionForm(FiltreForm):
+    """Production d'une journée. Le jour est le seul filtre qui compte.
+
+    Un boulanger regarde « aujourd'hui » quatre-vingt-dix-neuf fois sur cent, et
+    « hier » le centième — quand il cherche pourquoi il lui manque du pain.
+    """
+
+    jour = DateTolerante(
+        label="Journée",
+        help_text="Vide : aujourd'hui.",
+        widget=forms.DateInput(attrs={**CHAMP, "type": "date"}),
+    )

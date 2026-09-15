@@ -24,13 +24,24 @@
     </article>
   </section>
 
+  {% comment %}
+  Une commande en ligne n'est ni créée ni supprimée par le marchand : elle
+  arrive payée, et il la traite. La barre n'offre donc que ce qui existe —
+  ouvrir la commande sélectionnée, et filtrer.
+  {% endcomment %}
+  <section class="carte tableau-panneau">
+    {% include "partials/tableau_barre.html" with nom="commande" noms="commandes" titre="Commandes" filtres_id="filtres-commandes" filtres_actifs=filtres.actifs aide="Une commande arrive payée : elle ne se crée ni ne se supprime ici, elle s'accepte, se prépare, s'expédie — ou se refuse, avec son motif." %}
+  </section>
+
   {% for file in files %}
     {% if file.parts %}
-      <section class="carte">
+      <section class="carte tableau-panneau" data-tableau
+               data-nom="commande" data-noms="commandes" data-accord="e">
         <header class="carte__entete">
           <h2 class="t-section">{{ file.libelle }}</h2>
           <span class="puce puce--marque">{{ file.nombre }}</span>
         </header>
+        {% include "partials/tableau_barre.html" with nom=file.etat noms="commandes" modifier_possible=1 modifier_libelle="Ouvrir la commande" aide="Sélectionnez une commande pour l'ouvrir et la faire avancer." %}
         <div class="carte__corps--serre">
           <div class="tableau-boite">
             <table class="tableau">
@@ -46,7 +57,10 @@
               </thead>
               <tbody>
                 {% for part in file.parts %}
-                  <tr>
+                  <tr data-id="{{ part.pk }}"
+                      data-libelle="{{ part.commande.numero }} — {{ part.commande.acheteur.nom_complet }}"
+                      data-modifier="{% url 'commande' part.pk %}"
+                      data-ouvrir="{% url 'commande' part.pk %}">
                     <td class="principal chiffre">{{ part.commande.numero }}</td>
                     <td class="t-2 chiffre">{{ part.cree_le|date:"d/m/Y H:i" }}</td>
                     <td class="t-2">{{ part.commande.acheteur.nom_complet }}</td>
@@ -79,6 +93,9 @@
           <svg><use href="#ic-commandes"></use></svg>
           <p class="t-2">Aucune commande en attente.</p>
           <p class="t-legende">Les commandes passées en ligne arrivent ici dès qu'elles sont payées.</p>
+          {% if filtres.actifs %}
+            <a class="btn" href="{% url 'commandes' %}">Retirer les filtres</a>
+          {% endif %}
         </div>
       </div>
     </section>
@@ -101,7 +118,9 @@
             </thead>
             <tbody>
               {% for part in historique %}
-                <tr>
+                <tr data-id="{{ part.pk }}"
+                    data-libelle="{{ part.commande.numero }}"
+                    data-ouvrir="{% url 'commande' part.pk %}">
                   <td class="principal chiffre">{{ part.commande.numero }}</td>
                   <td class="t-2">{{ part.commande.acheteur.nom_complet }}</td>
                   <td class="t-2">
@@ -120,5 +139,7 @@
       </div>
     </section>
   {% endif %}
+
+  {% include "partials/modal_filtres.html" with id="filtres-commandes" formulaire=filtres action=url_commandes titre="Filtrer les commandes" %}
 </div>
 {% endblock %}

@@ -118,41 +118,48 @@
       </div>
     </section>
 
-    <section class="carte">
-      <header class="carte__entete">
-        <h2 class="t-section">Dépôts</h2>
-        <span class="puce">{{ depots|length }} / {{ quota_depots }}</span>
-      </header>
-      <div class="carte__corps--serre">
-        <div class="tableau-boite">
-          <table class="tableau">
-            <tbody>
-              {% for d in depots %}
-                <tr>
-                  <td class="principal">{{ d.libelle }}</td>
-                  <td class="t-2">{{ d.get_type_display }}</td>
-                  <td class="num">
-                    {% if d.principal %}<span class="puce puce--marque">Principal</span>{% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="dépôt" data-noms="dépôts">
+      {% include "partials/tableau_barre.html" with nom="depot" noms="dépôts" titre="Dépôts" creer_url=url_depot_creer creer_libelle="Nouveau dépôt" modifier_possible=peut_administrer modifier_libelle="Renommer" supprimer_url=url_depots_supprimer supprimer_libelle="Fermer" aide="Sélectionnez un dépôt pour le renommer ou le fermer. Le dépôt principal ne se ferme pas : c'est là qu'on encaisse et qu'on reçoit par défaut." avertissement_suppression="Un dépôt qui a déjà reçu de la marchandise est fermé, pas supprimé : son nom reste lisible sur les mouvements qui le citent." %}
+
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Dépôt</th>
+              <th scope="col">Type</th>
+              <th scope="col">Adresse</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in depots %}
+              <tr data-id="{{ d.pk }}" data-libelle="{{ d.libelle }}"
+                  data-modifier="#modale-depot"
+                  data-champs='{"libelle": "{{ d.libelle|escapejs }}", "type": "{{ d.type }}", "adresse": "{{ d.adresse|escapejs }}"}'
+                  {% if d.principal %}data-protege="C'est le dépôt principal : il ne se ferme pas."{% endif %}>
+                <td class="principal">{{ d.libelle }}</td>
+                <td class="t-2">{{ d.get_type_display }}</td>
+                <td class="t-2">{{ d.adresse|default:"—"|truncatechars:34 }}</td>
+                <td class="num">
+                  {% if d.principal %}<span class="puce puce--marque">Principal</span>{% endif %}
+                  {% if not d.actif %}<span class="puce">Fermé</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <footer class="carte__pied rangee rangee--espace">
-        <p class="t-legende" style="max-width:40ch">
+
+      <footer class="tableau-pied">
+        <span>{{ depots|length }} / {{ quota_depots }} dépôts</span>
+        <span class="t-legende">
           {% if depots_restants %}
             Votre emplacement autorise encore {{ depots_restants }} dépôt{{ depots_restants|pluralize }}.
           {% else %}
             Votre emplacement n'autorise pas de dépôt supplémentaire.
           {% endif %}
-        </p>
-        {% if 'boutique.administrer' in droits and depots_restants %}
-          <a class="btn" href="{% url 'nouveau_depot' %}">
-            <svg><use href="#ic-plus"></use></svg> Nouveau dépôt
-          </a>
-        {% endif %}
+        </span>
       </footer>
     </section>
   </div>
@@ -208,4 +215,38 @@
     {% endif %}
   </div>
 </div>
+
+{# ---- Renommer un dépôt ------------------------------------------------- #}
+{% comment %}
+Le caractère « principal » n'est pas dans cette boîte : le déplacer d'un clic
+ferait basculer les réceptions et les caisses sans que personne ne s'en aperçoive.
+{% endcomment %}
+<dialog class="modale" id="modale-depot">
+  <form method="post" data-action-modele="{% url 'depot_modifier' '00000000-0000-0000-0000-000000000000' %}">
+    {% csrf_token %}
+    <header class="modale__entete">
+      <h2 class="t-section">Modifier « <span data-cible-libelle></span> »</h2>
+    </header>
+    <div class="modale__corps colonne" style="gap:14px">
+      <div class="groupe-champ">
+        <label for="libelle-depot">Nom du dépôt</label>
+        <input class="champ" id="libelle-depot" name="libelle" maxlength="120" placeholder="Réserve Akwa">
+      </div>
+      <div class="groupe-champ">
+        <label for="type-depot">Type</label>
+        <select class="champ" id="type-depot" name="type">
+          {% for code, libelle in types_depot %}<option value="{{ code }}">{{ libelle }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="groupe-champ">
+        <label for="adresse-depot">Adresse</label>
+        <input class="champ" id="adresse-depot" name="adresse" maxlength="255" placeholder="Facultative">
+      </div>
+    </div>
+    <footer class="modale__pied">
+      <button class="btn" type="button" data-ferme>Annuler</button>
+      <button class="btn btn--primaire" type="submit">Enregistrer</button>
+    </footer>
+  </form>
+</dialog>
 {% endblock %}

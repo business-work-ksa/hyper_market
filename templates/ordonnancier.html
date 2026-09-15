@@ -72,11 +72,9 @@
     </section>
   {% endif %}
 
-  <section class="carte">
-    <header class="carte__entete">
-      <h2 class="t-section">Registre</h2>
-      <span class="t-legende">Les {{ consignees|length }} dernières délivrances consignées</span>
-    </header>
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="délivrance" data-noms="délivrances" data-accord="e">
+    {% include "partials/tableau_barre.html" with nom="delivrance" noms="délivrances" titre="Registre" filtres_id="filtres-ordonnancier" filtres_actifs=filtres.actifs aide="Registre en ajout seul : une délivrance ne s'efface pas. Seule la mention d'ordonnance reste modifiable — un registre se complète, une écriture jamais." %}
     <div class="carte__corps--serre">
       {% if consignees %}
         <div class="tableau-boite">
@@ -92,7 +90,8 @@
             </thead>
             <tbody>
               {% for t in consignees %}
-                <tr>
+                <tr data-id="{{ t.pk }}" data-libelle="{{ t.numero }}"
+                    data-ouvrir="{% url 'ticket' ticket_id=t.pk %}">
                   <td class="t-2 chiffre">{{ t.cloture_le|date:"d/m/Y H:i" }}</td>
                   <td class="principal"><a href="{% url 'ticket' ticket_id=t.pk %}">{{ t.numero }}</a></td>
                   <td class="t-2">
@@ -110,6 +109,9 @@
           <div class="vide">
             <svg><use href="#ic-ventes"></use></svg>
             <p class="t-2">Aucune délivrance consignée.</p>
+            {% if filtres.actifs %}
+              <a class="btn" href="{% url 'ordonnancier' %}">Retirer les filtres</a>
+            {% endif %}
             <p class="t-legende">
               Un {{ metier.article }} n'apparaît ici que s'il est marqué
               « délivré sur ordonnance » dans sa fiche. Sans cette marque, la
@@ -120,5 +122,7 @@
       {% endif %}
     </div>
   </section>
+
+  {% include "partials/modal_filtres.html" with id="filtres-ordonnancier" formulaire=filtres action=url_ordonnancier titre="Filtrer l'ordonnancier" aide="« À compléter » est la seule partie du registre sur laquelle il reste un geste à faire." %}
 </div>
 {% endblock %}

@@ -29,6 +29,7 @@ from django.views.decorators.http import require_POST
 
 from apps.accounts import permissions as droit
 from apps.backoffice.acces import contexte_commun, exige
+from apps.backoffice.filtres import FiltresExemplairesForm
 from apps.backoffice.forms import AtelierForm, SortieAtelierForm
 from apps.inventory import series
 from apps.inventory.models import NumeroSerie
@@ -55,6 +56,9 @@ def garantie(request):
     recherche = (request.GET.get("numero") or "").strip()
     trouve = series.rechercher(recherche) if recherche else None
 
+    filtres = FiltresExemplairesForm(request.GET)
+    ventes = _ventes_filtrees(filtres.valeurs)
+
     contexte.update(
         {
             "recherche": recherche,
@@ -65,7 +69,10 @@ def garantie(request):
             "passages": list(trouve.passages.all()[:10]) if trouve else [],
             "suit_la_garantie": metier.a(metiers.GARANTIE),
             "en_atelier": list(series.en_atelier()) if metier.a(metiers.GARANTIE) else [],
-            "ventes": list(series.vendus_recemment(VENTES_AFFICHEES)),
+            "ventes": list(ventes[:VENTES_AFFICHEES]),
+            "filtres": filtres,
+            "url_garantie": reverse("garantie"),
+            "conserver_dans_filtres": {"numero": recherche} if recherche else {},
             "ecarts": series.ecarts_de_numerotation(depot=contexte["depot_courant"]),
             "peut_agir": droit.CAISSE_ENCAISSER in contexte["droits"],
             "formulaire_atelier": AtelierForm(),
@@ -73,6 +80,32 @@ def garantie(request):
         }
     )
     return render(request, "garantie.html", contexte)
+
+
+def _ventes_filtrees(valeurs):
+    """Appareils vendus, filtrés — la liste du bas de l'écran.
+
+    La recherche par numéro, elle, reste **au-dessus et hors filtres** : c'est
+    la question du client au comptoir, et elle doit trouver un appareil quel que
+    soit son état. Un filtre posé la veille ne doit pas la faire échouer.
+    """
+    ventes = NumeroSerie.objects.filter(etat=NumeroSerie.VENDU)
+    if valeurs.get("etat"):
+        ventes = NumeroSerie.objects.filter(etat=valeurs["etat"])
+    if valeurs.get("q"):
+        ventes = ventes.filter(numero__icontains=series.normaliser(valeurs["q"]))
+
+    from django.utils import timezone
+
+    aujourd_hui = timezone.localdate()
+    if valeurs.get("garantie") == "en_cours":
+        ventes = ventes.filter(garantie_fin__gte=aujourd_hui)
+    elif valeurs.get("garantie") == "expiree":
+        ventes = ventes.filter(garantie_fin__lt=aujourd_hui)
+    elif valeurs.get("garantie") == "aucune":
+        ventes = ventes.filter(garantie_fin__isnull=True)
+
+    return ventes.select_related("variante__produit").order_by("-vendu_le")
 
 
 def _exemplaire_de(request, exemplaire_id) -> NumeroSerie:

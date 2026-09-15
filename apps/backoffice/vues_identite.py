@@ -23,11 +23,13 @@ import secrets
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts import permissions as droit
 from apps.accounts.models import ALPHABET_CODE
 from apps.backoffice.acces import contexte_commun, exige
+from apps.backoffice.filtres import FiltresLiensForm
 from apps.backoffice.forms import CharteForm, LienMarketingForm
 from apps.catalog.models import Variante
 from apps.marketplace import charte as service_charte
@@ -83,6 +85,8 @@ def identite(request):
     else:
         formulaire = CharteForm(instance=identite_visuelle)
 
+    filtres = FiltresLiensForm(request.GET)
+
     contexte.update(
         {
             "formulaire": formulaire,
@@ -92,11 +96,42 @@ def identite(request):
             # n'a pas.
             "proposees": _proposer(identite_visuelle),
             "lien_vitrine": request.build_absolute_uri(f"/marche/boutique/{boutique.slug}/"),
-            "liens": list(LienMarketing.objects.all()),
+            "liens": list(_liens_filtres(filtres.valeurs)),
+            "filtres": filtres,
+            "url_identite": reverse("identite"),
+            "url_creer": "#modale-nouveau-lien",
+            "url_retirer": reverse("liens_retirer"),
             "formulaire_lien": LienMarketingForm(boutique=boutique),
         }
     )
     return render(request, "identite.html", contexte)
+
+
+def _liens_filtres(valeurs):
+    """Liens marketing de la boutique, filtrés.
+
+    La destination est un filtre utile : un commerçant qui a vingt liens en a
+    dix-huit vers sa vitrine et deux vers un article précis, et ce sont ces deux-là
+    qu'il cherche.
+    """
+    liens = LienMarketing.objects.all()
+    if valeurs.get("q"):
+        from django.db.models import Q
+
+        liens = liens.filter(
+            Q(libelle__icontains=valeurs["q"])
+            | Q(code__icontains=valeurs["q"])
+            | Q(code_apporteur__icontains=valeurs["q"])
+        )
+    if valeurs.get("etat") == "actif":
+        liens = liens.filter(actif=True)
+    elif valeurs.get("etat") == "retire":
+        liens = liens.filter(actif=False)
+    if valeurs.get("portee") == "vitrine":
+        liens = liens.filter(article__isnull=True)
+    elif valeurs.get("portee") == "article":
+        liens = liens.filter(article__isnull=False)
+    return liens
 
 
 def _proposer(identite_visuelle) -> list[dict]:
@@ -169,6 +204,27 @@ def lien_creer(request):
 
 @require_POST
 @exige(droit.BOUTIQUE_ADMINISTRER)
+def lien_modifier(request, lien_id):
+    """Renomme un lien. **Son code ne change jamais.**
+
+    Le libellé dit à quoi sert le lien — « flyer marché central » — et c'est la
+    seule chose qui se corrige : on se trompe d'étiquette, pas de flyer. Le code,
+    lui, est peut-être imprimé sur mille exemplaires ; le changer les rendrait
+    tous muets d'un coup.
+    """
+    lien = get_object_or_404(LienMarketing.objects, pk=lien_id)
+    libelle = (request.POST.get("libelle") or "").strip()[:120]
+    if not libelle:
+        messages.error(request, "Un lien sans usage ne se retrouve pas dans la liste.")
+        return redirect("identite")
+
+    LienMarketing.objects.filter(pk=lien.pk).update(libelle=libelle)
+    messages.success(request, f"Lien renommé en « {libelle} ».")
+    return redirect("identite")
+
+
+@require_POST
+@exige(droit.BOUTIQUE_ADMINISTRER)
 def lien_retirer(request, lien_id):
     """Un lien se désactive, il ne se supprime pas.
 
@@ -179,6 +235,31 @@ def lien_retirer(request, lien_id):
     lien = get_object_or_404(LienMarketing.objects, pk=lien_id)
     LienMarketing.objects.filter(pk=lien.pk).update(actif=False)
     messages.success(request, f"« {lien.libelle} » ne redirige plus.")
+    return redirect("identite")
+
+
+@require_POST
+@exige(droit.BOUTIQUE_ADMINISTRER)
+def liens_retirer(request):
+    """Retire plusieurs liens d'un coup — une campagne se termine en bloc.
+
+    Même règle qu'à l'unité : aucun lien n'est effacé. Le compteur de clics d'un
+    flyer distribué reste lisible, et c'est tout l'intérêt de l'avoir compté.
+    """
+    contexte_commun(request, "boutique")
+    liens = list(LienMarketing.objects.filter(pk__in=request.POST.getlist("ids"), actif=True))
+    if not liens:
+        messages.error(request, "Aucun lien actif à retirer.")
+        return redirect("identite")
+
+    LienMarketing.objects.filter(pk__in=[l.pk for l in liens]).update(actif=False)
+    messages.success(
+        request,
+        f"{len(liens)} lien{'s' if len(liens) > 1 else ''} ne redirige"
+        f"{'nt' if len(liens) > 1 else ''} plus : "
+        + ", ".join(l.libelle for l in liens)
+        + ". Leurs compteurs restent lisibles.",
+    )
     return redirect("identite")
 
 

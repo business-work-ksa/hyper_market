@@ -17,12 +17,14 @@ import secrets
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounts import permissions as droit
 from apps.accounts.models import ALPHABET_CODE, Appartenance, Role, Utilisateur
 from apps.backoffice.acces import contexte_commun, exige
+from apps.backoffice.filtres import FiltresEquipeForm
 from apps.backoffice.forms import ChangementDeRoleForm, MembreEquipeForm
 
 CLE_MOT_DE_PASSE = "mot_de_passe_provisoire"
@@ -103,25 +105,123 @@ def equipe(request):
     else:
         formulaire = MembreEquipeForm(roles=roles, boutique=boutique)
 
+    filtres = FiltresEquipeForm(request.GET, roles=roles)
+    membres = list(_filtrer(_tous_les_membres(boutique), filtres.valeurs))
+
     contexte.update(
         {
             "formulaire": formulaire,
+            "filtres": filtres,
             "roles": roles,
             "roles_detail": _detail_des_roles(roles),
-            "membres": (
-                Appartenance.objects.filter(boutique=boutique)
-                .select_related("utilisateur", "role")
-                .order_by("-actif", "utilisateur__nom_complet")
-            ),
+            "membres": membres,
             "quota_utilisateurs": quota,
             "actifs": actifs,
             "places_restantes": max(quota - actifs, 0),
+            "url_equipe": reverse("equipe"),
+            "url_creer": "#modale-nouveau-membre",
+            "url_retirer": reverse("equipe_retirer_lot"),
             # Affiché une seule fois, puis retiré de la session : le gérant doit
             # le noter maintenant, personne ne pourra le lui relire ensuite.
             "mot_de_passe_provisoire": request.session.pop(CLE_MOT_DE_PASSE, None),
         }
     )
     return render(request, "equipe.html", contexte)
+
+
+def _tous_les_membres(boutique):
+    return (
+        Appartenance.objects.filter(boutique=boutique)
+        .select_related("utilisateur", "role")
+        .order_by("-actif", "utilisateur__nom_complet")
+    )
+
+
+def _filtrer(membres, valeurs):
+    """Applique les filtres de l'écran de l'équipe.
+
+    Le nom **et** le téléphone : dans une boutique, on cherche « Marie » aussi
+    souvent qu'on cherche les quatre derniers chiffres d'un numéro qu'on a sous
+    les yeux.
+    """
+    if valeurs.get("q"):
+        from django.db.models import Q
+
+        terme = valeurs["q"]
+        membres = membres.filter(
+            Q(utilisateur__nom_complet__icontains=terme)
+            | Q(utilisateur__telephone__icontains=terme)
+        )
+    if valeurs.get("role"):
+        membres = membres.filter(role_id=valeurs["role"])
+    if valeurs.get("etat") == "actif":
+        membres = membres.filter(actif=True)
+    elif valeurs.get("etat") == "retire":
+        membres = membres.filter(actif=False)
+    return membres
+
+
+@exige(droit.BOUTIQUE_ADMINISTRER)
+@require_POST
+def equipe_retirer_lot(request):
+    """Retire l'accès de plusieurs membres d'un coup. **Aucun compte n'est supprimé.**
+
+    C'est le seul geste de cet écran qui porte sur plusieurs lignes, et c'est
+    le bon : une fin de saison retire trois accès le même jour. Les garde-fous
+    restent appliqués **ligne par ligne** — se fermer la porte à soi-même ou
+    retirer le dernier gérant reste refusé, et le refus est nommé plutôt que
+    fondu dans un compte global.
+    """
+    contexte = contexte_commun(request, "boutique")
+    boutique = contexte["boutique"]
+
+    membres = list(
+        Appartenance.objects.filter(
+            pk__in=request.POST.getlist("ids"), boutique=boutique, actif=True
+        ).select_related("utilisateur", "role")
+    )
+    if not membres:
+        messages.error(request, "Aucun accès actif à retirer.")
+        return redirect("equipe")
+
+    retires, refuses = [], []
+    for membre in membres:
+        motif = _pourquoi_pas_retirable(request, boutique, membre, membres)
+        if motif:
+            refuses.append(f"{membre.utilisateur.nom_complet} ({motif})")
+            continue
+        membre.actif = False
+        membre.jusqu_a = timezone.localdate()
+        membre.save(update_fields=["actif", "jusqu_a"])
+        retires.append(membre.utilisateur.nom_complet)
+
+    if retires:
+        messages.success(
+            request,
+            f"Accès retiré à {', '.join(retires)}. "
+            "Leur historique de ventes et de mouvements reste intact.",
+        )
+    for refus in refuses:
+        messages.error(request, f"Accès conservé pour {refus}.")
+    return redirect("equipe")
+
+
+def _pourquoi_pas_retirable(request, boutique, membre, lot) -> str:
+    """Motif du refus, ou chaîne vide.
+
+    `lot` compte : retirer les deux derniers gérants **dans la même sélection**
+    fermerait la boutique aussi sûrement que de les retirer l'un après l'autre.
+    On regarde donc ce qui restera une fois le lot entier appliqué, pas
+    seulement une fois cette ligne-là retirée.
+    """
+    if membre.utilisateur_id == request.user.pk:
+        return "on ne retire pas son propre accès"
+    if membre.role_id != Role.GERANT:
+        return ""
+
+    vises = {m.pk for m in lot if m.role_id == Role.GERANT}
+    restants = _gerants_actifs(boutique).exclude(pk__in=vises)
+    return "" if restants.exists() else "c'est le dernier gérant de la boutique"
 
 
 @transaction.atomic

@@ -42,7 +42,14 @@ from apps.backoffice.acces import (
     exige_json,
     page_d_accueil,
 )
-from apps.backoffice.filtres import FiltresStockForm, conserver
+from apps.backoffice.filtres import (
+    FiltresEcrituresForm,
+    FiltresMouvementsForm,
+    FiltresPeremptionsForm,
+    FiltresStockForm,
+    FiltresVentesForm,
+    conserver,
+)
 from apps.backoffice.forms import (
     ArticleForm,
     ArticleModifierForm,
@@ -84,6 +91,14 @@ JOURS_HISTORIQUE = 14
 # de la trésorerie sans rien rapporter, et aucun autre écran ne le dit — le
 # tableau de bord montre ce qui se vend, pas ce qui ne bouge pas.
 JOURS_DORMANT = 30
+
+# Un journal se lit par le haut : les soixante dernières ventes couvrent une
+# semaine de comptoir chargée. Au-delà, c'est le filtre qui prend le relais.
+TICKETS_AFFICHES = 60
+
+# Le journal comptable complet se lit à l'export ; l'écran en montre assez pour
+# vérifier que les automatismes ont bien écrit ce qu'on attendait.
+ECRITURES_AFFICHEES = 40
 
 # Horizon de l'écran des péremptions. Un mois est le délai à partir duquel un
 # commerçant peut encore agir : écouler, remiser, retourner au grossiste.
@@ -793,6 +808,19 @@ def article(request, variante_id):
             ),
             "marques_connues": vehicules.marques_connues() if suit_les_vehicules else [],
             "modeles_connus": vehicules.modeles_connus() if suit_les_vehicules else [],
+            "peut_mouvementer": droit.STOCK_MOUVEMENTER in contexte["droits"],
+            "url_exemplaires_creer": "#modale-exemplaires",
+            "url_exemplaires_supprimer": (
+                reverse("exemplaires_supprimer", args=[variante.pk])
+                if suit_les_exemplaires and droit.STOCK_MOUVEMENTER in contexte["droits"]
+                else ""
+            ),
+            "url_compatibilite_creer": "#modale-nouvelle-compatibilite",
+            "url_compatibilites_retirer": (
+                reverse("compatibilites_retirer", args=[variante.pk])
+                if suit_les_vehicules and droit.STOCK_MOUVEMENTER in contexte["droits"]
+                else ""
+            ),
         }
     )
     return render(request, "article.html", contexte)
@@ -864,6 +892,93 @@ def compatibilite_ajouter(request, variante_id):
         cree_par=request.user,
     )
     return redirect("article", variante_id=variante.pk)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def exemplaires_supprimer(request, variante_id):
+    """Efface des exemplaires nommés par erreur — et **seulement** ceux-là.
+
+    Un IMEI mal recopié à la réception doit pouvoir disparaître : il ne désigne
+    aucun appareil réel. Un exemplaire **vendu**, lui, est cité par un ticket et
+    porte une garantie due à quelqu'un : l'effacer effacerait la promesse. Un
+    appareil à l'atelier appartient à un client qui attend.
+    """
+    contexte_commun(request, "stock")
+    variante = get_object_or_404(Variante.objects, pk=variante_id)
+
+    vises = list(
+        NumeroSerie.objects.filter(pk__in=request.POST.getlist("ids"), variante=variante)
+    )
+    effaces = [e for e in vises if e.etat == NumeroSerie.EN_STOCK and e.vendu_le is None]
+    refuses = [e for e in vises if e not in effaces]
+
+    if effaces:
+        NumeroSerie.objects.filter(pk__in=[e.pk for e in effaces]).delete()
+        messages.success(
+            request,
+            f"{len(effaces)} numéro{pluralize(len(effaces))} effacé{pluralize(len(effaces))} : "
+            + _enumerer([e.numero for e in effaces]),
+        )
+    for exemplaire in refuses:
+        messages.error(
+            request,
+            f"{exemplaire.numero} est {exemplaire.get_etat_display().lower()} : il porte une "
+            "histoire — une vente, une garantie, un passage à l'atelier — et ne s'efface pas.",
+        )
+    return redirect("article", variante_id=variante.pk)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def compatibilite_modifier(request, variante_id, compatibilite_id):
+    """Corrige une compatibilité déjà déclarée.
+
+    Une compatibilité est une **déclaration du vendeur** : elle se corrige comme
+    on corrige une phrase qu'on a dite de travers, sans que cela touche à quoi
+    que ce soit d'autre.
+    """
+    contexte = contexte_commun(request, "stock")
+    metier = contexte["metier"]
+    if metier is None or not metier.a(metiers.COMPATIBILITE):
+        raise Http404("Ce métier ne suit pas les compatibilités véhicule.")
+
+    variante = get_object_or_404(Variante.objects, pk=variante_id)
+    formulaire = CompatibiliteForm(request.POST, variante=None)
+    if not formulaire.is_valid():
+        messages.error(request, _premiere_erreur(formulaire))
+        return redirect("article", variante_id=variante.pk)
+
+    CompatibiliteVehicule.objects.filter(pk=compatibilite_id, variante=variante).update(
+        marque=formulaire.cleaned_data["marque"],
+        modele=formulaire.cleaned_data.get("modele", ""),
+        motorisation=formulaire.cleaned_data.get("motorisation", "").strip(),
+        annee_debut=formulaire.cleaned_data.get("annee_debut"),
+        annee_fin=formulaire.cleaned_data.get("annee_fin"),
+    )
+    messages.success(request, "Compatibilité corrigée.")
+    return redirect("article", variante_id=variante.pk)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def compatibilites_retirer(request, variante_id):
+    """Retire plusieurs compatibilités d'un coup.
+
+    Elles se suppriment vraiment, comme à l'unité : une compatibilité n'a rien
+    laissé dehors, et une affirmation fausse ne se conserve pas « pour
+    l'historique » — la garder ferait repartir un client avec la mauvaise pièce.
+    """
+    contexte_commun(request, "stock")
+    retirees = CompatibiliteVehicule.objects.filter(
+        pk__in=request.POST.getlist("ids"), variante_id=variante_id
+    ).delete()[0]
+    if retirees:
+        messages.success(
+            request,
+            f"{retirees} compatibilité{pluralize(retirees, 's,s')} retirée{pluralize(retirees)}.",
+        )
+    return redirect("article", variante_id=variante_id)
 
 
 @require_POST
@@ -1691,11 +1806,29 @@ def _notice_export(boutique) -> str:
 def ventes(request):
     contexte = contexte_commun(request, "ventes")
 
-    tickets = list(
-        Ticket.objects.filter(etat=Ticket.CLOTURE).select_related(
-            "session__caissier", "session__depot"
-        )[:60]
-    )
+    filtres = FiltresVentesForm(request.GET)
+    valeurs = filtres.valeurs
+
+    # L'état par défaut est « clôturé » : le journal des ventes montre ce qui a
+    # été encaissé. Les brouillons sont des paniers en cours, pas des ventes.
+    tickets = Ticket.objects.filter(
+        etat=valeurs.get("etat") or Ticket.CLOTURE
+    ).select_related("session__caissier", "session__depot")
+
+    if valeurs.get("q"):
+        from django.db.models import Q
+
+        tickets = tickets.filter(
+            Q(numero__icontains=valeurs["q"]) | Q(client_nom__icontains=valeurs["q"])
+        )
+    if valeurs.get("depuis"):
+        tickets = tickets.filter(cloture_le__date__gte=valeurs["depuis"])
+    if valeurs.get("jusqua"):
+        tickets = tickets.filter(cloture_le__date__lte=valeurs["jusqua"])
+    if valeurs.get("moyen"):
+        tickets = tickets.filter(reglements__moyen=valeurs["moyen"]).distinct()
+
+    tickets = list(tickets[:TICKETS_AFFICHES])
     lignes_par_ticket = {}
     for ligne in LigneTicket.objects.filter(ticket__in=tickets):
         lignes_par_ticket.setdefault(ligne.ticket_id, []).append(ligne)
@@ -1705,6 +1838,8 @@ def ventes(request):
     contexte.update(
         {
             "tickets": tickets,
+            "filtres": filtres,
+            "url_ventes": reverse("ventes"),
             "total_periode": sum((t.total_ttc for t in tickets), Decimal("0")),
             "tva_periode": sum((t.total_tva for t in tickets), Decimal("0")),
         }
@@ -1731,11 +1866,29 @@ def comptabilite(request):
         "5311", boutique_id=boutique.pk
     )
 
-    from apps.accounting.models import EcritureComptable
+    from apps.accounting.models import EcritureComptable, Journal
+
+    filtres = FiltresEcrituresForm(request.GET, journaux=Journal.objects.all())
+    valeurs = filtres.valeurs
+    ecritures = EcritureComptable.objects.select_related("journal")
+    if valeurs.get("q"):
+        from django.db.models import Q
+
+        ecritures = ecritures.filter(
+            Q(libelle__icontains=valeurs["q"]) | Q(piece__icontains=valeurs["q"])
+        )
+    if valeurs.get("journal"):
+        ecritures = ecritures.filter(journal__code=valeurs["journal"])
+    if valeurs.get("depuis"):
+        ecritures = ecritures.filter(date_ecriture__gte=valeurs["depuis"])
+    if valeurs.get("jusqua"):
+        ecritures = ecritures.filter(date_ecriture__lte=valeurs["jusqua"])
 
     contexte.update(
         {
             "lignes": lignes,
+            "filtres": filtres,
+            "url_comptabilite": reverse("comptabilite"),
             "total_debit": total_debit,
             "total_credit": total_credit,
             "equilibree": total_debit == total_credit,
@@ -1744,7 +1897,7 @@ def comptabilite(request):
             "marge_brute": chiffre_affaires - cout_ventes,
             "tva_collectee": tva_collectee,
             "tresorerie": tresorerie,
-            "ecritures": EcritureComptable.objects.select_related("journal")[:12],
+            "ecritures": ecritures[:ECRITURES_AFFICHEES],
             "assujetti_tva": boutique.regime_fiscal != Boutique.IGS,
         }
     )
@@ -1769,11 +1922,102 @@ def boutique(request):
             "depots": depots,
             "quota_depots": quota,
             "depots_restants": max(quota - len(depots), 0),
+            "url_depot_creer": (
+                reverse("nouveau_depot")
+                if droit.BOUTIQUE_ADMINISTRER in contexte["droits"] and quota > len(depots)
+                else ""
+            ),
+            "url_depots_supprimer": (
+                reverse("depots_supprimer")
+                if droit.BOUTIQUE_ADMINISTRER in contexte["droits"]
+                else ""
+            ),
+            "peut_administrer": droit.BOUTIQUE_ADMINISTRER in contexte["droits"],
+            "types_depot": [
+                (code, libelle) for code, libelle in Depot.TYPES
+                if code != Depot.ENTREPOT_PLATEFORME
+            ],
             "equipe": fiche.appartenances.filter(actif=True).select_related("utilisateur", "role"),
             "droits_par_role": _droits_par_role(fiche),
         }
     )
     return render(request, "boutique.html", contexte)
+
+
+@require_POST
+@exige(droit.BOUTIQUE_ADMINISTRER)
+def depot_modifier(request, depot_id):
+    """Renomme un dépôt, corrige son type ou son adresse.
+
+    Le caractère « principal » ne se change pas ici : c'est le dépôt par défaut
+    de l'exploitation, et le déplacer d'un clic ferait basculer les réceptions
+    et les caisses sans que personne ne s'en aperçoive.
+    """
+    contexte_commun(request, "boutique")
+    depot = get_object_or_404(Depot.objects, pk=depot_id)
+
+    libelle = (request.POST.get("libelle") or "").strip()[:120]
+    if not libelle:
+        messages.error(request, "Un dépôt sans nom ne se distingue pas des autres.")
+        return redirect("boutique")
+
+    types_connus = {code for code, _ in Depot.TYPES if code != Depot.ENTREPOT_PLATEFORME}
+    type_demande = request.POST.get("type") or depot.type
+    Depot.objects.filter(pk=depot.pk).update(
+        libelle=libelle,
+        type=type_demande if type_demande in types_connus else depot.type,
+        adresse=(request.POST.get("adresse") or "").strip()[:255],
+    )
+    messages.success(request, f"Dépôt renommé en « {libelle} ».")
+    return redirect("boutique")
+
+
+@require_POST
+@exige(droit.BOUTIQUE_ADMINISTRER)
+def depots_supprimer(request):
+    """Ferme les dépôts choisis — ou les supprime s'ils n'ont jamais servi.
+
+    Même règle que pour un article : **on supprime ce qui n'a pas d'histoire, on
+    ferme ce qui en a une.** Un dépôt qui a reçu de la marchandise est cité par
+    des mouvements de stock ; l'effacer arracherait son nom d'un journal en ajout
+    seul. Le dépôt principal, lui, ne se ferme pas : c'est celui où l'on
+    encaisse et où l'on reçoit par défaut, et une boutique sans dépôt principal
+    n'a plus où poser son stock.
+    """
+    contexte_commun(request, "boutique")
+    depots = list(Depot.objects.filter(pk__in=request.POST.getlist("ids")))
+    if not depots:
+        messages.error(request, "Aucun dépôt à fermer.")
+        return redirect("boutique")
+
+    supprimes, fermes, refuses = [], [], []
+    for depot in depots:
+        if depot.principal:
+            refuses.append(depot.libelle)
+            continue
+        if MouvementStock.objects.filter(depot=depot).exists():
+            Depot.objects.filter(pk=depot.pk).update(actif=False)
+            fermes.append(depot.libelle)
+            continue
+        # Aucun mouvement : les niveaux à zéro qui l'accompagnent n'ont rien à
+        # raconter, et disparaissent avec lui.
+        NiveauStock.objects.filter(depot=depot).delete()
+        depot.delete()
+        supprimes.append(depot.libelle)
+
+    if supprimes:
+        messages.success(request, f"Dépôt supprimé : {_enumerer(supprimes)}")
+    if fermes:
+        messages.success(
+            request,
+            f"Dépôt fermé (son historique de mouvements reste lisible) : {_enumerer(fermes)}",
+        )
+    for nom in refuses:
+        messages.error(
+            request,
+            f"« {nom} » est le dépôt principal : désignez-en un autre avant de le fermer.",
+        )
+    return redirect("boutique")
 
 
 def _droits_par_role(fiche) -> list[dict]:
@@ -1864,20 +2108,38 @@ def peremptions(request):
     if metier is None or not metier.a(metiers.PEREMPTION):
         raise Http404("Ce métier ne suit pas les dates de péremption.")
 
+    filtres = FiltresPeremptionsForm(request.GET, depots=contexte["depots"])
+    valeurs = filtres.valeurs
+    horizon = valeurs.get("jours") or JOURS_PEREMPTION
+
     aujourd_hui = timezone.localdate()
-    lots = list(lots_a_surveiller(jours=JOURS_PEREMPTION))
+    surveilles = lots_a_surveiller(jours=horizon)
+    if valeurs.get("depot"):
+        surveilles = surveilles.filter(depot_id=valeurs["depot"])
+    if valeurs.get("q"):
+        from django.db.models import Q
+
+        surveilles = surveilles.filter(
+            Q(variante__produit__libelle__icontains=valeurs["q"])
+            | Q(numero__icontains=valeurs["q"])
+        )
+
+    lots = list(surveilles)
     for lot in lots:
         lot.etat_calcule = lot.etat(aujourd_hui)
         lot.jours = lot.jours_restants(aujourd_hui)
 
-    perimes = [l for l in lots if l.etat_calcule == "perime"]
-    bientot = [l for l in lots if l.etat_calcule == "bientot"]
+    etat = valeurs.get("etat") or ""
+    perimes = [l for l in lots if l.etat_calcule == "perime"] if etat != "bientot" else []
+    bientot = [l for l in lots if l.etat_calcule == "bientot"] if etat != "perime" else []
 
     contexte.update(
         {
             "perimes": perimes,
             "bientot": bientot,
-            "horizon": JOURS_PEREMPTION,
+            "filtres": filtres,
+            "url_peremptions": reverse("peremptions"),
+            "horizon": horizon,
             # La valeur de ce qui périme n'a de sens que pour qui voit les coûts.
             "valeur_perimee": (
                 sum(

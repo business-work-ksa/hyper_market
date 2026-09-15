@@ -10,15 +10,71 @@
 
 {% block contenu %}
 <div class="colonne">
-  {% if formulaire %}
-    <section class="carte">
-      <header class="carte__entete">
-        <h2 class="t-section">Ouvrir une fiche</h2>
-        <span class="t-legende">Sur un produit déjà au catalogue</span>
-      </header>
-      <form method="post" action="{% url 'fiche_creer' %}" class="carte__corps colonne"
-            style="gap:16px" novalidate>
-        {% csrf_token %}
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="fiche" data-noms="fiches" data-accord="e">
+    {% include "partials/tableau_barre.html" with nom="fiche" noms="fiches" titre="Mes fiches" creer_url=url_creer creer_libelle="Ouvrir une fiche" modifier_possible=peut_mouvementer modifier_libelle="Modifier" supprimer_url=url_supprimer supprimer_libelle="Supprimer" aide="Sélectionnez une fiche pour corriger son rendement, sa conservation ou son mode opératoire. Ouvrez-la pour en changer les ingrédients." avertissement_suppression="Une fiche qui a déjà servi explique des fournées inscrites au journal du stock : elle est retirée de la production, pas effacée." %}
+
+    {% if fiches %}
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">{{ metier.article|capfirst }}</th>
+              <th scope="col" class="num">Rendement</th>
+              <th scope="col" class="num">Ingrédients</th>
+              <th scope="col">Conservation</th>
+              <th scope="col">État</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in fiches %}
+              <tr data-id="{{ f.pk }}" data-libelle="{{ f.variante }}"
+                  data-ouvrir="{% url 'fiche' recette_id=f.pk %}"
+                  {% if peut_mouvementer %}data-modifier="#modale-fiche"{% endif %}
+                  data-champs='{"rendement": "{{ f.rendement|quantite }}", "duree_conservation_jours": "{{ f.duree_conservation_jours|default_if_none:"" }}", "note": "{{ f.note|escapejs }}"}'
+                  {% if not f.actif %}data-note="Déjà retirée de la production."{% endif %}>
+                <td class="principal">
+                  <a href="{% url 'fiche' recette_id=f.pk %}">{{ f.variante }}</a>
+                </td>
+                <td class="num t-2">{{ f.rendement|quantite }}</td>
+                <td class="num t-2">{{ f.lignes.count }}</td>
+                <td class="t-2">
+                  {% if f.duree_conservation_jours %}{{ f.duree_conservation_jours }} j{% else %}<span class="t-muet">—</span>{% endif %}
+                </td>
+                <td>
+                  {% if f.actif %}
+                    <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>En service</span>
+                  {% else %}
+                    <span class="puce"><svg><use href="#ic-verrou"></use></svg>Retirée</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="vide">
+        <svg><use href="#ic-production"></use></svg>
+        <p class="t-2">Aucune fiche technique.</p>
+        <p class="t-legende">
+          Une fiche dit ce qu'il faut pour fabriquer un produit, et combien une
+          exécution en produit. C'est elle qui permet à une production de sortir
+          réellement les ingrédients du stock et de calculer ce que le produit
+          fini a coûté.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+{% if formulaire %}
+  {# ---- Ouvrir une fiche ------------------------------------------------ #}
+  <dialog class="modale" id="modale-nouvelle-fiche">
+    <form method="post" action="{% url 'fiche_creer' %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">Ouvrir une fiche</h2></header>
+      <div class="modale__corps colonne" style="gap:16px">
         {% include "partials/champ.html" with champ=formulaire.variante %}
         <div class="duo">
           {% include "partials/champ.html" with champ=formulaire.rendement %}
@@ -30,69 +86,53 @@
           votre stock, avec son prix et son coût moyen. La fiche explique
           seulement <strong>d'où il vient</strong>.
         </p>
-        <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
-          Ouvrir la fiche
-        </button>
-      </form>
-    </section>
-  {% endif %}
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Ouvrir la fiche</button>
+      </footer>
+    </form>
+  </dialog>
 
-  <section class="carte">
-    <header class="carte__entete">
-      <h2 class="t-section">Mes fiches</h2>
-      {% if fiches %}<span class="t-legende">{{ fiches|length }}</span>{% endif %}
-    </header>
-    <div class="carte__corps--serre">
-      {% if fiches %}
-        <div class="tableau-boite">
-          <table class="tableau">
-            <thead>
-              <tr>
-                <th scope="col">{{ metier.article|capfirst }}</th>
-                <th scope="col" class="num">Rendement</th>
-                <th scope="col" class="num">Ingrédients</th>
-                <th scope="col">Conservation</th>
-                <th scope="col">État</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for f in fiches %}
-                <tr>
-                  <td class="principal">
-                    <a href="{% url 'fiche' recette_id=f.pk %}">{{ f.variante }}</a>
-                  </td>
-                  <td class="num t-2">{{ f.rendement|quantite }}</td>
-                  <td class="num t-2">{{ f.lignes.count }}</td>
-                  <td class="t-2">
-                    {% if f.duree_conservation_jours %}{{ f.duree_conservation_jours }} j{% else %}<span class="t-muet">—</span>{% endif %}
-                  </td>
-                  <td>
-                    {% if f.actif %}
-                      <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>En service</span>
-                    {% else %}
-                      <span class="puce"><svg><use href="#ic-verrou"></use></svg>Retirée</span>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="carte__corps">
-          <div class="vide">
-            <svg><use href="#ic-production"></use></svg>
-            <p class="t-2">Aucune fiche technique.</p>
-            <p class="t-legende">
-              Une fiche dit ce qu'il faut pour fabriquer un produit, et combien
-              une exécution en produit. C'est elle qui permet à une production de
-              sortir réellement les ingrédients du stock et de calculer ce que le
-              produit fini a coûté.
-            </p>
+  {# ---- Modifier une fiche ---------------------------------------------- #}
+  {% comment %}
+  Le produit fabriqué n'est pas modifiable : une fiche explique d'où vient un
+  article précis, et la rattacher à un autre réécrirait l'explication de toutes
+  les fournées déjà passées.
+  {% endcomment %}
+  <dialog class="modale" id="modale-fiche">
+    <form method="post" data-action-modele="{% url 'fiche_modifier' '00000000-0000-0000-0000-000000000000' %}">
+      {% csrf_token %}
+      <header class="modale__entete">
+        <h2 class="t-section">Fiche de « <span data-cible-libelle></span> »</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="duo" style="gap:14px">
+          <div class="groupe-champ">
+            <label for="rendement-fiche">Rendement</label>
+            <input class="champ" id="rendement-fiche" name="rendement" inputmode="decimal">
+            <span class="t-legende">Une fournée, pas une pièce.</span>
+          </div>
+          <div class="groupe-champ">
+            <label for="conservation-fiche">Conservation (jours)</label>
+            <input class="champ" id="conservation-fiche" name="duree_conservation_jours" inputmode="numeric">
+            <span class="t-legende">Vide si le produit ne périme pas.</span>
           </div>
         </div>
-      {% endif %}
-    </div>
-  </section>
-</div>
+        <div class="groupe-champ">
+          <label for="note-fiche">Mode opératoire</label>
+          <textarea class="champ" id="note-fiche" name="note" rows="3"></textarea>
+        </div>
+        <p class="t-legende">
+          Les ingrédients se modifient sur la fiche elle-même : ouvrez-la depuis
+          la liste.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+{% endif %}
 {% endblock %}

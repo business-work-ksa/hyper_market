@@ -174,15 +174,11 @@
 
   {# ---- Ce qui attend à l'atelier ---------------------------------------- #}
   {% if en_atelier %}
-    <section class="carte">
-      <header class="carte__entete">
-        <h2 class="t-section">À l'atelier</h2>
-        <span class="puce puce--alerte"><svg><use href="#ic-atelier"></use></svg>{{ en_atelier|length }}</span>
-      </header>
+    <section class="carte tableau-panneau">
+      {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre="À l'atelier" aide="Chacun de ces appareils appartient à quelqu'un qui attend. Ouvrez-en un pour le rendre : la couverture a été figée au jour du dépôt." %}
       <div class="carte__corps colonne" style="gap:10px">
         <p class="t-legende">
-          Chacun de ces appareils appartient à quelqu'un qui attend. Le plus
-          ancien dépôt est en tête — c'est celui dont le client rappelle.
+          Le plus ancien dépôt est en tête — c'est celui dont le client rappelle.
         </p>
         {% for e in en_atelier %}
           <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
@@ -243,11 +239,9 @@
   {% endif %}
 
   {# ---- Ventes récentes --------------------------------------------------- #}
-  <section class="carte">
-    <header class="carte__entete">
-      <h2 class="t-section">Derniers appareils vendus</h2>
-      <span class="t-legende">Pour le client qui a perdu son ticket</span>
-    </header>
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="appareil" data-noms="appareils">
+    {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre="Derniers appareils vendus" filtres_id="filtres-exemplaires" filtres_actifs=filtres.actifs aide="Pour le client qui a perdu son ticket et se souvient seulement du jour. Sélectionnez un appareil pour l'ouvrir." %}
     <div class="carte__corps--serre">
       {% if ventes %}
         <div class="tableau-boite">
@@ -263,7 +257,8 @@
             </thead>
             <tbody>
               {% for e in ventes %}
-                <tr>
+                <tr data-id="{{ e.pk }}" data-libelle="{{ e.numero }}"
+                    data-ouvrir="{% url 'garantie' %}?numero={{ e.numero|urlencode }}">
                   <td class="t-2 chiffre">{{ e.vendu_le|date:"d/m/Y H:i" }}</td>
                   <td class="principal">
                     <a href="{% url 'garantie' %}?numero={{ e.numero|urlencode }}">{{ e.numero }}</a>
@@ -290,7 +285,10 @@
         <div class="carte__corps">
           <div class="vide">
             <svg><use href="#ic-garantie"></use></svg>
-            <p class="t-2">Aucun appareil vendu avec son numéro.</p>
+            <p class="t-2">Aucun appareil ne correspond.</p>
+            {% if filtres.actifs %}
+              <a class="btn" href="{% url 'garantie' %}">Retirer les filtres</a>
+            {% endif %}
             <p class="t-legende">
               Un {{ metier.article }} n'apparaît ici que s'il est marqué « suivi à
               l'unité » dans sa fiche. Sans cette marque, la caisse ne demande pas
@@ -301,6 +299,8 @@
       {% endif %}
     </div>
   </section>
+
+  {% include "partials/modal_filtres.html" with id="filtres-exemplaires" formulaire=filtres action=url_garantie conserver=conserver_dans_filtres titre="Filtrer les appareils" aide="La recherche par numéro, en haut de l'écran, ignore ces filtres : elle doit trouver un appareil quel que soit son état." %}
 </div>
 {% endblock %}
 

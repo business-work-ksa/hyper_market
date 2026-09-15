@@ -16,10 +16,12 @@ from decimal import Decimal
 from django.contrib import messages
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts import permissions as droit
 from apps.backoffice.acces import contexte_commun, depot_courant, exige
+from apps.backoffice.filtres import FiltresCommandesForm
 from apps.orders import services as commandes_service
 from apps.orders.models import LigneCommande, Retour, SousCommande
 
@@ -80,12 +82,22 @@ def _decorer(parts) -> list[SousCommande]:
 def commandes(request):
     contexte = contexte_commun(request, "commandes")
 
+    filtres = FiltresCommandesForm(request.GET)
+    valeurs = filtres.valeurs
+
     files = []
     for etat, libelle in FILES:
-        parts = _decorer(_parts([etat]))
+        # Un filtre d'état vide les autres files : c'est l'effet recherché, et
+        # c'est aussi pourquoi la pastille de la barre compte les filtres posés.
+        if valeurs.get("etat") and valeurs["etat"] != etat:
+            files.append({"etat": etat, "libelle": libelle, "parts": [], "nombre": 0})
+            continue
+        parts = _decorer(_restreindre(_parts([etat]), valeurs))
         files.append({"etat": etat, "libelle": libelle, "parts": parts, "nombre": len(parts)})
 
-    historique = _decorer(_parts(TERMINEES).order_by("-modifie_le")[:30])
+    historique = _decorer(
+        _restreindre(_parts(TERMINEES), valeurs).order_by("-modifie_le")[:30]
+    )
 
     a_traiter = sum(f["nombre"] for f in files)
     agregat = SousCommande.objects.filter(
@@ -99,9 +111,29 @@ def commandes(request):
             "a_traiter": a_traiter,
             "montant_en_cours": agregat["total"] or Decimal("0"),
             "depot": depot_courant(request),
+            "filtres": filtres,
+            "url_commandes": reverse("commandes"),
         }
     )
     return render(request, "commandes.html", contexte)
+
+
+def _restreindre(parts, valeurs):
+    """Applique la recherche et la borne de date aux parts d'une file.
+
+    L'état, lui, est traité plus haut : il ne restreint pas une file, il en
+    choisit une.
+    """
+    if valeurs.get("q"):
+        from django.db.models import Q
+
+        parts = parts.filter(
+            Q(commande__numero__icontains=valeurs["q"])
+            | Q(commande__acheteur__nom_complet__icontains=valeurs["q"])
+        )
+    if valeurs.get("depuis"):
+        parts = parts.filter(cree_le__date__gte=valeurs["depuis"])
+    return parts
 
 
 @exige(droit.COMMANDES_TRAITER)

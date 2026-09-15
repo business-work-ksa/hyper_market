@@ -95,11 +95,13 @@
     </section>
   {% endif %}
 
-  <section class="carte">
-    <header class="carte__entete">
-      <h2 class="t-section">Sorti du four aujourd'hui</h2>
-      {% if mouvements %}<span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>{{ mouvements|length }}</span>{% endif %}
-    </header>
+  {% comment %}
+  Journal en ajout seul : une fournée constatée ne se corrige pas. Ce qui est
+  sorti du four est sorti, et une erreur se rattrape par une perte ou un
+  inventaire — deux gestes qui, eux, laissent leur propre trace datée.
+  {% endcomment %}
+  <section class="carte tableau-panneau">
+    {% include "partials/tableau_barre.html" with nom="fournée" noms="fournées" titre=titre_journal filtres_id="filtres-production" filtres_actifs=filtres.actifs aide="Journal en ajout seul : une fournée constatée ne se corrige pas. Une erreur se rattrape par une perte ou un inventaire." %}
     <div class="carte__corps--serre">
       {% if mouvements %}
         <div class="tableau-boite">
@@ -197,5 +199,7 @@
       </div>
     </section>
   {% endif %}
+
+  {% include "partials/modal_filtres.html" with id="filtres-production" formulaire=filtres action=url_production titre="Choisir la journée" aide="Sans date, c'est la journée d'aujourd'hui — celle qu'un boulanger regarde quatre-vingt-dix-neuf fois sur cent." %}
 </div>
 {% endblock %}

@@ -27,10 +27,22 @@ elle ne promet simplement pas des gestes qu'elle ne saurait pas tenir.
 <div class="tableau-barre">
   {% if titre %}<span class="tableau-barre__titre">{{ titre }}</span>{% endif %}
 
+  {% comment %}
+  `creer_url` accepte une route **ou** un identifiant de boîte de dialogue
+  (« #modale-… »). Une création qui demande un écran entier — un article et son
+  stock initial — mérite sa page ; rattacher quelqu'un à l'équipe n'en mérite
+  pas une, et la boîte laisse la liste en place derrière elle.
+  {% endcomment %}
   {% if creer_url %}
-    <a class="btn btn--primaire" href="{{ creer_url }}">
-      <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:"Nouveau" }}
-    </a>
+    {% if creer_url|slice:":1" == "#" %}
+      <button class="btn btn--primaire" type="button" data-ouvre="{{ creer_url|slice:'1:' }}">
+        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:"Nouveau" }}
+      </button>
+    {% else %}
+      <a class="btn btn--primaire" href="{{ creer_url }}">
+        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:"Nouveau" }}
+      </a>
+    {% endif %}
   {% endif %}
 
   {% if creer_url and modifier_possible %}<span class="tableau-barre__separateur"></span>{% endif %}

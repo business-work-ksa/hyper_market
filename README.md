@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 545 tests
+make tester                     # 591 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -87,6 +87,27 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237698660011` | Gérant, Nkolo Électronique | Tout — **numéros de série, garantie et atelier** |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
+
+## Agir là où la donnée se lit
+
+Chaque liste du back-office porte sa barre d'outils : **créer**, **modifier**,
+**supprimer**, **filtrer**. Sélectionnez une ligne et la barre dit ce qu'elle fera
+d'elle, nommément. On ne modifie qu'une ligne à la fois — deux lignes n'ont pas la
+même correction à apporter, et le bouton se grise **en le disant** plutôt que de
+laisser croire à une panne. La suppression, elle, porte sur autant de lignes qu'on
+veut : faire le ménage est exactement le geste qui en concerne plusieurs.
+
+Une règle gouverne tous ces écrans : **on supprime ce qui n'a pas d'histoire, on
+retire ce qui en a une.** Une référence créée par erreur il y a trois minutes
+disparaît vraiment ; un article vendu l'an dernier est retiré de la vente, parce
+qu'effacer son libellé rendrait muets des tickets imprimés et des écritures
+validées. Le logiciel tranche ligne par ligne, l'annonce avant, et dit après
+lequel des deux il a fait. Les journaux en ajout seul — ventes, écritures,
+mouvements — n'offrent rien d'autre que les filtres, et disent pourquoi.
+
+Les filtres vivent **dans l'adresse de la page** : elle se partage, se met en
+favori, et survit à un retour arrière. Deux personnes qui ouvrent le même lien
+voient la même liste.
 
 ## Dix métiers, dix logiciels
 

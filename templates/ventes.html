@@ -32,10 +32,15 @@
     </article>
   </section>
 
-  <section class="carte">
-    <header class="carte__entete"><h2 class="t-section">Journal des ventes</h2></header>
+  {% comment %}
+  Journal en ajout seul : ni création, ni modification, ni suppression. Une vente
+  encaissée ne se corrige pas, elle se contre-passe — la barre le dit plutôt que
+  de proposer des boutons qui refuseraient.
+  {% endcomment %}
+  <section class="carte tableau-panneau">
+    {% include "partials/tableau_barre.html" with nom="vente" noms="ventes" titre="Journal des ventes" filtres_id="filtres-ventes" filtres_actifs=filtres.actifs aide="Journal en ajout seul : une vente encaissée ne se modifie ni ne se supprime. Ouvrez un ticket pour le détail." %}
     <div class="carte__corps--serre">
-      <div class="tableau-boite">
+      <div class="tableau-boite tableau-boite--haute">
         <table class="tableau">
           <thead>
             <tr>
@@ -72,12 +77,16 @@
               </tr>
             {% empty %}
               <tr><td colspan="8"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
-                <p class="t-2">Aucune vente enregistrée.</p></div></td></tr>
+                <p class="t-2">Aucune vente ne correspond.</p>
+                {% if filtres.actifs %}<a class="btn" href="{% url 'ventes' %}">Retirer les filtres</a>{% endif %}
+                </div></td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
   </section>
+
+  {% include "partials/modal_filtres.html" with id="filtres-ventes" formulaire=filtres action=url_ventes titre="Filtrer les ventes" aide="Le journal se lit par le haut : sans filtre, ce sont les soixante ventes les plus récentes." %}
 </div>
 {% endblock %}

@@ -39,145 +39,176 @@
     </section>
   {% endif %}
 
-  {% comment %}
-  Le tableau prend toute la largeur : chaque ligne porte un sélecteur de rôle et
-  trois actions. Serrées dans une colonne de duo, elles débordaient hors de la
-  carte — une mise en page doit prévoir ce qu'elle contient (docs/19, §7.5).
-  {% endcomment %}
-  <section class="carte">
-    <header class="carte__entete">
-      <h2 class="t-section">Qui a accès</h2>
-      <span class="puce">
-        <svg><use href="#ic-verrou"></use></svg>
-        {{ places_restantes }} place{{ places_restantes|pluralize }} libre{{ places_restantes|pluralize }}
-      </span>
-    </header>
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="accès" data-noms="accès" data-accord="">
+    {% include "partials/tableau_barre.html" with nom="acces" noms="accès" titre="Qui a accès" creer_url=url_creer creer_libelle="Rattacher quelqu'un" modifier_possible=1 modifier_libelle="Gérer l'accès" supprimer_url=url_retirer supprimer_libelle="Retirer l'accès" filtres_id="filtres-equipe" filtres_actifs=filtres.actifs aide="Sélectionnez une personne pour changer son rôle, refaire son mot de passe ou lui retirer l'accès." avertissement_suppression="Retirer un accès ne supprime jamais le compte : la personne a encaissé des ventes et signé des mouvements de stock, et son nom doit rester lisible dans cet historique." %}
 
-    <div class="carte__corps--serre">
-      <div class="tableau-boite">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th scope="col">Personne</th>
-              <th scope="col" style="width:260px">Rôle</th>
-              <th scope="col" style="width:280px"></th>
+    <div class="tableau-boite">
+      <table class="tableau">
+        <thead>
+          <tr>
+            <th scope="col">Personne</th>
+            <th scope="col">Rôle</th>
+            <th scope="col">Accès</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for membre in membres %}
+            <tr data-id="{{ membre.pk }}"
+                data-libelle="{{ membre.utilisateur.nom_complet }}"
+                data-modifier="#modale-membre"
+                data-champs='{"role": "{{ membre.role_id }}", "actif": {{ membre.actif|yesno:"true,false" }}}'
+                {% if not membre.actif %}data-protege="Cet accès est déjà retiré." data-note="Accès déjà retiré."{% endif %}
+                {% if not membre.actif %}style="opacity:.62"{% endif %}>
+              <td>
+                <span class="rangee" style="gap:10px">
+                  <span class="jeton">{{ membre.utilisateur.nom_complet|initiales }}</span>
+                  <span class="pile-sm">
+                    <span class="principal">{{ membre.utilisateur.nom_complet }}</span>
+                    <span class="t-legende chiffre">{{ membre.utilisateur.telephone }}</span>
+                  </span>
+                </span>
+              </td>
+              <td class="t-2">{{ membre.role.libelle }}</td>
+              <td>
+                {% if membre.actif %}
+                  <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Actif</span>
+                {% else %}
+                  <span class="puce">
+                    Retiré{% if membre.jusqu_a %} le {{ membre.jusqu_a|date:"d/m/Y" }}{% endif %}
+                  </span>
+                {% endif %}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {% for membre in membres %}
-              <tr {% if not membre.actif %}style="opacity:.55"{% endif %}>
-                <td>
-                  <span class="rangee" style="gap:10px">
-                    <span class="jeton">{{ membre.utilisateur.nom_complet|initiales }}</span>
-                    <span class="pile-sm">
-                      <span class="principal">{{ membre.utilisateur.nom_complet }}</span>
-                      <span class="t-legende chiffre">{{ membre.utilisateur.telephone }}</span>
-                    </span>
-                  </span>
-                </td>
-
-                <td>
-                  {% if membre.actif %}
-                    <form method="post" action="{% url 'equipe_role' membre.pk %}"
-                          class="rangee" style="gap:6px">
-                      {% csrf_token %}
-                      <select class="champ champ--compact champ--role" name="role"
-                              aria-label="Rôle de {{ membre.utilisateur.nom_complet }}">
-                        {% for role in roles %}
-                          <option value="{{ role.code }}" {% if role.code == membre.role_id %}selected{% endif %}>{{ role.libelle }}</option>
-                        {% endfor %}
-                      </select>
-                      <button class="btn" type="submit">Changer</button>
-                    </form>
-                  {% else %}
-                    <span class="puce">
-                      {{ membre.role.libelle }} · accès retiré{% if membre.jusqu_a %} le {{ membre.jusqu_a|date:"d/m/Y" }}{% endif %}
-                    </span>
+          {% empty %}
+            <tr>
+              <td colspan="3">
+                <div class="vide">
+                  <svg><use href="#ic-boutique"></use></svg>
+                  <p class="t-2">Personne ne correspond.</p>
+                  {% if filtres.actifs %}
+                    <a class="btn" href="{% url 'equipe' %}">Retirer les filtres</a>
                   {% endif %}
-                </td>
-
-                <td class="num">
-                  <span class="rangee" style="gap:6px;justify-content:flex-end">
-                    {% if membre.actif %}
-                      <form method="post" action="{% url 'equipe_mot_de_passe' membre.pk %}">
-                        {% csrf_token %}
-                        <button class="btn" type="submit">Mot de passe</button>
-                      </form>
-                      <form method="post" action="{% url 'equipe_retirer' membre.pk %}">
-                        {% csrf_token %}
-                        <button class="btn" type="submit">Retirer l'accès</button>
-                      </form>
-                    {% else %}
-                      <form method="post" action="{% url 'equipe_reactiver' membre.pk %}">
-                        {% csrf_token %}
-                        <button class="btn" type="submit">Rendre l'accès</button>
-                      </form>
-                    {% endif %}
-                  </span>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
-    <footer class="carte__pied">
-      <p class="t-legende">
-        Retirer un accès ne supprime jamais le compte : la personne a encaissé des ventes et signé
-        des mouvements de stock. Son nom doit rester lisible dans cet historique.
-      </p>
+    <footer class="tableau-pied">
+      <span>
+        {{ places_restantes }} place{{ places_restantes|pluralize }} libre{{ places_restantes|pluralize }}
+        sur {{ quota_utilisateurs }}
+      </span>
+      <span class="t-legende">Un changement de rôle prend effet à la page suivante.</span>
     </footer>
   </section>
 
-  <div class="duo">
-    <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Ce que chaque rôle ouvre</h2></header>
-      <div class="carte__corps colonne" style="gap:14px">
-        {% for role in roles_detail %}
-          <div class="colonne" style="gap:6px">
-            <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
-            <span class="t-legende">
-              {% for libelle in role.droits %}{{ libelle }}{% if not forloop.last %} · {% endif %}{% empty %}Aucun droit sur cette boutique.{% endfor %}
-            </span>
-          </div>
-        {% endfor %}
-      </div>
-      <footer class="carte__pied">
-        <p class="t-legende">
-          Un changement de rôle prend effet immédiatement, à la page suivante que la personne
-          ouvrira.
-        </p>
-      </footer>
-    </section>
-
-    <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Rattacher quelqu'un</h2></header>
-      <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
-        {% csrf_token %}
-        {% include "partials/champ.html" with champ=formulaire.telephone %}
-        {% include "partials/champ.html" with champ=formulaire.nom_complet %}
-        {% include "partials/champ.html" with champ=formulaire.role %}
-
-        {% if formulaire.non_field_errors %}
-          <div class="bandeau-info bandeau-info--alerte">
-            <svg><use href="#ic-alerte"></use></svg>
-            <span>{{ formulaire.non_field_errors|join:" " }}</span>
-          </div>
-        {% endif %}
-
-        <button class="btn btn--primaire btn--grand btn--bloc" type="submit"
-                {% if not places_restantes %}disabled{% endif %}>
-          Rattacher à la boutique
-        </button>
-      </form>
-      <footer class="carte__pied">
-        <p class="t-legende">
-          Le numéro est l'identifiant : si la personne a déjà un compte HyperMarché, elle est
-          rattachée avec son mot de passe habituel, et rien n'est recréé.
-        </p>
-      </footer>
-    </section>
-  </div>
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Ce que chaque rôle ouvre</h2></header>
+    <div class="carte__corps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+      {% for role in roles_detail %}
+        <div class="colonne" style="gap:6px">
+          <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
+          <span class="t-legende">
+            {% for libelle in role.droits %}{{ libelle }}{% if not forloop.last %} · {% endif %}{% empty %}Aucun droit sur cette boutique.{% endfor %}
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
 </div>
+
+{# ---- Rattacher quelqu'un --------------------------------------------- #}
+{% comment %}
+Le formulaire était une carte permanente en bas d'écran, consultée quelques fois
+par an. En boîte, il laisse toute la largeur à la liste — qui, elle, se lit tous
+les jours. Il se rouvre seul quand la saisie a été refusée : sinon le commerçant
+croirait l'avoir perdue.
+{% endcomment %}
+<dialog class="modale" id="modale-nouveau-membre"
+        {% if formulaire.errors %}data-ouvrir-au-chargement{% endif %}>
+  <form method="post" action="{% url 'equipe' %}" novalidate>
+    {% csrf_token %}
+    <header class="modale__entete"><h2 class="t-section">Rattacher quelqu'un</h2></header>
+    <div class="modale__corps colonne" style="gap:16px">
+      {% include "partials/champ.html" with champ=formulaire.telephone %}
+      {% include "partials/champ.html" with champ=formulaire.nom_complet %}
+      {% include "partials/champ.html" with champ=formulaire.role %}
+      {% if formulaire.non_field_errors %}
+        <div class="bandeau-info bandeau-info--alerte">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>{{ formulaire.non_field_errors|join:" " }}</span>
+        </div>
+      {% endif %}
+      <p class="t-legende">
+        Le numéro est l'identifiant : si la personne a déjà un compte HyperMarché,
+        elle est rattachée avec son mot de passe habituel, et rien n'est recréé.
+      </p>
+    </div>
+    <footer class="modale__pied">
+      <button class="btn" type="button" data-ferme>Annuler</button>
+      <button class="btn btn--primaire" type="submit" {% if not places_restantes %}disabled{% endif %}>
+        Rattacher à la boutique
+      </button>
+    </footer>
+  </form>
+</dialog>
+
+{# ---- Gérer un accès --------------------------------------------------- #}
+{% comment %}
+Trois gestes sur la même personne, dans une seule boîte : changer son rôle,
+refaire son mot de passe, lui rendre l'accès. Ils étaient auparavant trois
+boutons par ligne — soit vingt-quatre boutons sur une équipe de huit, pour trois
+gestes qu'on fait rarement.
+{% endcomment %}
+<dialog class="modale" id="modale-membre">
+  <header class="modale__entete">
+    <h2 class="t-section">Accès de <span data-cible-libelle></span></h2>
+  </header>
+
+  <form method="post" data-si="actif"
+        data-action-modele="{% url 'equipe_role' '00000000-0000-0000-0000-000000000000' %}">
+    {% csrf_token %}
+    <div class="modale__corps colonne" style="gap:14px">
+      <div class="groupe-champ">
+        <label for="role-membre">Rôle</label>
+        <select class="champ" id="role-membre" name="role">
+          {% for role in roles %}<option value="{{ role.code }}">{{ role.libelle }}</option>{% endfor %}
+        </select>
+      </div>
+      <p class="t-legende">
+        Le changement prend effet immédiatement, à la page suivante que la
+        personne ouvrira.
+      </p>
+    </div>
+    <footer class="modale__pied">
+      <button class="btn" type="button" data-ferme>Fermer</button>
+      <button class="btn btn--primaire" type="submit">Changer le rôle</button>
+    </footer>
+  </form>
+
+  <div class="modale__corps colonne" style="gap:10px;border-top:1px solid var(--filet)">
+    <p class="t-sur-titre">Autres gestes</p>
+    <div class="rangee" style="gap:9px;flex-wrap:wrap">
+      <form method="post" data-action-modele="{% url 'equipe_mot_de_passe' '00000000-0000-0000-0000-000000000000' %}">
+        {% csrf_token %}
+        <button class="btn" type="submit">Refaire le mot de passe</button>
+      </form>
+      <form method="post" data-sinon="actif"
+            data-action-modele="{% url 'equipe_reactiver' '00000000-0000-0000-0000-000000000000' %}">
+        {% csrf_token %}
+        <button class="btn" type="submit">Rendre l'accès</button>
+      </form>
+    </div>
+    <p class="t-legende">
+      Sans passerelle SMS, un mot de passe oublié ne se récupère pas seul : le
+      gérant en génère un nouveau et le remet en main propre.
+    </p>
+  </div>
+</dialog>
+
+{% include "partials/modal_filtres.html" with id="filtres-equipe" formulaire=filtres action=url_equipe titre="Filtrer l'équipe" %}
 {% endblock %}

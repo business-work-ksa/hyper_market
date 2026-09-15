@@ -22,7 +22,7 @@ journal comptable inaltérable, ni les politiques d'isolation au niveau ligne ne
 Sur SQLite, 17 tests sont ignorés — ceux qui attaquent la base par en dessous.
 
 ```bash
-make tester      # 545 tests (17 ignorés sur SQLite)
+make tester      # 591 tests (17 ignorés sur SQLite)
 make verifier    # contrôles Django + détection de migration manquante
 make securite    # la barrière 3 est-elle réellement active ?
 ```
@@ -293,6 +293,7 @@ solde_compte("701", boutique_id=boutique.pk)   # chiffre d'affaires (au crédit,
 | `test_ordonnance.py` | **Deux règles de nature différente** : le retrait de la vente en ligne est une interdiction posée à la seule porte du catalogue ; la consignation, elle, ne bloque aucune vente et se rattrape à l'ordonnancier. Plus l'accord entre les champs qu'un métier compose et ceux que l'écran rend |
 | `test_vehicules.py` | **Chercher une pièce par la voiture du client** : une compatibilité sans modèle couvre toute la marque, une année absente ne borne rien, une année illisible est ignorée plutôt que refusée — l'absence d'information ne produit jamais une absence de résultat |
 | `test_vitrine.py` | **La seule page qui lit en contexte plateforme** : ce qui est en vitrine, ce qui n'en sort pas (stock, coût), et ce que le tunnel produit — commande éclatée, parrainage figé, compte créé sans session |
+| `test_tableaux.py` | **Supprimer ou retirer** : un article sans histoire disparaît, un article vendu est retiré de la vente — et le message dit lequel des deux a eu lieu. Plus les garde-fous que le lot ne doit pas contourner (les deux derniers gérants dans la même sélection), et les filtres qui n'invalident que leur propre champ |
 | `test_series.py` | **Un exemplaire nommé, pas une quantité** : la garantie est figée à la vente et la couverture d'une réparation au jour du dépôt ; un numéro inconnu à la caisse est créé plutôt que refusé ; l'écart entre ce que le stock compte et ce que les numéros nomment est chiffré au lieu d'être interdit |
 | `test_production.py` | **Fabriquer ne crée ni ne détruit de valeur** : ce qui sort des ingrédients entre dans le produit fini au centime ; le coût de revient est calculé au moment où on le regarde, jamais figé sur la fiche ; un invendu est une perte et non un écart de comptage |
 
@@ -534,7 +535,95 @@ commerçant à son comptoir, pas du visiteur qui découvre le marché.
 
 ---
 
-## 9. Métiers
+## 9. Tableaux de données
+
+La plupart des écrans du back-office sont des listes. Un tableau qui ne fait que
+montrer oblige à quitter l'écran pour agir : on cherche la ligne, on l'ouvre, on
+agit, on revient, on la recherche. Le composant
+(`static/js/tableau.js`, `templates/partials/tableau_barre.html`) met les gestes
+là où la donnée se lit.
+
+### 9.1 — Trois règles d'interface
+
+**On ne modifie qu'une ligne à la fois.** Deux lignes différentes n'ont pas la
+même correction à apporter ; un formulaire commun à plusieurs lignes écrirait la
+même valeur partout, ce que personne ne demande jamais. Le bouton se grise **en
+le disant** — un bouton grisé sans raison se lit comme une panne, un bouton grisé
+qui dit « on ne modifie qu'une ligne à la fois » se lit comme une règle.
+
+**On supprime autant de lignes qu'on veut**, parce que faire le ménage est
+exactement le geste qui porte sur plusieurs lignes.
+
+**La confirmation nomme les lignes visées**, elle ne les compte pas :
+« Supprimer 3 éléments ? » ne permet pas de vérifier qu'on n'a pas attrapé une
+ligne de trop en passant sur « tout sélectionner ».
+
+### 9.2 — La règle de fond : supprimer ou retirer
+
+    On supprime ce qui n'a pas d'histoire, on retire ce qui en a une.
+
+Effacer un article vendu l'an dernier arracherait son libellé de tickets déjà
+imprimés et d'écritures déjà validées — le journal comptable est en ajout seul
+précisément pour que cela n'arrive pas. Mais interdire toute suppression serait
+l'excès inverse : une référence créée par erreur il y a trois minutes, jamais
+vendue, doit pouvoir disparaître sans laisser un fantôme dans la liste.
+
+Le logiciel tranche donc **ligne par ligne**
+(`apps/catalog/services.retirer_du_catalogue`), l'annonce **avant** — sur la
+ligne, puis dans la confirmation — et **redit après** ce qu'il a fait :
+« supprimé » et « retiré de la vente » ne sont pas la même chose, et laisser
+croire à l'un quand c'est l'autre fait chercher longtemps un article encore là.
+
+La même règle se décline partout : un dépôt qui a reçu de la marchandise se
+**ferme**, un lien marketing imprimé sur un flyer se **retire** (son compteur de
+clics reste lisible), une fiche technique qui a produit se **retire de la
+production**, un accès d'équipe se retire sans jamais supprimer le compte, un
+exemplaire vendu ne s'efface pas — il porte une garantie due à quelqu'un.
+
+Les journaux en ajout seul — ventes, écritures, mouvements de stock, production,
+ordonnancier — n'offrent **ni création, ni modification, ni suppression**. Leur
+barre ne porte que les filtres, et la ligne d'assistance dit pourquoi.
+
+### 9.3 — Deux formes de correction
+
+`data-modifier` accepte une route **ou** un identifiant de boîte
+(« #modale-… »). Une correction qui demande un écran entier — un article, ses
+champs de métier, sa disponibilité — mérite une page ; changer un rôle ou
+renommer un lien n'en mérite pas une, et l'aller-retour coûterait deux
+chargements et le fil de la liste.
+
+Le gabarit garde la main sur les routes : la boîte porte
+`data-action-modele="{% url … '00000000-0000-0000-0000-000000000000' %}"`, et le
+script ne substitue que l'identifiant. `{% url %}` continue donc de vérifier
+la route au rendu.
+
+### 9.4 — Les filtres vivent dans l'URL
+
+`apps/backoffice/filtres.py`. En GET, l'état filtré se partage, se met en favori
+et survit à un retour arrière. Un panneau qui garderait ses filtres en mémoire du
+navigateur produirait deux utilisateurs regardant « la même liste » sans voir la
+même chose — et un gérant qui envoie un lien à son magasinier lui enverrait une
+liste différente de la sienne.
+
+**Un filtre illisible n'invalide que lui-même** (`ChoixTolerant`,
+`DateTolerante`). Sans cela, un `?depot=n-importe-quoi` collé de travers rendrait
+le formulaire entier invalide et ferait tomber **tous** les autres filtres avec
+lui : la liste affichée cesserait de correspondre à l'URL qui la décrit.
+
+La convention qui fait marcher la pastille de filtres actifs : **la valeur neutre
+est toujours la chaîne vide**, et le premier choix d'une liste est `("", "Tous")`.
+
+### 9.5 — Ce qui n'est pas un tableau de données
+
+L'écran d'**inventaire** et le panier de la **caisse** ressemblent à des
+tableaux et n'en sont pas : ce sont des formulaires. On n'y gère pas des
+enregistrements, on y compte et on y encaisse. Leur poser une barre de sélection
+ajouterait des cases à cocher au milieu de champs de saisie, pour des gestes qui
+n'existent pas.
+
+---
+
+## 10. Métiers
 
 Une boutique déclare **ce qu'elle vend**, et le logiciel en déduit trois choses.
 Référentiel dans `apps/marketplace/metiers.py`, en code — comme la matrice des droits, et pour la
@@ -553,7 +642,7 @@ même raison : ce sont des règles, pas des données modifiables à chaud.
 | Pièces détachées auto & moto | **référence constructeur, compatibilité véhicule** |
 | Produits frais | péremption, poids variable — **unité par défaut : le kilo** |
 
-### 9.1 — Ce que le métier change
+### 10.1 — Ce que le métier change
 
 **Le vocabulaire.** `{{ metier.article }}` plutôt qu'« article » en dur : un pharmacien lit
 « médicament », un restaurateur « plat ». Ce n'est pas de l'habillage — c'est ce qui distingue un
@@ -571,7 +660,7 @@ finit par être subi, et la TVA déclarée devient fausse.
 de lot seulement là où il est suivi. Même mécanique que les droits côté API : ce qui n'est pas
 ouvert n'est pas affiché, pas grisé.
 
-### 9.2 — Le suivi par lot, et sa frontière
+### 10.2 — Le suivi par lot, et sa frontière
 
 `LotStock` répond à « qu'est-ce qui périme quand ». **Un lot ne porte pas de coût** : la
 valorisation reste au niveau `(dépôt, variante)`, en CMP. Les mêler aurait imposé une valorisation
@@ -589,7 +678,7 @@ d'une pharmacie.
 ligne à ligne à la vente ; le rappel de lot au sens pharmacovigilance n'est donc pas là, et le
 libellé de la fonction ne le prétend pas.
 
-### 9.3 — Fabriquer : fiches techniques et production
+### 10.3 — Fabriquer : fiches techniques et production
 
 Restauration et boulangerie ne revendent pas : elles **fabriquent**. Écran : **Production**, et
 `Production → Fiches techniques`.
@@ -627,7 +716,7 @@ journée a jeté, et sur quoi.
 Le coût de revient suit le droit `cout.voir`, comme le CMP partout ailleurs : sans ce droit, il
 n'est **pas calculé** — pas masqué en CSS (§3.6).
 
-### 9.4 — Chercher une pièce par la voiture du client
+### 10.4 — Chercher une pièce par la voiture du client
 
 Un client de pièces détachées ne demande pas « un filtre à huile » : il demande « le filtre à huile
 de ma Corolla de 2015 ». Écrans : la recherche par véhicule sur **Stock**, et la carte *Se monte
@@ -654,7 +743,7 @@ Les marques sont normalisées à l'écriture (`Toyota`, jamais `toyota` ni `TOYO
 saisie assistée : sans cela, une faute de frappe rend la pièce introuvable, ce qui revient à ne pas
 l'avoir. La recherche, elle, reste insensible à la casse.
 
-### 9.5 — Ce qui ne se délivre que sur ordonnance
+### 10.5 — Ce qui ne se délivre que sur ordonnance
 
 Écran : **Ordonnancier**. Deux règles s'y jouent, et elles ne sont pas de même nature.
 
@@ -678,7 +767,7 @@ une écriture jamais.
 Le drapeau est **figé sur la ligne de ticket**, comme le libellé et le prix : un médicament que
 l'autorité reclasse l'an prochain ne doit pas réécrire l'ordonnancier de cette année.
 
-### 9.6 — Un appareil suivi exemplaire par exemplaire
+### 10.6 — Un appareil suivi exemplaire par exemplaire
 
 Écran : **Garantie et atelier**. Le stock ordinaire compte : « il me reste quatre téléphones ».
 Cela suffit pour réapprovisionner et pour rien d'autre le jour où quelqu'un pose un appareil sur
@@ -716,7 +805,7 @@ Le lien vers la vente est un identifiant nu (`ticket_id`), pas une clé étrang�
 au-dessus d'`inventory` dans le graphe de dépendances (§2), et le stock ne remonte jamais vers la
 caisse. Même construction que `MouvementStock.origine_id`.
 
-### 9.7 — Déclaré mais pas écrit
+### 10.7 — Déclaré mais pas écrit
 
 Chaque métier porte un `a_venir` affiché au commerçant **comme tel** : dénomination commune
 internationale, équivalences entre références de constructeurs, service à table. Lister une
@@ -728,12 +817,12 @@ de quoi la liste ment à l'envers.
 
 ---
 
-## 10. Espace personnalisé d'une boutique
+## 11. Espace personnalisé d'une boutique
 
 Le commerçant loue un emplacement : il est chez lui. Son back-office et sa vitrine portent son
 logo, ses couleurs et son caractère typographique. Écran : **Ma boutique → Mon identité**.
 
-### 10.1 — Les couleurs stockées sont déjà validées
+### 11.1 — Les couleurs stockées sont déjà validées
 
 `apps/marketplace/charte.py` applique au logo du commerçant **exactement les règles que le produit
 s'applique à lui-même** (docs/19, §2.1) : plancher de chroma à 0,10, contraste minimal, version
@@ -754,13 +843,13 @@ Trois règles, et chacune protège quelque chose :
 Le ramené-dans-le-gamut se fait **par réduction de chroma**, jamais par écrêtage des canaux : sur
 un or assombri, l'écrêtage déplaçait la teinte de sept degrés — un jaune qui vire à l'olive.
 
-### 10.2 — Les polices sont des piles système
+### 11.2 — Les polices sont des piles système
 
 Aucun fichier n'est téléchargé. Une police de titrage à 90 Ko est un coût que le commerçant paie
 sans le savoir, à chaque visiteur, sur une connexion facturée au mégaoctet. Le choix porte donc sur
 le caractère de la pile, pas sur une fonderie.
 
-### 10.3 — Où la charte s'applique, et où elle ne s'applique pas
+### 11.3 — Où la charte s'applique, et où elle ne s'applique pas
 
 | Endroit | Charte |
 |---|---|
@@ -770,7 +859,7 @@ le caractère de la pile, pas sur une fonderie.
 
 Mélanger dix chartes sur une même grille ne servirait personne.
 
-### 10.4 — Liens marketing
+### 11.4 — Liens marketing
 
 Un lien court par support — flyer, statut WhatsApp, enseigne — sous `/l/<code>/`. Le code est
 dictable : même alphabet que les codes d'apporteur, ni O/0 ni I/1, parce qu'un lien finit toujours
@@ -787,7 +876,7 @@ la semaine dernière.
 
 ---
 
-## 11. Reste à faire sur le socle
+## 12. Reste à faire sur le socle
 
 | Sujet | État | Référence |
 |---|---|---|

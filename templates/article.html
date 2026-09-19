@@ -47,6 +47,85 @@
     {% endif %}
   </section>
 
+  {% if designations is not None %}
+    {% comment %}
+    Une seule carte pour deux métiers qui croyaient avoir deux besoins : la DCI
+    d'un médicament et la référence d'un autre équipementier sont le même geste
+    — donner à l'article un nom de plus, sous lequel quelqu'un le cherchera.
+
+    Les équivalents, eux, ne se saisissent pas : ils se déduisent des
+    désignations partagées. C'est pourquoi ils sont en pied de carte et non dans
+    un second tableau à gestes — il n'y a rien à y corriger, et rien à y retirer
+    qui ne se retire depuis la désignation qui les rapproche.
+    {% endcomment %}
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="désignation" data-noms="désignations" data-accord="e">
+      {% include "partials/tableau_barre.html" with nom="designation" noms="désignations" titre="Aussi appelé" creer_url=url_designation_creer creer_libelle="Ajouter un nom" modifier_possible=peut_mouvementer modifier_libelle="Corriger" supprimer_url=url_designations_retirer supprimer_libelle="Retirer" aide="Une désignation est un nom de plus pour le même article. C'est elle qui le rend trouvable par quelqu'un qui ne connaît pas le nom que vous avez saisi." avertissement_suppression="Une désignation se supprime vraiment : elle n'a rien laissé dehors. Les équivalences qu'elle portait disparaissent avec elle." %}
+
+      {% if designations %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Nature</th>
+                <th scope="col">Désignation</th>
+                <th scope="col">Employée par</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in designations %}
+                <tr data-id="{{ d.pk }}" data-libelle="{{ d.valeur }}"
+                    {% if peut_mouvementer %}data-modifier="#modale-designation"{% endif %}
+                    data-champs='{"type": "{{ d.type|escapejs }}", "valeur": "{{ d.valeur|escapejs }}", "source": "{{ d.source|escapejs }}"}'>
+                  <td class="t-2">{{ d.get_type_display }}</td>
+                  <td class="principal chiffre">{{ d.valeur }}</td>
+                  <td class="t-2">{{ d.source|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="vide">
+          <svg><use href="#ic-recherche"></use></svg>
+          <p class="t-2">Aucun autre nom déclaré.</p>
+          <p class="t-legende">
+            Tant qu'il n'y en a pas, cet article n'existe que sous le nom que
+            vous avez tapé — et le client qui en demande un autre repartira
+            sans, alors qu'il est en rayon.
+          </p>
+        </div>
+      {% endif %}
+
+      {% if equivalents %}
+        <footer class="tableau-pied tableau-pied--colonne">
+          <span class="t-sur-titre">Équivalents en rayon</span>
+          <ul class="liste-visee">
+            {% for e in equivalents %}
+              <li>
+                <a href="{% url 'article' e.variante.pk %}">{{ e.variante.produit.libelle }}</a>
+                <span class="t-legende">
+                  rapproché par {% for d in e.par %}{{ d.valeur }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+          <span class="t-legende">
+            Déduits, jamais saisis : ces articles partagent une désignation avec
+            celui-ci. Retirez la désignation et le rapprochement disparaît.
+          </span>
+        </footer>
+      {% elif designations %}
+        <footer class="tableau-pied">
+          <span class="t-legende">
+            Aucun équivalent en rayon : aucun autre article ne porte ces
+            désignations.
+          </span>
+        </footer>
+      {% endif %}
+    </section>
+  {% endif %}
+
   {% if compatibilites is not None %}
     {% comment %}
     Ces compatibilités s'affichaient en étiquettes, pour qu'elles se lisent d'un
@@ -249,6 +328,78 @@
       </footer>
     </form>
   </dialog>
+{% endif %}
+
+{% if formulaire_designation %}
+  {# ---- Ajouter un nom --------------------------------------------------- #}
+  <dialog class="modale" id="modale-nouvelle-designation">
+    <form method="post" action="{% url 'designation_ajouter' variante_id=variante.pk %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">Aussi appelé</h2></header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="grille-filtres">
+          {% for champ in formulaire_designation %}
+            <div class="groupe-champ">
+              <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+              {{ champ }}
+              {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <p class="t-legende">
+          Ce nom rapproche aussitôt cet article de tous ceux qui le portent
+          déjà, et de ceux qui arriveront ensuite. Inutile de déclarer les
+          paires une à une.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Ajouter</button>
+      </footer>
+    </form>
+  </dialog>
+
+  {# ---- Corriger une désignation ----------------------------------------- #}
+  <dialog class="modale" id="modale-designation">
+    <form method="post" data-action-modele="{% url 'designation_modifier' variante_id=variante.pk designation_id='00000000-0000-0000-0000-000000000000' %}">
+      {% csrf_token %}
+      <header class="modale__entete">
+        <h2 class="t-section">Corriger « <span data-cible-libelle></span> »</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="grille-filtres">
+          <div class="groupe-champ">
+            <label for="type-designation">Nature</label>
+            <select class="champ" id="type-designation" name="type">
+              {% for cle, libelle in formulaire_designation.fields.type.choices %}
+                <option value="{{ cle }}">{{ libelle }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="groupe-champ">
+            <label for="valeur-designation">Désignation</label>
+            <input class="champ" id="valeur-designation" name="valeur" list="designations-connues">
+          </div>
+          <div class="groupe-champ">
+            <label for="source-designation">Employée par</label>
+            <input class="champ" id="source-designation" name="source">
+          </div>
+        </div>
+        <p class="t-legende">
+          Une référence recopiée de travers est pire qu'absente : elle ne
+          rapproche rien, et le vendeur croit pourtant avoir cherché.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <datalist id="designations-connues">
+    {% for d in designations_connues %}<option value="{{ d }}"></option>{% endfor %}
+  </datalist>
 {% endif %}
 
 {% if formulaire_compatibilite %}

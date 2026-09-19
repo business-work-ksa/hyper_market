@@ -340,6 +340,10 @@ class ExportTest(BaseGestionTest):
                     # contenu du jour. Un repreneur qui trouve le fichier vide
                     # sait qu'il n'a rien manqué.
                     "exemplaires.csv",
+                    # Même raison, et même promesse : les autres noms des
+                    # articles sont du travail de saisie, pas une donnée
+                    # dérivée qu'un repreneur pourrait recalculer.
+                    "designations.csv",
                     "ecritures_comptables.csv",
                 ]
             ),

@@ -29,6 +29,7 @@ Chaque fiche répond à quatre questions, dans cet ordre :
 | [ADR-008](008-localisation-de-l-hebergement.md) | Localisation de l'hébergement | **En attente** (jalon J4) |
 | [ADR-009](009-recherche-postgresql-d-abord.md) | Recherche : PostgreSQL d'abord, OpenSearch sur preuve | Actée |
 | [ADR-010](010-jeton-d-api-porteur-de-la-boutique.md) | Le jeton d'API porte la boutique, le client ne la déclare pas | Actée |
+| [ADR-011](011-equivalence-deduite-des-designations.md) | L'équivalence entre articles se déduit des désignations partagées | Actée |
 
 ## Statuts
 

@@ -114,6 +114,26 @@ BOUTIQUES = [
             ("PHA-SERU-PH", "Sérum physiologique 5 ml — 20 doses", "1500", "900", 260, 40, "L23K455", -6),
             ("PHA-IBUP-400", "Ibuprofène 400 mg — boîte de 20", "900", "540", 300, 45, "L25C201", 400),
             ("PHA-VITC-1G", "Vitamine C 1 g — 10 comprimés", "1200", "700", 210, 35, "L24D019", 25),
+            # Deuxième paracétamol, sous une autre marque : sans lui, la DCI
+            # n'aurait personne à rapprocher, et l'écran des équivalents
+            # n'afficherait jamais que « aucun équivalent en rayon ».
+            ("PHA-EFFE-500", "Efferalgan 500 mg — 16 comprimés", "1800", "1150", 90, 15, "L24E077", 300),
+        ],
+        # (sku, nature, désignation, employée par)
+        # La DCI est ce qui rapproche deux boîtes différentes ; le nom commercial
+        # est ce qui permet de retrouver la même boîte quand le client la demande
+        # par la marque qu'il connaît. Les deux sont saisis ici pour que la
+        # distinction se vérifie à l'écran : chercher « Doliprane » trouve une
+        # boîte, chercher « paracétamol » en trouve deux, et les équivalents de
+        # l'une citent l'autre.
+        "designations": [
+            ("PHA-PARA-500", "dci", "Paracétamol 500 mg", "OMS"),
+            ("PHA-PARA-500", "commercial", "Doliprane 500 mg", "Sanofi"),
+            ("PHA-EFFE-500", "dci", "Paracétamol 500 mg", "OMS"),
+            ("PHA-AMOX-1G", "dci", "Amoxicilline 1 g", "OMS"),
+            # Sans confrère en rayon : c'est le cas qui montre qu'une DCI saisie
+            # ne fabrique pas un équivalent de complaisance.
+            ("PHA-IBUP-400", "dci", "Ibuprofène 400 mg", "OMS"),
         ],
         # Un antibiotique ne se délivre pas sans ordonnance, et ne se vend pas
         # en ligne. Le marquer ici est ce qui rend l'ordonnancier et le retrait
@@ -187,6 +207,20 @@ BOUTIQUES = [
             ("PAU-FIL-AIR", "Filtre à air", "4800", "2900", 95, 15),
             ("PAU-AMO-ARR", "Amortisseur arrière", "34000", "25000", 24, 4),
             ("PAU-HUI-15W40", "Huile moteur 15W40 — bidon 5 L", "12500", "9200", 180, 25),
+            # Même filtre, autre fabricant : sans lui, la référence croisée
+            # n'aurait personne à rapprocher. C'est aussi le cas réel du
+            # comptoir — l'origine à 3 500, l'adaptable à 2 200.
+            ("PAU-FIL-HUI-AD", "Filtre à huile adaptable", "2200", "1300", 60, 10),
+        ],
+        # (sku, nature, désignation, employée par)
+        # Le client pose un carton sur le comptoir et lit ce qui est écrit
+        # dessus : « W 68/3 ». Sans ces lignes, la boutique a la pièce en rayon
+        # et le vendeur ne la trouve pas.
+        "designations": [
+            ("PAU-FIL-HUI", "reference", "W 68/3", "Mann"),
+            ("PAU-FIL-HUI", "reference", "OC 195", "Knecht"),
+            ("PAU-FIL-HUI-AD", "reference", "W 68/3", "Mann"),
+            ("PAU-FIL-AIR", "reference", "C 26 168", "Mann"),
         ],
         # (sku, référence constructeur, [(marque, modèle, motorisation, de, à)])
         # Les vides sont volontaires : un vendeur sait « ça va sur les Hilux », il
@@ -519,6 +553,7 @@ class Command(BaseCommand):
             variantes.append(variante)
 
         self._marquer_les_ordonnances(boutique, variantes, donnees)
+        self._nommer_autrement(boutique, gerant, variantes, donnees)
         self._declarer_les_vehicules(boutique, gerant, variantes, donnees)
         suivis = self._suivre_les_appareils(boutique, depot, gerant, variantes, donnees)
 
@@ -572,6 +607,31 @@ class Command(BaseCommand):
             consigner_ordonnance(
                 ticket,
                 mention=f"Dr Manga — ordonnance n° {numero:03d}",
+            )
+
+    def _nommer_autrement(self, boutique, gerant, variantes, donnees) -> None:
+        """Désignations alternatives : DCI en officine, références croisées en pièces.
+
+        Inerte ailleurs : la clé `designations` est absente et rien n'est écrit.
+
+        Aucune paire d'équivalents n'est déclarée, et c'est tout l'intérêt : les
+        deux paracétamols se rapprochent parce qu'ils portent la même DCI, pas
+        parce que quelqu'un a écrit qu'ils se ressemblent.
+        """
+        from apps.catalog.models import Designation
+
+        lignes = donnees.get("designations") or []
+        if not lignes:
+            return
+
+        par_sku = {v.sku: v for v in variantes}
+        for sku, type_designation, valeur, source in lignes:
+            Designation.objects.get_or_create(
+                boutique=boutique,
+                variante=par_sku[sku],
+                type=type_designation,
+                valeur=Designation.normaliser(valeur),
+                defaults={"source": source, "cree_par": gerant},
             )
 
     def _declarer_les_vehicules(self, boutique, gerant, variantes, donnees) -> None:

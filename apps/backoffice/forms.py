@@ -921,3 +921,70 @@ class CompatibiliteForm(forms.Form):
             if doublon:
                 self.add_error("marque", "Cette compatibilité est déjà déclarée.")
         return donnees
+
+
+class DesignationForm(forms.Form):
+    """Un autre nom pour le même article.
+
+    Le libellé du champ et son exemple changent avec le métier, parce que ce
+    n'est pas la même chose qu'on saisit : une pharmacie écrit une molécule, un
+    magasin de pièces recopie une référence gravée sur un carton. Un intitulé
+    générique — « désignation alternative » — serait exact et ne dirait à
+    personne quoi taper.
+
+    La valeur est normalisée à l'enregistrement (`Designation.normaliser`) : la
+    casse et les espaces doubles ne doivent pas faire deux désignations là où le
+    pharmacien n'en voit qu'une.
+    """
+
+    type = forms.ChoiceField(label="Nature", widget=forms.Select(attrs=CHAMP))
+    valeur = forms.CharField(
+        label="Désignation", max_length=120,
+        widget=forms.TextInput(attrs={**CHAMP, "list": "designations-connues"}),
+    )
+    source = forms.CharField(
+        label="Employée par", max_length=120, required=False,
+        help_text="Facultatif : le laboratoire ou l'équipementier qui emploie ce nom.",
+        widget=forms.TextInput(attrs=CHAMP),
+    )
+
+    def __init__(self, *args, metier=None, variante=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.catalog.models import Designation
+
+        self.variante = variante
+        self.fields["type"].choices = Designation.TYPES
+
+        # Ce que le métier ne sait pas nommer, il ne le propose pas : offrir
+        # « Dénomination commune internationale » à un vendeur de pièces auto
+        # l'obligerait à trancher une question qui ne se pose pas chez lui.
+        if metier is not None and not metier.a(metiers.DCI):
+            self.fields["type"].choices = [
+                (cle, libelle) for cle, libelle in Designation.TYPES if cle != Designation.DCI
+            ]
+            self.fields["type"].initial = Designation.REFERENCE
+            self.fields["valeur"].widget.attrs["placeholder"] = "W 712/75"
+            self.fields["source"].widget.attrs["placeholder"] = "Mann"
+        else:
+            self.fields["valeur"].widget.attrs["placeholder"] = "Paracétamol 500 mg"
+            self.fields["source"].widget.attrs["placeholder"] = "OMS"
+
+    def clean_valeur(self):
+        from apps.catalog.models import Designation
+
+        propre = Designation.normaliser(self.cleaned_data["valeur"])
+        if not propre:
+            raise forms.ValidationError("Une désignation vide ne rapproche rien de rien.")
+        return propre
+
+    def clean(self):
+        donnees = super().clean()
+        if self.variante is not None and not self.errors:
+            from apps.catalog.models import Designation
+
+            doublon = Designation.objects.filter(
+                variante=self.variante, type=donnees.get("type"), valeur=donnees.get("valeur")
+            ).exists()
+            if doublon:
+                self.add_error("valeur", "Cet article porte déjà cette désignation.")
+        return donnees

@@ -26,10 +26,9 @@ fonction qui ne ferait qu'apparaître dans une liste donnerait au commerçant
 l'impression d'un suivi qu'il n'a pas — c'est exactement le genre de promesse
 qu'une pharmacie paie cher.
 
-Restent à écrire, et volontairement non déclarées : dénomination commune
-internationale (pharmacie), équivalences entre références de constructeurs
-(pièces auto), service à table (restauration). Le métier les prévoit dans son
-`a_venir`, qui sert à l'afficher au commerçant sans le lui promettre.
+Reste à écrire, et volontairement non déclarée : le service à table
+(restauration). Le métier le prévoit dans son `a_venir`, qui sert à l'afficher au
+commerçant sans le lui promettre.
 
 Une limite à connaître sur les lots : le stock est suivi **lot par lot**, ce qui
 répond à « qu'est-ce qui périme quand » et « combien me reste-t-il de ce lot ».
@@ -63,6 +62,8 @@ __all__ = [
     "ORDONNANCE",
     "SERIE",
     "GARANTIE",
+    "DCI",
+    "EQUIVALENCE",
 ]
 
 # --- Fonctions réellement câblées -------------------------------------------
@@ -75,6 +76,8 @@ COMPATIBILITE = "compatibilite"
 ORDONNANCE = "ordonnance"
 SERIE = "serie"
 GARANTIE = "garantie"
+DCI = "dci"
+EQUIVALENCE = "equivalence"
 
 LIBELLES_FONCTIONS = {
     PEREMPTION: "Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard",
@@ -86,6 +89,8 @@ LIBELLES_FONCTIONS = {
     ORDONNANCE: "Médicaments sur ordonnance : ordonnancier, et retrait de la vente en ligne",
     SERIE: "Numéros de série et IMEI suivis exemplaire par exemplaire, de la réception à la vente",
     GARANTIE: "Garantie : durée, échéance figée à la vente, et passages à l'atelier",
+    DCI: "Dénomination commune internationale : retrouver les équivalents d'un médicament",
+    EQUIVALENCE: "Références équivalentes : la même pièce sous la référence d'un autre fabricant",
 }
 
 
@@ -196,8 +201,7 @@ METIERS: dict[str, Metier] = {
         # est donc « exonéré » : c'est le cas le plus fréquent en officine, et
         # un défaut qui oblige à corriger chaque ligne finit par être ignoré.
         regime_tva_defaut="exonere",
-        fonctions=frozenset({PEREMPTION, LOT, ORDONNANCE}),
-        a_venir=("Dénomination commune internationale et équivalences",),
+        fonctions=frozenset({PEREMPTION, LOT, ORDONNANCE, DCI}),
         exemples=("Paracétamol 500 mg — boîte de 20", "Amoxicilline 1 g", "Sérum physiologique"),
     ),
     "QUINCAILLERIE": Metier(
@@ -264,8 +268,7 @@ METIERS: dict[str, Metier] = {
         article="pièce",
         articles="pièces",
         feminin=True,
-        fonctions=frozenset({COMPATIBILITE}),
-        a_venir=("Équivalences entre références de constructeurs différents",),
+        fonctions=frozenset({COMPATIBILITE, EQUIVALENCE}),
         exemples=("Filtre à huile — Toyota Corolla", "Plaquettes de frein avant", "Huile 15W40 5 L"),
     ),
     "PRODUITS_FRAIS": Metier(

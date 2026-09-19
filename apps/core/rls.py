@@ -56,6 +56,7 @@ TABLES_SCOPEES = [
     "catalog_recette",
     "catalog_lignerecette",
     "catalog_compatibilitevehicule",
+    "catalog_designation",
     "inventory_depot",
     "inventory_niveaustock",
     "inventory_mouvementstock",

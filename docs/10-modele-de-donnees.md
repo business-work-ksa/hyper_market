@@ -81,9 +81,11 @@ commission et de TVA exigent des décimales) ; toute table métier porte `boutiq
 | `Variante` ⊂tenant | `produit`, `attributs` JSONB, `sku`, `code_barres`, `prix_vente`, `prix_barre` | Le prix vit sur la variante |
 | `MediaProduit` ⊂tenant | `produit`, `fichier`, `ordre`, `alt` | WebP, compression agressive |
 | `TarifClient` ⊂tenant | `variante`, `groupe_client`, `prix` | Segment B2B |
+| `Designation` ⊂tenant | `variante`, `type` (`dci`, `reference`, `commercial`), `valeur` normalisée, `source` | Un autre nom pour le même article. **L'équivalence entre articles s'en déduit et n'est jamais stockée** ([ADR-011](adr/011-equivalence-deduite-des-designations.md)) |
 
 **Contraintes :** `sku` unique par boutique ; `code_barres` unique par boutique ;
-`prix_vente >= 0`.
+`prix_vente >= 0` ; `(variante, type, valeur)` unique — la même désignation ne se
+déclare pas deux fois sur le même article.
 
 ---
 

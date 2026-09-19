@@ -265,6 +265,89 @@ class CompatibiliteVehicule(TenantScopedModel):
         return True
 
 
+class Designation(TenantScopedModel):
+    """Un autre nom pour le même article — et ce que deux articles ont en commun.
+
+    Deux métiers posaient la même question sous deux vocabulaires différents.
+
+    Un client entre en officine et demande du **Doliprane** ; la pharmacie n'a
+    que de l'Efferalgan. Les deux sont du paracétamol 500 mg : c'est leur
+    **dénomination commune internationale**, et c'est elle qui autorise le
+    pharmacien à proposer l'un pour l'autre.
+
+    Un client pose sur le comptoir un filtre marqué **W 712/75** (Mann) ; le
+    vendeur n'a que la référence Toyota **90915-YZZD4**. C'est la même pièce, et
+    savoir qu'elle porte les deux références est la différence entre une vente
+    et un client qui repart.
+
+    C'est **le même mécanisme** : une désignation supplémentaire, cherchable, qui
+    rapproche des articles autrement étrangers l'un à l'autre. D'où une seule
+    table plutôt que deux — et un `type` qui garde la distinction que le métier,
+    lui, ne confond pas : une DCI est une substance, une référence est une pièce.
+
+    **L'équivalence n'est pas stockée, elle se déduit.** Deux articles sont
+    équivalents parce qu'ils partagent une désignation, pas parce que quelqu'un a
+    déclaré qu'ils l'étaient. Une table de paires aurait demandé N² déclarations
+    et se serait désynchronisée au premier article ajouté ; ici, déclarer sa DCI
+    suffit à le rattacher à tous ses confrères.
+
+    **Ce n'est pas une donnée réglementaire.** La DCI saisie ici est celle que le
+    commerçant a recopiée de la boîte : elle vaut ce que vaut sa saisie, et
+    l'écran le dit. Une substitution en officine reste la décision du pharmacien.
+    """
+
+    DCI = "dci"
+    REFERENCE = "reference"
+    COMMERCIAL = "commercial"
+    TYPES = [
+        (DCI, "Dénomination commune internationale"),
+        (REFERENCE, "Référence d'un autre fabricant"),
+        (COMMERCIAL, "Autre nom commercial"),
+    ]
+
+    variante = models.ForeignKey(
+        Variante, on_delete=models.CASCADE, related_name="designations"
+    )
+    type = models.CharField(max_length=16, choices=TYPES, default=DCI)
+    valeur = models.CharField(
+        max_length=120,
+        db_index=True,
+        help_text="La désignation telle qu'elle est écrite sur la boîte ou la pièce.",
+    )
+    source = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Qui l'emploie : un laboratoire, un équipementier. Ex. Mann, Bosch.",
+    )
+
+    class Meta:
+        verbose_name = "désignation"
+        ordering = ["type", "valeur"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["variante", "type", "valeur"], name="designation_unique_par_variante"
+            )
+        ]
+        indexes = [models.Index(fields=["boutique", "type", "valeur"])]
+
+    def __str__(self):
+        return f"{self.valeur}" + (f" ({self.source})" if self.source else "")
+
+    @staticmethod
+    def normaliser(valeur: str) -> str:
+        """Forme de comparaison : espaces resserrés, capitales.
+
+        « W 712/75 » et « w712/75 » désignent le même filtre. Les rapprocher à
+        l'écriture évite d'avoir à le faire à chaque recherche — et évite surtout
+        qu'une faute de casse rende une pièce introuvable, ce qui revient à ne
+        pas l'avoir déclarée.
+
+        Les séparateurs internes sont conservés : ils appartiennent à la
+        référence, et les retirer ferait se confondre deux pièces distinctes.
+        """
+        return " ".join((valeur or "").split()).upper()[:120]
+
+
 class Recette(TenantScopedModel):
     """Fiche technique : ce qu'il faut pour fabriquer, et combien ça produit.
 

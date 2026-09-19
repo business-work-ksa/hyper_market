@@ -55,15 +55,17 @@ from apps.backoffice.forms import (
     ArticleModifierForm,
     CompatibiliteForm,
     DepotForm,
+    DesignationForm,
     EntreeStockForm,
     ExemplairesForm,
     FermetureCaisseForm,
     OuvertureCaisseForm,
     TransfertStockForm,
 )
+from apps.catalog import equivalences
 from apps.catalog import services as catalogue_services
 from apps.catalog import vehicules
-from apps.catalog.models import CompatibiliteVehicule, Produit, Variante
+from apps.catalog.models import CompatibiliteVehicule, Designation, Produit, Variante
 from apps.inventory.models import (
     Depot,
     Inventaire,
@@ -618,6 +620,7 @@ def stock(request):
     valeurs = filtres.valeurs
     recherche = (valeurs.get("q") or "").strip()
 
+    metier = contexte["metier"]
     niveaux = NiveauStock.objects.select_related(
         "variante__produit", "variante__produit__categorie", "depot"
     ).order_by("variante__produit__libelle")
@@ -628,13 +631,28 @@ def stock(request):
     if recherche:
         from django.db.models import Q
 
-        niveaux = niveaux.filter(
+        trouve = (
             Q(variante__produit__libelle__icontains=recherche)
             | Q(variante__sku__icontains=recherche)
             # La référence du constructeur est celle qui est gravée sur la pièce :
             # c'est souvent la seule chose que le client apporte.
             | Q(variante__reference_constructeur__icontains=recherche)
         )
+
+        # Un client ne demande pas le nom sous lequel la boutique a saisi
+        # l'article : il demande du Doliprane, ou pose sur le comptoir un filtre
+        # marqué « W 712/75 ». Chercher aussi dans les autres désignations est ce
+        # qui fait servir à quelque chose la peine prise à les saisir — sans
+        # cela, elles ne s'affichent que sur la fiche article, c'est-à-dire sur
+        # l'écran qu'on ouvre *après* avoir trouvé.
+        #
+        # `pk__in` sur une sous-requête plutôt qu'une jointure : un article qui
+        # porte trois désignations correspondantes ferait trois lignes, et le
+        # stock afficherait la même boîte trois fois.
+        if metier and (metier.a(metiers.DCI) or metier.a(metiers.EQUIVALENCE)):
+            trouve |= Q(variante__pk__in=equivalences.chercher(recherche).values("pk"))
+
+        niveaux = niveaux.filter(trouve)
 
     if valeurs.get("sans_mouvement") == "dormant":
         # Ce qui dort en rayon immobilise de la trésorerie, et ne se voit sur
@@ -644,7 +662,6 @@ def stock(request):
         ).values("variante_id")
         niveaux = niveaux.exclude(variante_id__in=recents)
 
-    metier = contexte["metier"]
     vehicule = _vehicule_demande(request) if metier and metier.a(metiers.COMPATIBILITE) else None
     if vehicule:
         niveaux = niveaux.filter(variante__in=vehicules.compatibles(**vehicule))
@@ -779,6 +796,13 @@ def article(request, variante_id):
     suit_les_exemplaires = (
         metier is not None and metier.a(metiers.SERIE) and variante.suivi_unitaire
     )
+    # Une seule mécanique, deux métiers : la DCI d'un médicament et la référence
+    # d'un autre équipementier sont le même geste — donner à l'article un nom
+    # supplémentaire sous lequel on le cherchera. La carte apparaît dès que l'un
+    # des deux est activé.
+    nomme_autrement = metier is not None and (
+        metier.a(metiers.DCI) or metier.a(metiers.EQUIVALENCE)
+    )
 
     contexte.update(
         {
@@ -819,6 +843,32 @@ def article(request, variante_id):
             "url_compatibilites_retirer": (
                 reverse("compatibilites_retirer", args=[variante.pk])
                 if suit_les_vehicules and droit.STOCK_MOUVEMENTER in contexte["droits"]
+                else ""
+            ),
+            "designations": (
+                list(equivalences.designations_de(variante)) if nomme_autrement else None
+            ),
+            # Les équivalents ne sont **pas** un tableau à gestes : personne ne
+            # les a saisis, et il n'y a donc rien à y corriger ni à y retirer.
+            # Ils se déduisent des désignations, et se défont en retirant la
+            # désignation qui les rapproche — ce que dit la légende de la carte.
+            "equivalents": equivalences.equivalents_de(variante) if nomme_autrement else None,
+            "formulaire_designation": (
+                DesignationForm(metier=metier, variante=variante)
+                if nomme_autrement and droit.STOCK_MOUVEMENTER in contexte["droits"]
+                else None
+            ),
+            "designations_connues": (
+                equivalences.valeurs_connues(
+                    Designation.DCI if metier.a(metiers.DCI) else Designation.REFERENCE
+                )
+                if nomme_autrement
+                else []
+            ),
+            "url_designation_creer": "#modale-nouvelle-designation",
+            "url_designations_retirer": (
+                reverse("designations_retirer", args=[variante.pk])
+                if nomme_autrement and droit.STOCK_MOUVEMENTER in contexte["droits"]
                 else ""
             ),
         }
@@ -995,6 +1045,103 @@ def compatibilite_retirer(request, variante_id, compatibilite_id):
     CompatibiliteVehicule.objects.filter(
         pk=compatibilite_id, variante_id=variante_id
     ).delete()
+    return redirect("article", variante_id=variante_id)
+
+
+def _metier_nomme_autrement(contexte):
+    """Le métier de la boutique sait-il donner un second nom à un article ?
+
+    Deux fonctions, une seule porte : la DCI côté officine, la référence d'un
+    autre fabricant côté pièces détachées. Les trois vues qui suivent refusent
+    ailleurs — sinon une quincaillerie se verrait offrir de déclarer des
+    molécules.
+    """
+    metier = contexte["metier"]
+    if metier is None or not (metier.a(metiers.DCI) or metier.a(metiers.EQUIVALENCE)):
+        raise Http404("Ce métier ne nomme pas les articles autrement.")
+    return metier
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def designation_ajouter(request, variante_id):
+    """Donne à un article un nom de plus, sous lequel on le cherchera.
+
+    C'est le geste qui rend un article trouvable par quelqu'un qui ne connaît
+    pas le nom sous lequel la boutique l'a saisi : un client qui demande du
+    Doliprane, un vendeur qui lit « W 712/75 » sur un carton. Et comme
+    l'équivalence se déduit des désignations partagées, ce même geste rapproche
+    l'article de tous ses confrères — y compris de ceux qui arriveront demain.
+    """
+    contexte = contexte_commun(request, "stock")
+    metier = _metier_nomme_autrement(contexte)
+
+    variante = get_object_or_404(Variante.objects, pk=variante_id)
+    formulaire = DesignationForm(request.POST, metier=metier, variante=variante)
+    if not formulaire.is_valid():
+        messages.error(request, _premiere_erreur(formulaire))
+        return redirect("article", variante_id=variante.pk)
+
+    Designation.objects.create(
+        boutique=contexte["boutique"],
+        variante=variante,
+        type=formulaire.cleaned_data["type"],
+        valeur=formulaire.cleaned_data["valeur"],
+        source=formulaire.cleaned_data.get("source", "").strip(),
+        cree_par=request.user,
+    )
+    messages.success(request, f"« {formulaire.cleaned_data['valeur']} » désigne aussi cet article.")
+    return redirect("article", variante_id=variante.pk)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def designation_modifier(request, variante_id, designation_id):
+    """Corrige une désignation mal recopiée.
+
+    Une référence recopiée de travers est pire qu'une référence absente : elle
+    ne rapproche rien, et le vendeur croit pourtant avoir cherché. Elle se
+    corrige donc comme on corrige une faute de frappe, sans rien toucher
+    d'autre — l'équivalence suit d'elle-même, puisqu'elle n'est pas stockée.
+    """
+    contexte = contexte_commun(request, "stock")
+    metier = _metier_nomme_autrement(contexte)
+
+    variante = get_object_or_404(Variante.objects, pk=variante_id)
+    formulaire = DesignationForm(request.POST, metier=metier, variante=None)
+    if not formulaire.is_valid():
+        messages.error(request, _premiere_erreur(formulaire))
+        return redirect("article", variante_id=variante.pk)
+
+    Designation.objects.filter(pk=designation_id, variante=variante).update(
+        type=formulaire.cleaned_data["type"],
+        valeur=formulaire.cleaned_data["valeur"],
+        source=formulaire.cleaned_data.get("source", "").strip(),
+    )
+    messages.success(request, "Désignation corrigée.")
+    return redirect("article", variante_id=variante.pk)
+
+
+@require_POST
+@exige(droit.STOCK_MOUVEMENTER)
+def designations_retirer(request, variante_id):
+    """Retire plusieurs désignations d'un coup.
+
+    Elles se suppriment vraiment. Une désignation n'a rien laissé dehors : ce
+    n'est ni un mouvement ni une vente, c'est une affirmation — « cet article
+    s'appelle aussi ainsi ». Une affirmation fausse ne se conserve pas « pour
+    l'historique » : la garder ferait substituer une boîte par une autre qui ne
+    lui ressemble en rien.
+    """
+    contexte_commun(request, "stock")
+    retirees = Designation.objects.filter(
+        pk__in=request.POST.getlist("ids"), variante_id=variante_id
+    ).delete()[0]
+    if retirees:
+        messages.success(
+            request,
+            f"{retirees} désignation{pluralize(retirees)} retirée{pluralize(retirees)}.",
+        )
     return redirect("article", variante_id=variante_id)
 
 
@@ -1698,6 +1845,7 @@ def _tables_export(boutique) -> list[tuple]:
     tickets = Ticket.objects.select_related("session__caissier").order_by("cree_le")
     lignes_ticket = LigneTicket.objects.select_related("ticket").order_by("cree_le")
     exemplaires = NumeroSerie.objects.select_related("variante", "depot").order_by("numero")
+    designations = Designation.objects.select_related("variante").order_by("variante__sku", "valeur")
     ecritures = LigneEcriture.objects.select_related("ecriture__journal", "compte").order_by(
         "ecriture__date_ecriture"
     )
@@ -1768,6 +1916,14 @@ def _tables_export(boutique) -> list[tuple]:
                 for e in exemplaires
             ],
         ),
+        # Les désignations sont du travail de saisie, pas une donnée dérivée :
+        # une officine qui a renseigné la DCI de six cents boîtes ne doit pas
+        # avoir à la ressaisir ailleurs pour la seule raison qu'elle s'en va.
+        (
+            "designations",
+            ["sku", "nature", "designation", "employee_par"],
+            [[d.variante.sku, d.type, d.valeur, d.source] for d in designations],
+        ),
         (
             "ecritures_comptables",
             ["date", "journal", "piece", "libelle", "compte", "intitule", "debit", "credit"],
@@ -1795,6 +1951,8 @@ def _notice_export(boutique) -> str:
         "  mouvements_stock.csv     chaque entrée et sortie, avec le coût appliqué\r\n"
         "  tickets.csv              vos ventes\r\n"
         "  lignes_ticket.csv        le détail de chaque vente\r\n"
+        "  exemplaires.csv          vos appareils suivis à l'unité et leurs garanties\r\n"
+        "  designations.csv         les autres noms de vos articles (DCI, références)\r\n"
         "  ecritures_comptables.csv votre journal en partie double (SYSCOHADA)\r\n"
     )
 

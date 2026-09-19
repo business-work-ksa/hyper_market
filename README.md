@@ -69,7 +69,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 591 tests
+make tester                     # 627 tests
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -81,9 +81,9 @@ Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, e
 | `+237699110033` | Magasinier, Quincaillerie Ateba | Stock et coûts d'achat — **pas la marge** |
 | `+237677220022` | Gérante, Bella Cosmétiques | Tout |
 | `+237677220033` | Comptable, Bella Cosmétiques | Comptabilité, marge, export — pas le stock |
-| `+237655330011` | Gérante, Pharmacie du Wouri | Tout — **lots, péremptions et ordonnancier** |
+| `+237655330011` | Gérante, Pharmacie du Wouri | Tout — **lots, péremptions, ordonnancier et DCI** |
 | `+237691440011` | Gérante, Boulangerie Bonapriso | Tout — **fiches techniques et production du jour** |
-| `+237677550011` | Gérant, Auto Pièces Ndokoti | Tout — **recherche par véhicule et compatibilités** |
+| `+237677550011` | Gérant, Auto Pièces Ndokoti | Tout — **recherche par véhicule et références croisées** |
 | `+237698660011` | Gérant, Nkolo Électronique | Tout — **numéros de série, garantie et atelier** |
 
 Détails dans le [guide du développeur](docs/14-guide-developpeur.md).
@@ -139,7 +139,15 @@ caisse réclame le prescripteur, réseau ou pas. Une vente qui arrive sans menti
 **pas refusée** : la boîte est partie avec le client, et la refuser n'effacerait que la trace.
 L'ordonnancier remonte ce qui reste à consigner.
 
-Chez un vendeur de **pièces détachées**, on cherche par la voiture du client : marque, modèle,
+Toujours en officine, un client demande du **Doliprane** et la pharmacie n'a que de l'Efferalgan —
+même molécule, même dosage. Renseigner la dénomination commune internationale d'une boîte la
+rattache d'un coup à toutes celles qui la portent, et à celles qui arriveront ensuite : **aucune
+paire n'est déclarée à la main**. Le nom commercial, lui, sert à retrouver la boîte, jamais à en
+proposer une autre — substituer un article par lui-même n'est pas une substitution.
+
+Chez un vendeur de **pièces détachées**, c'est le même mécanisme sous un autre mot : le client pose
+un filtre marqué « W 68/3 » sur le comptoir, la boutique le tient sous la référence Toyota, et la
+recherche les rapproche. On y cherche aussi par la voiture du client : marque, modèle,
 année. Une compatibilité déclarée sans modèle couvre toute la marque, une borne d'année absente ne
 borne rien — parce qu'un vendeur ne sait presque jamais quand une pièce a changé, et qu'un client
 sait rarement l'année exacte de sa voiture. Le risque assumé est de montrer une pièce de trop
@@ -298,14 +306,14 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
 - [x] **Socle de paiement** — routage par opérateur, disjoncteur, idempotence, prestataire simulé
   *(les appels réseau MTN / Orange / Camtel attendent un bac à sable : ils ne seront pas écrits à l'aveugle)*
 - [x] **API REST** — jeton porteur de la boutique, mêmes droits qu'à l'écran, écritures idempotentes
-- [x] **Décisions d'architecture** — dix fiches, chacune rattachée au test qui la tient
+- [x] **Décisions d'architecture** — onze fiches, chacune rattachée au test qui la tient
 - [x] **Commandes en ligne** — éclatement d'un panier multi-boutiques, commission figée, chaque
   effet à son étape, écran de traitement pour le marchand
 - [x] **Vitrine publique** — catalogue de tout le marché sans compte, panier, tunnel de commande,
   lien de parrainage *(l'encaissement en ligne attend le même bac à sable d'opérateur)*
 - [x] **Dix métiers** — vocabulaire, valeurs par défaut et formulaires adaptés ; suivi par lot et
   péremptions, fiches techniques et production, compatibilité véhicule, ordonnancier, suivi à
-  l'unité et garantie — chacun réservé aux métiers qui en ont besoin
+  l'unité et garantie, désignations et équivalents — chacun réservé aux métiers qui en ont besoin
 - [x] **Espace personnalisé** — logo, charte graphique validée, adresse publique et liens
   marketing courts, par boutique
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation

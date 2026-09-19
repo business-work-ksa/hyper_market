@@ -51,6 +51,7 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 17 | [Démarrer sans capital](docs/17-demarrage-sans-capital.md) | **Le plan effectivement applicable aujourd'hui** : 450 000 F, 5 paliers autofinancés |
 | 18 | [Produit du palier 1](docs/18-produit-palier-1.md) | Le plan raffiné : les écrans et leurs critères, l'installation en 90 minutes, le mode hors ligne |
 | 19 | [Système de design](docs/19-systeme-de-design.md) | Jetons validés, règles de visualisation, pièges rencontrés |
+| 20 | [Déploiement](docs/20-deploiement.md) | Mise en ligne sur une machine, variables qui décident, ce que le démarrage refuse |
 
 > **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
 > réglementés : la [validation terrain](docs/15-plan-de-validation-terrain.md) (jalon G0) et le
@@ -70,6 +71,14 @@ make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
 make tester                     # 627 tests
+```
+
+Pour la mise en ligne — image de production, pile `docker compose`, intégration continue —
+voir le [document 20](docs/20-deploiement.md) :
+
+```bash
+cp .env.production.example .env.production   # puis remplir
+make deployer
 ```
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
@@ -284,9 +293,9 @@ est **absent** de la réponse faite à une caissière, pas mis à `null`. Détai
 
 ## Décisions d'architecture
 
-Dix fiches dans [`docs/adr/`](docs/adr/), chacune nommant l'endroit du dépôt où la décision est
+Onze fiches dans [`docs/adr/`](docs/adr/), chacune nommant l'endroit du dépôt où la décision est
 **tenue par un test** — une fiche que rien ne vérifie décrit une intention, pas une architecture.
-Neuf sont actées ; [l'ADR-008](docs/adr/008-localisation-de-l-hebergement.md), sur la localisation
+Dix sont actées ; [l'ADR-008](docs/adr/008-localisation-de-l-hebergement.md), sur la localisation
 de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non une analyse.
 
 ## État du projet
@@ -316,6 +325,9 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
   l'unité et garantie, désignations et équivalents — chacun réservé aux métiers qui en ont besoin
 - [x] **Espace personnalisé** — logo, charte graphique validée, adresse publique et liens
   marketing courts, par boutique
+- [x] **Mise en ligne** — image de production, pile `docker compose`, intégration continue sur
+  PostgreSQL 16 ; le démarrage **refuse de servir** si l'isolation au niveau ligne n'est pas en
+  place *(l'hébergeur reste à choisir — [ADR-008](docs/adr/008-localisation-de-l-hebergement.md))*
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

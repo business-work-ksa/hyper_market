@@ -12,3 +12,12 @@ redis==8.1.0
 
 # Médias
 pillow==12.3.0
+
+# Exécution en production
+#
+# `runserver` n'est pas un serveur : mono-thread, sans limite de requête, sans
+# gestion de signal propre. Gunicorn l'est, et WhiteNoise sert les fichiers
+# statiques depuis le processus applicatif — ce qui évite d'exiger un Nginx
+# devant chaque instance pour un site dont le CSS tient en un fichier.
+gunicorn==23.0.0
+whitenoise==6.9.0

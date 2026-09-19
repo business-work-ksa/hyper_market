@@ -223,5 +223,8 @@ db.sqlite3
 media/
 staticfiles/
 .env
+# Les secrets de production : le fichier d'exemple est versionné, celui qui est
+# rempli ne l'est jamais.
+.env.production
 node_modules/
 package-lock.json

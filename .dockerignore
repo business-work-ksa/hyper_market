@@ -1,0 +1,45 @@
+# Ce qui n'a rien à faire dans l'image.
+#
+# Deux raisons, et la seconde est la plus importante : le contexte de
+# construction est envoyé au démon Docker en entier — `.venv` pèse à lui seul
+# plus que l'image finale — et **tout ce qui est copié reste lisible dans une
+# couche**, y compris un fichier supprimé à l'étape suivante. Un `.env` de
+# développement embarqué ici voyagerait avec chaque copie de l'image.
+
+.git
+.github
+.gitignore
+.dockerignore
+
+.venv
+venv
+__pycache__
+*.py[cod]
+.ruff_cache
+.pytest_cache
+.mypy_cache
+
+# Les secrets, sous toutes leurs formes. `.env.production.example` est
+# volontairement gardé : il ne contient aucune valeur.
+.env
+.env.production
+*.pem
+*.key
+
+# Reconstruits dans l'image par `collectstatic`.
+staticfiles
+
+# Téléversés par les commerçants : ils vivent dans un volume, pas dans l'image.
+media
+
+db.sqlite3
+*.log
+
+# Le dossier projet — 19 documents et les fiches de décision — n'est pas servi
+# par l'application. Il reste dans le dépôt, qui est sa place.
+docs
+tests
+README.md
+Makefile
+docker-compose.yml
+docker-compose.prod.yml

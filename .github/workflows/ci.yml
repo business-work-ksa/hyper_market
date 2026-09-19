@@ -1,0 +1,133 @@
+name: Intégration continue
+
+# Sur la branche principale et sur chaque proposition de fusion. Rien de
+# programmé : une suite qui tourne la nuit sur un dépôt que personne ne regarde
+# le matin n'est pas un filet, c'est un bruit.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # Une nouvelle poussée rend la précédente sans objet : la laisser finir ferait
+  # attendre la bonne derrière la périmée.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Suite de tests (PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    # PostgreSQL et non SQLite, et ce n'est pas un détail de confort : le
+    # déclencheur du journal comptable en ajout seul, les politiques de sécurité
+    # au niveau ligne et les contraintes d'exclusion **ne s'installent pas** sur
+    # SQLite. Une suite verte sur SQLite ne dit rien des trois barrières qui
+    # tiennent l'isolation entre commerçants.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgres://hypermarche:hypermarche@127.0.0.1:5432/hypermarche
+      # Longue et sans valeur : `check --deploy` refuse une clé de moins de 50
+      # signes, et il a raison — une clé courte affaiblit signatures de session
+      # et jetons de réinitialisation. Celle-ci n'ouvre rien : elle ne sort pas
+      # du conteneur de CI.
+      SECRET_KEY: integration-continue-cle-sans-valeur-jamais-deployee-0000
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      DEBUG: "False"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Créer le rôle applicatif sans privilège
+        # Le point le plus important de ce fichier. L'image PostgreSQL crée son
+        # rôle en **superutilisateur**, et un superutilisateur ignore toutes les
+        # politiques RLS — sans erreur, sans avertissement, sans trace. Les
+        # tests d'isolation passeraient alors triomphalement en ne prouvant
+        # rien, et la régression arriverait en production sans qu'aucun
+        # voyant ne s'allume.
+        #
+        # CREATEDB est conservé : Django en a besoin pour créer la base de test.
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -c \
+            "CREATE ROLE hypermarche LOGIN PASSWORD 'hypermarche' NOSUPERUSER NOBYPASSRLS CREATEDB;"
+          psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE hypermarche OWNER hypermarche;"
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Contrôles de cohérence
+        # `--deploy` échoue sur les erreurs, et **affiche** les avertissements
+        # sans bloquer. Deux d'entre eux sont attendus et assumés :
+        # `SECURE_HSTS_INCLUDE_SUBDOMAINS` et `SECURE_HSTS_PRELOAD` sont laissés
+        # à l'exploitant, parce qu'ils engagent le domaine entier dans le
+        # navigateur des visiteurs et ne se retirent pas à distance. Les élever
+        # au rang d'échec pousserait à les activer pour faire passer la CI —
+        # exactement le raisonnement qu'il ne faut pas tenir ici.
+        run: |
+          python manage.py check --deploy
+          python manage.py makemigrations --check --dry-run
+
+      - name: Fichiers statiques
+        # Le stockage manifeste renomme chaque fichier d'après son contenu et
+        # **échoue si un gabarit référence un fichier absent**. C'est le seul
+        # contrôle qui attrape une faute de frappe dans un `{% static %}` —
+        # la suite de tests, elle, prend volontairement le stockage simple.
+        run: python manage.py collectstatic --noinput --clear
+
+      - name: Suite de tests
+        run: python manage.py test tests --verbosity 2
+
+      - name: Isolation au niveau ligne réellement active
+        # Sur la base de développement, pas sur celle des tests : une table
+        # scopée sans politique ne lève aucune erreur, et c'est le seul endroit
+        # où l'oubli se voit.
+        run: |
+          python manage.py migrate --noinput
+          python manage.py verifier_rls
+
+  image:
+    name: Image de production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Construire ne suffit pas à prouver que l'image démarre, mais une image
+      # qui ne se construit pas est découverte ici plutôt qu'un soir de mise en
+      # ligne. `collectstatic` tourne pendant la construction : une référence
+      # `{% static %}` vers un fichier absent fait échouer cette étape.
+      - name: Construire
+        run: docker build -t hypermarche:ci .
+
+      - name: L'entrée refuse de démarrer sans base
+        # Le comportement attendu, et il vaut d'être vérifié : sans base
+        # joignable, le conteneur **s'arrête** au lieu de servir des requêtes
+        # sur un schéma inconnu.
+        run: |
+          if docker run --rm -e SECRET_KEY=ci -e ALLOWED_HOSTS=localhost \
+               -e DATABASE_URL=postgres://absent:absent@127.0.0.1:1/absente \
+               hypermarche:ci; then
+            echo "L'image a démarré sans base de données." >&2
+            exit 1
+          fi

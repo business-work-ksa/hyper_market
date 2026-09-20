@@ -17,6 +17,7 @@ import zipfile
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.staticfiles import finders
@@ -31,6 +32,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from apps.accounting.services import balance, solde_compte
+from apps.accounts import limitation
 from apps.accounts import permissions as droit
 from apps.accounts.permissions import droits_de
 from apps.backoffice.acces import (
@@ -113,17 +115,46 @@ JOURS_PEREMPTION = 30
 def connexion(request):
     if request.method == "POST":
         telephone = (request.POST.get("telephone") or "").strip()
+
+        # Avant tout le reste, et notamment avant `authenticate` : le hachage du
+        # mot de passe est volontairement lent, et le payer pour un compte déjà
+        # verrouillé offrirait à un inconnu le moyen de saturer le processeur
+        # (`apps/accounts/limitation.py`).
+        if limitation.trop_d_essais(telephone):
+            return render(
+                request,
+                "connexion.html",
+                {
+                    "erreur": (
+                        "Trop d'essais sur ce numéro. Réessayez dans un quart d'heure — "
+                        "le compte se rouvrira tout seul."
+                    ),
+                    "telephone": telephone,
+                    "montrer_demo": settings.AFFICHER_COMPTE_DEMO,
+                },
+                status=429,
+            )
+
         utilisateur = authenticate(
             request, telephone=telephone, password=request.POST.get("mot_de_passe")
         )
         if utilisateur is None:
+            limitation.compter_un_echec(telephone)
             return render(
                 request,
                 "connexion.html",
-                {"erreur": "Numéro ou mot de passe incorrect.", "telephone": telephone},
+                # Le message ne distingue pas le numéro inconnu du mot de passe
+                # faux : le distinguer dirait à un attaquant lesquels de ses
+                # numéros sont inscrits.
+                {
+                    "erreur": "Numéro ou mot de passe incorrect.",
+                    "telephone": telephone,
+                    "montrer_demo": settings.AFFICHER_COMPTE_DEMO,
+                },
                 status=401,
             )
 
+        limitation.oublier(telephone)
         login(request, utilisateur)
         appartenance = utilisateur.appartenances.filter(actif=True).first()
         if appartenance is None:
@@ -131,7 +162,10 @@ def connexion(request):
             return render(
                 request,
                 "connexion.html",
-                {"erreur": "Ce compte n'est rattaché à aucune boutique active."},
+                {
+                    "erreur": "Ce compte n'est rattaché à aucune boutique active.",
+                    "montrer_demo": settings.AFFICHER_COMPTE_DEMO,
+                },
                 status=403,
             )
         request.session["boutique_id"] = str(appartenance.boutique_id)
@@ -143,7 +177,9 @@ def connexion(request):
         droits = droits_de(utilisateur, appartenance.boutique)
         return redirect(page_d_accueil(droits))
 
-    return render(request, "connexion.html")
+    return render(
+        request, "connexion.html", {"montrer_demo": settings.AFFICHER_COMPTE_DEMO}
+    )
 
 
 def deconnexion(request):

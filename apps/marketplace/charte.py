@@ -66,6 +66,11 @@ CONTRASTE_SOMBRE = 4.5
 # lui en inventer une reviendrait à choisir la marque du commerçant à sa place.
 SEUIL_NEUTRE = 0.02
 
+# Au-delà, on ne lit pas le logo : on refuse de le développer en mémoire. Voir
+# `couleurs_du_logo`. 25 mégapixels, c'est 5000 × 5000 — très au-delà de ce que
+# demande un logo, et très en deçà de ce qui tue un processus.
+PIXELS_MAX = 25_000_000
+
 FOND_CLAIR = "#f4f3ee"
 FOND_SOMBRE = "#0e110e"
 
@@ -351,6 +356,26 @@ def couleurs_du_logo(fichier, *, combien: int = 5) -> list[str]:
 
     try:
         image = Image.open(fichier)
+
+        # Deuxième verrou, après celui du formulaire (`CharteForm.clean_logo`).
+        # Il n'est pas redondant : cette fonction est aussi appelée sur des logos
+        # **déjà en base**, téléversés avant que la borne existe ou par un autre
+        # chemin. Et le coût d'un oubli n'est pas une image de travers, c'est un
+        # processus tué par le noyau — `convert("RGBA")` sur douze mille pixels
+        # de côté demande plus d'un gigaoctet.
+        #
+        # Pillow, lui, se contente d'un avertissement au-delà de 89 mégapixels,
+        # puis développe l'image quand même.
+        largeur, hauteur = image.size
+        if largeur * hauteur > PIXELS_MAX:
+            return []
+
+        # Réduit **avant** la conversion : `draft` demande au décodeur JPEG de
+        # sortir directement une image plus petite, et `thumbnail` travaille par
+        # bandes. Convertir d'abord reviendrait à payer le plein format en
+        # mémoire, ce que tout ce verrou cherche à éviter.
+        image.draft("RGB", (320, 320))
+        image.thumbnail((160, 160))
         image = image.convert("RGBA")
     except Exception:
         return []
@@ -358,7 +383,6 @@ def couleurs_du_logo(fichier, *, combien: int = 5) -> list[str]:
     # Sur fond blanc : un logo transparent doit être lu comme il sera vu.
     fond = Image.new("RGBA", image.size, (255, 255, 255, 255))
     image = Image.alpha_composite(fond, image).convert("RGB")
-    image.thumbnail((160, 160))
 
     reduite = image.quantize(colors=16, method=Image.Quantize.MEDIANCUT).convert("RGB")
     candidats = []

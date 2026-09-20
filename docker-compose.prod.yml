@@ -54,6 +54,9 @@ services:
       DATABASE_URL: "postgres://${POSTGRES_USER:-hypermarche}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hypermarche}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      # Partagé entre les trois `workers` : le compteur d'essais de mot de passe
+      # y vit, et un cache local par processus multiplierait la limite par trois.
+      REDIS_CACHE_URL: "redis://redis:6379/2"
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_started}

@@ -70,7 +70,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 627 tests
+make tester                     # 651 tests
 ```
 
 Pour la mise en ligne — image de production, pile `docker compose`, intégration continue —
@@ -328,6 +328,9 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
 - [x] **Mise en ligne** — image de production, pile `docker compose`, intégration continue sur
   PostgreSQL 16 ; le démarrage **refuse de servir** si l'isolation au niveau ligne n'est pas en
   place *(l'hébergeur reste à choisir — [ADR-008](docs/adr/008-localisation-de-l-hebergement.md))*
+- [x] **Durcissement** — essais de mot de passe freinés par compte, téléversement d'image borné,
+  réponses comprimées ; chaque défaut reproduit avant correction et tenu par un test
+  *(le détail chiffré est en [docs/20](docs/20-deploiement.md), §8)*
 - [ ] **Lot 1** — MVP marchand : catalogue, **stock, caisse**, commandes, paiement, affiliation
   *(reste la couche HTTP des opérateurs Mobile Money — voir
   [docs/18](docs/18-produit-palier-1.md), §9)*

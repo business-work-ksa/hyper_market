@@ -632,6 +632,51 @@ class CharteForm(forms.ModelForm):
             widget=forms.Select(attrs=CHAMP),
         )
 
+    # Un logo de commerce pèse quelques dizaines de kilooctets. Ces bornes sont
+    # larges pour un usage réel, et étroites pour ce qu'elles arrêtent.
+    LOGO_OCTETS_MAX = 3 * 1024 * 1024
+    LOGO_PIXELS_MAX = 25_000_000  # 5000 × 5000, très au-delà d'un logo
+
+    def clean_logo(self):
+        """Refuse ce qui ferait tomber le serveur avant d'avoir été regardé.
+
+        Un PNG de 12 000 × 12 000 pixels tient dans 435 Ko sur le réseau et
+        occupe **plus d'un gigaoctet** une fois décompressé — c'est ce que
+        consomme l'extraction des couleurs du logo, qui convertit l'image entière
+        en RVBA avant de la réduire. Trois téléversements simultanés suffisent à
+        faire tuer le processus par le noyau.
+
+        Pillow ne protège pas : au-delà de 89 mégapixels il émet un
+        *avertissement* et continue. Un avertissement n'arrête rien.
+
+        Les deux bornes sont nécessaires. Le poids seul laisse passer la bombe de
+        décompression ; les pixels seuls laissent passer un fichier énorme mais
+        peu profond, qu'il faudrait d'abord écrire sur le disque pour le mesurer.
+        """
+        logo = self.cleaned_data.get("logo")
+        if not logo or not hasattr(logo, "file"):
+            # Champ vide, ou fichier déjà en base qu'on ne retéléverse pas.
+            return logo
+
+        if logo.size > self.LOGO_OCTETS_MAX:
+            raise forms.ValidationError(
+                f"Ce fichier pèse {logo.size // (1024 * 1024)} Mo. Un logo doit rester "
+                "sous 3 Mo — au-delà, il ralentit chaque page de votre boutique."
+            )
+
+        # `logo.image` est posé par le champ `ImageField` de Django, qui ouvre le
+        # fichier et lit son en-tête sans décoder les pixels. Les dimensions sont
+        # donc connues **avant** qu'une seule ligne d'image soit développée en
+        # mémoire : c'est ce qui rend ce contrôle sûr plutôt que tardif.
+        image = getattr(logo, "image", None)
+        largeur, hauteur = image.size if image is not None else (0, 0)
+        if largeur * hauteur > self.LOGO_PIXELS_MAX:
+            raise forms.ValidationError(
+                f"Cette image fait {largeur} × {hauteur} pixels. Un logo n'a pas besoin "
+                "de dépasser 5000 × 5000 ; réduisez-la avant de l'envoyer."
+            )
+        return logo
+
     def clean_couleur_marque(self):
         couleur = (self.cleaned_data.get("couleur_marque") or "").strip()
         from apps.marketplace.charte import _vers_rvb

@@ -78,8 +78,22 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+# Une page de stock de cinq cents articles pèse 475 Ko en HTML. Sur une ligne 3G
+# de Douala — quatre cents kilobits utiles — cela fait **dix secondes** avant que
+# le commerçant voie sa première ligne, et vingt fois plus sur un catalogue de
+# mille articles. Comprimée, la même page tombe autour de quarante kilooctets.
+#
+# WhiteNoise ne couvre que les fichiers statiques ; le HTML, lui, est produit à
+# chaque requête et personne ne le comprimait.
+#
+# Sur BREACH : l'attaque exige un secret et une entrée contrôlée par l'attaquant
+# dans la **même** réponse comprimée. Django masque le jeton CSRF différemment à
+# chaque requête depuis la version 4.1, ce qui retire à l'attaque sa cible
+# habituelle. Le reste du contenu sensible ici — prix, stocks, écritures — n'est
+# pas un secret dont on devine un caractère à la fois.
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     # Juste après la sécurité et avant tout le reste : WhiteNoise doit pouvoir
     # répondre à une requête de fichier statique sans réveiller les sessions,
     # l'authentification et la résolution de boutique. Placé plus bas, il ferait
@@ -146,6 +160,14 @@ TIME_ZONE = "Africa/Douala"
 USE_I18N = True
 USE_TZ = True
 
+# L'écran de connexion affiche un compte de démonstration utilisable. C'est une
+# bonne idée sur une vitrine de démonstration, et une porte ouverte en
+# production : le jeu de démonstration se charge avec des mots de passe connus,
+# et rien n'empêche qu'il ait été chargé « juste pour voir » sur l'instance
+# réelle. Le défaut suit donc `DEBUG`, et rendre la mention publique demande un
+# geste explicite — celui qu'on fait en connaissance de cause sur une démo.
+AFFICHER_COMPTE_DEMO = env.bool("AFFICHER_COMPTE_DEMO", default=DEBUG)
+
 DEVISE = "XAF"
 DEVISE_SYMBOLE = "FCFA"
 PAYS_DEFAUT = "CM"
@@ -155,6 +177,24 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# L'écran d'inventaire poste **deux champs par article** — la quantité comptée et
+# le motif de l'écart. Avec la valeur par défaut de Django (1000), un commerçant
+# de plus de cinq cents références voyait son comptage refusé par un `400` muet,
+# après l'avoir saisi en entier. C'est l'écran de la reprise de stock : celui
+# qu'on utilise le jour de l'installation, justement quand la liste est longue.
+#
+# Le garde-fou reste posé — il protège l'analyse du formulaire contre un envoi
+# forgé — mais à une hauteur qui laisse passer un inventaire réel : cinq mille
+# articles. Au-delà, l'écran devra découper le comptage par rayon, et ce sera un
+# choix d'ergonomie, pas une erreur technique.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
+
+# `DATA_UPLOAD_MAX_MEMORY_SIZE` garde sa valeur par défaut, et il faut savoir ce
+# qu'elle ne fait pas : elle borne le **corps hors fichiers**, pas les fichiers
+# eux-mêmes. Django n'a aucun réglage qui plafonne la taille d'un téléversement.
+# Le poids du logo est donc borné par `CharteForm.clean_logo` (3 Mo), et la
+# ceinture générale se pose devant l'application, dans le proxy — voir docs/20.
 
 # Le stockage « manifest » renomme chaque fichier d'après son contenu et refuse
 # de démarrer si un gabarit référence un fichier absent. Les deux comptent :
@@ -241,6 +281,28 @@ AFFILIATION = {
     "SEUIL_RETRAIT": "10000",
     "DELAI_PREMIER_RETRAIT_HEURES": 72,
 }
+
+# --------------------------------------------------------------------------------------
+# Cache
+# --------------------------------------------------------------------------------------
+# Il ne sert pas à accélérer des pages : il porte le compteur d'essais de mot de
+# passe (`apps/accounts/limitation.py`). D'où l'exigence d'être **partagé entre
+# les processus** — trois `workers` gunicorn avec un cache local chacun offrent
+# trois fois plus d'essais qu'annoncé, sans que rien ne le signale.
+#
+# Redis est déjà dans la pile pour Celery ; le cache prend sa base 2. Le repli en
+# mémoire n'est là que pour les tests et le développement à un seul processus.
+_REDIS_CACHE = env("REDIS_CACHE_URL", default=None)
+if _REDIS_CACHE and not _EN_TEST:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache",
+                          "LOCATION": _REDIS_CACHE}}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "hypermarche",
+        }
+    }
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/1")

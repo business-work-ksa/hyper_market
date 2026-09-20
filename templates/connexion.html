@@ -78,13 +78,19 @@
         <button class="btn btn--primaire btn--grand btn--bloc" type="submit">Ouvrir ma boutique</button>
       </form>
 
-      <div class="bandeau-info">
-        <svg><use href="#ic-info"></use></svg>
-        <div class="pile-sm">
-          <span style="font-weight:580">Démonstration</span>
-          <span class="t-legende chiffre">+237699110011 · demo1234 — Quincaillerie Ateba, Douala</span>
+      {% if montrer_demo %}
+        {# Des identifiants qui fonctionnent, affichés à qui n'est pas connecté :
+           utile sur une démonstration, ouvert en production. La vue ne compose
+           ce bloc que si `AFFICHER_COMPTE_DEMO` le dit — et son défaut suit
+           `DEBUG`. #}
+        <div class="bandeau-info">
+          <svg><use href="#ic-info"></use></svg>
+          <div class="pile-sm">
+            <span style="font-weight:580">Démonstration</span>
+            <span class="t-legende chiffre">+237699110011 · demo1234 — Quincaillerie Ateba, Douala</span>
+          </div>
         </div>
-      </div>
+      {% endif %}
 
       <p class="t-legende" style="display:flex;align-items:center;gap:6px">
         <svg style="width:13px;height:13px"><use href="#ic-verrou"></use></svg>

@@ -37,6 +37,27 @@ l'hébergeur — et cet amont **doit** transmettre `X-Forwarded-Proto`. Sans cet
 servir en clair, refuse de poser les cookies sécurisés, et boucle indéfiniment sur la redirection
 HTTPS. C'est la panne la plus fréquente de cette configuration, et elle ne dit pas son nom.
 
+### Ce que le proxy doit faire, et que Django ne peut pas faire
+
+**Plafonner la taille d'un téléversement.** Django n'a aucun réglage pour cela :
+`DATA_UPLOAD_MAX_MEMORY_SIZE` ne borne que le corps **hors fichiers**. Le poids d'un logo est
+vérifié dans le formulaire (3 Mo), mais la vérification arrive après la réception — un envoi de
+500 Mo aura déjà traversé le réseau et rempli `/tmp`. La ceinture se pose devant :
+
+```nginx
+client_max_body_size 8m;          # Nginx
+```
+```caddy
+request_body { max_size 8MB }     # Caddy
+```
+
+**Transmettre `X-Forwarded-Proto`**, comme dit ci-dessus.
+
+Ce que le proxy ne peut **pas** faire à notre place : limiter les essais de mot de passe par
+compte. Une limite par adresse IP n'a pas de sens ici — derrière le proxy elles sont toutes
+identiques, et un seul attaquant fermerait la boutique à tous ses caissiers. Le compteur vit donc
+dans l'application (`apps/accounts/limitation.py`) et porte sur le numéro visé.
+
 ---
 
 ## 2. Mise en ligne
@@ -82,6 +103,15 @@ d'erreur ne dit pas pourquoi.
 
 **`POSTGRES_PASSWORD`** — le mot de passe du rôle applicatif. `docker-compose.prod.yml` compose
 `DATABASE_URL` à partir de lui ; ne pas l'écrire à la main.
+
+**`AFFICHER_COMPTE_DEMO`** — faux hors développement, et il faut que cela le reste. L'écran de
+connexion sait afficher un compte de démonstration **qui fonctionne** ; c'est utile sur une vitrine
+de démonstration et c'est une porte ouverte ailleurs, d'autant que rien n'empêche que
+`charger_demo` ait été lancé « juste pour voir » sur l'instance réelle.
+
+**`REDIS_CACHE_URL`** — le compteur d'essais de mot de passe y vit. Sans lui, chaque `worker`
+gunicorn tient son propre compteur en mémoire, et la limite annoncée est multipliée par leur
+nombre sans que rien ne le signale. `docker-compose.prod.yml` le pose déjà.
 
 **`SECURE_HSTS_SECONDS`** — une heure par défaut, et c'est délibéré. Poser un an dès la première
 mise en ligne enferme le domaine en HTTPS dans le navigateur de chaque visiteur, y compris si le
@@ -186,7 +216,42 @@ où la redirection elle-même est éprouvée.
 
 ---
 
-## 8. Sauvegarde
+## 8. Ce qu'un audit a trouvé, et ce qui a été posé
+
+Cinq défauts, tous reproduits avant d'être corrigés, tous tenus par
+`tests/test_durcissement.py`. Ils sont consignés ici parce qu'un durcissement dont personne ne
+sait à quoi il répond finit par être retiré comme une gêne.
+
+| Ce qui n'allait pas | Mesuré | Posé |
+|---|---|---|
+| La connexion n'était pas freinée | 60 essais, aucun refusé | Dix essais par quart d'heure, par compte |
+| Chaque essai coûtait un hachage | 60 essais = 40 s de processeur | Refus **avant** `authenticate` : 40 s → 7 s |
+| Un logo pouvait tuer le serveur | 435 Ko envoyés → 1,1 **Go** en mémoire | Bornes de poids et de pixels, deux verrous |
+| Un inventaire > 500 articles était refusé | `400` muet après la saisie complète | `DATA_UPLOAD_MAX_NUMBER_FIELDS` à 10 000 |
+| Le stock pesait 475 Ko | ~10 s sur une 3G de Douala | Compression : 30 Ko, ~0,6 s |
+
+Et un sixième, d'une autre nature : l'écran de connexion affichait **des identifiants qui
+fonctionnent**, sans condition. Ils ne sont plus composés que si `AFFICHER_COMPTE_DEMO` le dit.
+
+### Ce que l'audit a trouvé sain, et qu'il ne faut pas défaire
+
+Ces points-là ont été vérifiés et n'ont demandé aucune correction. Ils sont listés pour qu'une
+modification future sache ce qu'elle mettrait en jeu :
+
+* **aucune requête N+1** sur les écrans principaux. Le nombre de requêtes est *constant* de 6 à
+  506 lignes de stock — c'est le fruit des `select_related` posés aux bons endroits, et cela se
+  casse en une ligne ;
+* **le jeton d'API n'est jamais stocké en clair** (SHA-256), et sa comparaison est en temps
+  constant ;
+* **aucun `mark_safe`, `|safe`, SQL brut ou `csrf_exempt`** sur une donnée utilisateur ;
+* **la vitrine publique filtre à la source** : boutique active, bail en cours, article actif, et
+  les médicaments sur ordonnance retirés à la seule porte du catalogue ;
+* **les redirections contrôlées par l'utilisateur** passent par
+  `url_has_allowed_host_and_scheme`.
+
+---
+
+## 9. Sauvegarde
 
 Deux choses à sauvegarder, et elles ne se remplacent pas :
 
@@ -208,7 +273,7 @@ une machine jetable, pas le jour où elle sert.
 
 ---
 
-## 9. Ce qui reste à décider
+## 10. Ce qui reste à décider
 
 **L'hébergeur n'est pas choisi.** [ADR-008](adr/008-localisation-de-l-hebergement.md) attend un fait
 extérieur (jalon J4) : la loi camerounaise 2024/017 sur les données personnelles et les débits réels

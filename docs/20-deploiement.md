@@ -53,6 +53,21 @@ request_body { max_size 8MB }     # Caddy
 
 **Transmettre `X-Forwarded-Proto`**, comme dit ci-dessus.
 
+### Quand le démarrage échoue
+
+`infrastructure/entree.sh` distingue deux pannes que « la base ne répond pas » confondait :
+
+* **« Django n'a pas pu lire sa configuration. La base n'est pas en cause. »** — la sonde n'a pas
+  pu charger les réglages. Attendre n'y changerait rien, donc le script s'arrête immédiatement au
+  lieu de perdre soixante secondes puis d'accuser la base ;
+* **« La base de données ne répond pas après 60 secondes. »** — là, la configuration est bonne.
+  Le message donne l'adresse visée, **sans le mot de passe**, et la dernière erreur reçue. Si
+  l'hôte ne résout pas, il ajoute la piste des régions.
+
+La distinction se fait sur le **code de sortie** de la sonde, pas sur le texte de l'erreur : un
+module de réglages absent lève `ModuleNotFoundError` et non `ImproperlyConfigured`, et une liste de
+messages à reconnaître se périme à chaque version de Django.
+
 Ce que le proxy ne peut **pas** faire à notre place : limiter les essais de mot de passe par
 compte. Une limite par adresse IP n'a pas de sens ici — derrière le proxy elles sont toutes
 identiques, et un seul attaquant fermerait la boutique à tous ses caissiers. Le compteur vit donc

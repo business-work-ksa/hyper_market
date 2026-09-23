@@ -8,6 +8,17 @@
 # que les migrations qui les installent ne sont pas passées.
 set -eu
 
+# `manage.py` pose lui-même ce réglage ; un `python -c` nu, non. L'attente de la
+# base appelle `django.setup()` directement — sans cette ligne, elle échoue sur
+# « settings are not configured » **quel que soit l'état de la base**, et la
+# boucle attend soixante secondes une réponse qu'elle ne saura jamais lire.
+#
+# L'image Docker le posait, Render ne le posait pas : le script ne doit pas
+# dépendre de ce que l'hébergeur a pensé à déclarer. Même valeur par défaut que
+# `manage.py`, et une variable déjà définie l'emporte.
+: "${DJANGO_SETTINGS_MODULE:=config.settings}"
+export DJANGO_SETTINGS_MODULE
+
 # Décrit la base visée **sans son mot de passe**. Un message d'échec qui ne dit
 # pas à quoi on a essayé de se connecter oblige à deviner ; un message qui
 # recopie `DATABASE_URL` en entier écrit le mot de passe dans les journaux de
@@ -34,15 +45,25 @@ attendre_la_base() {
     # précédente la supprimait, et le seul message restant était « la base ne
     # répond pas » : vrai, et inutilisable. Un nom d'hôte qui ne résout pas et
     # une base encore en cours de création donnent alors la même phrase.
+    # La sonde distingue ses deux échecs **par son code de sortie**, pas par le
+    # texte de l'erreur : un module de réglages absent lève `ModuleNotFoundError`
+    # et non `ImproperlyConfigured`, une clé manquante lève encore autre chose, et
+    # une liste de messages à reconnaître se périme à chaque version de Django.
+    #
+    #   2 → Django n'a pas pu se configurer. Attendre n'y changera rien.
+    #   1 → la configuration est bonne, la base ne répond pas encore.
     essai=0
     derniere=/tmp/derniere-erreur-base
     until python -c "
-import sys
+import sys, traceback
 
-import django
-
-django.setup()
-from django.db import connection
+try:
+    import django
+    django.setup()
+    from django.db import connection
+except Exception:
+    traceback.print_exc()
+    sys.exit(2)
 
 try:
     connection.ensure_connection()
@@ -50,16 +71,32 @@ except Exception as erreur:
     print(erreur, file=sys.stderr)
     sys.exit(1)
 " 2>"$derniere"; do
+        # Une configuration illisible ne guérit pas en attendant : on sort tout
+        # de suite plutôt que de faire perdre soixante secondes avant un message
+        # qui accuserait la base.
+        if [ "$?" -eq 2 ]; then
+            echo "Django n'a pas pu lire sa configuration. La base n'est pas en cause." >&2
+            sed 's/^/    /' "$derniere" >&2
+            exit 1
+        fi
         essai=$((essai + 1))
         if [ "$essai" -ge 30 ]; then
+            # Ici, la configuration est forcément bonne : le code 2 est sorti
+            # plus haut. La base est donc réellement en cause.
             echo "La base de données ne répond pas après 60 secondes." >&2
             echo "  Adresse visée : $(ou_va_t_on)" >&2
             echo "  Dernière erreur :" >&2
             sed 's/^/    /' "$derniere" >&2
-            echo "  Si l'hôte ne résout pas : chez la plupart des hébergeurs, la" >&2
-            echo "  chaîne fournie est une adresse interne, et le réseau interne" >&2
-            echo "  ne franchit pas les régions. Vérifiez que la base et le" >&2
-            echo "  service sont dans la même." >&2
+
+            # Indice **conditionnel**. Affiché à chaque échec, il devient du
+            # bruit qui oriente vers la mauvaise piste : celui-ci m'a fait
+            # chercher une région alors que la configuration manquait.
+            if grep -q "resolve\|Name or service not known\|Temporary failure" "$derniere"; then
+                echo "  L'hôte ne résout pas. Chez la plupart des hébergeurs, la chaîne" >&2
+                echo "  fournie est une adresse interne, et le réseau interne ne" >&2
+                echo "  franchit pas les régions : vérifiez que la base et le service" >&2
+                echo "  sont dans la même." >&2
+            fi
             exit 1
         fi
         sleep 2

@@ -306,6 +306,29 @@ class RequeteTest(TestCase):
             )
             self.assertNotContains(refus, "demo1234", status_code=401)
 
+    def test_aucun_gabarit_ne_laisse_fuir_un_commentaire(self):
+        """Un commentaire Django ouvert sur plusieurs lignes **s'affiche**.
+
+        `{#` … `#}` ne tient que sur une ligne. Ouvert sur plusieurs, Django ne
+        le reconnaît pas et le rend tel quel — ce qui est arrivé sur l'écran de
+        connexion, où un commentaire de quatre lignes s'est retrouvé imprimé
+        entre le bouton et le bandeau. Rien ne l'avait signalé : la page
+        répondait 200, la suite était verte, et seule une capture l'a montré.
+
+        Le contrôle porte sur le rendu, pas sur le source : c'est la seule
+        manière de l'attraper, quelle que soit la forme employée.
+        """
+        import re
+
+        pages = [reverse("connexion"), "/marche/", "/marche/catalogue/"]
+        for url in pages:
+            corps = self.client.get(url).content.decode("utf-8")
+            corps_sans_scripts = re.sub(r"(?s)<script.*?</script>", "", corps)
+            for marqueur in ("{#", "#}", "{%", "%}", "{{", "}}"):
+                self.assertNotIn(
+                    marqueur, corps_sans_scripts, f"{marqueur} visible sur {url}"
+                )
+
     def test_une_reponse_non_demandee_en_gzip_reste_lisible(self):
         """Un client qui ne sait pas décompresser doit recevoir du texte.
 

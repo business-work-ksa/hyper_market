@@ -70,16 +70,28 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 651 tests
+make tester                     # 652 tests
 ```
 
-Pour la mise en ligne — image de production, pile `docker compose`, intégration continue —
-voir le [document 20](docs/20-deploiement.md) :
+## Mettre en ligne
+
+**Une adresse publique, gratuitement.** `render.yaml` décrit une instance de démonstration :
+Render crée la base PostgreSQL et le service, fabrique les secrets, et charge les six boutiques
+au premier démarrage. Aucun terminal. Depuis Render : **New → Blueprint**, choisir ce dépôt,
+branche `claude/online-marketplace-platform-97d5tr`, **Apply**.
+
+Ce que l'offre gratuite coûte : l'instance **s'endort** après quinze minutes (≈ 50 s de réveil),
+la base **expire au bout de trente jours**, et les identifiants de démonstration sont **publics** —
+qui a le lien peut modifier le stock. Aucune donnée réelle n'a sa place là.
+
+**Sur une machine à soi** — image de production, pile `docker compose`, sauvegardes :
 
 ```bash
 cp .env.production.example .env.production   # puis remplir
 make deployer
 ```
+
+Le détail de chaque choix est dans le [document 20](docs/20-deploiement.md).
 
 Comptes de démonstration (mot de passe `demo1234`) — les rôles diffèrent, et les écrans avec :
 

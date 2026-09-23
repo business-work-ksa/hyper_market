@@ -24,6 +24,19 @@ DEBUG = env("DEBUG")
 # tiers. Le défaut suit donc `DEBUG`.
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"] if DEBUG else [])
 
+# Les hébergeurs d'aujourd'hui tirent au sort le nom de domaine qu'ils vous
+# donnent — `hypermarche-a7f3.quelquechose.com` — et le publient dans une
+# variable d'environnement. Personne ne peut donc écrire `ALLOWED_HOSTS` à
+# l'avance, et exiger qu'il soit rempli à la main condamnerait le premier
+# démarrage à échouer sur un nom que l'exploitant ne connaît pas encore.
+#
+# La variable est nommée ici de façon neutre, et c'est le fichier de l'hébergeur
+# qui fait la correspondance (`render.yaml` y met `RENDER_EXTERNAL_HOSTNAME`).
+# Un réglage Django qui nommerait un fournisseur l'épouserait pour toujours.
+_HOTE_EXTERNE = env("HOTE_EXTERNE", default="").strip()
+if _HOTE_EXTERNE:
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, _HOTE_EXTERNE]
+
 # La suite de tests n'a pas d'hôte à servir : le client de test parle à
 # `testserver`, que Django ajoute lui-même. Exiger la variable ici obligerait
 # chaque dépôt fraîchement cloné à en inventer une pour lancer `make tester`.
@@ -265,6 +278,15 @@ if not DEBUG:
     # soumission de formulaire derrière un proxy est refusée pour CSRF — et le
     # message d'erreur ne dit pas pourquoi.
     CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+    if _HOTE_EXTERNE:
+        # Même raison qu'`ALLOWED_HOSTS` : le nom est tiré au sort au premier
+        # déploiement. Sans cette ligne, toutes les pages s'affichent et **aucun
+        # formulaire ne s'envoie** — y compris celui de la connexion. C'est la
+        # panne la plus déroutante de ces hébergeurs, parce que le site a l'air
+        # de marcher.
+        origine = f"https://{_HOTE_EXTERNE}"
+        if origine not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS = [*CSRF_TRUSTED_ORIGINS, origine]
 
 # --------------------------------------------------------------------------------------
 # Règles métier — voir docs/03-business-plan.md et docs/06-affiliation-*.md

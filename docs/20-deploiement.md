@@ -60,10 +60,69 @@ dans l'application (`apps/accounts/limitation.py`) et porte sur le numéro visé
 
 ---
 
-## 2. Mise en ligne
+## 2. Une adresse publique, gratuitement, sans serveur à soi
+
+Avant la machine à soi, il y a le besoin plus simple : **une adresse qu'on partage**. Montrer
+l'outil à un commerçant de Douala, à un cabinet comptable, à quelqu'un qui hésite. `render.yaml`
+décrit cette instance-là, et elle se déploie sans terminal.
+
+Render lit ce fichier, crée la base PostgreSQL 16 et le service web, fabrique lui-même la
+`SECRET_KEY`, et garnit la démonstration au premier démarrage.
+
+**Le dépôt est privé**, donc le bouton « Deploy to Render » — qui prend une URL de dépôt public —
+ne s'applique pas. Le chemin est celui-ci :
+
+1. créer un compte sur Render et y connecter GitHub ;
+2. **New → Blueprint**, choisir `Arseneksa/hyper_market` ;
+3. branche `claude/online-marketplace-platform-97d5tr` ;
+4. Render affiche ce qu'il va créer (un service, une base) — **Apply**.
+
+Le premier déploiement prend cinq à dix minutes : installation, `collectstatic`, migrations,
+vérification de l'isolation, puis chargement des six boutiques et de leurs vingt jours de ventes.
+L'adresse est de la forme `https://hypermarche-XXXX.onrender.com`, et les identifiants de
+démonstration sont affichés sur l'écran de connexion.
+
+> Si le dépôt devient public, l'URL suivante suffit — un clic, rien à choisir :
+> `https://render.com/deploy?repo=https://github.com/Arseneksa/hyper_market`
+
+### Ce que l'offre gratuite coûte vraiment
+
+Trois limites, qui se découvrent autrement au mauvais moment :
+
+**L'instance s'endort** après un quart d'heure sans visite, et met environ cinquante secondes à se
+réveiller. Le premier écran d'un lien partagé est donc souvent lent — dire « patientez une minute »
+au destinataire évite qu'il croie à une panne.
+
+**La base gratuite expire au bout de trente jours.** Ce n'est pas une limite de taille mais une
+date : Render la supprime, et la démonstration se recharge vide au redémarrage suivant. Pour une
+vitrine c'est acceptable ; pour autre chose, non.
+
+**Les identifiants de démonstration sont publics.** `AFFICHER_COMPTE_DEMO` est à `True` dans ce
+fichier, délibérément : c'est le but d'une démonstration. Quiconque a le lien peut entrer, vendre,
+modifier le stock. **Aucune donnée réelle n'a sa place sur cette instance** — et `preparer_demo`
+refuse de garnir une base qui contient déjà des boutiques, pour que cette commande ne puisse pas
+faire de dégât si elle atterrit un jour dans le démarrage d'une vraie.
+
+### Ce que le blueprint fait autrement que la production
+
+| | Machine à soi (§3 et suivants) | Démonstration gratuite |
+|---|---|---|
+| Exécution | Image Docker, 3 `workers` | Constructeur natif, **1 `worker`** |
+| Cache | Redis partagé | Mémoire du processus |
+| Tâches différées | Celery | `ALWAYS_EAGER`, dans la requête |
+| Compte de démonstration | Masqué | **Affiché** |
+
+Le `worker` unique n'est pas qu'une affaire de mémoire : sans Redis, le compteur d'essais de mot de
+passe est local au processus. Trois `workers` tiendraient trois compteurs et laisseraient passer
+trente essais là où dix sont annoncés. Un seul processus, un seul compteur, la limite annoncée est
+la vraie.
+
+---
+
+## 3. Mise en ligne sur une machine à soi
 
 ```bash
-cp .env.production.example .env.production   # puis remplir — voir §3
+cp .env.production.example .env.production   # puis remplir — voir §4
 make deployer                                # construit et démarre
 make journal                                 # suit les journaux
 ```
@@ -85,7 +144,7 @@ passe connus, et leur journal comptable est en ajout seul — il ne se supprime 
 
 ---
 
-## 3. Les variables qui décident
+## 4. Les variables qui décident
 
 Quatre sont obligatoires. Les autres ont un défaut sûr.
 
@@ -120,7 +179,7 @@ le certificat éprouvé.
 
 ---
 
-## 4. Ce que le démarrage vérifie, et ce qu'il refuse
+## 5. Ce que le démarrage vérifie, et ce qu'il refuse
 
 `infrastructure/entree.sh` fait trois gestes, dans cet ordre :
 
@@ -147,7 +206,7 @@ ALTER ROLE hypermarche NOSUPERUSER NOBYPASSRLS CREATEDB;
 
 ---
 
-## 5. Les fichiers statiques
+## 6. Les fichiers statiques
 
 `collectstatic` tourne **à la construction de l'image**, pas au démarrage. C'est une opération
 déterministe qui ne dépend que du code : la refaire à chaque démarrage retarderait chaque
@@ -164,7 +223,7 @@ et le CSS se recharge sans rien relancer.
 
 ---
 
-## 6. Intégration continue
+## 7. Intégration continue
 
 `.github/workflows/ci.yml`, sur `main` et sur chaque proposition de fusion.
 
@@ -181,7 +240,7 @@ Un second travail construit l'image et vérifie qu'elle **refuse de démarrer sa
 
 ---
 
-## 7. Éprouver la configuration sans Docker
+## 8. Éprouver la configuration sans Docker
 
 La pile se vérifie aussi sur une machine de développement, et c'est le moyen le plus rapide de
 savoir si un problème vient de la configuration ou de l'image :
@@ -216,7 +275,7 @@ où la redirection elle-même est éprouvée.
 
 ---
 
-## 8. Ce qu'un audit a trouvé, et ce qui a été posé
+## 9. Ce qu'un audit a trouvé, et ce qui a été posé
 
 Cinq défauts, tous reproduits avant d'être corrigés, tous tenus par
 `tests/test_durcissement.py`. Ils sont consignés ici parce qu'un durcissement dont personne ne
@@ -251,7 +310,7 @@ modification future sache ce qu'elle mettrait en jeu :
 
 ---
 
-## 9. Sauvegarde
+## 10. Sauvegarde
 
 Deux choses à sauvegarder, et elles ne se remplacent pas :
 
@@ -273,7 +332,7 @@ une machine jetable, pas le jour où elle sert.
 
 ---
 
-## 10. Ce qui reste à décider
+## 11. Ce qui reste à décider
 
 **L'hébergeur n'est pas choisi.** [ADR-008](adr/008-localisation-de-l-hebergement.md) attend un fait
 extérieur (jalon J4) : la loi camerounaise 2024/017 sur les données personnelles et les débits réels

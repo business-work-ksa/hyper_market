@@ -79,10 +79,15 @@
       </form>
 
       {% if montrer_demo %}
-        {# Des identifiants qui fonctionnent, affichés à qui n'est pas connecté :
-           utile sur une démonstration, ouvert en production. La vue ne compose
-           ce bloc que si `AFFICHER_COMPTE_DEMO` le dit — et son défaut suit
-           `DEBUG`. #}
+        {% comment %}
+        Des identifiants qui fonctionnent, affichés à qui n'est pas connecté :
+        utile sur une démonstration, ouvert en production. La vue ne compose ce
+        bloc que si `AFFICHER_COMPTE_DEMO` le dit — et son défaut suit `DEBUG`.
+
+        Bloc « comment » et non accolade-dièse : cette seconde forme ne tient
+        **que sur une ligne**. Ouverte sur plusieurs, Django ne la reconnaît pas
+        et l'affiche telle quelle, au milieu de l'écran de connexion.
+        {% endcomment %}
         <div class="bandeau-info">
           <svg><use href="#ic-info"></use></svg>
           <div class="pile-sm">

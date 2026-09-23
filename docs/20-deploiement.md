@@ -221,6 +221,20 @@ de démonstration et c'est une porte ouverte ailleurs, d'autant que rien n'empê
 gunicorn tient son propre compteur en mémoire, et la limite annoncée est multipliée par leur
 nombre sans que rien ne le signale. `docker-compose.prod.yml` le pose déjà.
 
+**`CONN_MAX_AGE`** — dix minutes par défaut. Django ouvre sinon une connexion neuve à chaque
+requête : imperceptible sur une base locale, ruineux dès que la base est loin, car la poignée de
+main TCP puis TLS se paie en allers-retours réseau. Un écran de stock passe alors de quelques
+dizaines de millisecondes à plusieurs secondes sans qu'aucune requête SQL soit en cause.
+
+Attention au produit `workers × threads` : chaque fil garde sa connexion ouverte, et les offres
+gratuites plafonnent bas. Un `worker` et quatre fils, c'est quatre connexions.
+
+Et une précision qui touche la sécurité : le contexte de boutique est posé par
+`set_config(..., false)`, donc **il vit aussi longtemps que la session**. Sur une connexion
+réutilisée, un réglage laissé derrière serait hérité par la requête suivante — deux commerçants
+qui se lisent l'un l'autre, sans qu'aucune barrière ne proteste. Le middleware le restaure dans un
+`finally`, et `tests/test_connexions_persistantes.py` le vérifie plutôt que de s'y fier.
+
 **`SECURE_HSTS_SECONDS`** — une heure par défaut, et c'est délibéré. Poser un an dès la première
 mise en ligne enferme le domaine en HTTPS dans le navigateur de chaque visiteur, y compris si le
 certificat n'est pas encore fiable, et **cela ne se retire pas à distance**. On l'allonge une fois

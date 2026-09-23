@@ -145,6 +145,29 @@ TEMPLATES = [
 # --------------------------------------------------------------------------------------
 if env("DATABASE_URL", default=None):
     DATABASES = {"default": env.db("DATABASE_URL")}
+
+    # Connexions réutilisées d'une requête à l'autre. Par défaut Django en ouvre
+    # une neuve à chaque requête et la ferme à la fin : sur une base locale cela
+    # coûte une milliseconde et ne se voit pas, mais la poignée de main TCP puis
+    # TLS se paie en **aller-retours réseau**. Une base jointe à travers
+    # l'Atlantique — un service d'un côté, la base de l'autre — fait alors passer
+    # un écran de stock de quelques dizaines de millisecondes à plusieurs
+    # secondes, sans qu'aucune requête SQL soit en cause.
+    #
+    # Dix minutes, et non « illimité » : une connexion gardée pour toujours
+    # survit à un redémarrage de la base et ressort morte du pool. Zéro rétablit
+    # le comportement d'origine.
+    #
+    # Attention au produit `workers × threads` : chaque fil garde sa connexion
+    # ouverte, et les offres gratuites plafonnent bas. Un `worker` et quatre
+    # fils, c'est quatre connexions — la marge est large.
+    DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=600)
+
+    # Une connexion réutilisée peut avoir été coupée entre deux requêtes, par la
+    # base ou par un pare-feu. Sans cette vérification, la requête suivante
+    # échoue une fois sur une erreur qui n'a rien à voir avec elle — et sur une
+    # liaison longue distance, ces coupures sont la règle, pas l'exception.
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 else:  # repli local / CI sans PostgreSQL
     DATABASES = {
         "default": {

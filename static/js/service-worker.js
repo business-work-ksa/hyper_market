@@ -26,6 +26,10 @@ const CACHE_PAGES = `${VERSION}-pages`;
 const COQUILLE = [
   "/caisse/",
   "/stock/",
+  // L'aide est mise de côté avec le reste, et c'est le moment où elle sert le
+  // plus : réseau tombé, caissier seul au comptoir, et aucune manière d'aller
+  // chercher la réponse ailleurs. Une page entière, une seule entrée de cache.
+  "/aide/",
   "/static/css/hypermarche.css",
   "/static/js/hors-ligne.js",
   "/static/js/imprimante.js",

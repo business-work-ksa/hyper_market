@@ -7,6 +7,10 @@
 > **Comment il est organisé :** par **journée de travail**, pas par menu. Un manuel qui suit la
 > barre de navigation est une liste de boutons ; celui-ci suit ce qu'on fait réellement, dans
 > l'ordre où on le fait.
+>
+> **Et dans le logiciel :** le bouton ⓘ de l'en-tête de chaque écran ouvre l'aide de cet
+> écran-là — brève, et disponible même sans réseau. Ce manuel-ci est l'autre moitié : il se lit
+> une fois, posément. L'aide en ligne répond debout, au milieu d'un geste.
 
 ---
 

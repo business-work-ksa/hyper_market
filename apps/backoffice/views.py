@@ -32,6 +32,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from apps.accounting.services import balance, solde_compte
+from apps.backoffice import aide as aide_en_ligne
 from apps.accounts import limitation
 from apps.accounts import permissions as droit
 from apps.accounts.permissions import droits_de
@@ -185,6 +186,34 @@ def connexion(request):
 def deconnexion(request):
     logout(request)
     return redirect("connexion")
+
+
+# ----------------------------------------------------------------------------
+# Aide en ligne
+# ----------------------------------------------------------------------------
+@exige()
+def aide(request):
+    """L'aide de tous les écrans que cette personne peut ouvrir.
+
+    `@exige()` sans argument : il faut être connecté et rattaché à une boutique,
+    rien de plus. Le filtrage se fait fiche par fiche — expliquer un écran qu'on
+    ne peut pas ouvrir est une promesse qui ne sera pas tenue, et cacher toute
+    l'aide à un caissier serait l'excès inverse.
+
+    La page est **entière**, avec une ancre par écran, plutôt qu'une fiche par
+    adresse. Deux raisons : le bouton « ? » d'un écran y saute directement, et
+    une seule page se met en cache pour le mode hors ligne — c'est-à-dire
+    exactement au moment où l'aide sert le plus, quand le réseau est tombé et
+    que personne ne peut chercher ailleurs.
+    """
+    contexte = contexte_commun(request, "aide")
+    contexte.update(
+        {
+            "fiches": aide_en_ligne.fiches_pour(contexte["droits"], contexte["metier"]),
+            "depuis": request.GET.get("de", ""),
+        }
+    )
+    return render(request, "aide.html", contexte)
 
 
 # ----------------------------------------------------------------------------

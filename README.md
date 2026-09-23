@@ -71,7 +71,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 652 tests
+make tester                     # 676 tests
 ```
 
 ## Mettre en ligne
@@ -130,6 +130,13 @@ mouvements — n'offrent rien d'autre que les filtres, et disent pourquoi.
 Les filtres vivent **dans l'adresse de la page** : elle se partage, se met en
 favori, et survit à un retour arrière. Deux personnes qui ouvrent le même lien
 voient la même liste.
+
+Chaque écran porte un bouton **ⓘ** qui ouvre son aide — filtrée par vos droits
+et votre métier, comme l'écran lui-même : une caissière n'y lit pas comment
+recevoir de la marchandise, une quincaillerie n'y lit pas l'ordonnancier.
+L'aide est mise de côté pour le **mode hors ligne**, parce que c'est là qu'elle
+sert le plus. Le [manuel complet](docs/21-manuel-utilisation.md) est l'autre
+moitié, en [PDF imprimable](docs/manuel-hypermarche.pdf).
 
 ## Dix métiers, dix logiciels
 
@@ -341,6 +348,8 @@ de l'hébergement, reste ouverte parce qu'il lui manque un fait juridique et non
 - [x] **Mise en ligne** — image de production, pile `docker compose`, intégration continue sur
   PostgreSQL 16 ; le démarrage **refuse de servir** si l'isolation au niveau ligne n'est pas en
   place *(l'hébergeur reste à choisir — [ADR-008](docs/adr/008-localisation-de-l-hebergement.md))*
+- [x] **Aide en ligne** — une fiche par écran, filtrée par les droits et le métier comme l'écran
+  lui-même, disponible hors ligne ; plus le manuel complet et sa version imprimable
 - [x] **Durcissement** — essais de mot de passe freinés par compte, téléversement d'image borné,
   réponses comprimées ; chaque défaut reproduit avant correction et tenu par un test
   *(le détail chiffré est en [docs/20](docs/20-deploiement.md), §8)*

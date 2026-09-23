@@ -120,6 +120,23 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         {% block actions_entete %}{% endblock %}
 
         {% comment %}
+        Le « ? » de l'écran courant, posé ici une fois plutôt que dans chaque
+        gabarit : un bouton d'aide qu'il faut penser à ajouter finit par manquer
+        précisément sur l'écran le moins évident.
+
+        Il emporte l'adresse d'où l'on vient, pour que « Retour » ramène au bon
+        endroit, et l'ancre de l'écran pour ouvrir directement la bonne fiche.
+        Il n'apparaît pas sur l'aide elle-même.
+        {% endcomment %}
+        {% if page and page != 'aide' %}
+          <a class="btn btn--icone btn--discret" aria-label="Aide sur cet écran"
+             title="Aide sur cet écran"
+             href="{% url 'aide' %}?de={{ request.get_full_path|urlencode }}#{{ page }}">
+            <svg><use href="#ic-info"></use></svg>
+          </a>
+        {% endif %}
+
+        {% comment %}
         Le sélecteur n'apparaît qu'à partir de deux dépôts : un commerçant qui
         n'en a qu'un n'a pas à choisir chaque matin entre une seule option. Ce
         qu'il désigne ici, c'est le dépôt d'exploitation — celui où l'on encaisse,

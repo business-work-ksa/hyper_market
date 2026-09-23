@@ -19,6 +19,7 @@ urlpatterns = [
     path("connexion/", views.connexion, name="connexion"),
     path("deconnexion/", views.deconnexion, name="deconnexion"),
     path("depot/", views.choisir_depot, name="choisir_depot"),
+    path("aide/", views.aide, name="aide"),
 
     path("caisse/", views.caisse, name="caisse"),
     path("caisse/encaisser/", views.caisse_encaisser, name="caisse_encaisser"),

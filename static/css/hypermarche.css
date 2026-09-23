@@ -1311,6 +1311,52 @@ body.vitrine { background: var(--plan); }
   padding: 10px 12px; word-break: break-all; user-select: all;
 }
 
+/* ---------------------------------------------------------------------------
+   Aide en ligne
+   --------------------------------------------------------------------------- */
+
+/* Le sommaire : des pastilles cliquables plutôt qu'une liste à puces. Sur un
+   téléphone, une liste de onze liens verticaux occupe tout l'écran avant que la
+   première fiche apparaisse. */
+.aide-sommaire { display: flex; flex-wrap: wrap; gap: 7px; }
+.aide-sommaire__lien {
+  display: inline-flex; align-items: center;
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--filet-fort);
+  background: var(--surface-creuse);
+  font-size: 12.5px; font-weight: 560; color: var(--encre-2);
+  text-decoration: none;
+}
+.aide-sommaire__lien:hover {
+  border-color: var(--marque); color: var(--marque); background: var(--marque-teinte);
+}
+
+/* La fiche visée par l'ancre se signale un instant : arriver au milieu d'une
+   page longue sans savoir laquelle des dix cartes on cherchait est le défaut
+   habituel des aides à ancres. */
+.aide-fiche:target {
+  outline: 2px solid var(--marque);
+  outline-offset: 3px;
+  scroll-margin-top: 16px;
+}
+
+/* Les gestes : deux colonnes, le « quand » en tête de ligne. Pas d'en-tête de
+   tableau — il n'y a rien à trier, et « Quand / Quoi » n'apprendrait rien. */
+.aide-gestes th {
+  width: 30%; min-width: 108px;
+  color: var(--marque-appui); font-weight: 620;
+  text-align: left; vertical-align: top;
+  background: none;
+}
+.aide-gestes td { vertical-align: top; }
+
+@media (max-width: 560px) {
+  /* En dessous, la colonne de droite tombe sous les deux mots du « quand ». */
+  .aide-gestes th, .aide-gestes td { display: block; width: auto; }
+  .aide-gestes th { border-bottom: 0; padding-bottom: 0; }
+  .aide-gestes td { padding-top: 2px; }
+}
+
 @media print {
   .rail, .bandeau__actions, .btn { display: none !important; }
   body { background: #fff; }

@@ -99,6 +99,14 @@ except Exception as erreur:
                 echo "  provisionnée ne change jamais de région. Il faut la recréer," >&2
                 echo "  donc lui donner un nom neuf dans le blueprint, ou la supprimer" >&2
                 echo "  avant de réappliquer." >&2
+                echo "" >&2
+                echo "  Et si l'adresse ci-dessus est **inchangée** depuis votre" >&2
+                echo "  dernière modification du blueprint : le blueprint n'a pas été" >&2
+                echo "  resynchronisé. Un simple redéploiement reconstruit le code et" >&2
+                echo "  **conserve les variables d'environnement** posées lors de la" >&2
+                echo "  dernière application. Le nom d'hôte de la base en fait partie." >&2
+                echo "  Cherchez « Sync » ou « Apply » sur le blueprint lui-même, pas" >&2
+                echo "  sur le service." >&2
             fi
             exit 1
         fi

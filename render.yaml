@@ -28,6 +28,14 @@ databases:
     user: hypermarche
     plan: free
     postgresMajorVersion: "16"
+    # **La même région que le service web, et ce n'est pas un détail de latence.**
+    # La chaîne de connexion fournie par `fromDatabase` est l'adresse *interne*
+    # de la base, et ce réseau interne ne franchit pas les régions. Une base
+    # laissée à la région par défaut pendant que le service est à Francfort
+    # produit exactement ceci : un démarrage qui attend soixante secondes, puis
+    # « la base de données ne répond pas ». Rien dans le message ne désigne la
+    # région, et c'est pourtant toute la cause.
+    region: frankfurt
 
 services:
   - type: web

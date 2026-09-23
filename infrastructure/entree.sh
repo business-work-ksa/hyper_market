@@ -8,12 +8,34 @@
 # que les migrations qui les installent ne sont pas passées.
 set -eu
 
+# Décrit la base visée **sans son mot de passe**. Un message d'échec qui ne dit
+# pas à quoi on a essayé de se connecter oblige à deviner ; un message qui
+# recopie `DATABASE_URL` en entier écrit le mot de passe dans les journaux de
+# l'hébergeur, qui sont conservés et souvent partagés.
+ou_va_t_on() {
+    python - <<'PY' 2>/dev/null || echo "DATABASE_URL illisible"
+import os
+from urllib.parse import urlparse
+
+u = urlparse(os.environ.get("DATABASE_URL", ""))
+print(f"{u.hostname or '?'}:{u.port or 5432}, base « {(u.path or '/?')[1:]} », rôle « {u.username or '?'} »")
+PY
+}
+
 attendre_la_base() {
     # Sans cette attente, un `docker compose up` démarre l'application avant
     # PostgreSQL, les migrations échouent, le conteneur redémarre, et le journal
     # se remplit d'une erreur de connexion qui ressemble à une panne alors que
     # c'est une course au démarrage.
+    #
+    # L'erreur de chaque tentative est mise de côté plutôt que jetée : pendant
+    # l'attente elle n'apprend rien — la base démarre, c'est normal — mais si
+    # l'attente échoue, elle est **toute** l'information. Une version
+    # précédente la supprimait, et le seul message restant était « la base ne
+    # répond pas » : vrai, et inutilisable. Un nom d'hôte qui ne résout pas et
+    # une base encore en cours de création donnent alors la même phrase.
     essai=0
+    derniere=/tmp/derniere-erreur-base
     until python -c "
 import sys
 
@@ -27,10 +49,17 @@ try:
 except Exception as erreur:
     print(erreur, file=sys.stderr)
     sys.exit(1)
-" 2>/dev/null; do
+" 2>"$derniere"; do
         essai=$((essai + 1))
         if [ "$essai" -ge 30 ]; then
             echo "La base de données ne répond pas après 60 secondes." >&2
+            echo "  Adresse visée : $(ou_va_t_on)" >&2
+            echo "  Dernière erreur :" >&2
+            sed 's/^/    /' "$derniere" >&2
+            echo "  Si l'hôte ne résout pas : chez la plupart des hébergeurs, la" >&2
+            echo "  chaîne fournie est une adresse interne, et le réseau interne" >&2
+            echo "  ne franchit pas les régions. Vérifiez que la base et le" >&2
+            echo "  service sont dans la même." >&2
             exit 1
         fi
         sleep 2

@@ -3,7 +3,7 @@ PY := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
 .PHONY: installer migrer referentiels demo servir tester verifier securite \
-        image deployer journal arreter propre
+        image deployer journal arreter manuel propre
 
 installer:            ## Crée l'environnement virtuel et installe les dépendances
 	python3 -m venv $(VENV)
@@ -31,6 +31,10 @@ verifier:             ## Contrôles de cohérence Django + migrations manquantes
 
 securite:             ## Vérifie que l'isolation au niveau ligne est réellement active
 	$(PY) manage.py verifier_rls
+
+manuel:               ## Recompose le manuel d'utilisation en PDF (docs/manuel-hypermarche.pdf)
+	$(PY) -c "import weasyprint" 2>/dev/null || $(PIP) install -r outils/requirements.txt
+	$(PY) outils/manuel_pdf.py
 
 # ---------------------------------------------------------------------------
 # Production — voir docs/20-deploiement.md

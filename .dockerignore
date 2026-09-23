@@ -39,6 +39,8 @@ db.sqlite3
 # par l'application. Il reste dans le dépôt, qui est sa place.
 docs
 tests
+# Fabrication du manuel : ne sert que sur un poste de travail.
+outils
 README.md
 Makefile
 docker-compose.yml

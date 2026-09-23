@@ -52,7 +52,7 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 18 | [Produit du palier 1](docs/18-produit-palier-1.md) | Le plan raffiné : les écrans et leurs critères, l'installation en 90 minutes, le mode hors ligne |
 | 19 | [Système de design](docs/19-systeme-de-design.md) | Jetons validés, règles de visualisation, pièges rencontrés |
 | 20 | [Déploiement](docs/20-deploiement.md) | Mise en ligne sur une machine, variables qui décident, ce que le démarrage refuse |
-| 21 | [Manuel d'utilisation](docs/21-manuel-utilisation.md) | **Pour le commerçant et son équipe** : la journée d'un caissier, d'un magasinier, d'un gérant ; ce que le logiciel refuse de faire et pourquoi |
+| 21 | [Manuel d'utilisation](docs/21-manuel-utilisation.md) | **Pour le commerçant et son équipe** : la journée d'un caissier, d'un magasinier, d'un gérant ; ce que le logiciel refuse de faire et pourquoi — [version PDF imprimable](docs/manuel-hypermarche.pdf), `make manuel` |
 
 > **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
 > réglementés : la [validation terrain](docs/15-plan-de-validation-terrain.md) (jalon G0) et le

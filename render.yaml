@@ -43,27 +43,38 @@ services:
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
 
-    # Les trois gestes de `infrastructure/entree.sh`, plus le garnissage. La
-    # vérification de l'isolation au niveau ligne reste en place : si le rôle
-    # fourni par l'hébergeur contournait les politiques, le service refuserait
-    # de démarrer plutôt que de servir des données mélangées.
+    # Migrations, vérification de l'isolation et garnissage sont **dans le
+    # démarrage**, et non dans un `preDeployCommand` : l'offre gratuite ne
+    # connaît pas ce champ et rejette le blueprint qui l'emploie.
     #
-    # `preparer_demo` ne fait rien quand des boutiques existent déjà — donc rien
-    # à tous les réveils sauf le premier.
-    preDeployCommand: |
-      python manage.py migrate --noinput
-      python manage.py verifier_rls
-      python manage.py preparer_demo
-
+    # Ce n'est pas un pis-aller. `infrastructure/entree.sh` est l'entrée déjà
+    # écrite pour la production : elle attend la base, migre, puis lance
+    # `verifier_rls` et **s'arrête** si une table scopée n'a pas sa politique.
+    # La réutiliser ici évite d'écrire une seconde séquence qui divergerait de
+    # la première — et surtout, une suite de commandes posée à la main dans ce
+    # champ ne s'arrêterait pas à la première erreur : `verifier_rls` pourrait
+    # échouer et gunicorn démarrer quand même, servant des données que rien
+    # n'isole. Le script, lui, est en `set -e`.
+    #
+    # Ces gestes se rejouent à chaque réveil, et c'est sans effet : une
+    # migration qui n'a rien à faire coûte quelques requêtes, et `preparer_demo`
+    # ne charge rien dès qu'une boutique existe.
+    #
     # **Un seul `worker`**, et ce n'est pas qu'une affaire de mémoire. Le
     # compteur d'essais de mot de passe vit dans le cache, et sans Redis — absent
     # de l'offre gratuite — ce cache est local au processus. Trois `workers`
     # tiendraient trois compteurs séparés et laisseraient passer trente essais
     # là où dix sont annoncés. Un seul processus, un seul compteur, la limite
     # annoncée est la vraie.
-    startCommand: gunicorn config.wsgi:application --workers 1 --threads 4 --timeout 60 --access-logfile - --error-logfile -
+    startCommand: ./infrastructure/entree.sh gunicorn config.wsgi:application --workers 1 --threads 4 --timeout 60 --access-logfile - --error-logfile -
 
-    healthCheckPath: /connexion/
+    # Pas de `healthCheckPath`, et c'est délibéré. Render appelle cette adresse
+    # **en clair**, sans `X-Forwarded-Proto` ; avec `SECURE_SSL_REDIRECT` à vrai,
+    # l'application répond `301` et le contrôle de santé échoue. Le déploiement
+    # boucle alors sur un service qui fonctionne parfaitement par ailleurs — une
+    # panne qui ne se diagnostique qu'en connaissant ce détail. Sans ce champ,
+    # Render se contente de vérifier que le port écoute, ce qui est exactement
+    # ce qu'on veut savoir.
 
     envVars:
       - key: DATABASE_URL
@@ -92,6 +103,12 @@ services:
       # fonctionne. C'est le but d'une démonstration, et c'est exactement ce
       # qu'il ne faut pas faire ailleurs.
       - key: AFFICHER_COMPTE_DEMO
+        value: "True"
+
+      # Autorise `entree.sh` à charger les six boutiques au premier démarrage.
+      # Absente ailleurs — et `preparer_demo` refuse de toute façon de garnir une
+      # base qui contient déjà une boutique.
+      - key: GARNIR_DEMO
         value: "True"
 
       # Render termine le TLS et transmet `X-Forwarded-Proto` ; Django peut donc

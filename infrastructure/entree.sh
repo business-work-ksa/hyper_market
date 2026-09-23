@@ -54,5 +54,16 @@ python manage.py migrate --noinput
 echo "→ Vérification de l'isolation au niveau ligne"
 python manage.py verifier_rls
 
+# Garnissage, sur les seules instances de démonstration. Hors de là, la variable
+# est absente et pas une ligne n'est écrite.
+#
+# Deux verrous plutôt qu'un, parce que la conséquence d'un oubli serait un jeu de
+# boutiques fictives déversé dans une vraie base : cette variable, **et**
+# `preparer_demo` qui refuse de travailler dès qu'une boutique existe.
+if [ "${GARNIR_DEMO:-}" = "True" ] || [ "${GARNIR_DEMO:-}" = "true" ]; then
+    echo "→ Jeu de démonstration"
+    python manage.py preparer_demo
+fi
+
 echo "→ Démarrage"
 exec "$@"

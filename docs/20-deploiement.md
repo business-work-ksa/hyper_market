@@ -103,6 +103,25 @@ modifier le stock. **Aucune donnée réelle n'a sa place sur cette instance** �
 refuse de garnir une base qui contient déjà des boutiques, pour que cette commande ne puisse pas
 faire de dégât si elle atterrit un jour dans le démarrage d'une vraie.
 
+### Deux pièges de l'offre gratuite, déjà désamorcés
+
+Ils ne se voient pas à la lecture du fichier, et coûtent chacun un déploiement raté.
+
+**`preDeployCommand` n'existe pas sur l'offre gratuite.** Le blueprint qui l'emploie est rejeté
+d'emblée : `pre-deploy command is not supported for free tier services`. Migrations, vérification
+de l'isolation et garnissage sont donc dans le **démarrage**, en réutilisant
+`infrastructure/entree.sh` — l'entrée déjà écrite pour la production.
+
+Ce n'est pas qu'une question de champ disponible. Une suite de commandes posée à la main dans
+`startCommand` ne s'arrête pas à la première erreur : `verifier_rls` pourrait échouer et gunicorn
+démarrer quand même, servant des données que rien n'isole. Le script, lui, est en `set -e` — et
+c'est vérifié : en retirant une politique, le démarrage s'interrompt et le serveur ne répond pas.
+
+**`healthCheckPath` fait échouer le déploiement** quand `SECURE_SSL_REDIRECT` est actif. Render
+appelle cette adresse en clair, sans `X-Forwarded-Proto` ; l'application répond `301`, le contrôle
+de santé n'y voit pas un succès, et le déploiement boucle sur un service qui marche par ailleurs.
+Le champ est donc absent : Render vérifie alors que le port écoute, ce qui est la question utile.
+
 ### Ce que le blueprint fait autrement que la production
 
 | | Machine à soi (§3 et suivants) | Démonstration gratuite |

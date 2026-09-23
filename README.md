@@ -71,7 +71,7 @@ docker compose up -d db redis   # PostgreSQL 16 + Redis
 make migrer
 make demo                       # référentiels + 6 boutiques, 20 jours de ventes
 make servir                     # http://localhost:8000/
-make tester                     # 683 tests
+make tester                     # 685 tests
 ```
 
 ## Mettre en ligne

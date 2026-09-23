@@ -221,6 +221,22 @@ de démonstration et c'est une porte ouverte ailleurs, d'autant que rien n'empê
 gunicorn tient son propre compteur en mémoire, et la limite annoncée est multipliée par leur
 nombre sans que rien ne le signale. `docker-compose.prod.yml` le pose déjà.
 
+**`DATABASE_URL_SECOURS`** — normalement absente. Elle l'emporte sur `DATABASE_URL` quand elle est
+posée, et c'est une porte de sortie, pas une élégance.
+
+Chez un hébergeur qui compose `DATABASE_URL` depuis son fichier de déploiement, cette valeur n'est
+rafraîchie **qu'à la resynchronisation** de ce fichier — pas à un simple redéploiement. Tant que la
+synchronisation n'a pas lieu, le service vise une base qui n'existe plus ou n'a jamais été
+joignable, et **aucune modification du dépôt n'y change rien** : on pousse, on redéploie, et le
+même nom d'hôte revient.
+
+Ajouter une variable, en revanche, marche toujours : un hébergeur peut verrouiller la modification
+d'une valeur qu'il gère, jamais l'ajout d'une nouvelle. D'où ce nom distinct plutôt qu'une
+tentative d'écraser l'autre.
+
+À retirer une fois la situation rétablie. Deux sources pour une même information finissent par
+diverger, et c'est alors celle qu'on avait oubliée qui décide.
+
 **`CONN_MAX_AGE`** — dix minutes par défaut. Django ouvre sinon une connexion neuve à chaque
 requête : imperceptible sur une base locale, ruineux dès que la base est loin, car la poignée de
 main TCP puis TLS se paie en allers-retours réseau. Un écran de stock passe alors de quelques

@@ -143,8 +143,26 @@ TEMPLATES = [
 # --------------------------------------------------------------------------------------
 # Base de données
 # --------------------------------------------------------------------------------------
-if env("DATABASE_URL", default=None):
-    DATABASES = {"default": env.db("DATABASE_URL")}
+# `DATABASE_URL_SECOURS` l'emporte sur `DATABASE_URL` quand elle est posée.
+#
+# Ce n'est pas une élégance, c'est une porte de sortie, et elle a été payée :
+# chez un hébergeur qui compose `DATABASE_URL` à partir de son propre fichier de
+# déploiement, cette valeur n'est **rafraîchie qu'à la resynchronisation** de ce
+# fichier — pas à un simple redéploiement. Tant que la synchronisation n'a pas
+# lieu, le service continue de viser une base qui n'existe plus, ou qui n'a
+# jamais été joignable, et aucune modification du dépôt n'y change rien.
+#
+# Ajouter une variable, en revanche, marche toujours : un hébergeur peut
+# verrouiller la modification d'une valeur qu'il gère, jamais l'ajout d'une
+# nouvelle. D'où ce nom distinct plutôt qu'une tentative d'écraser l'autre.
+#
+# À retirer une fois la situation rétablie : deux sources pour une même
+# information finissent par diverger, et c'est alors celle qu'on avait oubliée
+# qui décide.
+_URL_BASE = env("DATABASE_URL_SECOURS", default="") or env("DATABASE_URL", default="")
+
+if _URL_BASE:
+    DATABASES = {"default": env.db_url_config(_URL_BASE)}
 
     # Connexions réutilisées d'une requête à l'autre. Par défaut Django en ouvre
     # une neuve à chaque requête et la ferme à la fin : sur une base locale cela

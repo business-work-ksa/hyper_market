@@ -24,6 +24,8 @@ annonce déjà ce cas. Ces tests vérifient que c'est vrai, parce qu'un
 commentaire ne s'exécute pas.
 """
 
+import pathlib
+
 from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
@@ -34,6 +36,7 @@ from apps.core.tenancy import contexte_boutique
 from tests import fabrique
 
 MOT_DE_PASSE = "motdepasse-solide"
+RACINE = pathlib.Path(__file__).resolve().parent.parent
 
 
 def rattacher(utilisateur, boutique, code_role=Role.GERANT) -> None:
@@ -126,6 +129,56 @@ class ContexteSurConnexionPersistanteTest(TestCase):
         self.client.get(reverse("connexion"))
 
         self.assertNotIn(str(self.une.pk), reglage_de_session() or "")
+
+
+class SecoursTest(TestCase):
+    """`DATABASE_URL_SECOURS` l'emporte, et c'est une porte de sortie payée cher.
+
+    Chez un hébergeur qui compose `DATABASE_URL` depuis son propre fichier de
+    déploiement, cette valeur n'est rafraîchie qu'à la resynchronisation de ce
+    fichier — pas à un redéploiement. Le service continue alors de viser une
+    base injoignable, et aucune modification du dépôt n'y change rien. Ajouter
+    une variable, en revanche, n'est jamais verrouillé.
+
+    Éprouvé dans un interpréteur séparé : la précédence se joue au chargement du
+    module de réglages, et `override_settings` arrive trop tard pour la voir.
+    """
+
+    def hote_obtenu(self, **variables):
+        import os
+        import subprocess
+        import sys
+
+        code = (
+            "import django, os; "
+            "os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); "
+            "django.setup(); "
+            "from django.db import connection; "
+            "print(connection.settings_dict['HOST'])"
+        )
+        milieu = {**os.environ, **variables}
+        # Le `.env` du poste de travail contient parfois une autre base : on
+        # neutralise ce qui n'est pas explicitement demandé par le test.
+        milieu.pop("DATABASE_URL_SECOURS", None)
+        milieu.update(variables)
+        sortie = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(RACINE), env=milieu, capture_output=True, text=True, timeout=90,
+        )
+        return sortie.stdout.strip().splitlines()[-1] if sortie.stdout.strip() else ""
+
+    def test_sans_secours_c_est_database_url_qui_decide(self):
+        hote = self.hote_obtenu(
+            DATABASE_URL="postgres://u:p@hote-attendu.example:5432/base"
+        )
+        self.assertEqual(hote, "hote-attendu.example")
+
+    def test_le_secours_supplante_database_url(self):
+        hote = self.hote_obtenu(
+            DATABASE_URL="postgres://u:p@hote-impose-par-l-hebergeur:5432/base",
+            DATABASE_URL_SECOURS="postgres://u:p@hote-choisi.example:5432/base",
+        )
+        self.assertEqual(hote, "hote-choisi.example")
 
 
 class ReglageTest(TestCase):

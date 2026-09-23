@@ -23,18 +23,26 @@
 # le service, et fabrique lui-même les secrets marqués `generateValue`.
 
 databases:
-  - name: hypermarche-base
+  # Le nom porte la région, et ce n'est pas de la coquetterie : l'hébergeur
+  # apparie les ressources d'un blueprint **par leur nom**, et il ne déplace
+  # jamais une base déjà provisionnée. Ajouter `region:` à une base existante ne
+  # fait donc rien du tout — le réglage est lu, accepté, et sans effet.
+  #
+  # C'est ce qui s'est produit ici : une première base créée sans région (donc
+  # ailleurs) pendant que le service partait à Francfort, puis trois
+  # déploiements à se demander pourquoi l'hôte ne résolvait pas. Changer le nom
+  # est la seule manière d'obtenir une base neuve au bon endroit.
+  #
+  # Si la région doit changer un jour, changez ce nom en même temps.
+  - name: hypermarche-base-fra
     databaseName: hypermarche
     user: hypermarche
     plan: free
     postgresMajorVersion: "16"
     # **La même région que le service web, et ce n'est pas un détail de latence.**
-    # La chaîne de connexion fournie par `fromDatabase` est l'adresse *interne*
-    # de la base, et ce réseau interne ne franchit pas les régions. Une base
-    # laissée à la région par défaut pendant que le service est à Francfort
-    # produit exactement ceci : un démarrage qui attend soixante secondes, puis
-    # « la base de données ne répond pas ». Rien dans le message ne désigne la
-    # région, et c'est pourtant toute la cause.
+    # La chaîne fournie par `fromDatabase` est l'adresse *interne* de la base, et
+    # ce réseau interne ne franchit pas les régions : d'une région à l'autre, le
+    # nom d'hôte ne résout même pas.
     region: frankfurt
 
 services:
@@ -87,7 +95,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: hypermarche-base
+          name: hypermarche-base-fra
           property: connectionString
 
       # Fabriquée par Render, jamais vue par personne et jamais versionnée.

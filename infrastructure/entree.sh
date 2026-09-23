@@ -93,9 +93,12 @@ except Exception as erreur:
             # chercher une région alors que la configuration manquait.
             if grep -q "resolve\|Name or service not known\|Temporary failure" "$derniere"; then
                 echo "  L'hôte ne résout pas. Chez la plupart des hébergeurs, la chaîne" >&2
-                echo "  fournie est une adresse interne, et le réseau interne ne" >&2
-                echo "  franchit pas les régions : vérifiez que la base et le service" >&2
-                echo "  sont dans la même." >&2
+                echo "  fournie est une adresse interne, et ce réseau ne franchit pas" >&2
+                echo "  les régions : la base et le service doivent être dans la même." >&2
+                echo "  Attention, corriger le fichier ne suffit pas — une base déjà" >&2
+                echo "  provisionnée ne change jamais de région. Il faut la recréer," >&2
+                echo "  donc lui donner un nom neuf dans le blueprint, ou la supprimer" >&2
+                echo "  avant de réappliquer." >&2
             fi
             exit 1
         fi

@@ -137,6 +137,21 @@ appelle cette adresse en clair, sans `X-Forwarded-Proto` ; l'application répond
 de santé n'y voit pas un succès, et le déploiement boucle sur un service qui marche par ailleurs.
 Le champ est donc absent : Render vérifie alors que le port écoute, ce qui est la question utile.
 
+### Le piège de la région, qui coûte plusieurs déploiements
+
+Render apparie les ressources d'un blueprint **par leur nom**, et il ne déplace **jamais** une base
+déjà provisionnée. Ajouter `region:` à une base qui existe déjà est donc sans effet : le réglage
+est lu, accepté, et ignoré.
+
+Conséquence, vécue ici sur quatre déploiements : une base créée sans région (donc à la région par
+défaut) pendant que le service part à Francfort, un nom d'hôte interne qui ne résout pas d'une
+région à l'autre, et un message qui accuse la base sans nommer la cause.
+
+**Pour changer la région d'une base, il faut la recréer** — c'est-à-dire lui donner un nom neuf
+dans le blueprint, ou la supprimer avant de réappliquer. C'est pourquoi la base s'appelle ici
+`hypermarche-base-fra` : le nom porte la région, pour que le jour où elle change, le nom change
+avec elle.
+
 ### Ce que le blueprint fait autrement que la production
 
 | | Machine à soi (§3 et suivants) | Démonstration gratuite |

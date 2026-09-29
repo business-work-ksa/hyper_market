@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "installCommand": "pip install --disable-pip-version-check -r requirements.txt",
   "buildCommand": "mkdir -p sortie_vide && : > sortie_vide/.vide && python3 manage.py collectstatic --noinput && python3 manage.py migrate --noinput && python3 manage.py verifier_rls",
   "outputDirectory": "sortie_vide",
   "regions": [

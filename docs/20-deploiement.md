@@ -236,14 +236,29 @@ python3 manage.py preparer_demo     # sur une base joignable, sans délai au-des
 Sans terminal sur la plateforme, cela se fait en posant temporairement cette commande seule comme
 commande de construction, le temps d'un déploiement — puis en la retirant.
 
-**L'installation des dépendances est déclarée à la main.** Le dépôt contient un `package.json` —
-l'outillage de capture d'écran, avec Playwright et un navigateur complet en dépendance de
-développement. Laissé à sa détection, l'hébergeur y voit un projet Node, installe trois cents
-mégaoctets de navigateur, et n'installe pas Django. `installCommand` nomme donc explicitement
-`pip install -r requirements.txt`, et `.vercelignore` écarte du téléversement ce qui n'a rien à
-faire dans une fonction : `node_modules`, les captures, les médias, la documentation, les tests.
-`static/` reste, lui, parce que `collectstatic` tourne à la construction et le lit — ce fichier
-écarte de la machine de construction, pas seulement de la fonction.
+**L'installation des dépendances est déclarée à la main**, et il faut **deux** choses pour qu'elle
+marche. `installCommand` nomme explicitement `pip install -r requirements.txt` ; et
+`PIP_BREAK_SYSTEM_PACKAGES=1` est posé en variable du projet.
+
+Sans la première, l'hébergeur installe à sa façon, dans un répertoire à lui — et `psycopg` n'y est
+pas importable : la construction meurt sur `Error loading psycopg2 or psycopg module`. (Le dépôt
+contient en plus un `package.json`, l'outillage de capture d'écran, avec Playwright et un navigateur
+complet en dépendance de développement ; laissé à sa détection, l'hébergeur peut y voir un projet
+Node et installer trois cents mégaoctets de navigateur au lieu de Django.)
+
+Sans la seconde, l'interpréteur de l'image est marqué « géré par le système » (PEP 668) et pip
+**refuse d'installer**, en deux secondes, avec un code de sortie 1 — l'erreur que la plateforme
+rapporte alors ne dit que `pip install … exited with 1`, ce qui laisse croire à un problème de
+dépendances. Ce n'en est pas un.
+
+Les deux ensemble, et les vingt-sept paquets s'installent. L'une sans l'autre, la construction
+échoue — et pour deux raisons opposées, ce qui est exactement le genre de piège où l'on corrige la
+première en cassant la seconde.
+
+`.vercelignore` écarte du téléversement ce qui n'a rien à faire dans une fonction : `node_modules`,
+les captures, les médias, la documentation, les tests. `static/` reste, lui, parce que
+`collectstatic` tourne à la construction et le lit — ce fichier écarte de la machine de
+construction, pas seulement de la fonction.
 
 **Le répertoire de sortie est vide, et il doit exister.** Sans `outputDirectory` déclaré, la
 plateforme cherche `public/`, ne le trouve pas, et **se replie sur la racine du dépôt** : `manage.py`

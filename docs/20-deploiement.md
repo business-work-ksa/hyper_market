@@ -203,9 +203,38 @@ verse les deux variables que la plateforme fournit : celle de *ce* déploiement 
 la production. Servir l'une sans l'autre casse soit les prévisualisations, soit le domaine principal.
 
 **Les migrations tournent à la construction, pas au démarrage.** Il n'y a pas de démarrage : une
-fonction sans serveur n'a pas de hook d'entrée où poser `entree.sh`. Migrations, vérification de
-l'isolation et garnissage sont donc dans le `buildCommand` — enchaînés en `&&`, ce qui suffit ici :
-une construction qui échoue n'est pas déployée.
+fonction sans serveur n'a pas de hook d'entrée où poser `entree.sh`. Migrations et vérification de
+l'isolation sont donc dans le `buildCommand` — enchaînées en `&&`, ce qui suffit ici : une
+construction qui échoue n'est pas déployée.
+
+**Le garnissage de la démonstration, lui, n'y est pas**, et c'est une leçon payée trois quarts
+d'heure. Mesuré : `migrate` prend 10 s, `verifier_rls` moins d'une seconde, et `preparer_demo`
+**plus de neuf mille requêtes** — 78 s sur un socket local, quarante minutes sans finir contre une
+base PostgreSQL gratuite au CPU bridé.
+
+Ces neuf mille requêtes ne sont pas du gaspillage, c'est le choix de conception : le jeu de
+démonstration passe par les **vrais** services de vente et de comptabilité, une écriture à la fois,
+pour que le journal comptable soit cohérent et que les écrans montrent des chiffres qui s'additionnent
+vraiment. Les remplacer par des insertions en masse contournerait `save()`, les signaux et le
+déclencheur du journal en ajout-seul : la démonstration serait rapide et le grand livre faux.
+
+Deux faits rendent donc la construction le mauvais endroit :
+
+* elle a un **délai maximal** (quarante-cinq minutes ici), et une étape qui peut le dépasser n'a
+  rien à y faire ;
+* `preparer_demo` **n'est pas transactionnel**. Interrompu, il laisse des boutiques créées et des
+  ventes manquantes — et comme il refuse de travailler sur une base qui contient déjà des boutiques,
+  il ne reprendra jamais où il s'est arrêté. C'est le pire des trois états : pas vide, pas complet,
+  et silencieux.
+
+Il se lance donc **à part et une fois**, quand on décide de le lancer :
+
+```bash
+python3 manage.py preparer_demo     # sur une base joignable, sans délai au-dessus de la tête
+```
+
+Sans terminal sur la plateforme, cela se fait en posant temporairement cette commande seule comme
+commande de construction, le temps d'un déploiement — puis en la retirant.
 
 **L'installation des dépendances est déclarée à la main.** Le dépôt contient un `package.json` —
 l'outillage de capture d'écran, avec Playwright et un navigateur complet en dépendance de

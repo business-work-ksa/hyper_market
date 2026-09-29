@@ -21,6 +21,12 @@ Ce qu'elle casse et qu'aucun réglage ne rattrape : **le disque est éphémère*
 Les logos et photos téléversés disparaissent au redémarrage suivant, qui n'est
 pas annoncé. Acceptable pour une démonstration, disqualifiant pour une vraie
 boutique — voir docs/20.
+
+Ce qu'elle impose enfin : **la construction a un délai maximal**, et le
+garnissage de la démonstration n'y tient pas. Il émet plus de neuf mille
+requêtes — une écriture à la fois, à travers les vrais services, pour que le
+journal comptable soit cohérent — et il n'est pas transactionnel. Il est donc
+lancé à part, jamais dans la construction : voir docs/20, §2 bis.
 """
 
 import os

@@ -234,7 +234,7 @@ PostgreSQL. Le piège décrit plus haut vaut ici aussi, sous une autre forme : u
 et une base en Oregon ajoutent cent cinquante millisecondes à **chaque** requête SQL, et un écran
 qui en fait vingt les paie vingt fois.
 
-Le chemin, sans terminal :
+#### Le chemin par GitHub, sans terminal
 
 1. créer un compte Vercel et y connecter GitHub ;
 2. **Add New → Project**, choisir `Arseneksa/hyper_market`, branche
@@ -245,6 +245,29 @@ Le chemin, sans terminal :
 
 `SECRET_KEY` et `DATABASE_URL` ne sont **jamais** dans le dépôt, ni dans `vercel.json`. Elles se
 posent dans les variables du projet, qui ne sont pas du code.
+
+#### Le chemin par le terminal, quand GitHub n'est pas connecté
+
+Le dépôt est privé. Tant que le compte Vercel n'a pas d'autorisation GitHub valide, l'API répond
+`no_github_account_connected` et **aucun réglage ne contourne cela** : la plateforme ne peut tout
+simplement pas lire le dépôt.
+
+Le CLI, lui, n'en a pas besoin — c'est lui qui téléverse les fichiers, depuis la copie locale :
+
+```bash
+npx vercel login          # ouvre le navigateur, une fois
+npx vercel link --yes --project hypermarche
+npx vercel --prod
+```
+
+Rien d'autre à régler : le projet `hypermarche` porte déjà la région, les commandes d'installation et
+de construction, le répertoire de sortie, et les deux variables chiffrées. `vercel.json` est lu dans
+la copie locale, et `.vercelignore` décide de ce qui monte.
+
+C'est aussi le chemin à connaître pour une raison qui n'a rien à voir avec GitHub : il déploie **ce
+qui est sur le disque**, pas ce qui est poussé. Utile pour éprouver un correctif avant de le pousser,
+dangereux si on l'oublie — un `--prod` depuis une copie modifiée met en ligne quelque chose que le
+dépôt ne contient pas.
 
 ---
 

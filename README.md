@@ -53,6 +53,7 @@ Le dossier complet est dans [`docs/`](docs/). Ordre de lecture conseillé :
 | 19 | [Système de design](docs/19-systeme-de-design.md) | Jetons validés, règles de visualisation, pièges rencontrés |
 | 20 | [Déploiement](docs/20-deploiement.md) | Mise en ligne sur une machine, variables qui décident, ce que le démarrage refuse |
 | 21 | [Manuel d'utilisation](docs/21-manuel-utilisation.md) | **Pour le commerçant et son équipe** : la journée d'un caissier, d'un magasinier, d'un gérant ; ce que le logiciel refuse de faire et pourquoi — [version PDF imprimable](docs/manuel-hypermarche.pdf), `make manuel` |
+| 22 | [Fonctionnalités premium](docs/22-fonctionnalites-premium.md) | Ce qu'on peut vendre au-delà du loyer, à quelle offre, dans quel ordre — et ce qui est écarté, avec la raison |
 
 > **Deux conditions bloquantes** avant d'engager les 400 M FCFA d'amorçage et d'ouvrir les modules
 > réglementés : la [validation terrain](docs/15-plan-de-validation-terrain.md) (jalon G0) et le

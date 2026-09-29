@@ -288,10 +288,10 @@ class DerogationCommissionTest(TestCase):
         from apps.marketplace.models import Bail, TypeEmplacement
 
         boutique = fabrique.creer_boutique("Négociatrice")
-        offre = boutique.offre
+        offre = TypeEmplacement.objects.first()
         bail = Bail(
             boutique=boutique,
-            type_emplacement=TypeEmplacement.objects.first(),
+            type_emplacement=offre,
             loyer_mensuel=Decimal("45000"),
             taux_commission=offre.taux_commission_defaut - Decimal("0.0100"),
         )
@@ -303,10 +303,11 @@ class DerogationCommissionTest(TestCase):
         from apps.marketplace.models import Bail, TypeEmplacement
 
         boutique = fabrique.creer_boutique("Standard")
+        offre = TypeEmplacement.objects.first()
         bail = Bail(
             boutique=boutique,
-            type_emplacement=TypeEmplacement.objects.first(),
+            type_emplacement=offre,
             loyer_mensuel=Decimal("45000"),
-            taux_commission=boutique.offre.taux_commission_defaut,
+            taux_commission=offre.taux_commission_defaut,
         )
         bail.clean()  # ne lève pas

@@ -220,10 +220,13 @@ class Bail(BaseModel):
         """
         from django.core.exceptions import ValidationError
 
-        if self.taux_commission is None:
+        if self.taux_commission is None or self.type_emplacement_id is None:
             return
-        offre = getattr(getattr(self, "boutique", None), "offre", None)
-        reference = getattr(offre, "taux_commission_defaut", None)
+        # La référence est le taux de l'**offre**, que porte le type d'emplacement du bail —
+        # pas la boutique. Une boutique n'a pas d'offre en propre : elle en loue une, et c'est
+        # le bail qui matérialise ce choix. (Premier jet de ce contrôle : `boutique.offre`,
+        # qui n'existe pas. Le test l'a dit avant la production.)
+        reference = self.type_emplacement.taux_commission_defaut
         if reference is None:
             return
         if self.taux_commission != reference and not self.motif_derogation_commission.strip():

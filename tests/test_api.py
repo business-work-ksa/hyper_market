@@ -145,7 +145,18 @@ class IdentiteTest(SocleApi):
         corps = self.appeler(reverse("api:moi"), secret).json()
 
         self.assertEqual(corps["boutique"]["id"], str(self.boutique.pk))
-        self.assertEqual(sorted(corps["droits"]), ["caisse.encaisser", "stock.voir", "ventes.voir"])
+        # La caissière tient aussi le cahier de crédit : c'est elle qui, au comptoir, porte une
+        # vente au cahier d'un habitué et reçoit le versement qui le solde (docs/22, §2.1).
+        self.assertEqual(
+            sorted(corps["droits"]),
+            [
+                "cahier.encaisser",
+                "cahier.voir",
+                "caisse.encaisser",
+                "stock.voir",
+                "ventes.voir",
+            ],
+        )
 
     def test_moi_reste_ouvert_meme_sans_aucun_droit(self):
         """Un client doit pouvoir apprendre qu'il ne peut rien faire."""

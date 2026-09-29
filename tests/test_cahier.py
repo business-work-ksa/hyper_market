@@ -174,7 +174,7 @@ class ComptabiliteDuCahierTest(BaseCahierTest):
         """L'erreur à ne pas commettre : reconstater la vente à l'encaissement."""
         self._vendre_au_cahier("2")
         with contexte_boutique(self.boutique):
-            produits_avant = LigneEcriture.objects.filter(compte__code="701").aggregate(
+            produits_avant = LigneEcriture.objects.filter(compte__numero="701").aggregate(
                 t=Sum("credit")
             )["t"] or Decimal("0")
 
@@ -185,13 +185,13 @@ class ComptabiliteDuCahierTest(BaseCahierTest):
                 recu_par=self.gerant,
             )
 
-            produits_apres = LigneEcriture.objects.filter(compte__code="701").aggregate(
+            produits_apres = LigneEcriture.objects.filter(compte__numero="701").aggregate(
                 t=Sum("credit")
             )["t"] or Decimal("0")
             self.assertEqual(produits_avant, produits_apres, "le règlement a recréé du produit")
 
             # La créance est soldée : 411 débité de 10 000 à la vente, crédité de 10 000 ici.
-            lignes_411 = LigneEcriture.objects.filter(compte__code="411")
+            lignes_411 = LigneEcriture.objects.filter(compte__numero="411")
             debit = lignes_411.aggregate(t=Sum("debit"))["t"]
             credit = lignes_411.aggregate(t=Sum("credit"))["t"]
             self.assertEqual(debit - credit, Decimal("0.00"))
@@ -205,7 +205,7 @@ class ComptabiliteDuCahierTest(BaseCahierTest):
                 montant=Decimal("5000"),
                 recu_par=self.gerant,
             )
-            caisse = LigneEcriture.objects.filter(compte__code="571").aggregate(
+            caisse = LigneEcriture.objects.filter(compte__numero="571").aggregate(
                 t=Sum("debit")
             )["t"]
             self.assertEqual(caisse, Decimal("5000.00"))

@@ -113,6 +113,56 @@ JOURS_PEREMPTION = 30
 # ----------------------------------------------------------------------------
 # Authentification
 # ----------------------------------------------------------------------------
+
+def compte_de_demonstration():
+    """Les identifiants de démonstration, **s'ils existent réellement**.
+
+    Le gabarit de connexion les affichait en dur. Une page qui promet
+    « +237699110011 · demo1234 » sur une instance dont le jeu de démonstration n'a pas
+    été chargé invite le visiteur à échouer, puis à croire que l'application est cassée
+    — ce qui est exactement le contraire du but d'une démonstration.
+
+    On vérifie donc trois choses, parce que chacune a manqué au moins une fois : que le
+    compte existe, qu'il est actif, et qu'il est rattaché à une boutique. Le mot de passe
+    ne se relit pas (il est haché) : c'est une constante du jeu de démonstration, nommée
+    là où il est créé.
+
+    Renvoie `None` quand il n'y a rien à promettre, et la vue affiche alors qu'il faut
+    charger la démonstration plutôt qu'un identifiant qui ne marche pas.
+    """
+    from apps.accounts.models import Utilisateur
+    from apps.core.tenancy import contexte_plateforme
+    from apps.marketplace.management.commands.charger_demo import (
+        MOT_DE_PASSE_DEMO,
+        TELEPHONE_DEMO,
+    )
+
+    if not settings.AFFICHER_COMPTE_DEMO:
+        return None
+
+    # ACCES_PLATEFORME_PUBLIC_JUSTIFIE — dérogation à l'ADR-012. L'appelant est un
+    # visiteur anonyme sur la page de connexion publique ; il n'y a pas de demandeur
+    # humain identifiable à journaliser, et une ligne de journal par affichage de la
+    # page de connexion serait du bruit. On ne lit d'ailleurs que le nom d'une boutique
+    # de démonstration, dont les identifiants sont publics par construction.
+    with contexte_plateforme():
+        compte = (
+            Utilisateur.objects.filter(telephone=TELEPHONE_DEMO, is_active=True)
+            .prefetch_related("appartenances__boutique")
+            .first()
+        )
+        if compte is None:
+            return None
+        appartenance = compte.appartenances.filter(actif=True).first()
+        if appartenance is None:
+            return None
+        return {
+            "telephone": TELEPHONE_DEMO,
+            "mot_de_passe": MOT_DE_PASSE_DEMO,
+            "boutique": appartenance.boutique.raison_sociale,
+            "ville": appartenance.boutique.ville,
+        }
+
 def connexion(request):
     if request.method == "POST":
         telephone = (request.POST.get("telephone") or "").strip()
@@ -131,7 +181,7 @@ def connexion(request):
                         "le compte se rouvrira tout seul."
                     ),
                     "telephone": telephone,
-                    "montrer_demo": settings.AFFICHER_COMPTE_DEMO,
+                    "demo": compte_de_demonstration(),
                 },
                 status=429,
             )
@@ -150,7 +200,7 @@ def connexion(request):
                 {
                     "erreur": "Numéro ou mot de passe incorrect.",
                     "telephone": telephone,
-                    "montrer_demo": settings.AFFICHER_COMPTE_DEMO,
+                    "demo": compte_de_demonstration(),
                 },
                 status=401,
             )
@@ -165,7 +215,7 @@ def connexion(request):
                 "connexion.html",
                 {
                     "erreur": "Ce compte n'est rattaché à aucune boutique active.",
-                    "montrer_demo": settings.AFFICHER_COMPTE_DEMO,
+                    "demo": compte_de_demonstration(),
                 },
                 status=403,
             )
@@ -179,7 +229,7 @@ def connexion(request):
         return redirect(page_d_accueil(droits))
 
     return render(
-        request, "connexion.html", {"montrer_demo": settings.AFFICHER_COMPTE_DEMO}
+        request, "connexion.html", {"demo": compte_de_demonstration()}
     )
 
 

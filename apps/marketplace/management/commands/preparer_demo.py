@@ -30,6 +30,19 @@ from apps.marketplace.models import Boutique
 class Command(BaseCommand):
     help = "Charge le jeu de démonstration si, et seulement si, la base est vierge."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--jours",
+            type=int,
+            default=None,
+            help=(
+                "Transmis à `charger_demo`. Sert à charger un jeu plus court quand la base "
+                "est lente : vingt jours de ventes simulées représentent plus de neuf mille "
+                "requêtes, et une construction sans serveur a un délai maximal. Voir "
+                "docs/20, §2 bis."
+            ),
+        )
+
     def handle(self, *args, **options):
         with contexte_plateforme():
             deja = Boutique.objects.exists()
@@ -42,5 +55,8 @@ class Command(BaseCommand):
 
         self.stdout.write("Base vierge — chargement du jeu de démonstration.")
         call_command("initialiser_referentiels")
-        call_command("charger_demo")
+        if options["jours"] is None:
+            call_command("charger_demo")
+        else:
+            call_command("charger_demo", jours=options["jours"])
         self.stdout.write(self.style.SUCCESS("Démonstration prête."))

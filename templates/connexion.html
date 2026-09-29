@@ -78,11 +78,17 @@
         <button class="btn btn--primaire btn--grand btn--bloc" type="submit">Ouvrir ma boutique</button>
       </form>
 
-      {% if montrer_demo %}
+      {% if demo %}
         {% comment %}
         Des identifiants qui fonctionnent, affichés à qui n'est pas connecté :
         utile sur une démonstration, ouvert en production. La vue ne compose ce
         bloc que si `AFFICHER_COMPTE_DEMO` le dit — et son défaut suit `DEBUG`.
+
+        Ils étaient écrits **en dur ici**, ce qui promettait un compte sans jamais
+        vérifier qu'il existe : sur une instance dont le jeu de démonstration n'a pas
+        été chargé, la page invitait le visiteur à échouer, puis à croire que
+        l'application est cassée. La vue les lit maintenant en base, et n'affiche ce
+        bloc que si le compte existe, est actif et est rattaché à une boutique.
 
         Bloc « comment » et non accolade-dièse : cette seconde forme ne tient
         **que sur une ligne**. Ouverte sur plusieurs, Django ne la reconnaît pas
@@ -92,7 +98,7 @@
           <svg><use href="#ic-info"></use></svg>
           <div class="pile-sm">
             <span style="font-weight:580">Démonstration</span>
-            <span class="t-legende chiffre">+237699110011 · demo1234 — Quincaillerie Ateba, Douala</span>
+            <span class="t-legende chiffre">{{ demo.telephone }} · {{ demo.mot_de_passe }} — {{ demo.boutique }}, {{ demo.ville }}</span>
           </div>
         </div>
       {% endif %}

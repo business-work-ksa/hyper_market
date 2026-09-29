@@ -36,6 +36,13 @@ from apps.pos.models import Ticket
 
 JOURS_HISTORIQUE = 20
 
+# Identifiants du jeu de démonstration, nommés une fois. La page de connexion les
+# affiche (`AFFICHER_COMPTE_DEMO`) et doit pouvoir **vérifier qu'ils existent** avant
+# de les promettre : recopier « demo1234 » à quatre endroits garantissait qu'ils
+# divergeraient le jour où l'un changerait.
+TELEPHONE_DEMO = "+237699110011"
+MOT_DE_PASSE_DEMO = "demo1234"
+
 BOUTIQUES = [
     {
         "raison_sociale": "Ateba & Fils SARL",
@@ -323,6 +330,18 @@ class Command(BaseCommand):
             action="store_true",
             help="Supprime les boutiques de démonstration avant de recharger.",
         )
+        parser.add_argument(
+            "--jours",
+            type=int,
+            default=JOURS_HISTORIQUE,
+            help=(
+                "Jours de ventes simulées (défaut : %(default)s). Le volume est un "
+                "paramètre parce qu'il décide du temps de chargement : contre une base "
+                "gratuite au CPU bridé, vingt jours peuvent dépasser le délai maximal "
+                "d'une construction sans serveur, et une démonstration qu'on ne peut pas "
+                "charger ne démontre rien. Voir docs/20, §2 bis."
+            ),
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -334,6 +353,8 @@ class Command(BaseCommand):
                 )
             )
             return
+
+        self._jours = max(0, options["jours"])
 
         if options["reinitialiser"] and not self._reinitialiser():
             return
@@ -432,7 +453,7 @@ class Command(BaseCommand):
             telephone=telephone, defaults={"nom_complet": nom, "telephone_verifie": True}
         )
         if cree:
-            gerant.set_password("demo1234")
+            gerant.set_password(MOT_DE_PASSE_DEMO)
             gerant.save(update_fields=["password"])
 
         rayon = Rayon.objects.get(code=donnees["rayon"])
@@ -482,7 +503,7 @@ class Command(BaseCommand):
                 telephone=telephone, defaults={"nom_complet": nom, "telephone_verifie": True}
             )
             if cree:
-                employe.set_password("demo1234")
+                employe.set_password(MOT_DE_PASSE_DEMO)
                 employe.save(update_fields=["password"])
             Appartenance.objects.get_or_create(
                 utilisateur=employe,
@@ -862,7 +883,7 @@ class Command(BaseCommand):
         moyens = ["especes"] * 6 + ["mobile_money"] * 3 + ["carte"]
         aujourdhui = timezone.localdate()
 
-        for recul in range(JOURS_HISTORIQUE, -1, -1):
+        for recul in range(self._jours, -1, -1):
             jour = aujourdhui - timedelta(days=recul)
             # Les dimanches sont creux, les samedis chargés : une courbe plate
             # ne ressemble à aucun commerce réel.
@@ -962,7 +983,7 @@ class Command(BaseCommand):
                 telephone=telephone, defaults={"nom_complet": nom}
             )
             if cree:
-                utilisateur.set_password("demo1234")
+                utilisateur.set_password(MOT_DE_PASSE_DEMO)
                 utilisateur.save(update_fields=["password"])
             utilisateurs.append(utilisateur)
 

@@ -19,11 +19,14 @@ media
 # fichier écarte du téléversement, donc de la machine de construction, pas
 # seulement de la fonction — l'écarter casserait la construction.
 
+# `infrastructure/` reste : il porte le script de construction, que la plateforme
+# exécute. Le champ `buildCommand` est limité à 256 caractères, et une suite de
+# commandes enchaînée à la main ne se commente pas.
+
 # Documentation, tests, outils de production locale.
 docs
 tests
 outils
-infrastructure
 Dockerfile
 docker-compose.yml
 docker-compose.prod.yml

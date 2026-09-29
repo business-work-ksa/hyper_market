@@ -7,6 +7,7 @@ concrète de la promesse « zéro double saisie » (docs/07, §1.2).
 
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
@@ -109,11 +110,37 @@ def _recalculer_totaux(ticket: Ticket) -> None:
 
 
 def regler(*, ticket: Ticket, moyen: str, montant, reference_psp: str = "") -> ReglementTicket:
+    """Pose un règlement sur un ticket.
+
+    **Un règlement à crédit est refusé sans client identifié, et refusé au-delà du plafond.** Le
+    contrôle est ici, au service, et non dans le formulaire de la caisse : deux chemins mènent à ce
+    geste — le comptoir et l'API — et le mode hors ligne en est un troisième qui ne passe par aucun
+    formulaire. Un plafond qui ne vit qu'à l'écran n'est pas un plafond, c'est une suggestion.
+
+    Le crédit sans client identifié était la situation d'avant le cahier : `ReglementTicket.CREDIT`
+    existait, `Ticket.client_nom` était du texte libre, et « combien me doit cette personne ? »
+    n'avait pas de réponse. On ne peut plus créer cette situation.
+    """
+    montant = Decimal(montant)
+    if moyen == ReglementTicket.CREDIT:
+        from apps.pos.cahier import verifier_plafond
+
+        if ticket.client_id is None:
+            raise ValidationError(
+                {
+                    "client": (
+                        "Une vente à crédit exige un client du cahier : sans lui, personne ne "
+                        "saura qui doit cette somme."
+                    )
+                }
+            )
+        verifier_plafond(ticket.client, montant)
+
     return ReglementTicket.objects_all_tenants.create(
         boutique_id=ticket.boutique_id,
         ticket=ticket,
         moyen=moyen,
-        montant=Decimal(montant),
+        montant=montant,
         reference_psp=reference_psp,
     )
 
@@ -124,6 +151,7 @@ def encaisser(
     lignes,
     moyen: str = ReglementTicket.ESPECES,
     operation_id=None,
+    client=None,
     client_nom: str = "",
     client_telephone: str = "",
     reference_psp: str = "",
@@ -155,11 +183,15 @@ def encaisser(
     """
     panier = [_normaliser_entree(entree) for entree in lignes]
 
+    # Le texte libre est figé à la vente ; quand un client du cahier est donné et que
+    # l'appelant n'a rien saisi, on recopie son nom du moment — pour que le ticket reste
+    # lisible même si le client est renommé plus tard.
     ticket = creer_ticket(
         session=session,
         operation_id=operation_id,
-        client_nom=client_nom[:180],
-        client_telephone=client_telephone[:16],
+        client=client,
+        client_nom=(client_nom or (client.nom if client else ""))[:180],
+        client_telephone=(client_telephone or (client.telephone if client else ""))[:16],
         mention_ordonnance=mention_ordonnance[:180],
     )
     if ticket.etat == Ticket.CLOTURE:

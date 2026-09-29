@@ -28,6 +28,7 @@ __all__ = [
     "comptabiliser_ticket",
     "comptabiliser_vente_en_ligne",
     "comptabiliser_expedition",
+    "comptabiliser_reglement_cahier",
     "balance",
     "solde_compte",
 ]
@@ -482,3 +483,55 @@ def _balance(*, boutique_id=None, jusqu_au=None) -> list[dict]:
         }
         for ligne in agrege
     ]
+
+
+def comptabiliser_reglement_cahier(reglement):
+    """Écriture d'un paiement reçu sur le cahier de crédit d'un client (docs/22, §2.1).
+
+    L'écriture est la plus simple du module, et c'est précisément ce qui la rend juste : la vente au
+    cahier a **déjà** débité le 411 pour la totalité, au moment de la vente — `comptabiliser_ticket`
+    saute les règlements à crédit en le disant (« la créance reste au 411 jusqu'au règlement »).
+
+    Il ne reste donc qu'à solder cette créance quand l'argent arrive :
+
+        débit   trésorerie (caisse, Mobile Money ou banque selon le moyen)
+        crédit  411 Clients
+
+    Rien d'autre. **Pas de produit** : la vente a été constatée en son temps, la reconstater ici
+    doublerait le chiffre d'affaires — c'est l'erreur classique du rapprochement d'encaissements, et
+    elle gonfle le résultat de tout ce qui a été vendu à crédit.
+
+    **Aucun intérêt, aucune pénalité, aucun escompte.** Un cahier est une facilité de paiement ;
+    facturer le temps en ferait une activité réglementée. Voir `apps/pos/cahier.py` et docs/08.
+    """
+    from django.utils import timezone
+
+    from apps.pos.models import ReglementCahier
+
+    if not isinstance(reglement, ReglementCahier):
+        raise EcritureInvalide("comptabiliser_reglement_cahier attend un règlement de cahier.")
+
+    comptes_par_moyen = {
+        ReglementCahier.ESPECES: (Journal.CAISSE, C_CAISSE),
+        ReglementCahier.MOBILE_MONEY: (Journal.BANQUE, C_MOMO_MTN),
+        ReglementCahier.CARTE: (Journal.BANQUE, C_BANQUE),
+    }
+    try:
+        code_journal, compte = comptes_par_moyen[reglement.moyen]
+    except KeyError:
+        raise EcritureInvalide(
+            f"Moyen de règlement « {reglement.moyen} » sans compte de trésorerie associé."
+        ) from None
+
+    return passer_ecriture(
+        boutique_id=reglement.boutique_id,
+        code_journal=code_journal,
+        date_ecriture=timezone.localdate(reglement.recu_le),
+        libelle=f"Règlement cahier · {reglement.client.nom}",
+        lignes=[
+            (compte, reglement.montant, Decimal("0")),
+            (C_CLIENTS, Decimal("0"), reglement.montant),
+        ],
+        origine_type="pos.ReglementCahier",
+        origine_id=reglement.pk,
+    )

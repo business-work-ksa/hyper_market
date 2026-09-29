@@ -59,6 +59,111 @@ class SessionCaisse(TenantScopedModel):
         return (self.fonds_compte - self.fonds_theorique).quantize(CENTIME)
 
 
+class ClientCahier(TenantScopedModel):
+    """Client habituel du comptoir, celui qui a un cahier (docs/22, §2.1).
+
+    **Pourquoi ce modèle manquait, et ce que son absence coûtait.** `ReglementTicket.CREDIT`
+    existait déjà, et la comptabilité savait parquer la créance au compte 411. On pouvait donc
+    **vendre à crédit sans savoir qui devait** : `Ticket.client_nom` est du texte libre, et
+    `reste_a_payer` se calcule par ticket. « Combien me doit Mama Ngo ? » n'avait pas de réponse,
+    et c'est exactement la question que le cahier papier sait traiter depuis toujours.
+
+    **Pourquoi le texte libre reste sur le ticket.** `client_nom` et `client_telephone` ne
+    disparaissent pas : ils sont figés à la vente, comme `LigneTicket.libelle` et `pu_ttc`. Le
+    client peut être renommé, corrigé, fusionné ; le ticket de mardi dernier ne doit pas changer.
+    La clé étrangère porte l'identité, le texte porte l'histoire — et ce n'est pas une redondance,
+    ce sont deux faits différents.
+
+    **Ce que ce modèle n'est pas.** Ce n'est pas un compte utilisateur : le client du comptoir ne
+    s'inscrit pas, il achète. Les acheteurs en ligne sont des `Utilisateur`, avec un mot de passe
+    et un panier. Ici, quelqu'un entre, prend un sac de riz et dit « note-le ».
+    """
+
+    nom = models.CharField(max_length=180)
+    telephone = models.CharField(
+        max_length=16,
+        blank=True,
+        help_text="Facultatif : beaucoup de clients de quartier n'en donnent pas. Sert de clé.",
+    )
+    plafond_credit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0"),
+        help_text=(
+            "Encours maximal autorisé. Zéro signifie « pas de crédit » et non « illimité » : "
+            "un plafond oublié ne doit pas ouvrir un crédit sans limite."
+        ),
+    )
+    actif = models.BooleanField(default=True)
+    note = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        verbose_name = "client du cahier"
+        verbose_name_plural = "clients du cahier"
+        ordering = ["nom"]
+        constraints = [
+            # Unicité sur le téléphone **quand il est renseigné**. Une contrainte simple
+            # rendrait impossible d'avoir deux clients sans téléphone, ce qui est le cas
+            # courant au comptoir.
+            models.UniqueConstraint(
+                fields=["boutique", "telephone"],
+                condition=~models.Q(telephone=""),
+                name="client_cahier_telephone_unique",
+            )
+        ]
+        indexes = [models.Index(fields=["boutique", "nom"])]
+
+    def __str__(self):
+        return f"{self.nom}" + (f" · {self.telephone}" if self.telephone else "")
+
+
+class ReglementCahier(TenantScopedModel):
+    """Paiement d'un client **sur son cahier**, sans être rattaché à un ticket.
+
+    C'est la façon dont cela se passe réellement : le client ne vient pas payer le ticket n° 412,
+    il vient « déposer 10 000 sur son compte ». Rattacher chaque franc à un ticket précis
+    obligerait le caissier à faire une imputation que le client n'a pas faite, et produirait des
+    affectations inventées.
+
+    Le solde se calcule donc par différence — ce que les tickets à crédit ont mis au débit moins
+    ce que les règlements ont remboursé — et non en soldant des tickets un à un.
+    """
+
+    ESPECES = "especes"
+    MOBILE_MONEY = "mobile_money"
+    CARTE = "carte"
+    # Pas de `CREDIT` ici, et ce n'est pas un oubli : payer son crédit à crédit n'est rien.
+    MOYENS = [
+        (ESPECES, "Espèces"),
+        (MOBILE_MONEY, "Mobile Money"),
+        (CARTE, "Carte bancaire"),
+    ]
+
+    client = models.ForeignKey(
+        ClientCahier, on_delete=models.PROTECT, related_name="reglements_cahier"
+    )
+    moyen = models.CharField(max_length=16, choices=MOYENS)
+    montant = models.DecimalField(max_digits=14, decimal_places=2)
+    recu_le = models.DateTimeField(default=timezone.now, db_index=True)
+    reference_psp = models.CharField(max_length=120, blank=True)
+    note = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        verbose_name = "règlement du cahier"
+        verbose_name_plural = "règlements du cahier"
+        ordering = ["-recu_le"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(montant__gt=0),
+                name="reglement_cahier_montant_positif",
+            )
+        ]
+        indexes = [models.Index(fields=["client", "-recu_le"])]
+
+    def __str__(self):
+        return f"{self.get_moyen_display()} · {self.montant:.0f} FCFA · {self.client.nom}"
+
+
 class Ticket(TenantScopedModel):
     """Ticket de caisse. La numérotation est continue par boutique (exigence fiscale)."""
 
@@ -69,6 +174,19 @@ class Ticket(TenantScopedModel):
 
     session = models.ForeignKey(SessionCaisse, on_delete=models.PROTECT, related_name="tickets")
     numero = models.CharField(max_length=32)
+    client = models.ForeignKey(
+        ClientCahier,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="tickets",
+        help_text=(
+            "Renseigné seulement pour une vente au cahier. PROTECT : on ne supprime pas un "
+            "client dont des ventes portent la trace."
+        ),
+    )
+    # Figés à la vente, comme le libellé et le prix d'une ligne : le client peut être renommé,
+    # corrigé ou fusionné, le ticket de mardi dernier ne doit pas changer.
     client_nom = models.CharField(max_length=180, blank=True)
     client_telephone = models.CharField(max_length=16, blank=True)
     total_ht = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))

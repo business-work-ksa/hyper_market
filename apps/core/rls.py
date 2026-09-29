@@ -68,6 +68,8 @@ TABLES_SCOPEES = [
     "inventory_passageatelier",
     "marketplace_identitevisuelle",
     "marketplace_lienmarketing",
+    "pos_clientcahier",
+    "pos_reglementcahier",
     "pos_sessioncaisse",
     "pos_ticket",
     "pos_ligneticket",

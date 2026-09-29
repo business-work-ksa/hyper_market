@@ -78,8 +78,9 @@ dans l'application (`apps/accounts/limitation.py`) et porte sur le numéro visé
 ## 2. Une adresse publique, gratuitement, sans serveur à soi
 
 Avant la machine à soi, il y a le besoin plus simple : **une adresse qu'on partage**. Montrer
-l'outil à un commerçant de Douala, à un cabinet comptable, à quelqu'un qui hésite. `render.yaml`
-décrit cette instance-là, et elle se déploie sans terminal.
+l'outil à un commerçant de Douala, à un cabinet comptable, à quelqu'un qui hésite. Deux chemins y
+mènent sans terminal : **Render** (§2, un processus qui attend) et **Vercel** (§2 bis, aucun
+processus entre deux visites). `render.yaml` décrit le premier.
 
 Render lit ce fichier, crée la base PostgreSQL 16 et le service web, fabrique lui-même la
 `SECRET_KEY`, et garnit la démonstration au premier démarrage.
@@ -165,6 +166,69 @@ Le `worker` unique n'est pas qu'une affaire de mémoire : sans Redis, le compteu
 passe est local au processus. Trois `workers` tiendraient trois compteurs et laisseraient passer
 trente essais là où dix sont annoncés. Un seul processus, un seul compteur, la limite annoncée est
 la vraie.
+
+### 2 bis. La même adresse publique, mais sans serveur du tout (Vercel)
+
+Render fait tourner un processus qui attend. Vercel ne fait tourner **rien** entre deux visites :
+il réveille une fonction à la requête, la laisse mourir après. Le prix est plus doux — pas de
+sommeil de cinquante secondes, pas de base qui expire au trentième jour — et trois hypothèses du
+code tombent d'un coup. `vercel.json` et `api/index.py` décrivent cette instance-là.
+
+**Ce qu'il faut savoir avant de choisir ce chemin :** deux des trois ruptures sont réparées dans le
+code, la troisième ne l'est pas et ne peut pas l'être.
+
+**Le disque est éphémère — les logos téléversés disparaissent.** C'est la rupture qu'aucun réglage
+ne rattrape. L'écran d'identité visuelle fonctionne, la couleur est extraite, la charte se compose ;
+puis la fonction meurt et le fichier avec elle. Aucun avertissement, aucune erreur — simplement une
+image absente au retour. Acceptable pour montrer l'outil, **disqualifiant pour une vraie boutique**.
+Le remède n'est pas un réglage mais un stockage d'objets (S3 ou compatible), et l'ADR-008 le garde
+ouvert.
+
+**Le cache en mémoire ne compte plus — c'est réparé.** Le compteur d'essais de mot de passe
+(`apps/accounts/limitation.py`) vivait dans la mémoire du processus. Chaque invocation sans serveur
+repart d'un cache neuf : dix mille essais passeraient, et rien dans les journaux ne le signalerait —
+un durcissement défait en silence, ce qui est pire qu'un durcissement absent. Sous
+`SANS_SERVEUR=True`, le cache passe donc **en base** (`cache_partage`, posée par la migration
+`core/0009`), et le verrou redevient réel. Vérifié en faisant incrémenter le compteur par dix
+processus Python séparés : le onzième voit le verrou.
+
+**Les connexions persistantes fuient — c'est réparé.** `CONN_MAX_AGE` à 600 suppose un processus qui
+réutilise sa connexion. Ici chaque invocation en ouvrirait une et l'abandonnerait derrière elle
+jusqu'à saturer le pool. Sous `SANS_SERVEUR=True`, `CONN_MAX_AGE` vaut **0**.
+
+**Le nom de domaine est tiré au sort à chaque déploiement**, et chaque prévisualisation a le sien.
+Personne ne peut donc l'écrire à l'avance dans `ALLOWED_HOSTS`, et une adresse absente fait répondre
+`400` à tout, sans rien expliquer. `HOTE_EXTERNE` est pour cela une **liste**, et `api/index.py` y
+verse les deux variables que la plateforme fournit : celle de *ce* déploiement et celle, stable, de
+la production. Servir l'une sans l'autre casse soit les prévisualisations, soit le domaine principal.
+
+**Les migrations tournent à la construction, pas au démarrage.** Il n'y a pas de démarrage : une
+fonction sans serveur n'a pas de hook d'entrée où poser `entree.sh`. Migrations, vérification de
+l'isolation et garnissage sont donc dans le `buildCommand` — enchaînés en `&&`, ce qui suffit ici :
+une construction qui échoue n'est pas déployée.
+
+**`SECURE_SSL_REDIRECT` est à `False`**, et c'est le seul réglage de durcissement relâché. La
+plateforme termine TLS en amont et sert déjà tout en HTTPS ; laisser la redirection active ajoute un
+`301` que le client a déjà suivi, et fait boucler les contrôles internes qui appellent la fonction
+en clair. `SECURE_HSTS_SECONDS` reste posé, à une heure — assez pour valoir quelque chose, assez peu
+pour qu'une erreur de domaine ne condamne pas les visiteurs.
+
+**La région est choisie, pas subie.** `regions: ["pdx1"]` place la fonction à côté de la base
+PostgreSQL. Le piège décrit plus haut vaut ici aussi, sous une autre forme : une fonction en Europe
+et une base en Oregon ajoutent cent cinquante millisecondes à **chaque** requête SQL, et un écran
+qui en fait vingt les paie vingt fois.
+
+Le chemin, sans terminal :
+
+1. créer un compte Vercel et y connecter GitHub ;
+2. **Add New → Project**, choisir `Arseneksa/hyper_market`, branche
+   `claude/online-marketplace-platform-97d5tr` ;
+3. poser deux variables d'environnement — `SECRET_KEY` et `DATABASE_URL` — **et rien d'autre** : le
+   reste est dans `vercel.json`, donc versionné et relu ;
+4. **Deploy**.
+
+`SECRET_KEY` et `DATABASE_URL` ne sont **jamais** dans le dépôt, ni dans `vercel.json`. Elles se
+posent dans les variables du projet, qui ne sont pas du code.
 
 ---
 

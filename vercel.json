@@ -1,0 +1,27 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py verifier_rls && python manage.py preparer_demo",
+  "regions": [
+    "pdx1"
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "functions": {
+    "api/index.py": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "DEBUG": "False",
+    "SANS_SERVEUR": "True",
+    "AFFICHER_COMPTE_DEMO": "True",
+    "CELERY_TASK_ALWAYS_EAGER": "True",
+    "SECURE_SSL_REDIRECT": "False",
+    "SECURE_HSTS_SECONDS": "3600"
+  }
+}

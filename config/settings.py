@@ -33,14 +33,36 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"] if 
 # La variable est nommée ici de façon neutre, et c'est le fichier de l'hébergeur
 # qui fait la correspondance (`render.yaml` y met `RENDER_EXTERNAL_HOSTNAME`).
 # Un réglage Django qui nommerait un fournisseur l'épouserait pour toujours.
-_HOTE_EXTERNE = env("HOTE_EXTERNE", default="").strip()
-if _HOTE_EXTERNE:
-    ALLOWED_HOSTS = [*ALLOWED_HOSTS, _HOTE_EXTERNE]
+# Une liste, et non une valeur : une plateforme sans serveur donne une adresse
+# par déploiement — celle de la production et celle de chaque prévisualisation.
+# N'en accepter qu'une casserait les secondes, qui sont précisément celles qu'on
+# ouvre pour vérifier avant de publier.
+_HOTES_EXTERNES = [h.strip() for h in env.list("HOTE_EXTERNE", default=[]) if h.strip()]
+if _HOTES_EXTERNES:
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, *_HOTES_EXTERNES]
 
 # La suite de tests n'a pas d'hôte à servir : le client de test parle à
 # `testserver`, que Django ajoute lui-même. Exiger la variable ici obligerait
 # chaque dépôt fraîchement cloné à en inventer une pour lancer `make tester`.
 _EN_TEST = sys.argv[1:2] == ["test"]
+
+# --------------------------------------------------------------------------------------
+# Exécution sans serveur
+# --------------------------------------------------------------------------------------
+# Une plateforme sans serveur n'est pas « un hébergeur de plus » : elle change
+# trois hypothèses que le reste de ce fichier tient pour acquises.
+#
+#   * **le disque est éphémère.** Ce qui est téléversé disparaît au premier
+#     redémarrage, et il n'y a pas de redémarrage annoncé ;
+#   * **la mémoire n'est partagée par rien.** Chaque invocation repart d'un
+#     processus neuf : un cache local n'y compte jamais au-delà de un ;
+#   * **les connexions ne se réutilisent pas** comme dans un processus long : les
+#     garder ouvertes épuise le pool de la base au lieu d'économiser des
+#     allers-retours.
+#
+# Détecté par la variable que la plateforme pose elle-même, et surchargeable —
+# une exécution locale doit pouvoir simuler le cas pour le vérifier.
+SANS_SERVEUR = env.bool("SANS_SERVEUR", default=bool(env("VERCEL", default="")))
 
 if not DEBUG and not ALLOWED_HOSTS and not _EN_TEST:
     # Levé ici, et non laissé au contrôle `security.W020` : celui-ci n'est qu'un
@@ -179,7 +201,15 @@ if _URL_BASE:
     # Attention au produit `workers × threads` : chaque fil garde sa connexion
     # ouverte, et les offres gratuites plafonnent bas. Un `worker` et quatre
     # fils, c'est quatre connexions — la marge est large.
-    DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=600)
+    # Zéro sans serveur, et ce n'est pas une nuance. Une connexion persistante
+    # suppose un processus qui dure et qui la réemploie ; une invocation sans
+    # serveur meurt après sa réponse, et la connexion qu'elle laisse ouverte
+    # occupe une place dans le pool de la base jusqu'à expiration. Quelques
+    # dizaines de requêtes simultanées suffisent alors à saturer une base
+    # d'entrée de gamme — le réglage censé accélérer devient ce qui fait tomber.
+    DATABASES["default"]["CONN_MAX_AGE"] = env.int(
+        "CONN_MAX_AGE", default=0 if SANS_SERVEUR else 600
+    )
 
     # Une connexion réutilisée peut avoir été coupée entre deux requêtes, par la
     # base ou par un pare-feu. Sans cette vérification, la requête suivante
@@ -319,15 +349,16 @@ if not DEBUG:
     # soumission de formulaire derrière un proxy est refusée pour CSRF — et le
     # message d'erreur ne dit pas pourquoi.
     CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
-    if _HOTE_EXTERNE:
+    if _HOTES_EXTERNES:
         # Même raison qu'`ALLOWED_HOSTS` : le nom est tiré au sort au premier
         # déploiement. Sans cette ligne, toutes les pages s'affichent et **aucun
         # formulaire ne s'envoie** — y compris celui de la connexion. C'est la
         # panne la plus déroutante de ces hébergeurs, parce que le site a l'air
         # de marcher.
-        origine = f"https://{_HOTE_EXTERNE}"
-        if origine not in CSRF_TRUSTED_ORIGINS:
-            CSRF_TRUSTED_ORIGINS = [*CSRF_TRUSTED_ORIGINS, origine]
+        for hote in _HOTES_EXTERNES:
+            origine = f"https://{hote}"
+            if origine not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS = [*CSRF_TRUSTED_ORIGINS, origine]
 
 # --------------------------------------------------------------------------------------
 # Règles métier — voir docs/03-business-plan.md et docs/06-affiliation-*.md
@@ -355,10 +386,25 @@ AFFILIATION = {
 #
 # Redis est déjà dans la pile pour Celery ; le cache prend sa base 2. Le repli en
 # mémoire n'est là que pour les tests et le développement à un seul processus.
+#
+# Sur une plateforme **sans serveur**, le repli en mémoire est pire qu'inutile :
+# chaque invocation repart d'un cache neuf, le compteur ne dépasse jamais un, et
+# la limitation d'essais devient décorative sans qu'aucune erreur ne le dise. Le
+# durcissement serait défait en silence — exactement ce que ce dispositif
+# cherche à empêcher. La base prend alors le relais : elle est le seul état
+# partagé dont on soit sûr, et un compteur d'essais coûte deux requêtes.
 _REDIS_CACHE = env("REDIS_CACHE_URL", default=None)
+
 if _REDIS_CACHE and not _EN_TEST:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache",
                           "LOCATION": _REDIS_CACHE}}
+elif SANS_SERVEUR and not _EN_TEST:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "cache_partage",
+        }
+    }
 else:
     CACHES = {
         "default": {

@@ -21,6 +21,7 @@ __all__ = [
     "definir_boutique_courante",
     "contexte_boutique",
     "contexte_plateforme",
+    "acces_plateforme",
     "appliquer_contexte_bd",
     "TenantQuerySet",
     "TenantManager",
@@ -123,15 +124,65 @@ def contexte_boutique(boutique):
 
 @contextmanager
 def contexte_plateforme():
-    """Lève le filtrage par boutique, pour les rôles plateforme et les tâches de fond.
+    """Lève le filtrage par boutique, pour les besoins **techniques** de la plateforme.
 
-    Tout usage est un accès transverse : il doit être justifié, restreint aux rôles plateforme
-    et journalisé par l'appelant. Il lève aussi la barrière 3 : le réglage de session passe à
-    `plateforme`, et les politiques `RLS` s'ouvrent.
+    Elle lève aussi la barrière 3 : le réglage de session passe à `plateforme`, et les politiques
+    `RLS` s'ouvrent.
+
+    **Son domaine, depuis l'ADR-012 :** ce qui n'a pas de demandeur humain — la vitrine publique qui
+    liste les boutiques en état de vendre, les tâches de fond, les commandes d'exploitation. Ce n'est
+    pas quelqu'un qui va lire les données privées d'un commerçant, c'est la façade du marché.
+
+    **Ce qu'elle n'est plus :** la voie d'un humain qui demande à voir à travers les boutiques. Celle-là
+    est `acces_plateforme()`, qui exige un motif et laisse une trace. Cette fonction-ci a longtemps
+    prétendu dans sa docstring être « journalisée par l'appelant » ; aucun appelant ne le faisait, et
+    aucun journal n'existait. Plutôt que de répéter la promesse, elle a cessé de la faire.
+
+    Un test refuse `contexte_plateforme()` dans les vues du back-office, parce qu'une règle qu'aucun
+    test ne défend n'est qu'un souhait.
     """
     jeton = _boutique.set(_PLATEFORME)
     appliquer_contexte_bd()
     try:
+        yield
+    finally:
+        _boutique.reset(jeton)
+        appliquer_contexte_bd(silencieux=True)
+
+
+@contextmanager
+def acces_plateforme(*, utilisateur, motif: str, ecran: str, boutique_id=None):
+    """Accès transverse **demandé par un humain**. Journalisé, toujours (ADR-012).
+
+    Le motif n'a pas de valeur par défaut, et c'est tout l'intérêt : on ne peut pas ouvrir l'accès
+    transverse sans dire pourquoi. Un motif vide est refusé — pas ignoré, refusé — parce qu'une trace
+    sans raison ne répond pas à la question qu'on posera un jour : « pourquoi cette personne a-t-elle
+    regardé les livres de cette boutique, ce jour-là ? »
+
+    La trace est écrite **avant** le bloc, pas après. Si le code du bloc échoue, l'accès a tout de même
+    eu lieu — et c'est bien l'accès qu'on journalise, pas son succès.
+    """
+    motif = (motif or "").strip()
+    if not motif:
+        raise ValueError(
+            "Un accès plateforme exige un motif : c'est la question à laquelle le journal doit "
+            "répondre. Voir ADR-012."
+        )
+    if utilisateur is None or not getattr(utilisateur, "is_authenticated", False):
+        raise ValueError("Un accès plateforme exige un utilisateur identifié.")
+
+    # Import différé : `core.models` importe `core.tenancy` pour `TenantManager`.
+    from apps.core.models import AccesPlateforme
+
+    jeton = _boutique.set(_PLATEFORME)
+    appliquer_contexte_bd()
+    try:
+        AccesPlateforme.objects.create(
+            utilisateur=utilisateur,
+            boutique_id=getattr(boutique_id, "pk", boutique_id),
+            ecran=ecran[:120],
+            motif=motif[:300],
+        )
         yield
     finally:
         _boutique.reset(jeton)

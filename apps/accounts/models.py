@@ -156,6 +156,66 @@ class Appartenance(models.Model):
         return f"{self.utilisateur.nom_complet} · {self.role.libelle} · {self.boutique}"
 
 
+class RolePlateforme(models.Model):
+    """Rattachement d'un utilisateur à un rôle **de la plateforme**, sans boutique (ADR-012).
+
+    **Pourquoi un modèle distinct et non une `Appartenance` sans boutique.** Une appartenance dit
+    « cette personne travaille dans cette boutique ». Un rôle de plateforme dit l'inverse : cette
+    personne exploite le marché, elle ne travaille chez personne. Rendre `Appartenance.boutique`
+    nullable aurait eu trois effets tous mauvais : chaque `filter(boutique_id=…)` aurait
+    silencieusement ignoré ces lignes, la contrainte d'unicité aurait demandé un second index
+    partiel, et une ligne à `NULL` aurait pu satisfaire des requêtes qui ne l'attendaient pas.
+
+    Séparé, il répond en une requête à la question que pose un auditeur : **qui exploite cette place
+    de marché ?**
+
+    Avant cet ajout, les rôles de portée plateforme existaient dans les référentiels mais
+    **personne ne pouvait les porter** — ce qui explique qu'aucune vue ne les consommait.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
+    utilisateur = models.ForeignKey(
+        Utilisateur, on_delete=models.CASCADE, related_name="roles_plateforme"
+    )
+    role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name="porteurs_plateforme")
+    actif = models.BooleanField(default=True)
+    depuis = models.DateField(default=timezone.localdate)
+    jusqu_a = models.DateField(null=True, blank=True)
+    motif = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text="Pourquoi cette personne exploite le marché. Utile le jour où on se le demande.",
+    )
+
+    class Meta:
+        verbose_name = "rôle plateforme"
+        verbose_name_plural = "rôles plateforme"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["utilisateur", "role"],
+                condition=models.Q(actif=True),
+                name="role_plateforme_unique_actif",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.utilisateur.nom_complet} · {self.role.libelle} (plateforme)"
+
+    def clean(self):
+        """Refuse un rôle de boutique ici : la portée est la seule chose qui distingue les deux tables."""
+        from django.core.exceptions import ValidationError
+
+        if self.role_id and self.role.portee != Role.PLATEFORME:
+            raise ValidationError(
+                {
+                    "role": (
+                        f"« {self.role.libelle} » est un rôle de boutique. Un rôle de boutique "
+                        "se porte par une appartenance, qui nomme la boutique."
+                    )
+                }
+            )
+
+
 class DossierKyc(models.Model):
     """Vérification d'identité d'un marchand ou d'un affilié (docs/08, §5.3)."""
 

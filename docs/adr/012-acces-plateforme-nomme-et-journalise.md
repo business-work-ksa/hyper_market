@@ -1,0 +1,150 @@
+# ADR-012 — L'accès transverse est nommé, borné et journalisé ; il ne découle pas d'un booléen
+
+**Statut :** Actée · **Détail :** `apps/core/tenancy.py` (`acces_plateforme`) ; `apps/core/models.py` (`AccesPlateforme`) ; `apps/accounts/permissions.py` (droits `plateforme.*`)
+
+---
+
+## Contexte
+
+Le multi-tenant de cette application tient sur trois barrières, et la troisième — la sécurité au
+niveau ligne — est décrite ainsi dans `apps/core/rls.py` :
+
+> réglage égal à `plateforme` → **accès transverse assumé, journalisé par l'appelant**
+
+`contexte_plateforme()` répète la promesse dans sa propre docstring : *« il doit être justifié,
+restreint aux rôles plateforme et journalisé par l'appelant »*.
+
+À la relecture, aucune de ces trois exigences n'était tenue.
+
+**Rien n'était journalisé.** Aucun appelant n'écrivait de trace, et il n'existait **aucun modèle
+d'audit dans tout le dépôt**. La garantie était documentée et absente — le pire des deux états,
+parce qu'on cesse de la chercher quand on croit l'avoir.
+
+**Rien n'était justifié.** `contexte_plateforme()` ne prend aucun motif. Ouvrir l'accès transverse
+coûtait une ligne, sans rien avoir à dire.
+
+**Rien n'était restreint.** `droits_de()` commençait par :
+
+```python
+if utilisateur.is_superuser:
+    return TOUS
+```
+
+Un booléen sur un compte donnait tous les droits sur toutes les boutiques — dont `MARGE_VOIR` et
+`COUT_VOIR`, précisément les deux que le reste du fichier protège avec le plus de soin, parce qu'un
+coût d'achat affiché au comptoir circule dans le quartier avant la fin de la journée.
+
+Et le rôle prévu pour cela, `ADMIN_MARCHE`, était une coquille : `frozenset()` de droits, aucune vue
+ne le consommant.
+
+Deux faits ont rendu la question urgente plutôt que théorique.
+
+Le premier : **l'exploitant de la place de marché est aussi commerçant sur sa propre place.** C'est
+assumé et utile — ses boutiques amorcent le catalogue quand personne n'est encore inscrit. Mais avec
+un accès total et sans trace, il voit les prix, les marges et les meilleures ventes de ses
+concurrents. Ce n'est pas d'abord une question morale : le jour où un commerçant de Douala le
+comprend, il part, et il le raconte.
+
+Le second : **le cahier de crédit client** (docs/22, §2.1) fait entrer dans la base les dettes des
+clients des commerçants. Un accès transverse non journalisé à cela n'est plus une dette technique.
+
+## Décision
+
+**L'accès transverse devient un geste distinct, qui se nomme, et qui laisse une trace.**
+
+Quatre points, indissociables.
+
+### 1. Deux fonctions, parce qu'il y a deux gestes
+
+`contexte_plateforme()` reste, inchangée, pour ce qui est **technique** : la vitrine publique qui
+liste les boutiques en état de vendre, les tâches de fond, les commandes d'exploitation. Ce n'est pas
+un humain qui va lire les données privées d'un commerçant, c'est la façade du marché.
+
+`acces_plateforme(utilisateur=…, motif=…, ecran=…)` est **nouvelle**, et c'est la seule voie pour un
+humain qui demande à voir à travers les boutiques. Le motif n'a pas de défaut : on ne peut pas
+l'appeler sans dire pourquoi.
+
+Rien n'empêche techniquement un développeur d'appeler la première là où la seconde est due. Le
+garde-fou est donc un test qui lit le code des vues et refuse `contexte_plateforme()` dans le
+back-office — le même procédé que le test qui vérifie déjà la concordance entre les fiches d'aide et
+les `@exige(...)` des vues, et pour la même raison : une règle qu'aucun test ne défend n'est qu'un
+souhait.
+
+### 2. `AccesPlateforme`, en ajout seul
+
+Un modèle, non scopé par boutique — il appartient à la plateforme, pas à un commerçant. Qui, quand,
+quelle boutique, quel écran, quel motif.
+
+Et protégé par **le même déclencheur PL/pgSQL que le journal comptable** (ADR-003) : `UPDATE` et
+`DELETE` rejetés au niveau de la base, y compris en SQL brut, y compris depuis un client `psql`. Un
+journal d'audit qu'on peut effacer ne prouve rien — il donne seulement l'illusion d'une preuve.
+
+Le coût est faible parce que le motif technique est déjà écrit et éprouvé.
+
+### 3. Des droits de plateforme explicites, et le retrait du court-circuit
+
+Cinq droits nouveaux, nommés par ce qu'ils ouvrent :
+
+| Droit | Ce qu'il ouvre |
+|---|---|
+| `plateforme.boutiques` | Valider, suspendre, résilier un bail |
+| `plateforme.commissions` | Fixer les taux de rayon et les taux négociés |
+| `plateforme.emplacements` | Vendre et attribuer les emplacements premium |
+| `plateforme.litiges` | Accéder à une commande contestée — motif obligatoire |
+| `plateforme.apporteurs` | Le réseau d'affiliation et ses versements |
+
+**Aucun d'eux n'ouvre `MARGE_VOIR`, `COUT_VOIR`, ni le cahier d'une boutique.** J'ai listé ce que
+l'exploitant fait réellement — valider une boutique, suspendre pour loyer impayé, ajuster une
+commission, vendre une tête de gondole, arbitrer un litige — et rien là-dedans n'exige de lire la
+marge ou la liste de clients d'un commerçant. Le rôle plateforme peut donc être étroit, et il l'est.
+
+`droits_de()` cesse d'honorer `is_superuser` pour les droits **de boutique**. Le superutilisateur
+garde `/admin/` — c'est Django, c'est le dernier recours d'exploitation, et le retirer laisserait
+l'application sans issue de secours — mais il n'obtient plus la marge d'un commerçant par un booléen.
+
+### 4. Deux casquettes, deux comptes
+
+L'exploitant qui possède des boutiques a **deux comptes distincts** : l'un administrateur de
+plateforme (`is_staff`, rôle `ADMIN_MARCHE`, aucun droit de boutique), l'autre commerçant ordinaire
+avec ses `Appartenance(GERANT)`.
+
+Ce n'est pas de la bureaucratie, c'est ce qui rend le journal **lisible**. Avec un seul compte, chaque
+ligne du journal est ambiguë : agissait-il comme exploitant ou comme concurrent ? Avec deux, la
+question ne se pose plus — et le jour où un commerçant la pose, la réponse existe.
+
+## Conséquences
+
+**Ce que cela coûte.** Un geste de plus pour l'exploitant, qui doit changer de compte pour changer de
+rôle. C'est le prix de la lisibilité du journal, et il est payé une fois par session, pas par action.
+
+**Ce que cela n'interdit pas.** L'exploitant reste commerçant sur sa place. Ce n'est pas le problème ;
+le problème était de vendre sans règles écrites. Les règles sont maintenant écrites, et trois
+d'entre elles sont défendues par du code plutôt que par une politique :
+
+* un `EmplacementPremium` attribué à une boutique de l'exploitant s'enregistre **avec son tarif**,
+  jamais à zéro — sinon le compte de résultat de la plateforme mentirait sur sa rentabilité réelle ;
+* une commission négociée qui s'écarte du taux de l'offre exige un **motif enregistré** ;
+* le taux d'un rayon ne peut pas être modifié par quelqu'un qui vend dans ce rayon.
+
+La quatrième reste une politique, parce qu'elle ne se code pas : **publier la règle**. Un
+exploitant-commerçant qui annonce d'emblée ce qu'il s'interdit est plus crédible que celui qui se
+fait découvrir.
+
+**Ce que cela rend possible plus tard.** Le jour où un vrai back-office de plateforme existe, il
+consomme les cinq droits ci-dessus et n'a jamais besoin du superutilisateur. L'administrateur créé
+aujourd'hui avec `is_superuser` est donc une transition, pas une cible — et cet ADR est la raison pour
+laquelle on saura qu'il faut la refermer.
+
+## Ce qui a été écarté
+
+**Interdire à l'exploitant d'être commerçant.** C'est le modèle choisi, il est légitime, et il est
+utile au démarrage. Le conflit d'intérêts ne se supprime pas en interdisant l'activité, il se borne
+en la rendant visible.
+
+**Rendre le motif obligatoire sur `contexte_plateforme()` elle-même.** Quinze appels existants, dont
+la plupart sont la vitrine publique et des tâches de fond. Exiger un motif là où il n'y a pas de
+demandeur humain produit quinze chaînes de caractères inventées — c'est-à-dire un journal rempli de
+bruit, qu'on cesse de lire. Un journal qu'on ne lit pas ne vaut pas mieux qu'un journal absent.
+
+**Un journal en table scopée.** Il aurait été invisible à celui qui en a besoin : l'auditeur regarde
+à travers les boutiques, par construction.

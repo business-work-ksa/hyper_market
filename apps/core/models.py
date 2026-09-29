@@ -176,3 +176,72 @@ class Consentement(models.Model):
     @property
     def est_actif(self) -> bool:
         return self.accorde and self.revoque_le is None
+
+
+class AccesPlateforme(models.Model):
+    """Journal des accès transverses demandés par un humain (ADR-012).
+
+    **Pourquoi ce modèle existe.** `apps/core/rls.py` annonce que l'accès
+    transverse est « assumé, journalisé par l'appelant », et
+    `contexte_plateforme()` répète la promesse. Aucun appelant ne la tenait, et
+    aucun journal n'existait : la garantie était documentée et absente — le pire
+    des deux états, parce qu'on cesse de la chercher quand on croit l'avoir.
+
+    **Pourquoi il n'est pas scopé par boutique.** Il appartient à la plateforme,
+    pas à un commerçant. Le scoper le rendrait invisible à celui qui en a besoin :
+    l'auditeur regarde à travers les boutiques, par construction.
+
+    **Pourquoi l'ajout seul est dans la base et pas seulement en Python.** Un
+    journal d'audit qu'on peut effacer ne prouve rien — il donne l'illusion d'une
+    preuve, ce qui est pire que rien. Le déclencheur est celui du journal
+    comptable (ADR-003), déjà écrit et éprouvé.
+
+    **Pourquoi `boutique_id` n'est pas une clé étrangère.** Le journal doit
+    survivre à la boutique qu'il décrit. Une clé étrangère la protégerait de la
+    suppression (`PROTECT`) ou effacerait la trace (`CASCADE`) : les deux sont
+    faux pour un audit.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
+    horodatage = models.DateTimeField(auto_now_add=True, db_index=True)
+    utilisateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="acces_plateforme",
+        help_text="PROTECT : on ne supprime pas quelqu'un dont on garde les accès en mémoire.",
+    )
+    boutique_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Boutique consultée, si l'accès en visait une. Vide pour une vue d'ensemble.",
+    )
+    ecran = models.CharField(max_length=120, help_text="Chemin ou nom de vue, pour retrouver quoi.")
+    motif = models.CharField(max_length=300, help_text="Pourquoi. Sans défaut : on doit le dire.")
+
+    class Meta:
+        verbose_name = "accès plateforme"
+        verbose_name_plural = "journal des accès plateforme"
+        ordering = ["-horodatage"]
+        indexes = [models.Index(fields=["utilisateur", "-horodatage"])]
+
+    def __str__(self):
+        cible = self.boutique_id or "toutes boutiques"
+        return f"{self.horodatage:%d/%m/%Y %H:%M} · {self.utilisateur} · {cible} · {self.motif}"
+
+    def save(self, *args, **kwargs):
+        """Première protection : refuser la modification côté Python.
+
+        La base la refuse aussi (migration `core/0010`). Celle-ci sert à donner
+        un message clair au développeur plutôt qu'une erreur PostgreSQL brute.
+        """
+        if self.pk and AccesPlateforme.objects.filter(pk=self.pk).exists():
+            raise ValueError(
+                "Un accès plateforme journalisé ne se modifie pas : le journal est en ajout seul."
+            )
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError(
+            "Un accès plateforme journalisé ne se supprime pas : le journal est en ajout seul."
+        )

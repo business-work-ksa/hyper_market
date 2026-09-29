@@ -272,6 +272,14 @@ def suivre_lien(request, code):
     Vue **publique** : elle est appelée par un visiteur qui n'a pas de compte, et
     lit donc en contexte plateforme comme la vitrine. Elle ne rend rien — elle
     redirige — et ne divulgue donc aucune donnée du commerçant.
+
+    ACCES_PLATEFORME_PUBLIC_JUSTIFIE — dérogation à l'ADR-012, lue par
+    `tests/test_acces_plateforme.py`. L'ADR réserve `contexte_plateforme()` à ce qui
+    n'a pas de demandeur humain et exige `acces_plateforme()` partout ailleurs dans
+    le back-office. Ici il n'y a pas de demandeur humain identifiable : c'est un
+    visiteur anonyme qui suit un lien, comme sur la vitrine. Exiger un motif et un
+    utilisateur produirait une ligne de journal par clic, sans utilisateur et sans
+    raison — c'est-à-dire du bruit qui ferait cesser de lire le journal.
     """
     from django.db.models import F
 

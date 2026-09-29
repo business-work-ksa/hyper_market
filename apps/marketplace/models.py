@@ -185,6 +185,14 @@ class Bail(BaseModel):
         decimal_places=4,
         help_text="Négocié au contrat ; prime sur le taux du rayon.",
     )
+    motif_derogation_commission = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text=(
+            "Obligatoire dès que le taux négocié s'écarte de celui de l'offre. "
+            "Une faveur commerciale est légitime ; une faveur sans raison écrite ne l'est pas."
+        ),
+    )
     preavis_jours = models.PositiveSmallIntegerField(default=30)
     etat = models.CharField(max_length=16, choices=ETATS, default=BROUILLON, db_index=True)
     motif_resiliation = models.TextField(blank=True)
@@ -196,6 +204,38 @@ class Bail(BaseModel):
 
     def __str__(self):
         return f"Bail {self.boutique} · {self.type_emplacement.libelle}"
+
+    def clean(self):
+        """Une dérogation de commission doit dire pourquoi (ADR-012, garde-fou 2).
+
+        L'exploitant de la place de marché y vend aussi. Accorder un taux plus doux à
+        une boutique — la sienne ou celle d'un proche — reste possible : c'est une
+        décision commerciale, et la lui interdire serait naïf. Ce qui est refusé, c'est
+        de le faire sans l'écrire, parce qu'alors personne ne peut relire la liste des
+        faveurs accordées.
+
+        Le contrôle est ici et non en base : comparer deux tables dans une contrainte
+        `CHECK` n'est pas possible, et un déclencheur pour cela serait plus coûteux à
+        maintenir que la règle ne vaut.
+        """
+        from django.core.exceptions import ValidationError
+
+        if self.taux_commission is None:
+            return
+        offre = getattr(getattr(self, "boutique", None), "offre", None)
+        reference = getattr(offre, "taux_commission_defaut", None)
+        if reference is None:
+            return
+        if self.taux_commission != reference and not self.motif_derogation_commission.strip():
+            raise ValidationError(
+                {
+                    "motif_derogation_commission": (
+                        f"Le taux négocié ({self.taux_commission:.2%}) s'écarte de celui de "
+                        f"l'offre ({reference:.2%}). Dites pourquoi : la dérogation est "
+                        "légitime, son absence de motif ne l'est pas."
+                    )
+                }
+            )
 
 
 class FactureLoyer(BaseModel):
@@ -291,6 +331,21 @@ class EmplacementPremium(BaseModel):
         verbose_name = "emplacement premium"
         verbose_name_plural = "emplacements premium"
         ordering = ["-debut"]
+        constraints = [
+            # Garde-fou 1 de l'ADR-012. L'exploitant de la place de marché y vend aussi :
+            # rien ne l'empêche de s'attribuer la meilleure tête de gondole, et c'est
+            # acceptable — il en est le propriétaire. Ce qui ne l'est pas, c'est de se
+            # l'attribuer **à zéro franc**, parce qu'alors le compte de résultat de la
+            # plateforme ment sur sa rentabilité réelle : il montre un emplacement occupé
+            # qui ne rapporte rien, et on en conclut que le retail media ne marche pas.
+            #
+            # La contrainte est en base et non en Python parce qu'elle porte sur une seule
+            # colonne : c'est le cas où la base sait le faire, donc c'est elle qui le fait.
+            models.CheckConstraint(
+                condition=models.Q(tarif__gt=0),
+                name="emplacement_premium_tarif_non_nul",
+            )
+        ]
 
     def __str__(self):
         return f"{self.get_type_display()} {self.debut:%d/%m} → {self.fin:%d/%m}"

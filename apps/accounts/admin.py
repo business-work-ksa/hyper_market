@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
+from apps.accounts.models import RolePlateforme  # noqa: F401  (enregistré plus bas)
 from apps.accounts.models import Appartenance, DossierKyc, Role, Utilisateur
 
 
@@ -48,3 +49,18 @@ class DossierKycAdmin(admin.ModelAdmin):
     list_display = ("type_piece", "numero", "utilisateur", "boutique", "etat", "cree_le")
     list_filter = ("etat", "type_piece")
     search_fields = ("numero",)
+
+
+@admin.register(RolePlateforme)
+class RolePlateformeAdmin(admin.ModelAdmin):
+    """Qui exploite cette place de marché (ADR-012).
+
+    C'est la table que consulte un auditeur, et elle répond en une requête. Elle est
+    délibérément séparée des appartenances : une appartenance dit « travaille dans cette
+    boutique », un rôle de plateforme dit l'inverse.
+    """
+
+    list_display = ("utilisateur", "role", "actif", "depuis", "jusqu_a")
+    list_filter = ("actif", "role")
+    search_fields = ("utilisateur__nom_complet", "utilisateur__telephone")
+    autocomplete_fields = ()

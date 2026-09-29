@@ -280,6 +280,24 @@ class RequeteTest(TestCase):
         reponse = self.client.get(reverse("stock"), headers={"accept-encoding": "gzip"})
         self.assertEqual(reponse.headers.get("Content-Encoding"), "gzip")
 
+    def _creer_le_compte_de_demonstration(self):
+        """Le compte que le jeu de démonstration crée, réduit à ce que la vue vérifie.
+
+        Il faut les trois : le compte, la boutique, et l'appartenance qui les relie. La vue
+        les exige tous les trois, et c'est volontaire — un compte orphelin serait annoncé
+        puis déconnecté aussitôt après la saisie du mot de passe.
+        """
+        from apps.accounts.models import Appartenance, Role
+        from apps.marketplace.management.commands.charger_demo import TELEPHONE_DEMO
+
+        boutique = fabrique.creer_boutique("Quincaillerie de démonstration")
+        compte = fabrique.creer_utilisateur("Jean-Pierre Ateba", telephone=TELEPHONE_DEMO)
+        role, _ = Role.objects.get_or_create(
+            code=Role.GERANT, defaults={"libelle": "Gérant", "portee": Role.BOUTIQUE}
+        )
+        Appartenance.objects.create(utilisateur=compte, boutique=boutique, role=role)
+        return boutique
+
     def test_les_identifiants_de_demonstration_ne_sont_pas_publics(self):
         """Un compte qui fonctionne, affiché à qui n'est pas connecté.
 
@@ -287,11 +305,28 @@ class RequeteTest(TestCase):
         n'empêche que le jeu de démonstration ait été chargé « juste pour voir »
         sur l'instance réelle. La mention est donc composée par la vue, jamais
         écrite en dur dans le gabarit.
+
+        Ce test passait auparavant **par accident** : la mention était bel et bien écrite en
+        dur, et seule la condition d'affichage venait de la vue. Il ne vérifiait donc pas ce
+        que sa propre docstring annonçait. Il le vérifie maintenant, en créant le compte pour
+        le cas positif et en s'appuyant sur son absence pour le cas suivant.
         """
+        self._creer_le_compte_de_demonstration()
         with self.settings(AFFICHER_COMPTE_DEMO=False):
             self.assertNotContains(self.client.get(reverse("connexion")), "demo1234")
         with self.settings(AFFICHER_COMPTE_DEMO=True):
             self.assertContains(self.client.get(reverse("connexion")), "demo1234")
+
+    def test_rien_n_est_annonce_quand_le_compte_n_existe_pas(self):
+        """Une page qui promet un compte inexistant invite le visiteur à échouer.
+
+        C'est arrivé en production : le jeu de démonstration n'avait pas pu être chargé, la
+        page affichait quand même « +237699110011 · demo1234 », et l'utilisateur a conclu que
+        l'application était cassée. Le drapeau seul ne suffit donc pas — il faut que le compte
+        existe.
+        """
+        with self.settings(AFFICHER_COMPTE_DEMO=True):
+            self.assertNotContains(self.client.get(reverse("connexion")), "demo1234")
 
     def test_le_verrou_n_affiche_pas_non_plus_les_identifiants(self):
         """Le chemin le plus tentant pour un oubli : la page d'erreur.

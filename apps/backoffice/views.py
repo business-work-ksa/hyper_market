@@ -209,12 +209,22 @@ def connexion(request):
         login(request, utilisateur)
         appartenance = utilisateur.appartenances.filter(actif=True).first()
         if appartenance is None:
+            # L'administrateur de la plateforme est **normalement** dans ce cas : il n'a aucun
+            # droit sur aucune boutique, c'est le sens de l'ADR-012. Le renvoyer vers
+            # l'administration au lieu d'un refus sec évite de lui faire croire que son compte
+            # est cassé — ce qui est exactement ce qui s'est passé la première fois.
+            if utilisateur.is_staff:
+                return redirect("/admin/")
+
             logout(request)
             return render(
                 request,
                 "connexion.html",
                 {
-                    "erreur": "Ce compte n'est rattaché à aucune boutique active.",
+                    "erreur": (
+                        "Ce compte n'est rattaché à aucune boutique active. Demandez à votre "
+                        "gérant de vous ajouter à l'équipe."
+                    ),
                     "demo": compte_de_demonstration(),
                 },
                 status=403,

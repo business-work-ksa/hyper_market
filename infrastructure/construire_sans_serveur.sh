@@ -50,10 +50,30 @@ if [ -n "${DJANGO_SUPERUSER_TELEPHONE:-}" ]; then
         || echo "Compte administrateur : déjà présent, rien à faire."
 fi
 
-# Ce qui n'est **pas** ici : le garnissage de la démonstration. Il émet plus de
-# neuf mille requêtes — une écriture à la fois, à travers les vrais services,
-# pour que le journal comptable soit cohérent — et il n'est pas transactionnel.
-# Interrompu par le délai maximal de la construction, il laisse la base ni vide
-# ni complète, et refusera ensuite de reprendre. Il se lance à part. Voir
-# docs/20, §2 bis.
+# Garnissage de la démonstration, seulement si `JOURS_DEMO` est posé.
+#
+# **Il n'est pas là par défaut**, et c'est une leçon payée trois quarts d'heure : vingt
+# jours de ventes simulées représentent plus de neuf mille requêtes — une écriture à la
+# fois, à travers les vrais services, pour que le journal comptable soit cohérent — et
+# contre une base gratuite au CPU bridé, cela dépasse le délai maximal d'une
+# construction. Le volume est donc un paramètre, et le garnissage une décision.
+#
+# `charger_demo` est transactionnel : interrompu, il n'abîme rien, il n'a simplement pas
+# eu lieu. C'est ce qui rend une nouvelle tentative sans risque.
+if [ -n "${JOURS_DEMO:-}" ]; then
+    python3 manage.py preparer_demo --jours "$JOURS_DEMO"
+fi
+
+# Rôles de l'administrateur. Idempotent : posé une fois, vérifié à chaque mise en ligne.
+#
+# Deux comptes et non un (ADR-012) : celui qui exploite la place de marché n'a aucun droit
+# sur aucune boutique, et celui qui vend est un compte ordinaire. C'est ce qui rend le
+# journal des accès lisible le jour où un commerçant demande qui a regardé ses chiffres.
+if [ -n "${DJANGO_SUPERUSER_TELEPHONE:-}" ]; then
+    python3 manage.py preparer_administrateur \
+        --telephone "$DJANGO_SUPERUSER_TELEPHONE" \
+        --commercant "${ADMIN_COMMERCANT_TELEPHONE:-}" \
+        --boutique "${ADMIN_BOUTIQUE:-}"
+fi
+
 echo "Construction terminée."

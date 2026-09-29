@@ -1,6 +1,6 @@
 # ADR-012 — L'accès transverse est nommé, borné et journalisé ; il ne découle pas d'un booléen
 
-**Statut :** Actée · **Détail :** `apps/core/tenancy.py` (`acces_plateforme`) ; `apps/core/models.py` (`AccesPlateforme`) ; `apps/accounts/permissions.py` (droits `plateforme.*`)
+**Statut :** Actée · **Détail :** `apps/core/tenancy.py` (`acces_plateforme`) ; `apps/core/models.py` (`AccesPlateforme`) ; `apps/accounts/permissions.py` (droits `plateforme.*`) ; `apps/accounts/administration.py` (les trois niveaux)
 
 ---
 
@@ -102,7 +102,40 @@ marge ou la liste de clients d'un commerçant. Le rôle plateforme peut donc êt
 garde `/admin/` — c'est Django, c'est le dernier recours d'exploitation, et le retirer laisserait
 l'application sans issue de secours — mais il n'obtient plus la marge d'un commerçant par un booléen.
 
-### 4. Deux casquettes, deux comptes
+### 4. Trois niveaux d'administration, et non deux
+
+Le premier jet de cet ADR n'en distinguait que deux — le superutilisateur et le reste — et cette
+confusion coûtait cher : elle faisait du geste quotidien d'exploitation un acte de
+superutilisateur.
+
+| Qui | Comment il est marqué | Ce qu'il voit |
+|---|---|---|
+| **Superadministrateur** | `is_superuser` + `is_staff` | Tout, sans exception, par construction Django |
+| **Administrateur du marché** | `is_staff` + `RolePlateforme(ADMIN_MARCHE)`, **sans** `is_superuser` | Ce que le groupe de permissions ouvre. Ni comptabilité, ni stock, ni cahier de crédit |
+| **Gérant d'une boutique** | `Appartenance` de rôle `GERANT` | Sa boutique, entièrement. Aucune autre |
+
+Ce ne sont pas trois degrés d'un même pouvoir, ce sont **trois métiers**. Le superadministrateur
+est un recours technique : il existe pour le jour où quelque chose est cassé, et ce jour-là il doit
+tout pouvoir. L'administrateur du marché est un métier quotidien : il valide des boutiques, suspend
+pour loyer impayé, vend des emplacements. Le gérant tient un commerce.
+
+**Ce qui rend la distinction opérante plutôt que déclarative :** un compte `is_staff` **sans**
+`is_superuser` ne voit **rien** dans `/admin/` — Django exige une permission par modèle. La
+frontière est donc une liste écrite, relue et défendue par un test
+(`apps/accounts/administration.py`, `tests/test_administration.py`), et non un drapeau.
+
+Cette liste donne à l'administrateur du marché les comptes, les rattachements, les baux, les
+rayons, les emplacements premium et le réseau d'apporteurs. Elle lui refuse `accounting`,
+`inventory`, `pos` — où vit le cahier de crédit —, `catalog`, `orders` et `payments`. Ce refus est
+le cœur de la décision : un exploitant qui vend aussi sur sa place ne doit pas lire les chiffres de
+ses concurrents par la porte de service.
+
+La règle de suppression du projet s'y applique aussi : **on supprime ce qui n'a pas d'histoire, on
+retire ce qui en a une.** Un compte porte des ventes, une appartenance dit qui tenait la caisse le
+jour d'un écart de fonds, une boutique porte tout ce qu'elle a vendu — aucun des trois ne
+s'efface.
+
+### 5. Deux casquettes, deux comptes
 
 L'exploitant qui possède des boutiques a **deux comptes distincts** : l'un administrateur de
 plateforme (`is_staff`, rôle `ADMIN_MARCHE`, aucun droit de boutique), l'autre commerçant ordinaire

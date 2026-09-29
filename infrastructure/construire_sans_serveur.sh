@@ -64,16 +64,21 @@ if [ -n "${JOURS_DEMO:-}" ]; then
     python3 manage.py preparer_demo --jours "$JOURS_DEMO"
 fi
 
-# Rôles de l'administrateur. Idempotent : posé une fois, vérifié à chaque mise en ligne.
+# Les trois niveaux d'administration. Idempotent : posés une fois, vérifiés à chaque mise
+# en ligne.
 #
-# Deux comptes et non un (ADR-012) : celui qui exploite la place de marché n'a aucun droit
-# sur aucune boutique, et celui qui vend est un compte ordinaire. C'est ce qui rend le
-# journal des accès lisible le jour où un commerçant demande qui a regardé ses chiffres.
-if [ -n "${DJANGO_SUPERUSER_TELEPHONE:-}" ]; then
-    python3 manage.py preparer_administrateur \
-        --telephone "$DJANGO_SUPERUSER_TELEPHONE" \
-        --commercant "${ADMIN_COMMERCANT_TELEPHONE:-}" \
-        --boutique "${ADMIN_BOUTIQUE:-}"
-fi
+# Trois personnages et non un (ADR-012) : le superadministrateur qui administre tout et
+# n'existe que pour le jour où quelque chose est cassé ; l'administrateur du marché qui
+# valide, suspend et vend des emplacements, sans jamais voir la marge d'un commerçant ; et
+# le compte de commerçant avec lequel cette même personne vend, s'il y en a un.
+#
+# Le groupe de permissions est synchronisé à chaque passage : c'est lui qui rend la
+# distinction opérante, puisqu'un compte `is_staff` sans permission voit une administration
+# vide.
+python3 manage.py preparer_administrateur \
+    --superadmin "${DJANGO_SUPERUSER_TELEPHONE:-}" \
+    --administrateur "${ADMIN_MARCHE_TELEPHONE:-}" \
+    --commercant "${ADMIN_COMMERCANT_TELEPHONE:-}" \
+    --boutique "${ADMIN_BOUTIQUE:-}"
 
 echo "Construction terminée."

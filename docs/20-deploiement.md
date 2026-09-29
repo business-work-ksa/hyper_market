@@ -207,6 +207,22 @@ fonction sans serveur n'a pas de hook d'entrée où poser `entree.sh`. Migration
 l'isolation et garnissage sont donc dans le `buildCommand` — enchaînés en `&&`, ce qui suffit ici :
 une construction qui échoue n'est pas déployée.
 
+**L'installation des dépendances est déclarée à la main.** Le dépôt contient un `package.json` —
+l'outillage de capture d'écran, avec Playwright et un navigateur complet en dépendance de
+développement. Laissé à sa détection, l'hébergeur y voit un projet Node, installe trois cents
+mégaoctets de navigateur, et n'installe pas Django. `installCommand` nomme donc explicitement
+`pip install -r requirements.txt`, et `.vercelignore` écarte du téléversement ce qui n'a rien à
+faire dans une fonction : `node_modules`, les captures, les médias, la documentation, les tests.
+`static/` reste, lui, parce que `collectstatic` tourne à la construction et le lit — ce fichier
+écarte de la machine de construction, pas seulement de la fonction.
+
+**Le répertoire de sortie est vide, et il doit exister.** Sans `outputDirectory` déclaré, la
+plateforme cherche `public/`, ne le trouve pas, et **se replie sur la racine du dépôt** : `manage.py`
+et `requirements.txt` deviennent alors des fichiers publics servis par le CDN, et un fichier servi
+par le CDN passe **avant** la réécriture vers l'application. La construction fabrique donc
+`sortie_vide/`, qui ne contient rien : le CDN ne sert rien, tout tombe dans l'application, et
+WhiteNoise sert les fichiers statiques comme partout ailleurs.
+
 **`SECURE_SSL_REDIRECT` est à `False`**, et c'est le seul réglage de durcissement relâché. La
 plateforme termine TLS en amont et sert déjà tout en HTTPS ; laisser la redirection active ajoute un
 `301` que le client a déjà suivi, et fait boucler les contrôles internes qui appellent la fonction

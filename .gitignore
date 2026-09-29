@@ -222,6 +222,9 @@ __marimo__/
 db.sqlite3
 media/
 staticfiles/
+# Répertoire de sortie exigé par l'hébergement sans serveur, fabriqué à la
+# construction. Il est vide exprès — voir docs/20, §2 bis.
+sortie_vide/
 .env
 # Les secrets de production : le fichier d'exemple est versionné, celui qui est
 # rempli ne l'est jamais.

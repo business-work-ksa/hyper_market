@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py verifier_rls && python manage.py preparer_demo",
+  "framework": null,
+  "installCommand": "pip install --disable-pip-version-check -r requirements.txt",
+  "buildCommand": "mkdir -p sortie_vide && : > sortie_vide/.vide && python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py verifier_rls && python manage.py preparer_demo",
+  "outputDirectory": "sortie_vide",
   "regions": [
     "pdx1"
   ],
@@ -13,7 +16,8 @@
   "functions": {
     "api/index.py": {
       "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "{apps,config,templates,staticfiles}/**"
     }
   },
   "env": {

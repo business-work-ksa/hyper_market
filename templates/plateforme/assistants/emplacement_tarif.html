@@ -1,0 +1,17 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% block fil_parent %}Emplacements premium{% endblock %}
+{% block question %}À quel prix ?{% endblock %}
+{% block phrase %}Le tarif HT de toute la période{% if periode_texte %}, {{ periode_texte }}{% endif %}.{% endblock %}
+{% block etape %}
+  <div class="a-grille-2">
+    {% include "plateforme/partials/a_champ.html" with champ=form.tarif classe="a-champ--montant" %}
+  </div>
+  <div class="bandeau-info a-regle">
+    <svg aria-hidden="true"><use href="#ic-bouclier"></use></svg>
+    <span><strong>Jamais à zéro.</strong> Même une attribution interne — à une boutique de
+      l'exploitant — s'enregistre à son prix. Sinon le compte de résultat de la plateforme
+      montrerait un emplacement occupé qui ne rapporte rien, et on conclurait à tort que le
+      retail media ne marche pas (ADR-012). La base refuse d'ailleurs un tarif nul.</span>
+  </div>
+  <p class="t-legende">Repère du plan d'affaires : une tête de gondole se loue 75&#8239;000 FCFA la semaine (docs/03).</p>
+{% endblock %}

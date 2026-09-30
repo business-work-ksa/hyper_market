@@ -1,0 +1,237 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}{{ b.enseigne }}{% endblock %}
+{% block fil %}<p class="fil"><a href="{% url 'plateforme:boutiques' %}">Boutiques</a><span class="fil__sep">›</span><span>Fiche</span></p>{% endblock %}
+{% block entete %}{{ b.enseigne }}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+La fiche montre ce que le bailleur sait de son locataire : l'identité légale, le bail, les
+loyers, les emplacements, qui travaille dans la boutique. Pas ce que la boutique vend : cela
+passe par « Voir l'activité », qui demande un motif et laisse une trace.
+{% endcomment %}
+<header class="t-fiche">
+  <span class="monogramme monogramme--grand" aria-hidden="true">{{ b.enseigne|initiales }}</span>
+  <div class="t-fiche__texte">
+    <div class="t-fiche__ligne">
+      <h2 class="entete-page__titre">{{ b.enseigne }}</h2>
+      <span class="statut statut--{{ b.etat }}">{{ b.get_etat_display }}</span>
+    </div>
+    <p class="t-fiche__meta">
+      <span>{{ b.raison_sociale }}</span>
+      <span><svg aria-hidden="true"><use href="#ic-lieu"></use></svg>{{ b.ville }}</span>
+      <span>{{ metier.libelle }}</span>
+      {% if b.rayon_principal %}<span><svg aria-hidden="true"><use href="#ic-rayons"></use></svg>{{ b.rayon_principal.libelle }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="t-fiche__actions">
+    <a class="btn" href="{% url 'plateforme:boutique_activite' b.pk %}"><svg aria-hidden="true"><use href="#ic-pouls"></use></svg>Voir l'activité</a>
+    {% if 'plateforme.boutiques' in droits %}
+      {% for code, libelle, style in actions %}
+        <a class="btn{% if style == 'primaire' %} btn--primaire{% elif style == 'danger' %} btn--danger{% endif %}"
+           href="{% url 'plateforme:boutique_etat' b.pk %}?action={{ code }}">{{ libelle }}</a>
+      {% endfor %}
+    {% endif %}
+  </div>
+</header>
+
+{% if impayes %}
+  <div class="bandeau-info bandeau-info--alerte t-bloc-bas" role="status">
+    <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+    <span><strong>{{ impayes }} facture{{ impayes|pluralize }} de loyer échue{{ impayes|pluralize }}</strong> — reste dû {{ synthese.reste|fcfa }} FCFA.
+      {% if b.etat == 'active' %}Une suspension retire la boutique de la vitrine sans lui couper son back-office.{% endif %}</span>
+  </div>
+{% endif %}
+
+<div class="grille-console">
+  <div class="col-7 colonne">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Bail</h2>
+        {% if bail %}<span class="statut statut--active">Actif</span>{% endif %}
+      </header>
+      {% if bail %}
+        <div class="carte__corps">
+          <div class="t-bail">
+            <div class="t-bail__chiffre"><span class="t-legende">Offre</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
+            <div class="t-bail__chiffre"><span class="t-legende">Loyer mensuel HT</span><strong>{{ bail.loyer_mensuel|fcfa }} <span class="unite">FCFA</span></strong></div>
+            <div class="t-bail__chiffre"><span class="t-legende">Commission</span><strong>{{ taux_pourcent|pourcent:2 }}</strong></div>
+          </div>
+          {% if derogation %}
+            {% if bail.motif_derogation_commission %}
+              <div class="bandeau-info t-derogation">
+                <svg aria-hidden="true"><use href="#ic-info"></use></svg>
+                <span><strong>Taux négocié</strong> — l'offre prévoit {{ derogation.reference|pourcent:2 }}.
+                  Motif enregistré : « {{ bail.motif_derogation_commission }} »</span>
+              </div>
+            {% else %}
+              {# Un bail antérieur à la règle, ou écrit hors du formulaire : on le signale plutôt que de le taire. #}
+              <div class="bandeau-info bandeau-info--alerte t-derogation">
+                <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+                <span><strong>Taux négocié sans motif</strong> — l'offre prévoit {{ derogation.reference|pourcent:2 }}.
+                  Une dérogation doit dire pourquoi (ADR-012) : à régulariser au prochain avenant.</span>
+              </div>
+            {% endif %}
+          {% endif %}
+          <dl class="cles t-cles-espace">
+            <dt>Début</dt><dd>{{ bail.debut|date:"j F Y" }}</dd>
+            <dt>Fin</dt><dd>{% if bail.fin %}{{ bail.fin|date:"j F Y" }}{% else %}Sans terme — reconduction tacite{% endif %}</dd>
+            <dt>Préavis</dt><dd>{{ bail.preavis_jours }} jours</dd>
+            <dt>Dépôt de garantie</dt><dd>{{ bail.depot_garantie|fcfa }} FCFA</dd>
+          </dl>
+        </div>
+      {% else %}
+        <div class="vide t-vide-compact">
+          <svg aria-hidden="true"><use href="#ic-document"></use></svg>
+          <p class="t-section">Aucun bail actif</p>
+          <p class="t-legende">{% if b.etat == 'candidature' %}Le bail est signé à la validation de la candidature.{% else %}La boutique ne peut pas vendre sans bail actif.{% endif %}</p>
+        </div>
+      {% endif %}
+      {% if anciens_baux %}
+        <footer class="carte__pied t-legende">
+          {{ anciens_baux|length }} autre{{ anciens_baux|length|pluralize }} bail{{ anciens_baux|length|pluralize:"x" }} :
+          {% for x in anciens_baux %}{{ x.type_emplacement.libelle }} ({{ x.get_etat_display|lower }}, {{ x.debut|date:"m/Y" }}){% if not forloop.last %} · {% endif %}{% endfor %}
+        </footer>
+      {% endif %}
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Loyers</h2>
+        {% if synthese.nb %}<span class="t-legende">{{ synthese.encaisse|fcfa }} encaissé sur {{ synthese.emis|fcfa }} FCFA</span>{% endif %}
+      </header>
+      {% if factures %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead><tr><th scope="col">Période</th><th scope="col" class="num">TTC</th><th scope="col" class="t-cache-etroit">Échéance</th><th scope="col">État</th><th scope="col" class="t-cache-etroit" aria-label="Action"></th></tr></thead>
+            <tbody>
+              {% for f in factures %}
+                <tr>
+                  <td class="principal">{{ f.periode|date:"F Y"|capfirst }}</td>
+                  <td class="num">
+                    {{ f.montant_ttc|fcfa }}
+                    {% if 'plateforme.boutiques' in droits and f.statut != 'payee' and f.statut != 'annulee' %}
+                      <a class="btn t-btn-ligne t-statut-mobile" href="{% url 'plateforme:loyer_encaisser' f.pk %}">Encaisser</a>
+                    {% endif %}
+                  </td>
+                  <td class="t-cache-etroit chiffre">{{ f.echeance|date:"d/m/Y" }}</td>
+                  <td><span class="statut statut--{{ f.statut }}">{{ f.statut_libelle }}</span></td>
+                  <td class="num t-cache-etroit">
+                    {% if 'plateforme.boutiques' in droits and f.statut != 'payee' and f.statut != 'annulee' %}
+                      <a class="btn btn--discret t-btn-ligne" href="{% url 'plateforme:loyer_encaisser' f.pk %}">Encaisser</a>
+                    {% elif f.paye_le %}<span class="t-legende">le {{ f.paye_le|date:"d/m" }}</span>{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if synthese.nb > factures|length %}
+          <footer class="carte__pied"><a class="t-petit t-lien" href="{% url 'plateforme:loyers' %}?mois=tous&amp;boutique={{ b.pk }}">Les 12 dernières sur {{ synthese.nb }}</a></footer>
+        {% endif %}
+      {% else %}
+        <div class="vide t-vide-compact"><svg aria-hidden="true"><use href="#ic-argent"></use></svg><p class="t-legende">Aucune facture de loyer émise.</p></div>
+      {% endif %}
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Emplacements premium</h2>
+        {% if 'plateforme.emplacements' in droits and b.etat == 'active' %}
+          <a class="btn btn--discret" href="{% url 'plateforme:assistant_emplacement' %}?boutique={{ b.pk }}"><svg aria-hidden="true"><use href="#ic-etoile"></use></svg>Vendre</a>
+        {% endif %}
+      </header>
+      {% if emplacements %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead><tr><th scope="col">Emplacement</th><th scope="col" class="t-cache-etroit">Période</th><th scope="col" class="num">Tarif</th><th scope="col">État</th></tr></thead>
+            <tbody>
+              {% for e in emplacements %}
+                <tr>
+                  <td>
+                    <span class="t-boutique__noms">
+                      <span class="t-boutique__enseigne">{{ e.get_type_display }}</span>
+                      <span class="t-boutique__raison">{{ e.rayon.libelle|default:"Tout le marché" }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
+                    </span>
+                  </td>
+                  <td class="chiffre t-cache-etroit">{{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m/Y" }}</td>
+                  <td class="num">{{ e.tarif|fcfa }}</td>
+                  <td>{% include "plateforme/partials/t_statut_emplacement.html" %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="vide t-vide-compact"><svg aria-hidden="true"><use href="#ic-etoile"></use></svg><p class="t-legende">Aucun emplacement premium loué.</p></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-5 colonne">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Identité légale</h2></header>
+      <div class="carte__corps">
+        <dl class="cles">
+          <dt>Raison sociale</dt><dd>{{ b.raison_sociale }}</dd>
+          <dt>RCCM</dt><dd class="chiffre">{{ b.rccm|default:"—" }}</dd>
+          <dt>NIU</dt><dd class="chiffre">{{ b.niu|default:"—" }}</dd>
+          <dt>Régime fiscal</dt><dd>{{ b.get_regime_fiscal_display }}</dd>
+          <dt>Téléphone</dt><dd class="chiffre">{% if b.telephone %}<a class="t-lien" href="tel:{{ b.telephone }}">{{ b.telephone }}</a>{% else %}—{% endif %}</dd>
+          <dt>Ville</dt><dd>{{ b.ville }}</dd>
+          <dt>Inscrite le</dt><dd>{{ b.cree_le|date:"j F Y" }}</dd>
+          {% if kyc %}
+            <dt>Pièces</dt>
+            <dd class="t-pieces">
+              {% for d in kyc %}
+                <span class="puce {% if d.etat == 'valide' %}puce--bon{% elif d.etat == 'rejete' %}puce--critique{% else %}puce--alerte{% endif %}">
+                  <svg aria-hidden="true"><use href="#{% if d.etat == 'valide' %}ic-check{% elif d.etat == 'rejete' %}ic-alerte{% else %}ic-horloge{% endif %}"></use></svg>{{ d.type_piece }} · {{ d.get_etat_display|lower }}
+                </span>
+              {% endfor %}
+            </dd>
+          {% endif %}
+        </dl>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Équipe</h2><span class="t-legende">{{ equipe|length }} rattachement{{ equipe|length|pluralize }}</span></header>
+      {% if equipe %}
+        <ul class="t-equipe">
+          {% for a in equipe %}
+            <li class="t-equipe__ligne{% if not a.actif %} t-equipe__ligne--inactive{% endif %}">
+              <span class="jeton" aria-hidden="true">{{ a.utilisateur.nom_complet|initiales }}</span>
+              <span class="t-equipe__corps">
+                <span class="t-equipe__nom">{{ a.utilisateur.nom_complet }}</span>
+                <span class="t-legende">{{ a.role.libelle }} · depuis le {{ a.depuis|date:"d/m/Y" }}</span>
+              </span>
+              {% if a.actif %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Actif</span>{% else %}<span class="puce"><svg aria-hidden="true"><use href="#ic-pause"></use></svg>Retiré</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="vide t-vide-compact"><svg aria-hidden="true"><use href="#ic-equipe"></use></svg><p class="t-legende">Personne n'est rattaché à cette boutique.</p></div>
+      {% endif %}
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Transparence</h2>
+        <span class="t-legende">{{ nb_journal }} accès journalisé{{ nb_journal|pluralize }}</span>
+      </header>
+      <div class="carte__corps t-transparence">
+        <p class="t-legende">Chaque consultation de l'activité de cette boutique par la plateforme est inscrite ici, avec son motif. Le commerçant peut le savoir.</p>
+      </div>
+      {% if journal %}
+        {% include "plateforme/partials/t_acces.html" with lignes=journal sans_boutique=True %}
+        {% if nb_journal > journal|length %}
+          <footer class="carte__pied"><a class="t-petit t-lien" href="{% url 'plateforme:journal' %}?boutique={{ b.pk }}">Tout le journal de cette boutique</a></footer>
+        {% endif %}
+      {% else %}
+        <div class="vide t-vide-compact"><svg aria-hidden="true"><use href="#ic-bouclier"></use></svg><p class="t-legende">Aucun accès à l'activité de cette boutique.</p></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

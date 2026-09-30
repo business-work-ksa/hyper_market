@@ -1,0 +1,20 @@
+{% comment %}
+Résumé des erreurs, en tête : chaque ligne mène au champ fautif. Le focus, lui, est déjà posé
+sur la première erreur par `autofocus` (côté serveur, donc sans JavaScript).
+{% endcomment %}
+{% if form.errors %}
+  <div class="bandeau-info a-resume-erreurs" role="alert" aria-labelledby="a-resume-titre">
+    <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+    <div class="pile-sm" style="gap:4px;min-width:0">
+      <p id="a-resume-titre" class="a-resume-erreurs__titre">
+        {% with n=form.errors|length %}{% if n > 1 %}{{ n }} points à corriger{% else %}Un point à corriger{% endif %}{% endwith %}
+      </p>
+      <ul class="a-resume-erreurs__liste">
+        {% for erreur in form.non_field_errors %}<li>{{ erreur }}</li>{% endfor %}
+        {% for champ in form %}{% if champ.errors %}
+          <li><a href="#{{ champ.auto_id }}">{{ champ.label }}</a> — {{ champ.errors|join:" " }}</li>
+        {% endif %}{% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endif %}

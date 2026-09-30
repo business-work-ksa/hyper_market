@@ -1,0 +1,25 @@
+{% comment %}
+Barre latérale des étapes d'un assistant : faite (lien pour revenir), courante (aria-current),
+à venir (inerte). On revient en arrière d'un clic ; on ne saute pas en avant.
+{% endcomment %}
+<ol class="etapes a-etapes" aria-label="Étapes de l'assistant">
+  {% for p in pastilles %}
+    <li class="etape etape--{{ p.statut|cut:'_' }}"{% if p.statut == 'courante' %} aria-current="step"{% endif %}>
+      <span class="etape__numero" aria-hidden="true">
+        {% if p.statut == 'faite' %}<svg><use href="#ic-check"></use></svg>{% else %}{{ p.numero }}{% endif %}
+      </span>
+      <span class="etape__texte">
+        {% if p.url %}
+          <a class="etape__lien etape__titre" href="{{ p.url }}">
+            <span class="visuellement-cache">Étape {{ p.numero }}, faite : </span>{{ p.titre }}<span class="visuellement-cache"> — modifier</span>
+          </a>
+        {% else %}
+          <span class="etape__titre">
+            <span class="visuellement-cache">Étape {{ p.numero }}{% if p.statut == 'courante' %}, en cours{% elif p.statut == 'faite' %}, faite{% else %}, à venir{% endif %} : </span>{{ p.titre }}
+          </span>
+        {% endif %}
+        <span class="etape__aide">{{ p.aide }}</span>
+      </span>
+    </li>
+  {% endfor %}
+</ol>

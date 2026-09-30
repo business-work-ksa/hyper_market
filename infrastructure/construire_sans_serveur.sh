@@ -62,6 +62,9 @@ fi
 # eu lieu. C'est ce qui rend une nouvelle tentative sans risque.
 if [ -n "${JOURS_DEMO:-}" ]; then
     python3 manage.py preparer_demo --jours "$JOURS_DEMO"
+    # Idempotent, et sans rejouer les ventes : une démonstration garnie avant la console reçoit
+    # ainsi ses loyers et ses emplacements, et la console a quelque chose à montrer.
+    python3 manage.py garnir_contrats_demo
 fi
 
 # Les trois niveaux d'administration. Idempotent : posés une fois, vérifiés à chaque mise

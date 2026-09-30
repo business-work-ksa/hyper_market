@@ -1,0 +1,103 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}Emplacements premium{% endblock %}
+{% block entete %}Emplacements premium{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">Marché</p>
+    <h2 class="entete-page__titre">Emplacements premium</h2>
+    <p class="entete-page__phrase">Têtes de gondole, bandeaux de rayon et page d'accueil, loués à la semaine. Jamais à zéro franc, y compris aux boutiques de l'exploitant.</p>
+  </div>
+  {% if 'plateforme.emplacements' in droits %}
+  <div class="entete-page__actions">
+    <a class="btn btn--primaire" href="{% url 'plateforme:assistant_emplacement' %}"><svg aria-hidden="true"><use href="#ic-etoile"></use></svg>Vendre un emplacement</a>
+  </div>
+  {% endif %}
+</div>
+
+<section class="kpis t-kpis t-bloc-bas" aria-label="Synthèse des emplacements">
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>Revenu de {{ libelle_mois }} <span class="t-muet">HT</span></span>
+    <span class="kpi__valeur">{{ revenu_mois|fcfa }}<span class="unite">FCFA</span></span>
+    <span class="kpi__pied">Au prorata des jours · mois précédent {{ revenu_mois_precedent|fcfa }}</span>
+  </div>
+  <a class="kpi" href="?vue=en_cours">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-lecture"></use></svg></span>En cours</span>
+    <span class="kpi__valeur">{{ compteurs.en_cours }}</span>
+    <span class="kpi__pied">Visibles sur la vitrine aujourd'hui</span>
+  </a>
+  <a class="kpi" href="?vue=a_venir">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-calendrier"></use></svg></span>À venir</span>
+    <span class="kpi__valeur">{{ compteurs.a_venir }}</span>
+    <span class="kpi__pied">{% if a_venir_30 %}{{ a_venir_30 }} dans les 30 prochains jours{% else %}<span class="t-muet">Aucun dans les 30 jours</span>{% endif %}</span>
+  </a>
+</section>
+
+<nav class="onglets" aria-label="Période">
+  {% for o in onglets %}
+    <a class="onglet" href="?vue={{ o.code }}" {% if o.code == vue %}aria-current="page"{% endif %}>{{ o.libelle }}<span class="onglet__compte">{{ o.nombre }}</span></a>
+  {% endfor %}
+</nav>
+
+<section class="carte">
+  {% if page_obj.object_list %}
+  <div class="tableau-boite">
+    <table class="tableau">
+      <thead>
+        <tr>
+          <th scope="col">Emplacement</th>
+          <th scope="col" class="t-cache-etroit">Boutique</th>
+          <th scope="col" class="t-cache-etroit">Période</th>
+          <th scope="col" class="num">Tarif</th>
+          <th scope="col" class="t-cache-moyen">État</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in page_obj.object_list %}
+          <tr>
+            <td>
+              <span class="t-boutique__noms">
+                <span class="t-boutique__enseigne">{{ e.get_type_display }}</span>
+                <span class="t-boutique__raison">{{ e.rayon.libelle|default:"Tout le marché" }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
+                <span class="t-boutique__mobile">{% if e.boutique_occupante %}<a class="t-lien" href="{% url 'plateforme:boutique' e.boutique_occupante.pk %}">{{ e.boutique_occupante.enseigne }}</a>{% else %}Libre{% endif %}</span>
+              </span>
+            </td>
+            <td class="t-cache-etroit">
+              {% if e.boutique_occupante %}
+                <a class="t-boutique" href="{% url 'plateforme:boutique' e.boutique_occupante.pk %}">
+                  <span class="monogramme" aria-hidden="true">{{ e.boutique_occupante.enseigne|initiales }}</span>
+                  <span class="t-boutique__enseigne">{{ e.boutique_occupante.enseigne }}</span>
+                </a>
+              {% else %}<span class="t-muet">Libre</span>{% endif %}
+            </td>
+            <td class="t-cache-etroit">
+              <span class="chiffre">{{ e.debut|date:"d/m/Y" }} → {{ e.fin|date:"d/m/Y" }}</span>
+              <span class="t-legende t-sous-statut">{{ e.duree }} jour{{ e.duree|pluralize }}{% if e.restant is not None %} · encore {{ e.restant }} j{% elif e.dans is not None %} · dans {{ e.dans }} j{% endif %}</span>
+            </td>
+            <td class="num principal">{{ e.tarif|fcfa }}</td>
+            <td class="t-cache-moyen">{% include "plateforme/partials/t_statut_emplacement.html" %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <footer class="tableau-pied">
+    <span>{{ page_obj.paginator.count }} emplacement{{ page_obj.paginator.count|pluralize }}</span>
+    {% include "plateforme/partials/t_pagination.html" with parametres="vue="|add:vue %}
+  </footer>
+  {% else %}
+    <div class="vide">
+      <svg aria-hidden="true"><use href="#ic-etoile"></use></svg>
+      {% if vue == 'en_cours' %}<p class="t-section">Aucun emplacement en cours</p><p class="t-legende">La vitrine n'affiche aucune mise en avant payante aujourd'hui.</p>
+      {% elif vue == 'a_venir' %}<p class="t-section">Rien de réservé</p><p class="t-legende">Aucun emplacement ne commence dans les semaines à venir.</p>
+      {% else %}<p class="t-section">Aucun emplacement terminé</p><p class="t-legende">L'historique des ventes apparaîtra ici.</p>{% endif %}
+      {% if 'plateforme.emplacements' in droits and vue != 'termines' %}
+        <a class="btn btn--primaire" href="{% url 'plateforme:assistant_emplacement' %}"><svg aria-hidden="true"><use href="#ic-etoile"></use></svg>Vendre un emplacement</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

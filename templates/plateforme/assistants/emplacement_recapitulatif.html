@@ -1,0 +1,11 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% block fil_parent %}Emplacements premium{% endblock %}
+{% block question %}Relisez, puis vendez{% endblock %}
+{% block phrase %}Rien n'est encore enregistré. La vente sera inscrite au journal des accès, à votre nom.{% endblock %}
+{% block avant_formulaire %}{% include "plateforme/partials/a_recap.html" %}{% endblock %}
+{% block etape %}
+  <p class="t-2 a-trace">
+    <svg class="icone-ligne" aria-hidden="true"><use href="#ic-journal"></use></svg>
+    En confirmant, l'emplacement est enregistré à ce prix et compté dans la recette du marché.
+  </p>
+{% endblock %}

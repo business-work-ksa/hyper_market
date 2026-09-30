@@ -146,3 +146,132 @@ def synchroniser_le_groupe():
 
     groupe.permissions.set(trouvees)
     return groupe, manquantes
+
+
+# ----------------------------------------------------------------------------
+# Poser et retirer un administrateur du marché
+# ----------------------------------------------------------------------------
+# Écrit ici, et non dans la commande ou dans la console, parce que les deux le font : la commande
+# `preparer_administrateur` à chaque mise en ligne, la console quand le superadministrateur nomme
+# quelqu'un. Deux copies de « ce qu'est un administrateur du marché » divergeraient au premier
+# ajout — et la divergence porterait précisément sur `is_superuser`, la marque qu'il ne faut pas
+# poser.
+#
+# Les rôles qu'on peut confier ainsi. `CABINET` est de portée plateforme mais n'est pas un métier
+# d'exploitation : il se pose par le partenariat comptable, pas par la console.
+LIBELLES_ROLES_ADMINISTRATION = {
+    "ADMIN_MARCHE": "Gestionnaire du marché",
+    "RESP_RAYON": "Responsable de rayon",
+}
+
+
+class PoseAdministrateur:
+    """Ce que la pose a réellement changé — pour que l'appelant le dise, pas le devine."""
+
+    def __init__(self, role_plateforme, *, nouveau, superuser_retire, staff_pose, role_cree):
+        self.role_plateforme = role_plateforme
+        self.nouveau = nouveau
+        self.superuser_retire = superuser_retire
+        self.staff_pose = staff_pose
+        self.role_cree = role_cree
+
+
+def poser_administrateur_du_marche(compte, *, code_role="ADMIN_MARCHE", motif, groupe=None):
+    """Fait de `compte` un administrateur du marché. Idempotent.
+
+    Trois marques, et l'absence d'une quatrième :
+
+    * `is_staff`, sans quoi `/admin/` est fermé ;
+    * le groupe de permissions, sans quoi `/admin/` est **vide** — c'est ce qui rend la
+      distinction opérante plutôt que déclarative ;
+    * le `RolePlateforme`, qui porte les droits d'exploitation de l'ADR-012 ;
+    * et **pas** `is_superuser`, qui rendrait les trois décoratifs. S'il est posé, il est retiré,
+      et le résultat le dit : c'est exactement la confusion que cette fonction répare.
+
+    La console refuse en amont un compte superadministrateur (lui retirer ce drapeau depuis un
+    écran pourrait laisser l'application sans recours) ; la commande, elle, l'assume.
+    """
+    from apps.accounts.models import Role, RolePlateforme
+
+    if code_role not in LIBELLES_ROLES_ADMINISTRATION:
+        raise ValueError(f"« {code_role} » n'est pas un rôle d'administration du marché.")
+    if groupe is None:
+        groupe, _ = synchroniser_le_groupe()
+
+    champs = []
+    staff_pose = not compte.is_staff
+    if staff_pose:
+        compte.is_staff = True
+        champs.append("is_staff")
+    superuser_retire = compte.is_superuser
+    if superuser_retire:
+        compte.is_superuser = False
+        champs.append("is_superuser")
+    if champs:
+        compte.save(update_fields=champs)
+
+    # Le groupe ouvre dans `/admin/` les comptes, les baux et le réseau d'apporteurs : c'est le
+    # périmètre du gestionnaire du marché, pas celui d'un responsable de rayon, dont les deux
+    # droits (commissions, emplacements) s'exercent dans la console. Lui donner le groupe
+    # élargirait son rôle par la porte de service.
+    if code_role == "ADMIN_MARCHE":
+        compte.groups.add(groupe)
+
+    role, role_cree = Role.objects.get_or_create(
+        code=code_role,
+        defaults={"libelle": LIBELLES_ROLES_ADMINISTRATION[code_role], "portee": Role.PLATEFORME},
+    )
+    role_plateforme, nouveau = RolePlateforme.objects.get_or_create(
+        utilisateur=compte,
+        role=role,
+        actif=True,
+        defaults={"motif": (motif or "").strip()[:300]},
+    )
+    return PoseAdministrateur(
+        role_plateforme,
+        nouveau=nouveau,
+        superuser_retire=superuser_retire,
+        staff_pose=staff_pose,
+        role_cree=role_cree,
+    )
+
+
+def retirer_role_plateforme(role_plateforme, *, le=None) -> bool:
+    """Retire un rôle de plateforme — **sans rien supprimer** — et renvoie `True` si le compte a
+    perdu du même geste son accès à l'administration.
+
+    On retire ce qui a une histoire : la ligne reste, `actif` passe à faux et `jusqu_a` date la
+    fin. Le journal des accès nomme ce compte ; effacer son rôle rendrait ces lignes
+    inexplicables.
+
+    `is_staff` et le groupe ne partent que s'il ne reste **aucun** rôle actif : quelqu'un qui
+    était gestionnaire et responsable de rayon garde sa porte s'il perd l'un des deux. Et jamais
+    sur un superadministrateur, dont `is_staff` n'a pas été posé par un rôle et ne doit pas
+    tomber avec lui.
+    """
+    from django.contrib.auth.models import Group
+    from django.utils import timezone
+
+    if role_plateforme.actif:
+        role_plateforme.actif = False
+        role_plateforme.jusqu_a = le or timezone.localdate()
+        role_plateforme.save(update_fields=["actif", "jusqu_a"])
+
+    compte = role_plateforme.utilisateur
+    if compte.is_superuser:
+        return False
+    if not compte.roles_plateforme.filter(actif=True, role__code="ADMIN_MARCHE").exists():
+        # Plus de gestionnaire du marché : le groupe part, même s'il reste un rôle de rayon.
+        groupe = Group.objects.filter(name=NOM_GROUPE).first()
+        if groupe is not None:
+            compte.groups.remove(groupe)
+    if compte.roles_plateforme.filter(actif=True).exists():
+        return False
+
+    groupe = Group.objects.filter(name=NOM_GROUPE).first()
+    if groupe is not None:
+        compte.groups.remove(groupe)
+    if compte.is_staff:
+        compte.is_staff = False
+        compte.save(update_fields=["is_staff"])
+    return True

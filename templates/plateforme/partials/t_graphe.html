@@ -1,0 +1,49 @@
+{% load hm l10n %}
+{% comment %}
+Graphe en barres d'une série unique, calculé côté serveur (`indicateurs.graphe_de`).
+
+Paramètres : `graphe` (un `Graphe`), `aria` (ce que mesure le graphe, en une phrase), `vide`
+(la phrase de l'état vide).
+
+Deux SVG, un seul visible : la géométrie large pour le bureau, la compacte pour le téléphone
+(voir `Graphe`). Une seule série, donc pas de légende — le titre de la carte nomme la mesure.
+Le tableau replié en dessous est la vue accessible : les mêmes chiffres, lisibles par un lecteur
+d'écran et copiables.
+{% endcomment %}
+<div class="t-graphe" data-graphe>
+  {% localize off %}
+  {% with g=graphe.large %}
+  <svg class="graphe t-graphe__large" viewBox="0 0 {{ g.largeur }} {{ g.hauteur }}" role="img"
+       preserveAspectRatio="xMidYMid meet" aria-label="{{ aria }}">
+    {% include "plateforme/partials/t_graphe_corps.html" %}
+  </svg>
+  {% endwith %}
+  {% with g=graphe.compact %}
+  <svg class="graphe t-graphe__compact" viewBox="0 0 {{ g.largeur }} {{ g.hauteur }}" role="img"
+       preserveAspectRatio="xMidYMid meet" aria-label="{{ aria }}">
+    {% include "plateforme/partials/t_graphe_corps.html" %}
+  </svg>
+  {% endwith %}
+  {% endlocalize %}
+  {% if graphe.vide %}
+    <div class="t-graphe__vide">
+      <span><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{{ vide }}</span>
+    </div>
+  {% endif %}
+  <div class="info-bulle" role="status" aria-live="polite" data-bulle></div>
+</div>
+{% if not graphe.vide %}
+<details class="t-chiffres">
+  <summary>Voir les chiffres</summary>
+  <div class="tableau-boite">
+    <table class="tableau">
+      <thead><tr><th scope="col">Période</th><th scope="col" class="num">Montant (FCFA)</th></tr></thead>
+      <tbody>
+        {% for p in graphe.serie reversed %}
+          <tr><td>{{ p.libelle_long }}</td><td class="num">{{ p.valeur|fcfa }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endif %}

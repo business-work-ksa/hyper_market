@@ -17,6 +17,7 @@ from datetime import time as dtime
 from datetime import timedelta
 from decimal import Decimal
 
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -381,6 +382,9 @@ class Command(BaseCommand):
 
         acheteur = self._creer_reseau_affiliation()
         self._creer_commandes_en_ligne(boutiques, acheteur)
+        # Ce que vit le bailleur — loyers, candidature, emplacements — pour que la console de la
+        # plateforme ait quelque chose à montrer. Commande à part : voir sa docstring.
+        call_command("garnir_contrats_demo", stdout=self.stdout)
         self.stdout.write(self.style.SUCCESS("Jeu de démonstration chargé."))
 
     def _reinitialiser(self) -> bool:

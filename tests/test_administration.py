@@ -225,3 +225,25 @@ class CommandeTest(TestCase):
             Permission.objects.filter(group__name=NOM_GROUPE).count(),
             len(codes_de_permission()),
         )
+
+
+class ResponsableDeRayonTest(TestCase):
+    def test_il_ne_recoit_pas_le_groupe_du_gestionnaire(self):
+        """Ses deux droits s'exercent dans la console ; le groupe lui ouvrirait dans `/admin/` les
+        comptes, les baux et le réseau d'apporteurs — le périmètre d'un autre métier."""
+        from apps.accounts.administration import poser_administrateur_du_marche, retirer_role_plateforme
+
+        compte = fabrique.creer_utilisateur("Responsable de rayon")
+        pose = poser_administrateur_du_marche(compte, code_role=Role.RESP_RAYON, motif="Rayon quincaillerie.")
+        self.assertTrue(compte.is_staff)
+        self.assertFalse(compte.groups.filter(name=NOM_GROUPE).exists())
+        self.assertFalse(compte.has_perm("accounts.change_utilisateur"))
+
+        # Gestionnaire puis retrait de ce seul rôle : le groupe part, la porte reste (rôle de rayon).
+        gestion = poser_administrateur_du_marche(compte, motif="Intérim du gestionnaire.")
+        self.assertTrue(compte.groups.filter(name=NOM_GROUPE).exists())
+        retirer_role_plateforme(gestion.role_plateforme)
+        compte.refresh_from_db()
+        self.assertFalse(compte.groups.filter(name=NOM_GROUPE).exists())
+        self.assertTrue(compte.is_staff)
+        self.assertTrue(pose.role_plateforme.actif)

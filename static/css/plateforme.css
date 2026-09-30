@@ -366,3 +366,12 @@ a.etape:hover { background: var(--survol); }
   .console__suivi-point { animation: none; }
   .console .rail.console__rail { transition: none; }
 }
+
+/* Le rail est collant et haut d'un écran : sur une page longue, la colonne sombre s'arrêtait à la
+   première hauteur d'écran dès qu'on imprimait ou capturait la page entière. Le fond de la coquille
+   prolonge la colonne ; au-delà de 860 px seulement, là où le rail est une colonne. */
+@media (min-width: 861px) {
+  .console__coquille {
+    background: linear-gradient(to right, var(--console-rail) var(--rail), transparent var(--rail));
+  }
+}

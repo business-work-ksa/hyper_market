@@ -1,0 +1,10 @@
+{% comment %}Le signal d'activité d'une ligne `l` de l'écran d'activité : pastille, icône et mot.{% endcomment %}
+{% if l.b.etat == 'suspendue' %}
+  <span class="statut statut--suspendue">Suspendue</span>
+{% elif l.endormie %}
+  <span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% if l.jours is None %}Jamais vendu{% else %}Endormie · {{ l.jours }} j{% endif %}</span>
+{% elif l.jours == 0 %}
+  <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Vendu aujourd'hui</span>
+{% else %}
+  <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Il y a {{ l.jours }} j</span>
+{% endif %}

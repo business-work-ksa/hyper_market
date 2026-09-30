@@ -1,0 +1,18 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% block fil_parent %}Boutiques{% endblock %}
+{% block question %}Qui ouvre boutique ?{% endblock %}
+{% block phrase %}Le nom que verront les acheteurs, celui du registre, et ce que la boutique vend : le métier choisit le vocabulaire de ses écrans et les fonctions qui s'y activent.{% endblock %}
+{% block etape %}
+  <div class="a-grille-2">
+    {% include "plateforme/partials/a_champ.html" with champ=form.enseigne %}
+    {% include "plateforme/partials/a_champ.html" with champ=form.raison_sociale %}
+  </div>
+  <p class="a-apercu-slug t-legende" data-apercu-slug hidden>
+    Adresse de la vitrine : <code>/marche/boutique/<strong data-slug>…</strong>/</code>
+  </p>
+  {% include "plateforme/partials/a_cartes.html" with champ=form.metier cartes=cartes_metiers classe="a-cartes--compactes" %}
+  <div class="a-grille-2">
+    {% include "plateforme/partials/a_champ.html" with champ=form.ville %}
+    {% include "plateforme/partials/a_champ.html" with champ=form.telephone %}
+  </div>
+{% endblock %}

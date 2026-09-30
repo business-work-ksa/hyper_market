@@ -1,0 +1,41 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% block fil_parent %}Boutiques{% endblock %}
+{% block question %}Relisez, puis ouvrez{% endblock %}
+{% block phrase %}Rien n'est encore créé. À la confirmation, la boutique, son bail, son gérant, son plan comptable et son magasin principal naissent ensemble — ou pas du tout.{% endblock %}
+{% block avant_formulaire %}{% include "plateforme/partials/a_recap.html" %}{% endblock %}
+{% block etape %}
+  <fieldset class="a-groupe" id="{{ form.ouverture.auto_id }}">
+    <legend class="a-legende">{{ form.ouverture.label }}</legend>
+    <div class="choix-cartes a-cartes--deux">
+      {% with valeur=form.ouverture.value|stringformat:"s" %}
+      <label class="choix-carte">
+        <input type="radio" name="ouverture" value="active" {% if valeur == 'active' %}checked{% endif %}>
+        <span class="choix-carte__corps">
+          <span class="choix-carte__tete">
+            <span class="choix-carte__icone" aria-hidden="true"><svg><use href="#ic-lecture"></use></svg></span>
+            <span class="choix-carte__titre">Ouvrir tout de suite</span>
+            <span class="choix-carte__coche" aria-hidden="true"><svg><use href="#ic-check"></use></svg></span>
+          </span>
+          <span class="choix-carte__texte">Boutique <span class="statut statut--active">active</span> et bail actif : elle paraît en vitrine dès la confirmation.</span>
+        </span>
+      </label>
+      <label class="choix-carte">
+        <input type="radio" name="ouverture" value="candidature" {% if valeur == 'candidature' %}checked{% endif %}>
+        <span class="choix-carte__corps">
+          <span class="choix-carte__tete">
+            <span class="choix-carte__icone" aria-hidden="true"><svg><use href="#ic-horloge"></use></svg></span>
+            <span class="choix-carte__titre">Laisser en candidature</span>
+            <span class="choix-carte__coche" aria-hidden="true"><svg><use href="#ic-check"></use></svg></span>
+          </span>
+          <span class="choix-carte__texte">Boutique <span class="statut statut--candidature">candidature</span> et bail en brouillon : hors vitrine, à valider depuis sa fiche.</span>
+        </span>
+      </label>
+      {% endwith %}
+    </div>
+    {% if form.ouverture.errors %}<p class="a-erreur" id="{{ form.ouverture.auto_id }}_erreur"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ form.ouverture.errors|join:" " }}</span></p>{% endif %}
+  </fieldset>
+  <p class="t-legende a-trace">
+    <svg class="icone-ligne" aria-hidden="true"><use href="#ic-journal"></use></svg>
+    L'ouverture sera inscrite au journal des accès, à votre nom.
+  </p>
+{% endblock %}

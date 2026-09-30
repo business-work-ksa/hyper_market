@@ -28,8 +28,12 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.accounts.administration import NOM_GROUPE, synchroniser_le_groupe
-from apps.accounts.models import Appartenance, Role, RolePlateforme
+from apps.accounts.administration import (
+    NOM_GROUPE,
+    poser_administrateur_du_marche,
+    synchroniser_le_groupe,
+)
+from apps.accounts.models import Appartenance, Role
 from apps.core.tenancy import contexte_plateforme
 from apps.marketplace.models import Boutique
 
@@ -176,41 +180,25 @@ class Command(BaseCommand):
                 "utilisable, à définir depuis /admin/."
             )
 
-        champs = []
-        if not compte.is_staff:
-            compte.is_staff = True
-            champs.append("is_staff")
-        if compte.is_superuser:
-            # Le retirer, et le dire : c'est exactement la confusion que cette commande répare.
-            compte.is_superuser = False
-            champs.append("is_superuser retiré")
+        # La pose elle-même est partagée avec la console (`apps/accounts/administration.py`) :
+        # deux copies de « ce qu'est un administrateur du marché » divergeraient au premier ajout.
+        pose = poser_administrateur_du_marche(
+            compte, code_role=Role.ADMIN_MARCHE, motif="Exploitant de la place de marché.", groupe=groupe
+        )
+        if pose.superuser_retire:
+            # Le dire : c'est exactement la confusion que cette commande répare.
             self.stdout.write(
                 "  is_superuser retiré de l'administrateur du marché : il aurait rendu "
                 "décoratifs son groupe et son rôle (ADR-012)."
             )
-        if champs:
-            compte.save(update_fields=[c.split()[0] for c in champs])
-
-        compte.groups.add(groupe)
-
-        role, cree_role = Role.objects.get_or_create(
-            code=Role.ADMIN_MARCHE,
-            defaults={"libelle": "Gestionnaire du marché", "portee": Role.PLATEFORME},
-        )
-        if cree_role:
+        if pose.role_cree:
             self.stdout.write(
                 "  rôle ADMIN_MARCHE absent des référentiels : créé (lancez "
                 "`initialiser_referentiels` pour le reste)."
             )
-        _, nouveau = RolePlateforme.objects.get_or_create(
-            utilisateur=compte,
-            role=role,
-            actif=True,
-            defaults={"motif": "Exploitant de la place de marché."},
-        )
         self.stdout.write(
             f"  administrateur du marché : {compte.nom_complet} — rôle "
-            + ("posé" if nouveau else "déjà en place")
+            + ("posé" if pose.nouveau else "déjà en place")
         )
         return compte
 

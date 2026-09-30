@@ -161,3 +161,18 @@ class LaConsoleNeContournePasLeJournalTest(TestCase):
             if "contexte_plateforme(" in f.read_text()
         ]
         self.assertEqual(coupables, [], ", ".join(coupables))
+
+
+class ContratsDeDemonstrationTest(TestCase):
+    def test_garnis_une_fois_et_jamais_sur_une_instance_qui_a_des_loyers(self):
+        """Idempotente : elle tourne à chaque construction de la démonstration."""
+        from apps.marketplace.models import Boutique, FactureLoyer
+
+        fabrique.creer_boutique("Boutique de démonstration")
+        call_command("garnir_contrats_demo", verbosity=0)
+        factures = FactureLoyer.objects.count()
+        self.assertEqual(factures, 6, "six mois de loyers pour le bail actif")
+        self.assertTrue(Boutique.objects.filter(etat=Boutique.CANDIDATURE).exists())
+
+        call_command("garnir_contrats_demo", verbosity=0)
+        self.assertEqual(FactureLoyer.objects.count(), factures)

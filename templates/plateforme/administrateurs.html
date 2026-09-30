@@ -1,0 +1,124 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}Administrateurs{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
+{% block fil %}<nav class="fil" aria-label="Fil d'Ariane"><span>Gouvernance</span></nav>{% endblock %}
+{% block entete %}Administrateurs{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">Qui exploite ce marché</p>
+    <h2 class="entete-page__titre">Administrateurs</h2>
+    <p class="entete-page__phrase">
+      Trois métiers, pas trois degrés d'un même pouvoir. Le superadministrateur est le recours
+      technique ; les administrateurs du marché exploitent au quotidien, sans jamais lire les
+      chiffres d'une boutique. On ne supprime personne : on retire un rôle, et il reste daté.
+    </p>
+  </div>
+  <div class="entete-page__actions">
+    <a class="btn btn--primaire" href="{% url 'plateforme:assistant_administrateur' %}">
+      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-plus"></use></svg>Nommer un administrateur
+    </a>
+  </div>
+</div>
+
+<div class="colonne" style="gap:18px">
+  {# --- Superadministrateurs ------------------------------------------------------------ #}
+  <section class="carte" aria-labelledby="titre-super">
+    <header class="carte__entete">
+      <h3 class="t-section" id="titre-super">Superadministrateurs</h3>
+      <span class="puce"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg>Lecture seule</span>
+    </header>
+    <ul class="a-personnes">
+      {% for compte in superadmins %}
+        <li class="a-personne">
+          <span class="jeton console__jeton" aria-hidden="true">{{ compte.nom_complet|initiales }}</span>
+          <div class="a-personne__corps">
+            <span class="a-personne__nom">{{ compte.nom_complet }}{% if compte.pk == request.user.pk %} <span class="t-legende">(vous)</span>{% endif %}</span>
+            <span class="t-legende">{{ compte.telephone }} · dernier accès journalisé : {% if compte.dernier_acces %}{{ compte.dernier_acces|date:"d/m/Y H:i" }}{% else %}aucun{% endif %}</span>
+            {% if compte.boutiques %}
+              <span class="a-avertissement" role="note">
+                <svg class="icone-ligne" aria-hidden="true"><use href="#ic-alerte"></use></svg>
+                <span>Porte aussi {{ compte.boutiques }} rattachement{{ compte.boutiques|pluralize }} à une boutique : deux casquettes sur un seul compte. Le journal ne peut plus dire à quel titre il agit (ADR-012, §5).</span>
+              </span>
+            {% endif %}
+          </div>
+          <span class="puce puce--marque a-personne__puce"><svg aria-hidden="true"><use href="#ic-cle"></use></svg>Superadministrateur</span>
+        </li>
+      {% empty %}
+        <li class="a-personne"><span class="t-legende">Aucun superadministrateur.</span></li>
+      {% endfor %}
+    </ul>
+    <footer class="carte__pied t-legende">Ils se posent en ligne de commande (<code>createsuperuser</code>, <code>preparer_administrateur</code>), jamais depuis cet écran.</footer>
+  </section>
+
+  {# --- Rôles actifs -------------------------------------------------------------------- #}
+  <section class="carte" aria-labelledby="titre-actifs">
+    <header class="carte__entete">
+      <h3 class="t-section" id="titre-actifs">Rôles de plateforme actifs</h3>
+      <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{{ actifs|length }} actif{{ actifs|length|pluralize }}</span>
+    </header>
+    <ul class="a-personnes">
+      {% for role in actifs %}
+        <li class="a-personne a-personne--role" id="role-{{ role.pk }}">
+          <span class="jeton" aria-hidden="true">{{ role.utilisateur.nom_complet|initiales }}</span>
+          <div class="a-personne__corps">
+            <span class="a-personne__nom">{{ role.utilisateur.nom_complet }}</span>
+            <span class="t-legende">{{ role.utilisateur.telephone }} · depuis le {{ role.depuis|date:"d/m/Y" }} · dernier accès journalisé : {% if role.dernier_acces %}{{ role.dernier_acces|date:"d/m/Y H:i" }}{% else %}aucun{% endif %}</span>
+            {% if role.motif %}<span class="a-personne__motif">« {{ role.motif }} »</span>{% endif %}
+            <details class="a-droits">
+              <summary>Ce que ce rôle ouvre</summary>
+              <ul>{% for droit in role.droits %}<li>{{ droit }}</li>{% endfor %}</ul>
+            </details>
+          </div>
+          <span class="puce puce--bon a-personne__puce"><svg aria-hidden="true"><use href="#ic-equipe"></use></svg>{{ role.role.libelle }}</span>
+          <details class="a-retrait"{% if retrait == role.pk %} open{% endif %}>
+            <summary class="btn btn--danger a-retrait__bouton"><span class="a-retrait__ouvrir">Retirer ce rôle</span><span class="a-retrait__fermer">Ne pas retirer</span></summary>
+            <form method="post" action="{% url 'plateforme:administrateur_retirer' role.pk %}" class="a-retrait__form" novalidate>
+              {% csrf_token %}
+              <p class="t-petit">
+                Le rôle passe à « révolu » aujourd'hui ; rien n'est supprimé.
+                {% if not role.utilisateur.is_superuser %}S'il n'en porte pas d'autre, {{ role.utilisateur.nom_complet }} perd aussi l'accès à la console et à l'administration.{% endif %}
+              </p>
+              {% include "plateforme/partials/a_champ.html" with champ=role.formulaire.motif form=role.formulaire %}
+              <div class="rangee" style="justify-content:flex-end">
+                <button class="btn btn--danger-plein" type="submit">Retirer le rôle</button>
+              </div>
+            </form>
+          </details>
+        </li>
+      {% empty %}
+        <li class="a-personne a-personne--vide">
+          <span class="t-2">Aucun administrateur du marché : tout passe par le superadministrateur, ce que l'ADR-012 appelle une transition, pas une cible.</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {# --- Rôles révolus ------------------------------------------------------------------- #}
+  {% if revolus %}
+    <section class="carte" aria-labelledby="titre-revolus">
+      <header class="carte__entete">
+        <h3 class="t-section" id="titre-revolus">Rôles révolus</h3>
+        <span class="puce"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>Historique</span>
+      </header>
+      <ul class="a-personnes">
+        {% for role in revolus %}
+          <li class="a-personne a-personne--revolu" id="role-{{ role.pk }}">
+            <span class="jeton" aria-hidden="true">{{ role.utilisateur.nom_complet|initiales }}</span>
+            <div class="a-personne__corps">
+              <span class="a-personne__nom">{{ role.utilisateur.nom_complet }}</span>
+              <span class="t-legende">{{ role.utilisateur.telephone }} · du {{ role.depuis|date:"d/m/Y" }} au {{ role.jusqu_a|date:"d/m/Y"|default:"—" }} · dernier accès journalisé : {% if role.dernier_acces %}{{ role.dernier_acces|date:"d/m/Y H:i" }}{% else %}aucun{% endif %}</span>
+              {% if role.motif %}<span class="a-personne__motif">« {{ role.motif }} »</span>{% endif %}
+            </div>
+            <span class="statut statut--resiliee a-personne__puce">{{ role.role.libelle }} · révolu</span>
+          </li>
+        {% endfor %}
+      </ul>
+      <footer class="carte__pied t-legende">Le motif de chaque retrait est au <a href="{% url 'plateforme:journal' %}">journal des accès</a>.</footer>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/plateforme-assistants.js' %}" defer></script>{% endblock %}

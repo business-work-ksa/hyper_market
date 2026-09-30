@@ -77,6 +77,7 @@ TABLES_SCOPEES = [
     "orders_souscommande",
     "orders_lignecommande",
     "orders_retour",
+    "orders_litige",
     "payments_portefeuillemarchand",
     "payments_mouvementportefeuille",
     "accounting_compteboutique",

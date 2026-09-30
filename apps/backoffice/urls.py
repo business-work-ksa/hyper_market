@@ -10,6 +10,8 @@ from apps.backoffice import (
     vues_ordonnancier,
     vues_production,
     vues_sav,
+    vues_verification,
+    vues_versements,
 )
 
 urlpatterns = [
@@ -96,4 +98,8 @@ urlpatterns = [
     path("boutique/equipe/<uuid:appartenance_id>/retirer/", vues_equipe.equipe_retirer, name="equipe_retirer"),
     path("boutique/equipe/<uuid:appartenance_id>/reactiver/", vues_equipe.equipe_reactiver, name="equipe_reactiver"),
     path("boutique/equipe/<uuid:appartenance_id>/mot-de-passe/", vues_equipe.equipe_mot_de_passe, name="equipe_mot_de_passe"),
+
+    # Confiance (docs/23) : la vérification de la boutique et l'argent qui lui revient.
+    path("boutique/verification/", vues_verification.verification, name="verification"),
+    path("boutique/versements/", vues_versements.versements, name="versements_marchand"),
 ]

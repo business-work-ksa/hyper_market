@@ -106,6 +106,7 @@ LOCAL_APPS = [
     "apps.payments",
     "apps.accounting",
     "apps.affiliation",
+    "apps.confiance",
     "apps.backoffice",
     "apps.plateforme",
     "apps.api",

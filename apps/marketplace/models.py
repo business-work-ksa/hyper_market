@@ -14,6 +14,8 @@ from django.utils import timezone
 
 from apps.core.models import BaseModel, TenantScopedModel
 from apps.core.uuid7 import uuid7
+from apps.marketplace.cemac import LIBELLES_OPERATEURS
+from apps.marketplace.confiance import CHOIX_PALIERS
 from apps.marketplace.metiers import METIER_DEFAUT, metier_de
 
 
@@ -133,6 +135,10 @@ class Boutique(BaseModel):
     pays = models.CharField(max_length=2, default="CM")
     devise = models.CharField(max_length=3, default="XAF")
     etat = models.CharField(max_length=16, choices=ETATS, default=CANDIDATURE, db_index=True)
+    # Ce qu'on confie à la boutique, selon ce qu'elle a prouvé (`apps/marketplace/confiance.py`).
+    # Calculé par `apps/confiance/`, lu par les paiements ; jamais saisi à la main.
+    palier_confiance = models.PositiveSmallIntegerField(default=0, choices=CHOIX_PALIERS)
+    palier_evalue_le = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "boutique"
@@ -454,3 +460,69 @@ class LienMarketing(TenantScopedModel):
 
     def chemin(self) -> str:
         return f"/l/{self.code}/"
+
+
+class CompteVersement(BaseModel):
+    """Où la plateforme verse à une boutique l'argent qui lui revient.
+
+    C'est la cible préférée d'un détournement, y compris de l'intérieur : changer le numéro de
+    versement la veille d'un gros versement suffit à tout emporter. D'où trois règles, appliquées
+    par `apps/confiance/verification.py` :
+
+    * le **titulaire** déclaré chez l'opérateur doit être la personne dont la pièce d'identité a
+      été vérifiée — un compte Mobile Money est lui-même adossé à une identité ;
+    * un compte n'est **utilisable** qu'après vérification par un administrateur *autre* que celui
+      qui l'a déclaré, et après un **délai de carence** (`utilisable_le`) ;
+    * on ne supprime jamais un compte : on le **retire**. Le journal des versements doit pouvoir
+      dire, dans un an, où est parti chaque franc.
+    """
+
+    EN_ATTENTE = "en_attente"
+    VERIFIE = "verifie"
+    REJETE = "rejete"
+    RETIRE = "retire"
+    ETATS = [
+        (EN_ATTENTE, "En attente de vérification"),
+        (VERIFIE, "Vérifié"),
+        (REJETE, "Rejeté"),
+        (RETIRE, "Retiré"),
+    ]
+
+    boutique = models.ForeignKey(Boutique, on_delete=models.PROTECT, related_name="comptes_versement")
+    pays = models.CharField(max_length=2, default="CM")
+    operateur = models.CharField(max_length=24, choices=list(LIBELLES_OPERATEURS.items()))
+    numero = models.CharField(
+        max_length=34, help_text="Numéro Mobile Money au format international, ou IBAN / RIB."
+    )
+    titulaire = models.CharField(
+        max_length=160, help_text="Nom du titulaire tel qu'il est enregistré chez l'opérateur."
+    )
+    etat = models.CharField(max_length=16, choices=ETATS, default=EN_ATTENTE, db_index=True)
+    declare_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="+"
+    )
+    verifie_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    verifie_le = models.DateTimeField(null=True, blank=True)
+    utilisable_le = models.DateTimeField(
+        null=True, blank=True, help_text="Fin du délai de carence après vérification."
+    )
+    motif = models.CharField(max_length=300, blank=True, help_text="Motif du rejet ou du retrait.")
+    retire_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "compte de versement"
+        verbose_name_plural = "comptes de versement"
+        ordering = ["-cree_le"]
+        constraints = [
+            # Un seul compte vérifié à la fois : sinon, lequel reçoit le prochain versement ?
+            models.UniqueConstraint(
+                fields=["boutique"],
+                condition=models.Q(etat="verifie"),
+                name="un_compte_de_versement_verifie_par_boutique",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_operateur_display()} {self.numero} · {self.boutique}"

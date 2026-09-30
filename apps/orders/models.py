@@ -113,6 +113,10 @@ class SousCommande(TenantScopedModel):
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=EN_ATTENTE, db_index=True)
     livree_le = models.DateTimeField(null=True, blank=True)
+    # La livraison **déclarée** par le marchand (`livree_le`) ne suffit pas à libérer l'argent d'un
+    # acheteur : c'est précisément ce qu'une fausse boutique déclarerait. La confirmation vient de
+    # l'acheteur — code de remise donné au livreur, ou geste sur sa page de commande (docs/23).
+    livraison_confirmee_le = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "sous-commande"
@@ -200,3 +204,62 @@ class Retour(TenantScopedModel):
 
     def __str__(self):
         return f"Retour {self.sous_commande} · {self.get_etat_display()}"
+
+
+class Litige(TenantScopedModel):
+    """Un acheteur conteste une sous-commande : non reçue, non conforme, incomplète.
+
+    Ouvrir un litige **gèle** la part correspondante du séquestre : ni libérée au marchand, ni
+    remboursée, jusqu'à la décision. La plateforme instruit sous 72 heures (docs/08, §8), avec le
+    droit `plateforme.litiges`, et chaque consultation est journalisée (ADR-012).
+
+    Scopé par boutique, comme la sous-commande qu'il conteste : c'est une donnée du commerçant,
+    protégée par la barrière 3.
+
+    Un litige **perdu** par le marchand — tranché en faveur de l'acheteur, en tout ou partie —
+    compte dans son palier de confiance (`apps/marketplace/confiance.py`).
+    """
+
+    NON_RECUE = "non_recue"
+    NON_CONFORME = "non_conforme"
+    INCOMPLETE = "incomplete"
+    AUTRE = "autre"
+    MOTIFS = [
+        (NON_RECUE, "Commande non reçue"),
+        (NON_CONFORME, "Article non conforme à l'annonce"),
+        (INCOMPLETE, "Commande incomplète"),
+        (AUTRE, "Autre"),
+    ]
+
+    OUVERT = "ouvert"
+    EN_INSTRUCTION = "en_instruction"
+    TRANCHE_ACHETEUR = "tranche_acheteur"
+    TRANCHE_MARCHAND = "tranche_marchand"
+    PARTAGE = "partage"
+    ETATS = [
+        (OUVERT, "Ouvert"),
+        (EN_INSTRUCTION, "En instruction"),
+        (TRANCHE_ACHETEUR, "Tranché en faveur de l'acheteur"),
+        (TRANCHE_MARCHAND, "Tranché en faveur du marchand"),
+        (PARTAGE, "Tranché : remboursement partiel"),
+    ]
+    ETATS_CLOS = (TRANCHE_ACHETEUR, TRANCHE_MARCHAND, PARTAGE)
+    PERDUS_PAR_LE_MARCHAND = (TRANCHE_ACHETEUR, PARTAGE)
+
+    sous_commande = models.ForeignKey(SousCommande, on_delete=models.PROTECT, related_name="litiges")
+    motif = models.CharField(max_length=16, choices=MOTIFS)
+    description = models.TextField()
+    etat = models.CharField(max_length=20, choices=ETATS, default=OUVERT, db_index=True)
+    montant_rembourse = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    decision = models.TextField(blank=True)
+    tranche_par = models.ForeignKey(
+        "accounts.Utilisateur", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    tranche_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "litige"
+        ordering = ["-cree_le"]
+
+    def __str__(self):
+        return f"Litige {self.sous_commande} · {self.get_etat_display()}"

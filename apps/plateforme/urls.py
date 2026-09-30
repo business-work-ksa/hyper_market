@@ -11,7 +11,15 @@ Trois familles d'écrans, dans trois modules :
 
 from django.urls import path
 
-from apps.plateforme import vues_assistants, vues_boutiques, vues_suivi, vues_tableau
+from apps.plateforme import (
+    vues_assistants,
+    vues_boutiques,
+    vues_litiges,
+    vues_signaux,
+    vues_suivi,
+    vues_tableau,
+    vues_verifications,
+)
 
 app_name = "plateforme"
 
@@ -46,4 +54,16 @@ urlpatterns = [
     path("rayons/<uuid:rayon_id>/taux/", vues_assistants.fixer_taux, name="rayon_taux"),
     path("administrateurs/", vues_assistants.administrateurs, name="administrateurs"),
     path("administrateurs/<uuid:role_id>/retirer/", vues_assistants.retirer_administrateur, name="administrateur_retirer"),
+
+    # --- Confiance et lutte contre la fraude (docs/23, ADR-013) -----------------------------
+    path("verifications/", vues_verifications.verifications, name="verifications"),
+    path("verifications/boutiques/<uuid:boutique_id>/", vues_verifications.dossier, name="verification_dossier"),
+    path("verifications/pieces/<uuid:dossier_id>/decider/", vues_verifications.decider_piece, name="verification_piece"),
+    path("verifications/comptes/<uuid:compte_id>/decider/", vues_verifications.decider_compte, name="verification_compte"),
+    path("litiges/", vues_litiges.litiges, name="litiges"),
+    path("litiges/<uuid:litige_id>/", vues_litiges.litige, name="litige"),
+    path("versements/", vues_litiges.versements, name="versements"),
+    path("versements/<uuid:versement_id>/", vues_litiges.versement, name="versement"),
+    path("signaux/", vues_signaux.signaux, name="signaux"),
+    path("signaux/<uuid:signal_id>/", vues_signaux.signal, name="signal"),
 ]

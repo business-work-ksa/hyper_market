@@ -133,6 +133,34 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "url": url_kyc,
                 }
             )
+        # Les signaux de risque ouverts : des indices que la tâche de nuit a trouvés et qu'un humain
+        # doit trancher. Placés avant les baux, parce qu'une fausse boutique encaisse pendant qu'on
+        # attend ; le ton suit la gravité la plus haute, pour qu'un signal critique ne se lise pas
+        # comme une échéance de bail.
+        from apps.confiance.models import SignalRisque
+
+        ouverts = dict(
+            SignalRisque.objects.filter(etat=SignalRisque.OUVERT)
+            .order_by()
+            .values_list("gravite")
+            .annotate(n=Count("id"))
+        )
+        nb_signaux = sum(ouverts.values())
+        if nb_signaux:
+            critiques = ouverts.get(SignalRisque.CRITIQUE, 0)
+            file.append(
+                {
+                    "ton": "critique" if critiques else "alerte",
+                    "icone": "ic-alerte",
+                    "nombre": nb_signaux,
+                    "titre": _accord(nb_signaux, "signal de risque à trancher", "signaux de risque à trancher"),
+                    "detail": (
+                        (_accord(critiques, "critique", "critiques") + " · " if critiques else "")
+                        + "Des indices, pas des preuves : écarter ou confirmer, avec un motif"
+                    ),
+                    "url": reverse("plateforme:signaux"),
+                }
+            )
         horizon = aujourdhui + timedelta(days=30)
         baux = Bail.objects.filter(etat=Bail.ACTIF, fin__gte=aujourdhui, fin__lte=horizon).count()
         if baux:

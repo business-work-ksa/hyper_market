@@ -63,6 +63,19 @@
           </ul>
         </section>
 
+        {% if manques %}
+          {# Le verrou d'activation (apps/confiance/verification.py) : ce qui manque, et où le faire. #}
+          <div class="bandeau-info bandeau-info--alerte" role="alert">
+            <svg aria-hidden="true"><use href="#ic-verrou"></use></svg>
+            <div class="pile-sm">
+              <strong>Vérification incomplète : cette boutique ne peut pas devenir active.</strong>
+              <ul class="a-consequences">
+                {% for manque in manques %}<li>{{ manque }}</li>{% endfor %}
+              </ul>
+              <a class="t-lien" href="{% url 'plateforme:verification_dossier' boutique.pk %}">Compléter le dossier de vérification</a>
+            </div>
+          </div>
+        {% endif %}
         {% if sans_bail_actif %}
           <div class="bandeau-info bandeau-info--alerte">
             <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
@@ -88,7 +101,7 @@
       </div>
       <footer class="carte__pied assistant__pied">
         <a class="btn" href="{% url 'plateforme:boutique' boutique.pk %}">Annuler</a>
-        <button class="btn {% if geste.ton == 'danger' %}btn--danger-plein{% else %}btn--primaire{% endif %}" type="submit">
+        <button class="btn {% if geste.ton == 'danger' %}btn--danger-plein{% else %}btn--primaire{% endif %}" type="submit"{% if manques %} disabled aria-disabled="true"{% endif %}>
           <svg class="icone-ligne" aria-hidden="true"><use href="#{{ geste.icone }}"></use></svg>{{ geste.bouton }}
         </button>
       </footer>

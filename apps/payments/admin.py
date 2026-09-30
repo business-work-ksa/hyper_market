@@ -7,6 +7,7 @@ from apps.payments.models import (
     Prestataire,
     Sequestre,
     Transaction,
+    Versement,
 )
 
 
@@ -24,10 +25,30 @@ class TransactionAdmin(admin.ModelAdmin):
     date_hierarchy = "cree_le"
 
 
+class LectureSeuleMixin:
+    """Le séquestre et les versements se tranchent par leurs services, jamais à la main ici :
+    une ligne modifiée dans l'administration brute ne laisserait pas de trace dans le journal."""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Sequestre)
-class SequestreAdmin(admin.ModelAdmin):
-    list_display = ("commande", "montant", "etat", "libere_le")
+class SequestreAdmin(LectureSeuleMixin, admin.ModelAdmin):
+    list_display = ("commande", "boutique", "montant_encaisse", "montant", "etat", "libere_le")
     list_filter = ("etat",)
+
+
+@admin.register(Versement)
+class VersementAdmin(LectureSeuleMixin, admin.ModelAdmin):
+    list_display = ("cree_le", "boutique", "montant", "operateur", "numero", "etat", "reference_operateur")
+    list_filter = ("etat", "operateur")
 
 
 @admin.register(PortefeuilleMarchand)

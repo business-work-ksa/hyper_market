@@ -7,6 +7,12 @@
   "regions": [
     "pdx1"
   ],
+  "crons": [
+    {
+      "path": "/taches/quotidiennes/",
+      "schedule": "17 4 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

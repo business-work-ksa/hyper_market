@@ -98,6 +98,11 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         <div class="rail__groupe rail__groupe--secondaire">
           <p class="t-sur-titre">Gestion</p>
           {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page court='Compta' %}{% endif %}
+          {% comment %}
+          Les versements : l'argent qui revient à la boutique, bloqué puis disponible. Ouvert à
+          qui lit la comptabilité — seul le gérant peut en demander un, l'écran le dit.
+          {% endcomment %}
+          {% if 'comptabilite.voir' in droits %}{% nav 'versements_marchand' 'ic-argent' 'Versements' page %}{% endif %}
           {% if 'boutique.voir' in droits %}{% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}{% endif %}
         </div>
       {% endif %}

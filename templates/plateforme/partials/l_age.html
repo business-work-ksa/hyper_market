@@ -1,0 +1,5 @@
+{# L'âge d'un dossier au regard des 72 heures promises (docs/08, §8). #}
+<span class="l-age{% if age.depasse %} l-age--depasse{% elif age.proche %} l-age--proche{% endif %}"
+      title="Délai d'instruction : 72 heures">
+  {% if age.depasse %}<svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% else %}<svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% endif %}{{ age.libelle }}
+</span>

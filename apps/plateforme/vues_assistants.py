@@ -34,6 +34,7 @@ from apps.accounts.permissions import (
     droits_plateforme_de,
 )
 from apps.backoffice.templatetags.hm import fcfa
+from apps.confiance import verification
 from apps.core.models import AccesPlateforme
 from apps.marketplace import gouvernance
 from apps.marketplace.metiers import METIERS
@@ -128,6 +129,12 @@ class AssistantBoutique(Assistant):
             }
         if etape.code == "gerant":
             return {"cartes_mode": _cartes_mode("gérant")}
+        if etape.code == "recapitulatif":
+            # Le verrou d'activation, dit avant la confirmation plutôt qu'après : une boutique qui
+            # naît n'a encore ni pièce vérifiée ni compte de versement, et le second regard doit
+            # venir d'un autre administrateur que celui qui l'ouvre. « Ouvrir tout de suite » ne
+            # peut donc pas aboutir ici ; le service le refuserait de toute façon.
+            return {"verrou_activation": True}
         return {}
 
     def recapitulatif(self, f):
@@ -207,7 +214,8 @@ class AssistantBoutique(Assistant):
             messages.success(
                 self.request,
                 f"« {boutique.enseigne} » est enregistrée en candidature, avec son bail en brouillon. "
-                "Validez-la depuis sa fiche quand le dossier est complet.",
+                "Complétez sa vérification (pièce du gérant, appel, RCCM, identifiant fiscal, compte "
+                "de versement) dans « Vérifications », puis validez-la depuis sa fiche.",
             )
         return redirect("plateforme:boutique", boutique_id=boutique.pk)
 
@@ -607,6 +615,10 @@ def changer_etat_boutique(request, boutique_id):
             status=400,
         )
 
+    # Le verrou d'activation, montré avant le geste : la liste de ce qui manque, et le chemin
+    # vers le dossier. Le service le rejoue à la confirmation.
+    manques = verification.manques_pour_activer(boutique) if arrivee == Boutique.ACTIVE else []
+
     obligatoire = action != services.VALIDER
     formulaire = MotifForm(
         request.POST if request.method == "POST" else None,
@@ -621,6 +633,8 @@ def changer_etat_boutique(request, boutique_id):
     if request.method == "POST" and formulaire.is_valid():
         try:
             services.changer_etat_boutique(boutique, action, par=request.user, motif=formulaire.cleaned_data["motif"])
+        except verification.VerificationIncomplete as refus:
+            manques = refus.manques
         except ValidationError as erreur:
             for message in erreur.messages:
                 formulaire.add_error("motif", message)
@@ -639,6 +653,7 @@ def changer_etat_boutique(request, boutique_id):
             arrivee_code=arrivee,
             form=formulaire,
             sans_bail_actif=(action == services.REACTIVER and boutique.bail_actif is None),
+            manques=manques,
             **base,
         ),
         status=400 if request.method == "POST" else 200,

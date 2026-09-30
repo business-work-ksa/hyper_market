@@ -103,7 +103,18 @@ class SousCommande(TenantScopedModel):
         (ANNULEE, "Annulée"),
     ]
 
+    # Comment l'acheteur paie **cette part**. Choisi par boutique et non par commande : le plafond
+    # de séquestre d'une boutique nouvelle peut refuser le prépaiement chez elle sans le refuser
+    # chez son voisin (`apps/marketplace/confiance.py`).
+    PREPAYE = "prepaye"
+    A_LA_LIVRAISON = "livraison"
+    MODES_PAIEMENT = [
+        (PREPAYE, "Prépayée — en séquestre jusqu'à la livraison confirmée"),
+        (A_LA_LIVRAISON, "Payée à la livraison"),
+    ]
+
     commande = models.ForeignKey(Commande, on_delete=models.CASCADE, related_name="sous_commandes")
+    mode_paiement = models.CharField(max_length=12, choices=MODES_PAIEMENT, default=PREPAYE)
     total_ht = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     total_tva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     total_ttc = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
@@ -112,6 +123,9 @@ class SousCommande(TenantScopedModel):
         max_digits=14, decimal_places=2, default=Decimal("0")
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=EN_ATTENTE, db_index=True)
+    # Point de départ de la confirmation implicite : sans confirmation ni litige sept jours après
+    # l'expédition déclarée, la livraison est réputée confirmée (`liberer_sequestres`).
+    expediee_le = models.DateTimeField(null=True, blank=True)
     livree_le = models.DateTimeField(null=True, blank=True)
     # La livraison **déclarée** par le marchand (`livree_le`) ne suffit pas à libérer l'argent d'un
     # acheteur : c'est précisément ce qu'une fausse boutique déclarerait. La confirmation vient de
@@ -130,6 +144,10 @@ class SousCommande(TenantScopedModel):
 
     def __str__(self):
         return f"{self.commande.numero} · {self.boutique}"
+
+    @property
+    def prepayee(self) -> bool:
+        return self.mode_paiement == self.PREPAYE
 
     def recalculer(self) -> None:
         lignes = list(LigneCommande.objects_all_tenants.filter(sous_commande=self))
@@ -243,6 +261,7 @@ class Litige(TenantScopedModel):
         (TRANCHE_MARCHAND, "Tranché en faveur du marchand"),
         (PARTAGE, "Tranché : remboursement partiel"),
     ]
+    ETATS_OUVERTS = (OUVERT, EN_INSTRUCTION)
     ETATS_CLOS = (TRANCHE_ACHETEUR, TRANCHE_MARCHAND, PARTAGE)
     PERDUS_PAR_LE_MARCHAND = (TRANCHE_ACHETEUR, PARTAGE)
 
@@ -260,6 +279,19 @@ class Litige(TenantScopedModel):
     class Meta:
         verbose_name = "litige"
         ordering = ["-cree_le"]
+        constraints = [
+            # Un seul litige en cours par part : deux instructions parallèles pourraient trancher
+            # deux fois le même argent.
+            models.UniqueConstraint(
+                fields=["sous_commande"],
+                condition=models.Q(etat__in=["ouvert", "en_instruction"]),
+                name="un_litige_en_cours_par_sous_commande",
+            )
+        ]
+
+    @property
+    def en_cours(self) -> bool:
+        return self.etat in self.ETATS_OUVERTS
 
     def __str__(self):
         return f"Litige {self.sous_commande} · {self.get_etat_display()}"

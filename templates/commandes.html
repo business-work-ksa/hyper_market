@@ -15,7 +15,7 @@
     <article class="tuile">
       <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Montant en cours</span></div>
       <p class="tuile__valeur">{{ montant_en_cours|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Encaissé par la plateforme, reversé après livraison</span></p>
+      <p class="tuile__note"><span class="t-muet">Prépayé : en séquestre, libéré après livraison confirmée</span></p>
     </article>
     <article class="tuile">
       <div class="tuile__libelle"><svg><use href="#ic-camion"></use></svg><span class="t-sur-titre">Dépôt d'expédition</span></div>
@@ -52,6 +52,7 @@
                   <th scope="col">Acheteur</th>
                   <th scope="col">Articles</th>
                   <th scope="col" class="num">Total</th>
+                  <th scope="col">Argent</th>
                   <th scope="col"></th>
                 </tr>
               </thead>
@@ -73,6 +74,7 @@
                       {% endif %}
                     </td>
                     <td class="num" style="font-weight:620">{{ part.total_ttc|fcfa }}</td>
+                    <td><span class="puce{% if part.argent.ton %} puce--{{ part.argent.ton }}{% endif %}">{{ part.argent.libelle }}{% if part.argent.date %} · {{ part.argent.date|date:"d/m" }}{% endif %}</span></td>
                     <td class="num">
                       <a class="btn btn--discret" href="{% url 'commande' part.pk %}">Ouvrir</a>
                     </td>
@@ -113,6 +115,7 @@
                 <th scope="col">Acheteur</th>
                 <th scope="col">État</th>
                 <th scope="col" class="num">Total</th>
+                <th scope="col">Argent</th>
                 <th scope="col"></th>
               </tr>
             </thead>
@@ -130,6 +133,7 @@
                     </span>
                   </td>
                   <td class="num t-2">{{ part.total_ttc|fcfa }}</td>
+                  <td><span class="puce{% if part.argent.ton %} puce--{{ part.argent.ton }}{% endif %}">{{ part.argent.libelle }}{% if part.argent.date %} · {{ part.argent.date|date:"d/m" }}{% endif %}</span></td>
                   <td class="num"><a class="btn btn--discret" href="{% url 'commande' part.pk %}">Ouvrir</a></td>
                 </tr>
               {% endfor %}

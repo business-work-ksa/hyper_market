@@ -25,6 +25,12 @@ de ses ventes à ses concurrents.
     <span class="vitrine-tuile__marchand">
       <svg class="icone-ligne"><use href="#ic-boutique"></use></svg>
       {{ article.boutique.enseigne }}
+      {% comment %}
+      Annotation posée par la requête du catalogue : zéro requête par carte. Absente (article
+      chargé ailleurs), la coche ne s'affiche pas — on ne prétend jamais une vérification qu'on n'a
+      pas lue.
+      {% endcomment %}
+      {% if article.vendeur_identite_verifiee %}<svg class="icone-ligne" role="img" aria-label="Identité vérifiée" style="color:var(--bon-encre)"><title>Identité vérifiée</title><use href="#ic-check"></use></svg>{% endif %}
     </span>
     <span class="vitrine-tuile__prix">{{ article.prix_vente|fcfa }}<span class="unite">FCFA</span></span>
   </a>

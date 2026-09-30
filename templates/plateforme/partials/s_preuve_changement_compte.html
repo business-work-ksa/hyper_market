@@ -1,0 +1,23 @@
+{% load hm %}
+<div class="s-comparaison">
+  <div class="s-preuve">
+    <span class="t-sur-titre">Ancien compte</span>
+    <span class="chiffre" style="font-weight:620">{{ s.preuves.ancien.numero }}</span>
+    <span class="t-legende">{{ s.preuves.ancien.operateur }} · {{ s.preuves.ancien.titulaire }}</span>
+    <span class="t-legende">depuis le {{ s.preuves.ancien.depuis }}</span>
+  </div>
+  <svg class="s-comparaison__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+  <div class="s-preuve">
+    <span class="t-sur-titre">Nouveau compte · {{ s.preuves.nouveau.etat|lower }}</span>
+    <span class="chiffre" style="font-weight:620">{{ s.preuves.nouveau.numero }}</span>
+    <span class="t-legende">{{ s.preuves.nouveau.operateur }} · {{ s.preuves.nouveau.titulaire }}{% if s.preuves.titulaire_change %} <span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>Autre titulaire</span>{% endif %}</span>
+    <span class="t-legende">déclaré le {{ s.preuves.nouveau.declare_le }} par {{ s.preuves.nouveau.declare_par }}{% if s.preuves.nouveau.declare_par_administration %} <span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>compte d'administration</span>{% endif %}</span>
+    {% if s.preuves.nouveau.verifie_par %}<span class="t-legende">vérifié par {{ s.preuves.nouveau.verifie_par }}</span>{% endif %}
+  </div>
+</div>
+<ul class="s-preuves">
+  {% for v in s.preuves.versements %}
+    <li class="s-preuve"><span class="s-preuve__tete"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-argent"></use></svg>Versement demandé le {{ v.le }}{% if v.montant %} · {{ v.montant|fcfa }} FCFA{% endif %}{% if v.demande_par %} <span class="t-legende">par {{ v.demande_par }}</span>{% endif %}</span></li>
+  {% endfor %}
+</ul>
+{% include "plateforme/partials/s_lecture.html" with indice="Remplacer le numéro de versement juste avant un gros virement suffit à tout emporter : c'est la fraude interne type — un employé du marchand, ou un administrateur, qui déclare son propre numéro. C'est le signal le plus fiable de tous." innocent="Un marchand change d'opérateur, perd sa puce, passe du Mobile Money à la banque — et demande son argent, ce qui est normal." verifier="appelez le gérant sur son numéro vérifié (jamais sur un numéro fourni avec le nouveau compte) et faites-lui confirmer le changement. Tant que ce n'est pas fait, le versement peut attendre." %}

@@ -25,6 +25,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
 from apps.accounts.models import Appartenance, DossierKyc
+from apps.confiance.paliers import carte_confiance
 from apps.core.models import AccesPlateforme
 from apps.marketplace.gouvernance import boutiques_de
 from apps.marketplace.metiers import metier_de
@@ -191,6 +192,9 @@ def boutique(request, boutique_id):
             journal=journal[:8],
             nb_journal=journal.count(),
             actions=ACTIONS_PAR_ETAT.get(b.etat, []),
+            # Palier, progression, signaux : la dernière mesure de la tâche de nuit, pas les
+            # commandes elles-mêmes — la fiche s'ouvre sans motif de suivi (ADR-012).
+            confiance=carte_confiance(b),
         ),
     )
 

@@ -1,5 +1,5 @@
 {% extends "vitrine/base.html" %}
-{% load hm %}
+{% load hm confiance %}
 
 {% block titre %}{{ article.produit.libelle }} — {{ article.boutique.enseigne }}{% endblock %}
 
@@ -79,10 +79,30 @@
             <span class="t-legende">{{ article.boutique.ville }}</span>
           </span>
         </a>
+        {% comment %}Des faits, pas des étoiles : voir la page de la boutique.{% endcomment %}
+        {% faits_confiance article.boutique article.vendeur_identite_verifiee as confiance %}
+        <ul class="colonne" style="gap:6px;list-style:none;margin:0;padding:0">
+          {% if confiance.identite_verifiee %}
+            <li class="rangee t-petit" style="gap:6px"><svg class="icone-ligne" aria-hidden="true" style="color:var(--bon-encre)"><use href="#ic-check"></use></svg><strong>Identité vérifiée</strong></li>
+          {% endif %}
+          <li class="rangee t-petit" style="gap:6px"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-garantie"></use></svg>{{ confiance.palier.libelle }}</li>
+          {% if confiance.depuis %}
+            <li class="rangee t-petit" style="gap:6px"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-horloge"></use></svg>Sur HyperMarché depuis {{ confiance.depuis }}</li>
+          {% endif %}
+          <li class="rangee t-petit" style="gap:6px"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-camion"></use></svg>{% if confiance.livraisons %}{{ confiance.livraisons }} livraison{{ confiance.livraisons|pluralize }} confirmée{{ confiance.livraisons|pluralize }}{% else %}Pas encore de livraison confirmée{% endif %}</li>
+          {% if confiance.litiges %}
+            <li class="rangee t-petit" style="gap:6px"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-check"></use></svg>{{ confiance.litiges }}</li>
+          {% endif %}
+        </ul>
         <p class="t-legende">
           C'est ce commerçant qui prépare et livre votre commande. HyperMarché
           lui loue son emplacement et tient sa gestion — il ne revend pas ses
           articles à sa place.
+        </p>
+        <p class="bandeau-info" style="margin:0">
+          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-verrou"></use></svg>
+          <span><strong>Paiement protégé.</strong> Payé en ligne, votre argent reste en séquestre
+            jusqu'à ce que vous confirmiez la livraison. Ne payez jamais sur un numéro personnel.</span>
         </p>
       </div>
     </section>

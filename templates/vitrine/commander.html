@@ -16,14 +16,52 @@
       {% include "partials/champ.html" with champ=formulaire.telephone %}
       {% include "partials/champ.html" with champ=formulaire.adresse_livraison %}
       {% include "partials/champ.html" with champ=formulaire.note %}
+      <input type="hidden" name="a_la_livraison" value="{{ a_la_livraison }}">
+
+      {% comment %}
+      Le choix du paiement, et ce qu'il engage — dit avant l'envoi, jamais découvert après.
+      Une boutique dont le plafond de séquestre refuse le prépaiement est annoncée ici, avec la
+      raison : l'acheteur sait chez qui il paiera à la livraison avant de s'engager.
+      {% endcomment %}
+      <fieldset class="groupe-champ" style="border:0;padding:0;margin:0">
+        <legend style="font-weight:560;margin-bottom:6px">{{ formulaire.mode_paiement.label }}</legend>
+        {% for choix in formulaire.mode_paiement %}
+          <label class="case-ligne" for="{{ choix.id_for_label }}">
+            {{ choix.tag }}
+            <span>{{ choix.choice_label }}{% if choix.data.value == "prepaye" and tout_refuse %} <span class="t-legende">— pas possible pour ce panier</span>{% endif %}</span>
+          </label>
+        {% endfor %}
+        {% for erreur in formulaire.mode_paiement.errors %}
+          <span class="t-petit" style="color:var(--critique-encre);font-weight:550">{{ erreur }}</span>
+        {% endfor %}
+      </fieldset>
 
       <div class="bandeau-info" role="note">
-        <svg><use href="#ic-info"></use></svg>
+        <svg><use href="#ic-verrou"></use></svg>
         <span>
-          Rien n'est débité maintenant. Chaque commerçant vous appelle pour
-          convenir de la livraison, et vous payez à la remise.
+          <strong>Payé d'avance, votre argent attend votre confirmation.</strong> Il est gardé en
+          séquestre chez notre partenaire de paiement agréé ; le commerçant ne le reçoit qu'après
+          que vous avez confirmé la réception — ou, sans nouvelle de vous ni réclamation, sept
+          jours après l'expédition. Un problème ? Vous ouvrez une réclamation depuis votre page de
+          commande, et l'argent reste bloqué le temps que la plateforme tranche.
         </span>
       </div>
+
+      {% if refus %}
+        <div class="bandeau-info bandeau-info--alerte" role="status">
+          <svg><use href="#ic-info"></use></svg>
+          <span class="colonne" style="gap:6px">
+            {% for message in refus.values %}<span>{{ message }}</span>{% endfor %}
+          </span>
+        </div>
+      {% endif %}
+
+      <p class="t-legende">
+        Le paiement en ligne n'est pas encore ouvert : rien n'est débité maintenant. Pour un
+        paiement d'avance, les instructions vous parviennent sur votre numéro ; à la livraison,
+        vous payez en recevant la marchandise. Chaque commerçant vous appelle pour convenir de
+        la remise.
+      </p>
 
       <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
         Envoyer la commande
@@ -37,6 +75,11 @@
       {% for groupe in groupes %}
         <div class="colonne" style="gap:6px">
           <span class="t-sur-titre">{{ groupe.boutique.enseigne }}</span>
+          {% if groupe.refus_prepaiement %}
+            <span class="puce puce--alerte" style="align-self:flex-start">
+              <svg><use href="#ic-camion"></use></svg>Paiement à la livraison
+            </span>
+          {% endif %}
           {% for ligne in groupe.lignes %}
             <div class="rangee rangee--espace">
               <span class="t-2">{{ ligne.article.produit.libelle|truncatechars:30 }} × {{ ligne.quantite }}</span>

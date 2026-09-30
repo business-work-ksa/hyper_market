@@ -14,7 +14,10 @@
   <div class="duo duo--libre">
     <div class="colonne">
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Identité</h2></header>
+      <header class="carte__entete">
+        <h2 class="t-section">Identité</h2>
+        <a class="btn" href="{% url 'verification' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-bouclier"></use></svg>Vérification</a>
+      </header>
       <div class="carte__corps colonne" style="gap:14px">
         <div class="rangee rangee--espace"><span class="t-2">Enseigne</span><strong>{{ boutique.enseigne }}</strong></div>
         <div class="rangee rangee--espace"><span class="t-2">Raison sociale</span><span>{{ boutique.raison_sociale }}</span></div>

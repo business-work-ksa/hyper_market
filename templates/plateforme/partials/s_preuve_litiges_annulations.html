@@ -1,0 +1,6 @@
+<dl class="cles">
+  <dt>Fenêtre</dt><dd>{{ s.preuves.fenetre_jours }} derniers jours · {{ s.preuves.commandes }} commande{{ s.preuves.commandes|pluralize }}</dd>
+  <dt>Litiges ouverts</dt><dd>{{ s.preuves.litiges }} ({{ s.preuves.taux_litiges }}) · marché : {{ s.preuves.marche_litiges }}{% if s.preuves.litiges_non_recues %} · dont {{ s.preuves.litiges_non_recues }} « commande non reçue »{% endif %}</dd>
+  <dt>Annulations</dt><dd>{{ s.preuves.annulations }} ({{ s.preuves.taux_annulations }}) · marché : {{ s.preuves.marche_annulations }}</dd>
+</dl>
+{% include "plateforme/partials/s_lecture.html" with indice="Une boutique qui ne livre pas se trahit par ses acheteurs avant de se trahir par ses chiffres : « commande non reçue », annulations en série. Le palier ne compte que les litiges tranchés ; ce signal regarde ceux qui s'ouvrent." innocent="Un acheteur de mauvaise foi ouvre un litige pour ne pas payer ; une panne de livreur ou une route coupée fait monter les annulations. Le signal ne se déclenche que si la boutique s'écarte nettement du reste du marché." verifier="lisez les litiges en cours (écran Litiges) : même motif, mêmes acheteurs, même livreur ? Un seul acheteur à l'origine de tout est un autre problème." %}

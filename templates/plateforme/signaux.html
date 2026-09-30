@@ -1,0 +1,93 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}Signaux de risque{% endblock %}
+{% block entete %}Signaux de risque{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}"><link rel="stylesheet" href="{% static 'css/plateforme-signaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+La file des signaux : des indices trouvés la nuit par `evaluer_confiance`, triés par gravité.
+Aucun ne suspend une boutique. Chaque ligne dit sa preuve en une phrase lisible ; la fiche la
+détaille et recueille la décision, avec un motif inscrit au journal des accès.
+{% endcomment %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">Gouvernance</p>
+    <h2 class="entete-page__titre">Signaux de risque</h2>
+    <p class="entete-page__phrase">
+      Des indices, pas des preuves. Aucun signal ne suspend une boutique : vous écartez ou vous confirmez, avec un motif inscrit au journal.
+      {% if derniere_evaluation %}Dernière évaluation le {{ derniere_evaluation|date:"j F à H:i" }}.{% else %}Aucune évaluation n'a encore tourné.{% endif %}
+    </p>
+  </div>
+</div>
+
+<section class="kpis s-kpis" aria-label="Signaux à décider par gravité">
+  <a class="kpi" href="?vue=ouverts">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>Critiques</span>
+    <span class="kpi__valeur">{{ compteurs.critique }}</span>
+    <span class="kpi__pied t-muet">À regarder aujourd'hui</span>
+  </a>
+  <a class="kpi" href="?vue=ouverts">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>Élevés</span>
+    <span class="kpi__valeur">{{ compteurs.elevee }}</span>
+    <span class="kpi__pied t-muet">Sous 24 heures</span>
+  </a>
+  <a class="kpi" href="?vue=ouverts">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-info"></use></svg></span>Modérés</span>
+    <span class="kpi__valeur">{{ compteurs.moderee }}</span>
+    <span class="kpi__pied t-muet">Dans la semaine</span>
+  </a>
+</section>
+
+<nav class="onglets" aria-label="Signaux">
+  {% for code, libelle in vues %}
+    <a class="onglet" href="?vue={{ code }}{% if type_courant %}&amp;type={{ type_courant }}{% endif %}" {% if code == vue %}aria-current="page"{% endif %}>
+      {{ libelle }}{% if code == 'ouverts' %}<span class="onglet__compte">{{ compteurs.total }}</span>{% endif %}
+    </a>
+  {% endfor %}
+</nav>
+
+<section class="carte">
+  <nav class="s-types" aria-label="Filtrer par type">
+    <a class="s-type" href="?vue={{ vue }}" aria-current="{% if not type_courant %}true{% else %}false{% endif %}">Tous les types</a>
+    {% for code, libelle, n in types %}
+      <a class="s-type" href="?vue={{ vue }}&amp;type={{ code }}" aria-current="{% if type_courant == code %}true{% else %}false{% endif %}">
+        {{ libelle }}{% if n %}<span class="s-type__compte">{{ n }}</span>{% endif %}
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if page_signaux.object_list %}
+    <div class="s-file">
+      {% for s in page_signaux.object_list %}
+        <a class="s-ligne" href="{% url 'plateforme:signal' s.pk %}">
+          <span class="s-icone s-icone--{{ s.ton }}" aria-hidden="true"><svg><use href="#{{ s.icone }}"></use></svg></span>
+          <span class="s-ligne__corps">
+            <span class="s-ligne__tete">
+              <span class="s-ligne__boutique">{{ s.boutique.enseigne }}</span>
+              {% include "plateforme/partials/s_gravite.html" with signal=s %}
+              <span class="t-legende">{{ s.get_type_display }}</span>
+            </span>
+            <span class="s-ligne__resume">{{ s.resume }}</span>
+            <span class="s-ligne__pied">
+              <span>Constaté le {{ s.constate_le|date:"d/m/Y" }}</span>
+              {% if s.traite_par %}<span>{{ s.get_etat_display }} par {{ s.traite_par.nom_complet }} le {{ s.traite_le|date:"d/m/Y" }}</span>{% endif %}
+            </span>
+          </span>
+          <span class="s-ligne__fin">
+            {% include "plateforme/partials/s_etat.html" with signal=s %}
+            <span class="s-score" title="Score : départage deux signaux de même gravité">score {{ s.score }}</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+    {% include "plateforme/partials/t_pagination.html" with page_obj=page_signaux %}
+  {% else %}
+    <div class="vide t-vide-compact">
+      <svg aria-hidden="true"><use href="#ic-check"></use></svg>
+      <p class="t-section">{% if vue == 'ouverts' %}Aucun signal à décider{% else %}Aucun signal ici{% endif %}</p>
+      <p class="t-legende">La tâche de nuit repasse chaque soir : identités partagées, prix d'appât, pics de prépaiement, litiges, comptes de versement changés, boutiques non vérifiées.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

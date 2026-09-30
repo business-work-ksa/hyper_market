@@ -48,9 +48,112 @@ l'une des deux.
           <span class="t-legende">Sous-total</span>
           <span class="chiffre" style="font-weight:620">{{ part.total_ttc|fcfa }} FCFA</span>
         </div>
+        {% comment %}
+        Le paiement d'une part, vu par l'acheteur : où est son argent, et ce qu'il peut faire.
+
+        Le vocabulaire suit le montage de la plateforme (docs/08, §5) : l'argent est « en séquestre chez
+        notre partenaire agréé », la plateforme « ordonne » un remboursement. Jamais « nous gardons votre
+        argent » — ce n'est pas vrai, et c'est précisément ce qui la distingue d'un établissement de
+        monnaie électronique.
+        {% endcomment %}
+        {% with s=part.sequestre_vu l=part.litige_vu %}
+        <div class="colonne" style="gap:10px;border-top:1px solid var(--filet);padding-top:10px">
+          <div class="rangee rangee--espace">
+            <span class="t-legende">Paiement</span>
+            {% if not part.prepayee %}
+              <span class="puce"><svg><use href="#ic-camion"></use></svg>À la livraison</span>
+            {% elif not s %}
+              {% if part.etat == 'annulee' %}
+                <span class="puce">Rien à payer</span>
+              {% else %}
+                <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>Paiement d'avance attendu</span>
+              {% endif %}
+            {% elif s.etat == 'bloque' and part.en_litige %}
+              <span class="puce puce--alerte"><svg><use href="#ic-verrou"></use></svg>Réclamation en cours</span>
+            {% elif s.etat == 'bloque' %}
+              <span class="puce puce--marque"><svg><use href="#ic-verrou"></use></svg>En séquestre</span>
+            {% elif s.etat == 'libere' %}
+              <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Versé au commerçant</span>
+            {% elif s.etat == 'rembourse' %}
+              <span class="puce puce--bon"><svg><use href="#ic-retour"></use></svg>Remboursement ordonné</span>
+            {% else %}
+              <span class="puce puce--bon"><svg><use href="#ic-retour"></use></svg>Remboursement partiel ordonné</span>
+            {% endif %}
+          </div>
+
+          {% if s and s.etat == 'bloque' %}
+            {% if part.en_litige %}
+              <p class="t-2">
+                Votre réclamation du {{ l.cree_le|date:"d/m/Y" }} est examinée par la plateforme, sous
+                72 heures. Votre argent reste en séquestre chez notre partenaire agréé : le commerçant
+                n'y a pas accès tant que la décision n'est pas rendue.
+              </p>
+            {% elif part.livraison_confirmee_le %}
+              <p class="t-2">
+                Réception confirmée le {{ part.livraison_confirmee_le|date:"d/m/Y" }}.
+                {% if part.echeance_liberation %}L'argent sera versé au commerçant à partir du
+                {{ part.echeance_liberation|date:"d/m/Y" }} ; jusque-là, vous pouvez encore ouvrir une
+                réclamation.{% endif %}
+              </p>
+            {% else %}
+              <p class="t-2">
+                Votre argent est en séquestre chez notre partenaire de paiement agréé. Le commerçant ne
+                le reçoit qu'après votre confirmation de réception.
+              </p>
+              {% if part.code_affiche %}
+                <div class="carte" style="background:var(--surface-creuse);box-shadow:none">
+                  <div class="carte__corps colonne" style="gap:6px;align-items:flex-start">
+                    <span class="t-sur-titre">Code de remise</span>
+                    <span class="chiffre" style="font-size:2rem;font-weight:680;letter-spacing:0.18em">{{ part.code_affiche }}</span>
+                    <span class="t-legende">
+                      Donnez-le au livreur <strong>seulement quand vous avez la marchandise en main</strong> :
+                      c'est votre signature de réception. Ne le communiquez à personne d'autre, ni par
+                      téléphone ni par message — HyperMarché ne vous le demandera jamais.
+                    </span>
+                  </div>
+                </div>
+              {% endif %}
+            {% endif %}
+          {% elif s and s.etat == 'libere' %}
+            <p class="t-legende">Libéré au commerçant le {{ s.libere_le|date:"d/m/Y" }}.</p>
+          {% elif s and s.rembourse_acheteur %}
+            <p class="t-2">
+              La plateforme a ordonné le remboursement de <strong class="chiffre">{{ s.rembourse_acheteur|fcfa }} FCFA</strong>
+              le {{ s.rembourse_le|date:"d/m/Y" }}.
+            </p>
+          {% endif %}
+
+          {% if l and not part.en_litige and l.decision %}
+            <div class="bandeau-info" role="note">
+              <svg><use href="#ic-info"></use></svg>
+              <span><strong>Décision de la plateforme</strong> ({{ l.tranche_le|date:"d/m/Y" }}) — {{ l.decision }}</span>
+            </div>
+          {% endif %}
+
+          {% if part.peut_confirmer or part.peut_contester %}
+            <div class="rangee" style="gap:8px;flex-wrap:wrap">
+              {% if part.peut_confirmer %}
+                <a class="btn btn--primaire" href="{% url 'vitrine_confirmer_reception' commande.pk part.pk %}">
+                  <svg><use href="#ic-check"></use></svg> J'ai reçu ma commande
+                </a>
+              {% endif %}
+              {% if part.peut_contester %}
+                <a class="btn" href="{% url 'vitrine_litige' commande.pk part.pk %}">Signaler un problème</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        {% endwith %}
       </div>
     </section>
   {% endfor %}
+
+  {% if prepayee and not reconnu %}
+    <p class="t-legende">
+      Le code de remise, la confirmation de réception et les réclamations ne s'affichent que sur
+      l'appareil qui a passé la commande.
+    </p>
+  {% endif %}
 
   <section class="carte">
     <header class="carte__entete"><h2 class="t-section">Livraison</h2></header>

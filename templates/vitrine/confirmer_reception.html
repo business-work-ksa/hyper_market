@@ -1,0 +1,47 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}Confirmer la réception — {{ commande.numero }}{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<section class="carte" style="max-width:640px">
+  <header class="carte__entete">
+    <h1 class="t-section" style="font-size:1.3rem">Avez-vous reçu votre commande ?</h1>
+  </header>
+  <div class="carte__corps colonne" style="gap:14px">
+    <p class="t-2">
+      Commande <span class="chiffre">{{ commande.numero }}</span> chez
+      <strong>{{ part.boutique.enseigne }}</strong> — {{ part.total_ttc|fcfa }} FCFA.
+    </p>
+    <div class="colonne" style="gap:6px">
+      {% for ligne in part.lignes.all %}
+        <div class="rangee rangee--espace">
+          <span class="t-2">{{ ligne.libelle }} × {{ ligne.quantite|quantite }}</span>
+          <span class="chiffre">{{ ligne.total_ttc|fcfa }} FCFA</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if part.sequestre_vu %}
+      <div class="bandeau-info" role="note">
+        <svg><use href="#ic-info"></use></svg>
+        <span>
+          En confirmant, vous dites que la marchandise vous a été remise et qu'elle est conforme.
+          L'argent en séquestre sera versé au commerçant dans {{ delai }} jour{{ delai|pluralize }}
+          ; d'ici là, vous pouvez encore signaler un problème.
+        </span>
+      </div>
+    {% endif %}
+
+    <p class="t-legende">Ne confirmez pas si vous n'avez pas la marchandise en main, même si on vous le demande.</p>
+  </div>
+  <form method="post" class="carte__pied rangee" style="gap:10px;justify-content:flex-end">
+    {% csrf_token %}
+    <a class="btn" href="{% url 'vitrine_commande' commande.pk %}">Pas encore</a>
+    <button class="btn btn--primaire" type="submit">
+      <svg><use href="#ic-check"></use></svg> Oui, j'ai reçu ma commande
+    </button>
+  </form>
+</section>
+{% endblock %}

@@ -28,6 +28,8 @@ __all__ = [
     "comptabiliser_ticket",
     "comptabiliser_vente_en_ligne",
     "comptabiliser_expedition",
+    "comptabiliser_liberation_sequestre",
+    "comptabiliser_versement",
     "comptabiliser_reglement_cahier",
     "balance",
     "solde_compte",
@@ -383,6 +385,81 @@ def _comptabiliser_vente_en_ligne(sous_commande, *, date_ecriture=None) -> list[
         )
 
     return ecritures
+
+
+def comptabiliser_liberation_sequestre(sequestre, *, date_ecriture=None) -> list[EcritureComptable]:
+    """La plateforme se paie sa commission sur la créance du marchand, à la libération.
+
+    À la vente, le marchand a enregistré deux choses : une créance sur la plateforme (`5313`, le
+    TTC encaissé) et une dette envers elle (`401`, la commission de place TVA comprise). Tant que le
+    séquestre peut encore être remboursé, les deux restent face à face — un litige gagné par
+    l'acheteur annulerait la commission. À la libération, elle est acquise : la plateforme la
+    retient sur ce qu'elle doit, et les deux comptes se compensent (débit `401`, crédit `5313`).
+
+    Ce qui reste au `5313` est alors exactement la part nette du marchand, que le versement
+    soldera (`comptabiliser_versement`).
+    """
+    retenue = Decimal(sequestre.commission).quantize(CENTIME)
+    if retenue <= 0:
+        return []
+    from django.utils import timezone
+
+    numero = sequestre.commande.numero
+    return [
+        passer_ecriture(
+            boutique_id=sequestre.boutique_id,
+            code_journal=Journal.OPERATIONS_DIVERSES,
+            date_ecriture=date_ecriture or timezone.localdate(),
+            libelle=f"Commission retenue sur séquestre {numero}",
+            lignes=[
+                (C_FOURNISSEURS, retenue, Decimal("0")),
+                (C_COMPTE_PLATEFORME, Decimal("0"), retenue),
+            ],
+            origine_type="payments.Sequestre",
+            origine_id=sequestre.pk,
+        )
+    ]
+
+
+# Compte de trésorerie qui reçoit un versement, selon l'opérateur figé sur le versement.
+COMPTE_DE_TRESORERIE = {
+    "MTN_MOMO": C_MOMO_MTN,
+    "ORANGE_MONEY": C_MOMO_ORANGE,
+    "VIREMENT_BANCAIRE": C_BANQUE,
+}
+
+
+def comptabiliser_versement(versement, *, date_ecriture=None) -> list[EcritureComptable]:
+    """Le versement exécuté : la créance sur la plateforme devient de la trésorerie.
+
+    C'est l'écriture que `comptabiliser_vente_en_ligne` annonçait sans l'écrire, parce qu'aucun
+    virement n'existait encore. Elle est passée **à l'exécution**, pas à la demande : tant que
+    l'opérateur n'a pas donné sa référence, rien n'est arrivé sur le compte du marchand, et
+    l'écrire plus tôt mettrait de la trésorerie fictive dans ses livres.
+    """
+    from django.utils import timezone
+
+    compte = COMPTE_DE_TRESORERIE.get(versement.operateur)
+    if compte is None:
+        raise EcritureInvalide(
+            f"Aucun compte de trésorerie n'est prévu pour l'opérateur {versement.operateur} : "
+            "complétez le plan comptable avant d'ouvrir ce pays."
+        )
+    montant = Decimal(versement.montant).quantize(CENTIME)
+    return [
+        passer_ecriture(
+            boutique_id=versement.boutique_id,
+            code_journal=Journal.BANQUE,
+            date_ecriture=date_ecriture or timezone.localdate(),
+            libelle=f"Versement plateforme {versement.reference_operateur}"[:255],
+            lignes=[
+                (compte, montant, Decimal("0")),
+                (C_COMPTE_PLATEFORME, Decimal("0"), montant),
+            ],
+            origine_type="payments.Versement",
+            origine_id=versement.pk,
+        )
+    ]
 
 
 def comptabiliser_expedition(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:

@@ -1,4 +1,4 @@
-{% load static hm %}<!doctype html>
+{% load static hm confiance %}<!doctype html>
 <html lang="fr" data-theme="light">
 <head>
 <meta charset="utf-8">
@@ -52,7 +52,14 @@ d'œil.
       <div class="rail__groupe">
         <p class="t-sur-titre">Marché</p>
         {% nav 'plateforme:boutiques' 'ic-boutique' 'Boutiques' page a_traiter.candidatures %}
+        {% if 'plateforme.boutiques' in droits %}
+          {% nav 'plateforme:verifications' 'ic-document' 'Vérifications' page %}
+        {% endif %}
         {% nav 'plateforme:loyers' 'ic-argent' 'Loyers' page a_traiter.impayes %}
+        {% if 'plateforme.litiges' in droits %}
+          {% nav 'plateforme:litiges' 'ic-retour' 'Litiges' page %}
+        {% endif %}
+        {% nav 'plateforme:versements' 'ic-momo' 'Versements' page %}
         {% nav 'plateforme:rayons' 'ic-rayons' 'Rayons et commissions' page %}
         {% nav 'plateforme:emplacements' 'ic-etoile' 'Emplacements premium' page %}
       </div>
@@ -71,6 +78,11 @@ d'œil.
 
       <div class="rail__groupe">
         <p class="t-sur-titre">Gouvernance</p>
+        {% if 'plateforme.boutiques' in droits %}
+          {# La pastille compte les signaux à trancher ; `None` quand il n'y en a pas — une pastille « 0 » apprend à ne plus la regarder. #}
+          {% signaux_ouverts as nb_signaux %}
+          {% nav 'plateforme:signaux' 'ic-alerte' 'Signaux' page nb_signaux %}
+        {% endif %}
         {% nav 'plateforme:journal' 'ic-journal' 'Journal des accès' page %}
         {% if 'console.administrateurs' in droits %}
           {% nav 'plateforme:administrateurs' 'ic-equipe' 'Administrateurs' page %}

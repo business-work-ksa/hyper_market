@@ -1,0 +1,7 @@
+<ul class="s-preuves">
+  {% for m in s.preuves.manques %}
+    <li class="s-preuve"><span class="s-preuve__tete"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-alerte"></use></svg>{{ m }}</span></li>
+  {% endfor %}
+</ul>
+<p style="margin:0"><a class="btn" href="{% url 'plateforme:verification_dossier' b.pk %}"><svg aria-hidden="true"><use href="#ic-document"></use></svg>Ouvrir le dossier de vérification</a></p>
+{% include "plateforme/partials/s_lecture.html" with indice="Une boutique n'a pu devenir active sans vérification que par une exception : un geste pressé, une règle ajoutée après coup, ou un contournement." innocent="Une pièce expirée, un compte de versement en carence, une règle nouvelle : la plupart de ces boutiques sont honnêtes et simplement en retard." verifier="complétez le dossier avec le gérant. Une boutique qui refuse de le compléter est un autre signal." %}

@@ -45,6 +45,7 @@ __all__ = [
     "appliquer_statut",
     "rafraichir_statut",
     "crediter_portefeuille",
+    "mouvementer_portefeuille",
 ]
 
 # États depuis lesquels plus rien ne bouge.
@@ -247,7 +248,7 @@ def rafraichir_statut(operation: Transaction) -> Transaction:
 def crediter_portefeuille(
     *, boutique, montant: Decimal, type_mouvement: str, origine_type: str = "", origine_id=None
 ) -> MouvementPortefeuille:
-    """Écrit une ligne au journal du portefeuille marchand.
+    """Écrit une ligne au journal du portefeuille marchand, compartiment disponible.
 
     Le portefeuille est un **compte de suivi**, pas un dépôt de monnaie
     électronique (docs/08, §5.2) : il retrace une créance du marchand sur la
@@ -255,43 +256,78 @@ def crediter_portefeuille(
     solde est un agrégat, jamais une valeur qu'on écrit directement.
     """
     with contexte_boutique(boutique):
-        return _crediter_portefeuille(
-            boutique=boutique,
-            montant=montant,
-            type_mouvement=type_mouvement,
-            origine_type=origine_type,
-            origine_id=origine_id,
-        )
+        with transaction_bd.atomic():
+            return mouvementer_portefeuille(
+                boutique=boutique,
+                compartiment=MouvementPortefeuille.DISPONIBLE,
+                montant=montant,
+                type_mouvement=type_mouvement,
+                origine_type=origine_type,
+                origine_id=origine_id,
+            )
 
 
-@transaction_bd.atomic
-def _crediter_portefeuille(
-    *, boutique, montant: Decimal, type_mouvement: str, origine_type: str = "", origine_id=None
+def mouvementer_portefeuille(
+    *,
+    boutique,
+    compartiment: str,
+    montant: Decimal,
+    type_mouvement: str,
+    origine_type: str = "",
+    origine_id=None,
 ) -> MouvementPortefeuille:
+    """Une ligne de journal, et le solde du compartiment qui la suit.
+
+    **À appeler dans le contexte de la boutique et dans une transaction** : le séquestre et les
+    versements écrivent leur état et leurs lignes de journal ensemble, ou pas du tout. Un séquestre
+    libéré sans la ligne qui crédite le disponible serait de l'argent disparu ; la ligne sans le
+    séquestre, de l'argent inventé.
+
+    Idempotent par origine : la ligne de portefeuille verrouillée sérialise les écritures d'une même
+    boutique, et une origine déjà journalisée pour ce type et ce compartiment renvoie sa ligne sans
+    toucher au solde. La contrainte d'unicité reste le dernier mot si ce raisonnement est un jour
+    contourné.
+    """
     montant = Decimal(montant).quantize(CENTIME)
     if montant == 0:
         raise ValueError("Un mouvement de portefeuille nul n'a pas de sens.")
+    if compartiment not in dict(MouvementPortefeuille.COMPARTIMENTS):
+        raise ValueError(f"Compartiment inconnu : {compartiment}.")
 
+    boutique_id = getattr(boutique, "pk", boutique)
     portefeuille = (
         PortefeuilleMarchand.objects_all_tenants.select_for_update()
-        .filter(boutique=boutique)
+        .filter(boutique_id=boutique_id)
         .first()
     )
     if portefeuille is None:
-        portefeuille = PortefeuilleMarchand.objects_all_tenants.create(boutique=boutique)
-        portefeuille = (
-            PortefeuilleMarchand.objects_all_tenants.select_for_update().get(pk=portefeuille.pk)
+        portefeuille = PortefeuilleMarchand.objects_all_tenants.create(boutique_id=boutique_id)
+        portefeuille = PortefeuilleMarchand.objects_all_tenants.select_for_update().get(
+            pk=portefeuille.pk
         )
 
-    portefeuille.solde_disponible = (portefeuille.solde_disponible + montant).quantize(CENTIME)
-    portefeuille.save(update_fields=["solde_disponible", "modifie_le"])
+    if origine_id is not None:
+        deja = MouvementPortefeuille.objects_all_tenants.filter(
+            boutique_id=boutique_id,
+            type=type_mouvement,
+            compartiment=compartiment,
+            origine_id=origine_id,
+        ).first()
+        if deja is not None:
+            return deja
+
+    champ = "solde_bloque" if compartiment == MouvementPortefeuille.BLOQUE else "solde_disponible"
+    solde = (getattr(portefeuille, champ) + montant).quantize(CENTIME)
+    setattr(portefeuille, champ, solde)
+    portefeuille.save(update_fields=[champ, "modifie_le"])
 
     return MouvementPortefeuille.objects_all_tenants.create(
-        boutique=boutique,
+        boutique_id=boutique_id,
         portefeuille=portefeuille,
         type=type_mouvement,
+        compartiment=compartiment,
         montant=montant,
-        solde_apres=portefeuille.solde_disponible,
+        solde_apres=solde,
         origine_type=origine_type,
         origine_id=origine_id,
     )

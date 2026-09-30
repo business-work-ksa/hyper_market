@@ -40,6 +40,7 @@ from apps.accounts.permissions import (
     PLATEFORME_COMMISSIONS,
     PLATEFORME_EMPLACEMENTS,
 )
+from apps.confiance import verification
 from apps.core.models import AccesPlateforme
 from apps.core.tenancy import contexte_boutique
 from apps.marketplace.models import (
@@ -218,6 +219,13 @@ def ouvrir_boutique(demande: DemandeOuverture, *, par) -> Boutique:
 
     « Laisser en candidature » crée la même chose, avec la boutique en `candidature` et le bail
     en `brouillon` : la valider plus tard (`changer_etat_boutique`) n'aura rien à fabriquer.
+
+    « Ouvrir tout de suite » passe par le verrou d'activation (`verification.exiger_activable`),
+    **après** que tout est créé : c'est alors seulement que la liste des manques est juste — le
+    gérant est rattaché, et on peut dire que c'est *sa* pièce qui manque. Le refus annule toute
+    la transaction. En pratique, une boutique qui naît n'a encore ni pièce vérifiée ni compte de
+    versement : elle naît en candidature, et le verrou n'est là que pour qu'aucun chemin ne le
+    contourne.
     """
     from apps.accounting.referentiel import initialiser_boutique
     from apps.inventory.models import Depot
@@ -253,7 +261,9 @@ def ouvrir_boutique(demande: DemandeOuverture, *, par) -> Boutique:
         niu=demande.niu.strip(),
         regime_fiscal=demande.regime_fiscal,
         rayon_principal=demande.rayon,
-        etat=Boutique.ACTIVE if demande.activer else Boutique.CANDIDATURE,
+        # Toujours en candidature à la naissance : l'activation, s'il y a lieu, passe plus bas
+        # par le verrou, une fois le gérant rattaché.
+        etat=Boutique.CANDIDATURE,
         cree_par=par,
     )
     boutique.full_clean()
@@ -286,6 +296,11 @@ def ouvrir_boutique(demande: DemandeOuverture, *, par) -> Boutique:
         Depot.objects.create(
             boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True
         )
+
+    if demande.activer:
+        verification.exiger_activable(boutique)
+        boutique.etat = Boutique.ACTIVE
+        boutique.save(update_fields=["etat", "modifie_le"])
 
     tracer(
         par,
@@ -490,10 +505,16 @@ def changer_etat_boutique(boutique: Boutique, action: str, *, par, motif: str = 
 
     Le motif est obligatoire pour tout sauf la validation — suspendre ou résilier un commerçant
     sans l'écrire, c'est une décision qu'on ne pourra pas lui expliquer.
+
+    **Valider** et **réactiver** passent par le verrou d'activation : une boutique ne devient
+    active que vérifiée (`verification.exiger_activable`). Une boutique suspendue avant que la
+    règle existe ne revient donc en vitrine qu'une fois son dossier régularisé.
     """
     _exiger(par, PLATEFORME_BOUTIQUES)
     boutique = Boutique.objects.select_for_update().get(pk=boutique.pk)
     arrivee = verifier_transition(boutique, action)
+    if arrivee == Boutique.ACTIVE:
+        verification.exiger_activable(boutique)
 
     motif = (motif or "").strip()
     if action != VALIDER:

@@ -3,7 +3,7 @@
 {% block titre %}{{ b.enseigne }}{% endblock %}
 {% block fil %}<p class="fil"><a href="{% url 'plateforme:boutiques' %}">Boutiques</a><span class="fil__sep">›</span><span>Fiche</span></p>{% endblock %}
 {% block entete %}{{ b.enseigne }}{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}"><link rel="stylesheet" href="{% static 'css/plateforme-signaux.css' %}">{% endblock %}
 
 {% block contenu %}
 {% comment %}
@@ -170,6 +170,8 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
   </div>
 
   <div class="col-5 colonne">
+    {% include "plateforme/partials/s_confiance.html" %}
+
     <section class="carte">
       <header class="carte__entete"><h2 class="t-section">Identité légale</h2></header>
       <div class="carte__corps">

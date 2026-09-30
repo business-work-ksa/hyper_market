@@ -147,6 +147,31 @@ class Boutique(BaseModel):
     def __str__(self):
         return self.enseigne
 
+    def clean(self):
+        """Le verrou d'activation, pour l'administration Django (docs/08, §5.3).
+
+        La console passe par `apps/confiance/verification.exiger_activable` ; l'administration
+        technique passe par ici, et doit dire la même chose : une boutique ne **devient** active
+        que vérifiée. Seule la transition est verrouillée — une boutique déjà active dont on
+        corrige l'enseigne n'est pas coupée pour autant, elle paraît dans la file « à
+        régulariser » de la console.
+        """
+        super().clean()
+        if self.etat != self.ACTIVE:
+            return
+        avant = Boutique.objects.filter(pk=self.pk).values_list("etat", flat=True).first()
+        if avant == self.ACTIVE:
+            return
+        from apps.confiance.verification import manques_pour_activer
+
+        manques = manques_pour_activer(self)
+        if manques:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                {"etat": ["Vérification incomplète : la boutique ne peut pas devenir active."] + manques}
+            )
+
     @property
     def metier_choisi(self):
         """Le métier, lu depuis le référentiel de code — jamais depuis la base.

@@ -1,0 +1,13 @@
+{% comment %}
+L'état d'une pièce ou d'un compte : toujours une icône ET un mot (docs/19, §2.2) — la couleur
+seule ne se lit ni en noir et blanc ni par un daltonien. Paramètres : `etat` (le code), `libelle`.
+{% endcomment %}
+{% if etat == 'valide' or etat == 'verifie' %}
+  <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{{ libelle }}</span>
+{% elif etat == 'en_attente' %}
+  <span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{{ libelle }}</span>
+{% elif etat == 'rejete' %}
+  <span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{{ libelle }}</span>
+{% else %}
+  <span class="puce"><svg aria-hidden="true"><use href="#ic-pause"></use></svg>{{ libelle }}</span>
+{% endif %}

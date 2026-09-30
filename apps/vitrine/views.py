@@ -15,6 +15,19 @@ constaté hors ligne, comme au comptoir. C'est la même frontière que pour les
 appels d'opérateur (docs/18, §8.8) : tant que la couche Mobile Money n'est pas
 écrite contre un bac à sable, un bouton « Payer » ici serait un mensonge.
 
+L'acheteur choisit en revanche **comment** il paiera : d'avance — l'argent reste
+en séquestre chez le partenaire agréé jusqu'à ce qu'il confirme la réception —
+ou à la livraison. Le prépaiement est refusé, boutique par boutique, quand il
+ferait dépasser le plafond de séquestre d'une boutique qui n'a pas encore fait
+ses preuves ; la page le dit avant l'envoi, et propose la livraison.
+
+**Ce que seule la session de l'acheteur voit.** La page de suivi est adressée
+par un identifiant qu'on ne devine pas, mais **le marchand le connaît** : c'est
+celui de la commande qu'il traite. Le code de remise, la confirmation de
+réception et l'ouverture d'un litige ne sont donc offerts qu'à la session qui a
+passé la commande — sinon une fausse boutique lirait le code, ou confirmerait
+elle-même la réception qu'elle n'a jamais faite.
+
 **Elle n'ouvre pas de session.** Passer commande crée un compte acheteur si le
 numéro est inconnu, mais ne connecte personne : un numéro de téléphone non
 vérifié ne doit pas donner accès à l'historique de son propriétaire. Il faudra
@@ -27,8 +40,11 @@ from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Utilisateur
 from apps.core.tenancy import contexte_plateforme
-from apps.orders.models import Commande, SousCommande
-from apps.orders.services import CommandeInvalide, passer_commande
+from apps.marketplace.confiance import palier_de
+from apps.orders.models import Commande, Litige, SousCommande
+from apps.orders.services import CommandeInvalide, PrepaiementRefuse, passer_commande
+from apps.payments import sequestre as sequestre_service
+from apps.payments.models import Sequestre
 from apps.vitrine import panier as panier_service
 from apps.vitrine.catalogue import (
     article_par_identifiant,
@@ -219,10 +235,20 @@ def commander(request):
         messages.error(request, "Votre panier est vide.")
         return redirect("vitrine_catalogue")
 
+    groupes = panier_service.par_boutique(lignes)
+    refus = _refus_de_prepaiement(groupes)
     formulaire = CommandeForm(request.POST or None)
     if request.method == "POST" and formulaire.is_valid():
         try:
             commande = _enregistrer(request, lignes, formulaire.cleaned_data)
+        except PrepaiementRefuse as erreur:
+            # Le plafond a changé entre l'affichage et l'envoi : on le redit, on n'impose pas.
+            refus.update(erreur.refus)
+            messages.error(
+                request,
+                "Le prépaiement n'est plus possible chez une boutique de votre panier : "
+                "relisez la commande, puis envoyez-la à nouveau.",
+            )
         except CommandeInvalide as erreur:
             messages.error(request, str(erreur))
         else:
@@ -230,6 +256,8 @@ def commander(request):
             _memoriser(request, commande)
             return redirect("vitrine_commande", identifiant=commande.pk)
 
+    for groupe in groupes:
+        groupe["refus_prepaiement"] = refus.get(str(groupe["boutique"].pk))
     return render(
         request,
         "vitrine/commander.html",
@@ -238,10 +266,23 @@ def commander(request):
             "panier",
             formulaire=formulaire,
             lignes=lignes,
-            groupes=panier_service.par_boutique(lignes),
+            groupes=groupes,
             total=panier_service.total(lignes),
+            refus=refus,
+            a_la_livraison=",".join(sorted(refus)),
+            tout_refuse=bool(groupes) and len(refus) == len(groupes),
         ),
     )
+
+
+def _refus_de_prepaiement(groupes) -> dict:
+    """Pour chaque boutique du panier, le message qui y refuse le prépaiement, s'il y en a un."""
+    refus = {}
+    for groupe in groupes:
+        message = sequestre_service.refus_de_prepaiement(groupe["boutique"], groupe["total"])
+        if message:
+            refus[str(groupe["boutique"].pk)] = message
+    return refus
 
 
 def _enregistrer(request, lignes, donnees) -> Commande:
@@ -250,6 +291,14 @@ def _enregistrer(request, lignes, donnees) -> Commande:
         acheteur=acheteur,
         lignes=[(l["article"], l["quantite"]) for l in lignes],
         code_apporteur=request.session.get(panier_service.CLE_PARRAINAGE, ""),
+        mode_paiement=(
+            SousCommande.A_LA_LIVRAISON
+            if donnees.get("mode_paiement") == "livraison"
+            else SousCommande.PREPAYE
+        ),
+        # Seules les boutiques que la page a annoncées : une boutique refusée entre-temps fait
+        # échouer l'envoi (`PrepaiementRefuse`) plutôt que de basculer sans le dire.
+        a_la_livraison=donnees.get("a_la_livraison") or (),
     )
     Commande.objects.filter(pk=commande.pk).update(
         adresse_livraison=donnees["adresse_livraison"][:255],
@@ -283,6 +332,75 @@ def _memoriser(request, commande) -> None:
     request.session.modified = True
 
 
+def _acheteur_reconnu(request, commande) -> bool:
+    """La requête vient-elle de l'acheteur ? Sa session a passé la commande, ou il est connecté.
+
+    Connaître l'adresse de la page ne suffit pas : le marchand la connaît.
+    """
+    if str(commande.pk) in (request.session.get(CLE_COMMANDES) or []):
+        return True
+    utilisateur = getattr(request, "user", None)
+    return bool(
+        utilisateur is not None
+        and utilisateur.is_authenticated
+        and utilisateur.pk == commande.acheteur_id
+    )
+
+
+def _lire_commande(identifiant):
+    """La commande et ses parts, lues par la façade publique du marché (ADR-012)."""
+    with contexte_plateforme():
+        commande_vue = Commande.objects.filter(pk=identifiant).select_related("acheteur").first()
+        if commande_vue is None:
+            return None, []
+        parts = list(
+            SousCommande.objects.filter(commande=commande_vue)
+            .select_related("boutique")
+            .prefetch_related("lignes")
+            .order_by("cree_le")
+        )
+        litiges = {}
+        for litige in Litige.objects.filter(sous_commande__in=parts).order_by("cree_le"):
+            litiges[litige.sous_commande_id] = litige  # le plus récent l'emporte
+    sequestres = {
+        s.sous_commande_id: s for s in Sequestre.objects.filter(sous_commande__in=parts)
+    }
+    for part in parts:
+        part.sequestre_vu = sequestres.get(part.pk)
+        if part.sequestre_vu is not None:
+            # La part est déjà lue : on la rattache, plutôt que de la relire hors contexte.
+            part.sequestre_vu.sous_commande = part
+        part.litige_vu = litiges.get(part.pk)
+    return commande_vue, parts
+
+
+def _decorer_pour_l_acheteur(parts, reconnu: bool) -> None:
+    """Ce que l'acheteur peut voir et faire, part par part."""
+    for part in parts:
+        sequestre = part.sequestre_vu
+        litige = part.litige_vu
+        en_litige = litige is not None and litige.en_cours
+        bloque = sequestre is not None and sequestre.etat == Sequestre.BLOQUE
+        livrable = part.etat in (SousCommande.EXPEDIEE, SousCommande.LIVREE)
+        part.en_litige = en_litige
+        part.code_affiche = (
+            sequestre_service.code_de_remise(part)
+            if reconnu and bloque and part.livraison_confirmee_le is None and not en_litige
+            else None
+        )
+        part.peut_confirmer = (
+            reconnu
+            and livrable
+            and part.livraison_confirmee_le is None
+            and not en_litige
+            and (sequestre is None or bloque)
+        )
+        part.peut_contester = reconnu and bloque and not en_litige
+        part.echeance_liberation = (
+            sequestre_service.echeance_de_liberation(sequestre) if bloque else None
+        )
+
+
 def commande(request, identifiant):
     """Suivi d'une commande, adressé par son identifiant et non par son numéro.
 
@@ -290,22 +408,116 @@ def commande(request, identifiant):
     UUIDv7 ne se devine pas, et c'est lui qui sert d'adresse. Le numéro reste
     affiché — c'est ce que l'acheteur dira au marchand au téléphone.
     """
-    with contexte_plateforme():
-        commande_vue = (
-            Commande.objects.filter(pk=identifiant).select_related("acheteur").first()
+    commande_vue, parts = _lire_commande(identifiant)
+    if commande_vue is None:
+        return render(
+            request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404
         )
-        if commande_vue is None:
-            return render(
-                request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404
-            )
-        parts = list(
-            SousCommande.objects.filter(commande=commande_vue)
-            .select_related("boutique")
-            .prefetch_related("lignes")
-        )
+    reconnu = _acheteur_reconnu(request, commande_vue)
+    _decorer_pour_l_acheteur(parts, reconnu)
 
     return render(
         request,
         "vitrine/commande.html",
-        _contexte(request, "panier", commande=commande_vue, parts=parts),
+        _contexte(
+            request,
+            "panier",
+            commande=commande_vue,
+            parts=parts,
+            reconnu=reconnu,
+            prepayee=any(p.prepayee for p in parts),
+            delai_implicite=sequestre_service.DELAI_CONFIRMATION_IMPLICITE.days,
+        ),
+    )
+
+
+def _part_de_l_acheteur(request, identifiant, part_id):
+    """La commande et la part visées, **si la requête vient de l'acheteur** ; sinon `None`."""
+    commande_vue, parts = _lire_commande(identifiant)
+    if commande_vue is None or not _acheteur_reconnu(request, commande_vue):
+        return commande_vue, None
+    part = next((p for p in parts if p.pk == part_id), None)
+    if part is not None:
+        _decorer_pour_l_acheteur([part], True)
+    return commande_vue, part
+
+
+def confirmer_reception(request, identifiant, part_id):
+    """L'acheteur confirme avoir reçu sa part. Une page, puis un bouton : pas de clic accidentel.
+
+    Le geste compte : il ouvre le délai au terme duquel l'argent part chez le marchand. Il
+    mérite une page qui dit ce qu'il déclenche, plutôt qu'un bouton perdu dans le suivi.
+    """
+    commande_vue, part = _part_de_l_acheteur(request, identifiant, part_id)
+    if part is None:
+        return render(
+            request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404
+        )
+
+    if request.method == "POST":
+        try:
+            sequestre_service.confirmer_par_acheteur(part)
+        except sequestre_service.SequestreRefuse as refus:
+            messages.error(request, str(refus))
+        else:
+            messages.success(
+                request,
+                f"Merci : la réception de votre commande chez {part.boutique.enseigne} "
+                "est confirmée.",
+            )
+        return redirect("vitrine_commande", identifiant=commande_vue.pk)
+
+    return render(
+        request,
+        "vitrine/confirmer_reception.html",
+        _contexte(
+            request,
+            "panier",
+            commande=commande_vue,
+            part=part,
+            delai=palier_de(part.boutique).delai_liberation_jours,
+        ),
+    )
+
+
+def ouvrir_litige(request, identifiant, part_id):
+    """L'acheteur conteste sa part : motif, description, et l'argent est gelé."""
+    commande_vue, part = _part_de_l_acheteur(request, identifiant, part_id)
+    if part is None:
+        return render(
+            request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404
+        )
+
+    erreur = None
+    motif = request.POST.get("motif") or ""
+    description = request.POST.get("description") or ""
+    if request.method == "POST":
+        try:
+            sequestre_service.ouvrir_litige(
+                part, motif=motif, description=description, par=request.user
+            )
+        except sequestre_service.SequestreRefuse as refus:
+            erreur = str(refus)
+        else:
+            messages.success(
+                request,
+                "Votre réclamation est enregistrée. L'argent de cette commande reste en "
+                "séquestre, et la plateforme l'examine sous 72 heures.",
+            )
+            return redirect("vitrine_commande", identifiant=commande_vue.pk)
+
+    return render(
+        request,
+        "vitrine/litige.html",
+        _contexte(
+            request,
+            "panier",
+            commande=commande_vue,
+            part=part,
+            motifs=Litige.MOTIFS,
+            motif=motif,
+            description=description,
+            erreur=erreur,
+        ),
+        status=400 if erreur else 200,
     )

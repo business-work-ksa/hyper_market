@@ -254,6 +254,20 @@ USE_TZ = True
 # geste explicite — celui qu'on fait en connaissance de cause sur une démo.
 AFFICHER_COMPTE_DEMO = env.bool("AFFICHER_COMPTE_DEMO", default=DEBUG)
 
+# Vérification des marchands (docs/23, ADR-013).
+#
+# `KYC_CLE_NUMEROS` : clé de l'empreinte HMAC des numéros de pièce d'identité. La base ne garde
+# jamais un numéro en clair, seulement cette empreinte, qui sert à détecter une même pièce utilisée
+# par deux personnes. Une clé **distincte** de `SECRET_KEY`, parce qu'on tourne `SECRET_KEY` après
+# une fuite et qu'en la tournant on perdrait toute détection de doublon sur les pièces déjà
+# enregistrées — on n'a plus les numéros pour recalculer. Vide : `SECRET_KEY` sert de repli.
+KYC_CLE_NUMEROS = env("KYC_CLE_NUMEROS", default="")
+# `KYC_STOCKAGE_COPIES` : nom d'une entrée de `STORAGES`, persistante et privée, où garder la
+# copie d'une pièce. Vide par défaut, et c'est voulu : la plateforme atteste avoir vu une pièce,
+# elle n'en garde pas la copie (minimisation, loi n° 2024/017). Sur une plateforme sans serveur,
+# le disque est éphémère : une copie qui y serait écrite disparaîtrait sans prévenir.
+KYC_STOCKAGE_COPIES = env("KYC_STOCKAGE_COPIES", default="")
+
 DEVISE = "XAF"
 DEVISE_SYMBOLE = "FCFA"
 PAYS_DEFAUT = "CM"

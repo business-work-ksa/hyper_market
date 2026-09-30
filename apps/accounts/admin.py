@@ -46,9 +46,45 @@ class AppartenanceAdmin(admin.ModelAdmin):
 
 @admin.register(DossierKyc)
 class DossierKycAdmin(admin.ModelAdmin):
-    list_display = ("type_piece", "numero", "utilisateur", "boutique", "etat", "cree_le")
-    list_filter = ("etat", "type_piece")
-    search_fields = ("numero",)
+    """Consultation seulement : les décisions se prennent dans la console.
+
+    L'administration technique ne connaît pas les quatre yeux. Un champ `etat` modifiable ici
+    permettrait à n'importe quel administrateur de valider sa propre attestation d'un clic — la
+    règle se contournerait par la porte de service. Les décisions passent donc par
+    `apps/confiance/verification.py`, qui refuse, explique et laisse une trace.
+
+    Le numéro n'est pas en base, seulement son empreinte à clé et ses quatre derniers caractères.
+    La recherche prend donc un numéro **exact**, en calcule l'empreinte, et retrouve la pièce —
+    c'est ainsi qu'on vérifie un doublon sans jamais relire un numéro stocké.
+    """
+
+    list_display = ("type_piece", "numero_masque", "utilisateur", "boutique", "etat", "expire_le", "cree_le")
+    list_filter = ("etat", "type_piece", "mode_verification")
+    search_fields = ("nom_lu",)
+    search_help_text = "Un numéro de pièce exact, ou un nom tel qu'il figure sur la pièce."
+    readonly_fields = (
+        "utilisateur", "boutique", "type_piece", "numero_masque", "pays", "expire_le", "nom_lu",
+        "mode_verification", "empreinte", "copie", "etat", "declare_par", "verifie_par",
+        "verifie_le", "motif_rejet", "cree_le",
+    )
+
+    @admin.display(description="numéro")
+    def numero_masque(self, obj):
+        return obj.numero_masque
+
+    def get_search_results(self, request, queryset, search_term):
+        from apps.confiance.verification import empreinte_numero
+
+        resultats, doublons = super().get_search_results(request, queryset, search_term)
+        if search_term.strip():
+            resultats = resultats | queryset.filter(numero_empreinte=empreinte_numero(search_term))
+        return resultats, doublons
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(RolePlateforme)

@@ -1,0 +1,57 @@
+{% extends "vitrine/base.html" %}
+{% load hm %}
+
+{% block titre %}Signaler un problème — {{ commande.numero }}{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<form method="post" class="carte" style="max-width:680px" novalidate>
+  {% csrf_token %}
+  <header class="carte__entete">
+    <h1 class="t-section" style="font-size:1.3rem">Signaler un problème</h1>
+  </header>
+  <div class="carte__corps colonne" style="gap:16px">
+    <p class="t-2">
+      Commande <span class="chiffre">{{ commande.numero }}</span> chez
+      <strong>{{ part.boutique.enseigne }}</strong> — {{ part.total_ttc|fcfa }} FCFA.
+    </p>
+
+    {% if erreur %}
+      <div class="bandeau-info bandeau-info--alerte" role="alert">
+        <svg><use href="#ic-alerte"></use></svg><span>{{ erreur }}</span>
+      </div>
+    {% endif %}
+
+    <fieldset class="groupe-champ" style="border:0;padding:0;margin:0">
+      <legend style="font-weight:560;margin-bottom:6px">Ce qui ne va pas</legend>
+      {% for code, libelle in motifs %}
+        <label class="case-ligne">
+          <input type="radio" name="motif" value="{{ code }}" required {% if motif == code %}checked{% endif %}>
+          <span>{{ libelle }}</span>
+        </label>
+      {% endfor %}
+    </fieldset>
+
+    <div class="groupe-champ">
+      <label for="description">Décrivez la situation</label>
+      <textarea class="champ" id="description" name="description" rows="5" maxlength="4000" required
+                placeholder="Ce que vous avez reçu, ou pas ; ce qui manque ; ce que le commerçant vous a répondu.">{{ description }}</textarea>
+      <span class="t-legende">C'est ce texte que la plateforme lira pour trancher.</span>
+    </div>
+
+    <div class="bandeau-info" role="note">
+      <svg><use href="#ic-verrou"></use></svg>
+      <span>
+        Dès l'envoi, l'argent de cette commande est <strong>gelé</strong> : il reste en séquestre
+        chez notre partenaire agréé, ni versé au commerçant ni remboursé, jusqu'à la décision de
+        la plateforme — sous 72 heures. La décision est motivée : vous la lirez sur votre page de
+        commande.
+      </span>
+    </div>
+  </div>
+  <footer class="carte__pied rangee" style="gap:10px;justify-content:flex-end">
+    <a class="btn" href="{% url 'vitrine_commande' commande.pk %}">Annuler</a>
+    <button class="btn btn--primaire" type="submit">Envoyer la réclamation</button>
+  </footer>
+</form>
+{% endblock %}

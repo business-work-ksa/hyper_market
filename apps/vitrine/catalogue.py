@@ -39,6 +39,7 @@ from decimal import Decimal
 from django.db.models import Q
 
 from apps.catalog.models import Categorie, Produit, Variante
+from apps.confiance.paliers import expression_identite_verifiee
 from apps.core.tenancy import contexte_plateforme
 from apps.marketplace.models import Bail, Boutique, Rayon
 
@@ -62,7 +63,10 @@ def boutiques_en_vitrine():
         actives = Bail.objects.filter(etat=Bail.ACTIF).values_list("boutique_id", flat=True)
         return list(
             Boutique.objects.filter(etat=Boutique.ACTIVE, id__in=list(actives))
-            .select_related("rayon_principal")
+            # La confiance publique voyage avec la boutique, dans la même requête : une page de
+            # vitrine ne relit rien boutique par boutique (`apps/confiance/templatetags`).
+            .select_related("rayon_principal", "mesure_confiance")
+            .annotate(identite_verifiee=expression_identite_verifiee("pk"))
             .order_by("enseigne")
         )
 
@@ -93,7 +97,10 @@ def _requete_de_base(identifiants_boutiques):
             produit__sur_ordonnance=False,
             boutique_id__in=identifiants_boutiques,
         )
-        .select_related("produit", "produit__categorie", "boutique")
+        .select_related("produit", "produit__categorie", "boutique", "boutique__mesure_confiance")
+        # « Identité vérifiée » sur chaque carte, sans une requête par carte : c'est une colonne
+        # de plus dans la requête qui lit déjà les articles.
+        .annotate(vendeur_identite_verifiee=expression_identite_verifiee("boutique_id"))
         .order_by("produit__libelle", "sku")
     )
 

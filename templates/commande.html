@@ -74,11 +74,7 @@
         <div class="rangee rangee--espace"><span class="t-2">Commande</span><span class="chiffre">{{ part.commande.numero }}</span></div>
         <div class="rangee rangee--espace">
           <span class="t-2">Paiement</span>
-          {% if part.commande.etat == 'confirmee' %}
-            <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>En attente</span>
-          {% else %}
-            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{{ part.commande.get_etat_display }}</span>
-          {% endif %}
+          <span class="puce">{% if part.prepayee %}<svg><use href="#ic-verrou"></use></svg>D'avance, en séquestre{% else %}<svg><use href="#ic-camion"></use></svg>À la livraison{% endif %}</span>
         </div>
         <p class="t-legende">
           Vous ne voyez que votre part. Ce que l'acheteur a commandé chez d'autres
@@ -87,6 +83,91 @@
       </div>
     </section>
   </div>
+
+  {% if part.prepayee %}
+  {% comment %}
+  L'argent de la part. Les montants sont ceux que le séquestre a constatés — la commission
+  retenue est TTC, comme dans votre comptabilité (compte 401). Une part gelée ne dit pas
+  pourquoi : c'est voulu, et c'est la même phrase pour toutes les parts gelées.
+  {% endcomment %}
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Argent de la commande</h2>
+      <span class="puce{% if part.argent.ton %} puce--{{ part.argent.ton }}{% endif %}">
+        <svg><use href="#{% if part.argent.code == 'gele' %}ic-verrou{% elif part.argent.ton == 'bon' %}ic-check{% elif part.argent.code == 'attendu' %}ic-horloge{% else %}ic-argent{% endif %}"></use></svg>
+        {{ part.argent.libelle }}{% if part.argent.date %} · {{ part.argent.date|date:"d/m/Y" }}{% endif %}
+      </span>
+    </header>
+    <div class="carte__corps colonne" style="gap:12px">
+      {% if sequestre %}
+        <div class="rangee rangee--espace"><span class="t-2">Payé par l'acheteur</span><span class="chiffre">{{ sequestre.montant_encaisse|fcfa }} FCFA</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">Commission de place retenue (TTC)</span><span class="chiffre">− {{ sequestre.commission|fcfa }} FCFA</span></div>
+        <div class="rangee rangee--espace" style="border-top:1px solid var(--filet);padding-top:10px">
+          <span style="font-weight:620">Votre part</span>
+          <span class="chiffre" style="font-weight:660">{{ sequestre.montant|fcfa }} FCFA</span>
+        </div>
+        {% if sequestre.montant_rembourse %}
+          <div class="rangee rangee--espace"><span class="t-2">Remboursé à l'acheteur sur votre part</span><span class="chiffre">{{ sequestre.montant_rembourse|fcfa }} FCFA</span></div>
+        {% endif %}
+        {% if sequestre.montant_libere %}
+          <div class="rangee rangee--espace"><span class="t-2">Libéré à votre disponible</span><span class="chiffre">{{ sequestre.montant_libere|fcfa }} FCFA</span></div>
+        {% endif %}
+
+        {% if part.argent.code == 'gele' %}
+          <p class="t-2">Cette part ne peut être ni libérée ni remboursée pour le moment. Aucune action n'est attendue de votre part.</p>
+        {% elif part.livraison_confirmee_le and sequestre.etat == 'bloque' %}
+          <p class="t-legende">
+            Livraison confirmée le {{ part.livraison_confirmee_le|date:"d/m/Y" }}
+            ({{ sequestre.get_confirmation_display|lower }}). Votre palier — {{ palier.libelle }} —
+            libère les fonds {{ palier.delai_liberation_jours }} jour{{ palier.delai_liberation_jours|pluralize }} après la confirmation.
+          </p>
+        {% elif sequestre.etat == 'bloque' %}
+          <p class="t-legende">
+            L'argent est en séquestre chez le partenaire de paiement de la plateforme. Il se libère
+            {{ palier.delai_liberation_jours }} jour{{ palier.delai_liberation_jours|pluralize }} après la
+            livraison <strong>confirmée</strong> : par le code de remise ci-dessous, par l'acheteur
+            lui-même, ou d'office sept jours après l'expédition sans réclamation. Marquer la
+            commande « livrée » ne suffit pas.
+          </p>
+        {% endif %}
+
+        {% if saisie_code %}
+          {% if code_verrouille %}
+            <div class="bandeau-info bandeau-info--alerte" role="status">
+              <svg><use href="#ic-verrou"></use></svg>
+              <span>Code verrouillé après trop d'essais. L'acheteur peut confirmer la réception
+                depuis sa page de commande ; sans réclamation, elle sera réputée confirmée sept
+                jours après l'expédition.</span>
+            </div>
+          {% else %}
+            <form method="post" class="colonne" style="gap:10px;border-top:1px solid var(--filet);padding-top:12px">
+              {% csrf_token %}
+              <div class="groupe-champ">
+                <label for="code-remise">Code de remise donné par l'acheteur</label>
+                <input class="champ champ--grand chiffre" id="code-remise" name="code_remise"
+                       inputmode="numeric" autocomplete="off" maxlength="9" pattern="[0-9 ]*"
+                       placeholder="6 chiffres" required style="letter-spacing:0.18em;max-width:220px">
+                <span class="t-legende">
+                  L'acheteur le remet au livreur quand il a la marchandise en main.
+                  {% if sequestre.essais_code_echoues %}Encore {{ essais_restants }} essai{{ essais_restants|pluralize }} avant verrouillage.{% endif %}
+                </span>
+              </div>
+              <button class="btn btn--primaire" type="submit" style="align-self:flex-start">
+                <svg><use href="#ic-check"></use></svg> Confirmer la remise
+              </button>
+            </form>
+          {% endif %}
+        {% endif %}
+      {% else %}
+        <p class="t-2">
+          L'acheteur a choisi de payer d'avance ; le paiement n'a pas encore été constaté. Tant
+          qu'il ne l'est pas, rien n'est en séquestre pour cette commande.
+        </p>
+      {% endif %}
+      <a class="t-petit lien" href="{% url 'versements_marchand' %}">Voir vos soldes et vos versements</a>
+    </div>
+  </section>
+  {% endif %}
 
   {% if peut_refuser or peut_retourner %}
   <div class="duo{% if duo_plein %} duo--plein{% endif %}">

@@ -1,0 +1,71 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}Litiges{% endblock %}
+{% block entete %}Litiges{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-litiges.css' %}">{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">Médiation acheteur ↔ marchand</p>
+    <h2 class="entete-page__titre">Litiges</h2>
+    <p class="entete-page__phrase">
+      Chaque litige gèle la part contestée : ni libérée, ni remboursée, jusqu'à votre décision.
+      L'engagement pris envers l'acheteur est une décision motivée sous 72 heures.
+    </p>
+  </div>
+</div>
+
+<section class="kpis" aria-label="Litiges">
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--alerte"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg></span>En cours</span>
+    <span class="kpi__valeur">{{ nb_en_cours }}</span>
+    <span class="kpi__pied">{{ montant_gele|fcfa }} FCFA gelés</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>Au-delà de 72 h</span>
+    <span class="kpi__valeur">{{ nb_en_retard }}</span>
+    <span class="kpi__pied">{% if nb_en_retard %}À trancher en priorité{% else %}Aucun retard{% endif %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg></span>Tranchés</span>
+    <span class="kpi__valeur">{{ nb_tranches }}</span>
+    <span class="kpi__pied">Décisions motivées, consignées</span>
+  </div>
+</section>
+
+<nav class="onglets" aria-label="Filtrer les litiges" style="margin-top:18px">
+  <a class="onglet" href="?vue=en_cours" {% if vue == 'en_cours' %}aria-current="page"{% endif %}>En cours<span class="onglet__compte">{{ nb_en_cours }}</span></a>
+  <a class="onglet" href="?vue=tranches" {% if vue != 'en_cours' %}aria-current="page"{% endif %}>Tranchés<span class="onglet__compte">{{ nb_tranches }}</span></a>
+</nav>
+
+<section class="carte">
+  {% if litiges %}
+    <div class="file">
+      {% for litige in litiges %}
+        <a class="file__ligne" href="{% url 'plateforme:litige' litige.pk %}">
+          <span class="monogramme" aria-hidden="true">{{ litige.boutique.enseigne|initiales }}</span>
+          <span class="file__corps">
+            <span class="file__titre">{{ litige.sous_commande.commande.numero }} · {{ litige.boutique.enseigne }}</span>
+            <span class="t-legende l-ligne-meta">
+              <span>{{ litige.get_motif_display }}</span>
+              <span>ouvert le {{ litige.cree_le|date:"d/m/Y H:i" }}</span>
+              {% if litige.tranche_le %}<span>tranché le {{ litige.tranche_le|date:"d/m/Y" }}</span>{% endif %}
+            </span>
+          </span>
+          {% if litige.sequestre_vu %}<span class="l-montant">{{ litige.sequestre_vu.montant_encaisse|fcfa }} <span class="unite">FCFA</span></span>{% endif %}
+          {% if litige.en_cours %}{% include "plateforme/partials/l_age.html" with age=litige.age %}{% endif %}
+          {% include "plateforme/partials/l_statut_litige.html" %}
+          <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vide">
+      <svg aria-hidden="true"><use href="#ic-check"></use></svg>
+      <p class="t-section">{% if vue == 'en_cours' %}Aucun litige en cours{% else %}Aucun litige tranché{% endif %}</p>
+      <p class="t-legende">Les réclamations des acheteurs arrivent ici dès leur ouverture.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

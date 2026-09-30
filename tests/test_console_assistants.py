@@ -74,6 +74,14 @@ class OuvrirUneBoutiqueTest(Personnages, TestCase):
     def setUp(self):
         self.poser()
         self.client.force_login(self.administrateur)
+        # « Ouvrir tout de suite » passe par le verrou d'activation (docs/23, §2.3). Une boutique
+        # qui naît ne peut pas avoir de dossier vérifié — ses pièces et son compte de versement se
+        # rattachent à elle, et le second regard doit venir d'un autre administrateur que celui
+        # qui l'ouvre. Ces tests portent sur la naissance ; ils prennent donc le dossier pour
+        # complet. Le verrou lui-même est éprouvé dans `tests/test_verification.py`.
+        patcher = mock.patch("apps.confiance.verification.manques_pour_activer", return_value=[])
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def saisies(self, **surcharges):
         s = {
@@ -598,6 +606,13 @@ class EtatDUneBoutiqueTest(Personnages, TestCase):
     def setUp(self):
         self.poser()
         self.client.force_login(self.administrateur)
+        # Valider et réactiver passent par le verrou d'activation : la boutique est vérifiée,
+        # pour de vrai, par deux personnes distinctes (docs/23, §2.3).
+        from tests.test_verification import verifier_entierement
+
+        verifier_entierement(
+            self.boutique, self.commercant, declarant=self.administrateur, verificateur=self.superadmin
+        )
 
     def url(self, action, boutique=None):
         return reverse("plateforme:boutique_etat", args=[(boutique or self.boutique).pk]) + f"?action={action}"

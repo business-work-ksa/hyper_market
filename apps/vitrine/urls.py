@@ -22,4 +22,14 @@ urlpatterns = [
 
     path("commander/", views.commander, name="vitrine_commander"),
     path("commande/<uuid:identifiant>/", views.commande, name="vitrine_commande"),
+    path(
+        "commande/<uuid:identifiant>/part/<uuid:part_id>/reception/",
+        views.confirmer_reception,
+        name="vitrine_confirmer_reception",
+    ),
+    path(
+        "commande/<uuid:identifiant>/part/<uuid:part_id>/litige/",
+        views.ouvrir_litige,
+        name="vitrine_litige",
+    ),
 ]

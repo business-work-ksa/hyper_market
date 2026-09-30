@@ -176,3 +176,39 @@ class ContratsDeDemonstrationTest(TestCase):
 
         call_command("garnir_contrats_demo", verbosity=0)
         self.assertEqual(FactureLoyer.objects.count(), factures)
+
+
+class TachesQuotidiennesTest(TestCase):
+    """La porte des tâches de nuit déplace de l'argent : elle se ferme par défaut."""
+
+    url = "/taches/quotidiennes/"
+
+    def test_fermee_sans_secret_configure(self):
+        import os
+        from unittest import mock
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CRON_SECRET", None)
+            self.assertEqual(self.client.get(self.url).status_code, 403)
+            self.assertEqual(
+                self.client.get(self.url, HTTP_AUTHORIZATION="Bearer ").status_code, 403
+            )
+
+    def test_fermee_avec_un_mauvais_secret(self):
+        import os
+        from unittest import mock
+
+        with mock.patch.dict(os.environ, {"CRON_SECRET": "le-bon-secret-long"}):
+            reponse = self.client.get(self.url, HTTP_AUTHORIZATION="Bearer mauvais")
+            self.assertEqual(reponse.status_code, 403)
+
+    def test_lance_les_deux_commandes_avec_le_bon_secret(self):
+        import os
+        from unittest import mock
+
+        with mock.patch.dict(os.environ, {"CRON_SECRET": "le-bon-secret-long"}):
+            reponse = self.client.get(
+                self.url, HTTP_AUTHORIZATION="Bearer le-bon-secret-long"
+            )
+        self.assertEqual(reponse.status_code, 200, reponse.content)
+        self.assertEqual(set(reponse.json()), {"liberer_sequestres", "evaluer_confiance"})

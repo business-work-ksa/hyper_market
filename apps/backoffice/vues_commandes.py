@@ -9,6 +9,16 @@ L'écran est organisé par **ce qu'il y a à faire**, pas par date. Une commande
 attente d'acceptation et une commande livrée la semaine dernière n'ont pas le
 même statut d'urgence, et une liste triée par date les mélange. Les files
 « à traiter » viennent donc en premier, l'historique après.
+
+Chaque part prépayée montre **où en est son argent** : bloqué en séquestre,
+libéré, remboursé. Et la fiche porte la saisie du **code de remise** — la seule
+preuve de livraison qui libère quelque chose. Marquer « livrée » reste une
+déclaration, utile au suivi, sans effet sur l'argent.
+
+Une part gelée — quelle qu'en soit la raison — s'affiche avec un message neutre
+et toujours le même (`MESSAGE_GEL`) : la lutte contre le blanchiment interdit
+d'avertir la personne visée par une vérification, et un libellé qui varierait
+selon la cause la trahirait.
 """
 
 from decimal import Decimal
@@ -22,8 +32,11 @@ from django.views.decorators.http import require_POST
 from apps.accounts import permissions as droit
 from apps.backoffice.acces import contexte_commun, depot_courant, exige
 from apps.backoffice.filtres import FiltresCommandesForm
+from apps.marketplace.confiance import palier_de
 from apps.orders import services as commandes_service
-from apps.orders.models import LigneCommande, Retour, SousCommande
+from apps.orders.models import LigneCommande, Litige, Retour, SousCommande
+from apps.payments import sequestre as sequestre_service
+from apps.payments.models import Sequestre
 
 # Ce que le marchand peut faire, et le geste suivant à lui proposer. Écrit ici
 # plutôt que dans le gabarit : un bouton qui n'existe pas dans cette table ne
@@ -70,12 +83,69 @@ def _decorer(parts) -> list[SousCommande]:
     for ligne in LigneCommande.objects.filter(sous_commande__in=parts):
         lignes.setdefault(ligne.sous_commande_id, []).append(ligne)
 
+    # Le séquestre n'est pas scopé (c'est un ordre de la plateforme) : on ne lit que ceux des
+    # parts déjà bornées à cette boutique, jamais une requête ouverte.
+    sequestres = {s.sous_commande_id: s for s in Sequestre.objects.filter(sous_commande__in=parts)}
+    gelees = set(
+        Litige.objects.filter(
+            sous_commande__in=parts, etat__in=Litige.ETATS_OUVERTS
+        ).values_list("sous_commande_id", flat=True)
+    )
+
     for part in parts:
         part.lignes_affichees = lignes.get(part.pk, [])
         part.articles = sum((l.quantite for l in part.lignes_affichees), Decimal("0"))
         geste = GESTE_SUIVANT.get(part.etat)
         part.action_suivante, part.libelle_action = geste if geste else (None, None)
+        part.sequestre_vu = sequestres.get(part.pk)
+        if part.sequestre_vu is not None:
+            part.sequestre_vu.sous_commande = part
+        part.argent = _etat_de_l_argent(part, part.sequestre_vu, part.pk in gelees)
     return parts
+
+
+def _etat_de_l_argent(part, sequestre, gelee: bool) -> dict:
+    """Ce que le marchand voit de l'argent d'une part : un libellé, un ton, une date.
+
+    Une part gelée ne dit **jamais** pourquoi (voir l'en-tête du module).
+    """
+    if not part.prepayee:
+        return {"code": "livraison", "libelle": "Payée à la livraison", "ton": ""}
+    if sequestre is None:
+        if part.etat == SousCommande.ANNULEE:
+            return {"code": "aucun", "libelle": "Aucun paiement", "ton": ""}
+        return {"code": "attendu", "libelle": "Paiement attendu", "ton": "alerte"}
+    if sequestre.etat == Sequestre.BLOQUE:
+        if gelee:
+            return {"code": "gele", "libelle": sequestre_service.MESSAGE_GEL, "ton": "alerte"}
+        echeance = sequestre_service.echeance_de_liberation(sequestre)
+        if echeance is not None:
+            return {
+                "code": "bloque",
+                "libelle": "En séquestre — libération prévue",
+                "ton": "marque",
+                "date": echeance,
+            }
+        return {
+            "code": "bloque",
+            "libelle": "En séquestre — livraison à confirmer",
+            "ton": "marque",
+        }
+    if sequestre.etat == Sequestre.LIBERE:
+        return {"code": "libere", "libelle": "Libéré", "ton": "bon", "date": sequestre.libere_le}
+    if sequestre.etat == Sequestre.REMBOURSE:
+        return {
+            "code": "rembourse",
+            "libelle": "Remboursé à l'acheteur",
+            "ton": "critique",
+            "date": sequestre.rembourse_le,
+        }
+    return {
+        "code": "partage",
+        "libelle": "Libéré en partie",
+        "ton": "bon",
+        "date": sequestre.libere_le,
+    }
 
 
 @exige(droit.COMMANDES_TRAITER)
@@ -108,6 +178,7 @@ def commandes(request):
         {
             "files": files,
             "historique": historique,
+            "url_versements": reverse("versements_marchand"),
             "a_traiter": a_traiter,
             "montant_en_cours": agregat["total"] or Decimal("0"),
             "depot": depot_courant(request),
@@ -138,15 +209,27 @@ def _restreindre(parts, valeurs):
 
 @exige(droit.COMMANDES_TRAITER)
 def commande(request, sous_commande_id):
-    contexte = contexte_commun(request, "commandes")
-
     # `SousCommande.objects` est borné à la boutique courante : la part d'un
     # confrère est introuvable, pas interdite.
     part = get_object_or_404(
         SousCommande.objects.select_related("commande", "commande__acheteur"),
         pk=sous_commande_id,
     )
+    if request.method == "POST":
+        return _saisir_le_code(request, part)
+
+    contexte = contexte_commun(request, "commandes")
     part = _decorer([part])[0]
+    sequestre = part.sequestre_vu
+    # Le code se saisit une fois la marchandise partie, tant que l'argent attend la preuve
+    # de sa remise — et jamais sur une part gelée.
+    saisie_code = (
+        sequestre is not None
+        and sequestre.etat == Sequestre.BLOQUE
+        and part.livraison_confirmee_le is None
+        and part.argent["code"] != "gele"
+        and part.etat in (SousCommande.EXPEDIEE, SousCommande.LIVREE)
+    )
 
     # Deux chemins distincts, et jamais les deux à la fois : avant expédition on
     # refuse, après on retourne. Rien n'est sorti du dépôt tant que la commande
@@ -168,9 +251,40 @@ def commande(request, sous_commande_id):
             # La grille à deux colonnes laisse un trou quand une seule carte
             # subsiste : le modificateur la replie sur une colonne (docs/19, §7.5).
             "duo_plein": peut_refuser != peut_retourner,
+            "sequestre": sequestre,
+            "saisie_code": saisie_code,
+            "code_verrouille": saisie_code and sequestre.code_verrouille_le is not None,
+            "essais_restants": (
+                sequestre_service.ESSAIS_CODE_MAX - sequestre.essais_code_echoues
+                if sequestre
+                else None
+            ),
+            "palier": palier_de(contexte["boutique"]),
         }
     )
     return render(request, "commande.html", contexte)
+
+
+def _saisir_le_code(request, part):
+    """Le livreur rapporte le code que l'acheteur lui a donné : la remise est prouvée.
+
+    Ce n'est pas un geste de l'automate d'états — c'est une preuve, qui peut arriver sur une
+    part « expédiée » comme sur une part déjà déclarée « livrée ». Les essais sont comptés en
+    base et le code se verrouille après quelques échecs (`apps/payments/sequestre.py`).
+    """
+    code = request.POST.get("code_remise") or ""
+    try:
+        sequestre_service.confirmer_par_code(part, code, par=request.user)
+    except sequestre_service.SequestreRefuse as refus:
+        messages.error(request, str(refus))
+    else:
+        delai = palier_de(part.boutique).delai_liberation_jours
+        messages.success(
+            request,
+            f"Remise confirmée par le code de l'acheteur. Votre part sera libérée dans {delai} "
+            f"jour{'s' if delai > 1 else ''}, sauf réclamation.",
+        )
+    return redirect("commande", sous_commande_id=part.pk)
 
 
 @require_POST

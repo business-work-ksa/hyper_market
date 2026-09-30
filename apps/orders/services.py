@@ -24,9 +24,9 @@ Où tombent les effets, et pourquoi
 | Étape | Effet |
 |---|---|
 | Commande | Éclatement, taux de commission figé, attribution d'affiliation figée |
-| Paiement | Écritures de vente, séquestre et commission ; commissions d'affiliation calculées (à l'état *attendue*) |
-| Expédition | **Sortie de stock au CMP**, et son écriture |
-| Livraison | Démarrage du délai de retour, au terme duquel les commissions s'acquièrent |
+| Paiement | Écritures de vente, séquestre et commission ; commissions d'affiliation calculées (à l'état *attendue*) ; **séquestre ouvert, part nette au bloqué** — pour les parts prépayées seulement |
+| Expédition | **Sortie de stock au CMP**, et son écriture ; départ du délai de confirmation implicite |
+| Livraison | Démarrage du délai de retour, au terme duquel les commissions s'acquièrent. **Déclarée par le marchand, elle ne libère rien** : seule la livraison *confirmée* par l'acheteur ouvre le délai de libération (`apps/payments/sequestre.py`) |
 
 **Le stock sort à l'expédition, pas à la commande.** C'est le choix le plus
 discutable du module, et il est assumé : réserver le stock dès la commande le
@@ -57,6 +57,7 @@ from apps.orders.models import CENTIME, Commande, LigneCommande, Retour, SousCom
 
 __all__ = [
     "CommandeInvalide",
+    "PrepaiementRefuse",
     "passer_commande",
     "marquer_payee",
     "accepter",
@@ -73,6 +74,18 @@ class CommandeInvalide(ValueError):
     """Commande refusée : panier vide, transition impossible, boutique inactive."""
 
 
+class PrepaiementRefuse(CommandeInvalide):
+    """Le prépaiement dépasserait le plafond de séquestre d'une ou plusieurs boutiques.
+
+    `refus` associe à chaque boutique refusée le message à montrer à l'acheteur. La vitrine
+    propose alors le paiement à la livraison pour ces boutiques-là, et pour elles seules.
+    """
+
+    def __init__(self, refus: dict):
+        self.refus = refus
+        super().__init__(" ".join(refus.values()))
+
+
 # ---------------------------------------------------------------------------
 # Passer une commande
 # ---------------------------------------------------------------------------
@@ -84,8 +97,16 @@ def passer_commande(
     revendeur=None,
     frais_livraison: Decimal = Decimal("0"),
     operation_id=None,
+    mode_paiement: str = SousCommande.PREPAYE,
+    a_la_livraison=(),
 ) -> Commande:
     """Crée une commande confirmée, éclatée en sous-commandes par boutique.
+
+    `mode_paiement` vaut pour toute la commande ; `a_la_livraison` nomme les boutiques chez qui
+    l'acheteur paiera à la livraison malgré tout — celles dont le plafond de séquestre refuse le
+    prépaiement. Pour chaque part prépayée, le plafond du palier est vérifié : s'il serait dépassé,
+    **rien n'est créé** et `PrepaiementRefuse` dit chez qui. Refuser en silence et basculer la part
+    au paiement à la livraison changerait ce que l'acheteur a accepté sans le lui dire.
 
     `lignes` est une suite de `(variante, quantite)` pouvant couvrir plusieurs
     boutiques. Chaque variante porte sa boutique : c'est elle qui décide de la
@@ -113,6 +134,8 @@ def passer_commande(
                 revendeur=revendeur,
                 frais_livraison=Decimal(frais_livraison),
                 operation_id=operation_id,
+                mode_paiement=mode_paiement,
+                a_la_livraison={str(b) for b in a_la_livraison},
             )
     except IntegrityError:
         # Course perdue sur la clé d'idempotence : l'autre appel a inséré, sa
@@ -126,8 +149,18 @@ def passer_commande(
 
 
 def _passer_commande(
-    *, acheteur, lignes, code_apporteur, revendeur, frais_livraison, operation_id
+    *,
+    acheteur,
+    lignes,
+    code_apporteur,
+    revendeur,
+    frais_livraison,
+    operation_id,
+    mode_paiement,
+    a_la_livraison,
 ) -> Commande:
+    if mode_paiement not in dict(SousCommande.MODES_PAIEMENT):
+        raise CommandeInvalide("Mode de paiement inconnu.")
     n1, n2 = _attribuer_et_resoudre(acheteur, code_apporteur)
 
     commande = Commande.objects.create(
@@ -147,14 +180,47 @@ def _passer_commande(
     for variante, quantite in lignes:
         par_boutique.setdefault(variante.boutique_id, []).append((variante, Decimal(quantite)))
 
+    parts = []
     for boutique_id, articles in par_boutique.items():
-        _creer_sous_commande(commande, boutique_id, articles)
+        mode = (
+            SousCommande.A_LA_LIVRAISON
+            if mode_paiement == SousCommande.A_LA_LIVRAISON or str(boutique_id) in a_la_livraison
+            else SousCommande.PREPAYE
+        )
+        parts.append(_creer_sous_commande(commande, boutique_id, articles, mode))
 
+    _verifier_les_plafonds(parts)
     _recalculer_commande(commande)
     return commande
 
 
-def _creer_sous_commande(commande, boutique_id, articles) -> SousCommande:
+def _verifier_les_plafonds(parts) -> None:
+    """Refuse la commande si une part prépayée ferait dépasser le plafond de sa boutique.
+
+    Le plafond borne ce qu'une boutique qui n'a encore rien prouvé peut avoir **en séquestre à la
+    fois** (`apps/marketplace/confiance.py`) : c'est lui qui rend l'escroquerie à la fausse
+    boutique non rentable. Il est lu sur les séquestres encore bloqués, au moment de commander.
+
+    Limite connue et assumée : deux commandes passées au même instant, non encore payées, ne se
+    voient pas l'une l'autre — le séquestre ne naît qu'au paiement. Le dépassement possible reste
+    de l'argent **bloqué**, pas de l'argent parti.
+    """
+    from apps.marketplace.models import Boutique
+    from apps.payments.sequestre import refus_de_prepaiement
+
+    refus = {}
+    for part in parts:
+        if part.mode_paiement != SousCommande.PREPAYE:
+            continue
+        boutique = Boutique.objects.get(pk=part.boutique_id)
+        message = refus_de_prepaiement(boutique, part.total_ttc)
+        if message:
+            refus[str(part.boutique_id)] = message
+    if refus:
+        raise PrepaiementRefuse(refus)
+
+
+def _creer_sous_commande(commande, boutique_id, articles, mode_paiement) -> SousCommande:
     """Part d'une boutique, avec son taux de commission **figé**.
 
     Le taux est recopié du bail au moment de la commande, et ne bouge plus. Une
@@ -167,6 +233,7 @@ def _creer_sous_commande(commande, boutique_id, articles) -> SousCommande:
             boutique_id=boutique_id,
             commande=commande,
             taux_commission=_taux_de_commission(boutique_id),
+            mode_paiement=mode_paiement,
         )
         for variante, quantite in articles:
             LigneCommande.objects.create(
@@ -241,39 +308,62 @@ def _recalculer_commande(commande) -> None:
 # Paiement
 # ---------------------------------------------------------------------------
 def marquer_payee(commande, *, date_ecriture=None) -> Commande:
-    """Constate l'encaissement : écritures par boutique, commissions calculées.
+    """Constate l'encaissement : écritures par boutique, commissions calculées, séquestre ouvert.
 
     Idempotent : une notification d'opérateur reçue deux fois ne comptabilise pas
     la vente deux fois. C'est la même règle que pour les transactions de
-    paiement — les notifications arrivent en double et en désordre.
+    paiement — les notifications arrivent en double et en désordre. Deux
+    notifications **simultanées** ne passent pas non plus toutes les deux : la
+    commande est verrouillée le temps du constat.
 
     Les commissions d'affiliation naissent ici, à l'état *attendue*, parce que
     l'invariant 3 du document 06 exige du **chiffre d'affaires encaissé**. Elles
     ne s'acquerront qu'après la livraison et l'expiration du délai de retour.
+
+    **Seules les parts prépayées sont concernées.** Une part payée à la livraison
+    n'a rien encaissé au moment où l'acheteur paie le reste du panier : l'argent
+    passe de sa main à celle du livreur, jamais par la plateforme. Chaque part
+    prépayée ouvre son séquestre, part nette de commission au `solde_bloque` de
+    son marchand — la plateforme constate, elle ne détient pas (docs/08, §5).
     """
     from apps.accounting.services import comptabiliser_vente_en_ligne
+    from apps.payments.sequestre import ouvrir_sequestre
 
-    if commande.etat == Commande.PAYEE:
-        return commande
-    if commande.etat != Commande.CONFIRMEE:
-        raise CommandeInvalide(
-            f"Une commande {commande.get_etat_display().lower()} ne peut pas être payée."
-        )
+    origine = commande
+    with transaction.atomic():
+        commande = Commande.objects.select_for_update().get(pk=commande.pk)
+        if commande.etat == Commande.PAYEE:
+            origine.etat = commande.etat
+            return origine
+        if commande.etat != Commande.CONFIRMEE:
+            raise CommandeInvalide(
+                f"Une commande {commande.get_etat_display().lower()} ne peut pas être payée."
+            )
 
-    with contexte_plateforme():
-        parts = list(SousCommande.objects.filter(commande=commande))
+        with contexte_plateforme():
+            parts = list(
+                SousCommande.objects.filter(commande=commande, mode_paiement=SousCommande.PREPAYE)
+            )
+        if not parts:
+            raise CommandeInvalide(
+                "Cette commande se paie entièrement à la livraison : il n'y a rien à constater."
+            )
 
-    for sous_commande in parts:
-        comptabiliser_vente_en_ligne(sous_commande, date_ecriture=date_ecriture)
-        # `calculer_commissions` lit les lignes de la sous-commande pour la part
-        # revendeur : sans contexte, la barrière 3 ne lui montrerait rien et la
-        # commission serait silencieusement nulle.
-        with contexte_boutique(sous_commande.boutique_id):
-            calculer_commissions(sous_commande)
+        for sous_commande in parts:
+            comptabiliser_vente_en_ligne(sous_commande, date_ecriture=date_ecriture)
+            # `calculer_commissions` lit les lignes de la sous-commande pour la part
+            # revendeur : sans contexte, la barrière 3 ne lui montrerait rien et la
+            # commission serait silencieusement nulle.
+            with contexte_boutique(sous_commande.boutique_id):
+                calculer_commissions(sous_commande)
+            if sous_commande.etat != SousCommande.ANNULEE:
+                ouvrir_sequestre(sous_commande)
 
-    commande.etat = Commande.PAYEE
-    commande.save(update_fields=["etat", "modifie_le"])
-    return commande
+        commande.etat = Commande.PAYEE
+        commande.save(update_fields=["etat", "modifie_le"])
+    # L'appelant garde son objet : il doit voir l'état qu'il vient de provoquer.
+    origine.etat = commande.etat
+    return origine
 
 
 # ---------------------------------------------------------------------------
@@ -356,7 +446,9 @@ def expedier(sous_commande, *, depot: Depot | None = None, cree_par=None) -> Sou
                     cree_par=cree_par,
                 )
 
-    _avancer(sous_commande, SousCommande.EXPEDIEE)
+    # La date d'expédition fait partir le délai de confirmation implicite : sept jours sans
+    # confirmation ni litige, et la livraison est réputée confirmée.
+    _avancer(sous_commande, SousCommande.EXPEDIEE, expediee_le=timezone.now())
     if not deja_sorti:
         comptabiliser_expedition(sous_commande)
     return sous_commande
@@ -420,9 +512,32 @@ def annuler_sous_commande(sous_commande, *, motif: str = "", cree_par=None) -> S
 
     Les commissions, elles, existent déjà : elles naissent au paiement. Il faut
     donc les annuler.
+
+    Une part prépayée dont le séquestre est ouvert est **remboursée en entier** :
+    le marchand refuse de servir, l'acheteur récupère ce qu'il a payé. Un litige
+    en cours bloque le refus — c'est alors à la plateforme de trancher, pas au
+    marchand de clore le dossier à sa façon.
     """
-    _avancer(sous_commande, SousCommande.ANNULEE)
-    annuler_commissions(sous_commande, motif=motif)
+    from apps.payments.sequestre import MESSAGE_GEL, SequestreRefuse, rembourser
+
+    sequestre = _sequestre_bloque(sous_commande)
+    if sequestre is not None and _litige_en_cours(sous_commande):
+        # Message neutre, identique à tous les gels : le marchand ne doit pas apprendre
+        # d'ici qu'une vérification le vise (`apps/payments/sequestre.py`, MESSAGE_GEL).
+        raise CommandeInvalide(MESSAGE_GEL)
+    # Le refus et le remboursement vont ensemble, ou pas du tout : une part annulée dont
+    # l'argent resterait bloqué serait de l'argent que plus personne ne réclame.
+    with transaction.atomic():
+        _avancer(sous_commande, SousCommande.ANNULEE)
+        if sequestre is not None:
+            try:
+                rembourser(
+                    sequestre,
+                    motif=f"Commande refusée par le marchand{' : ' + motif if motif else ''}",
+                )
+            except SequestreRefuse as refus:
+                raise CommandeInvalide(str(refus)) from None
+        annuler_commissions(sous_commande, motif=motif)
     _propager_l_etat_de_la_commande(sous_commande.commande, maintenant=timezone.now())
     return sous_commande
 
@@ -447,17 +562,69 @@ def accepter_retour(retour, *, montant_rembourse=None, cree_par=None) -> Retour:
     if retour.etat != Retour.DEMANDE:
         raise CommandeInvalide("Ce retour a déjà été tranché.")
 
+    from apps.payments.sequestre import MESSAGE_GEL
+
     sous_commande = retour.sous_commande
+    sequestre = _sequestre_bloque(sous_commande)
+    if sequestre is not None and _litige_en_cours(sous_commande):
+        # Message neutre, identique à tous les gels : le marchand ne doit pas apprendre
+        # d'ici qu'une vérification le vise (`apps/payments/sequestre.py`, MESSAGE_GEL).
+        raise CommandeInvalide(MESSAGE_GEL)
     retour.etat = Retour.ACCEPTE
     retour.montant_rembourse = (
         Decimal(montant_rembourse) if montant_rembourse is not None else sous_commande.total_ttc
     )
-    with contexte_boutique(retour.boutique_id):
-        retour.save(update_fields=["etat", "montant_rembourse", "modifie_le"])
+    with transaction.atomic():
+        with contexte_boutique(retour.boutique_id):
+            retour.save(update_fields=["etat", "montant_rembourse", "modifie_le"])
 
-    _reintegrer_le_stock(sous_commande, motif=f"Retour {retour.pk}", cree_par=cree_par)
-    annuler_commissions(sous_commande, motif="Retour accepté")
+        _reintegrer_le_stock(sous_commande, motif=f"Retour {retour.pk}", cree_par=cree_par)
+        annuler_commissions(sous_commande, motif="Retour accepté")
+        if sequestre is not None:
+            _rembourser_le_retour(sequestre, retour)
     return retour
+
+
+def _rembourser_le_retour(sequestre, retour) -> None:
+    """Un retour accepté pendant que l'argent est encore en séquestre : il en sort pour l'acheteur.
+
+    Le montant du retour dit ce que l'acheteur récupère. Tout le TTC : remboursement total,
+    commission de place annulée. Moins : prélevé sur la part du marchand, le reste libéré — sans
+    attendre le délai du palier, puisque le litige possible a trouvé sa réponse. Au-delà de la
+    part nette du marchand sans aller jusqu'au total, le partage n'a pas de sens : on refuse
+    plutôt que de faire payer à la plateforme un retour qu'elle n'a pas décidé.
+
+    Une part déjà libérée ne se rembourse plus par le séquestre : l'argent est au marchand, et le
+    remboursement se règle entre lui et l'acheteur.
+    """
+    from apps.payments.sequestre import SequestreRefuse, rembourser
+
+    rendu = Decimal(retour.montant_rembourse).quantize(CENTIME)
+    motif = f"Retour accepté : {retour.motif}"[:250]
+    try:
+        if rendu >= sequestre.montant_encaisse:
+            rembourser(sequestre, motif=motif)
+        elif rendu > 0:
+            rembourser(sequestre, montant_marchand=rendu, motif=motif)
+    except SequestreRefuse as refus:
+        raise CommandeInvalide(str(refus)) from None
+
+
+def _sequestre_bloque(sous_commande):
+    from apps.payments.models import Sequestre
+
+    return Sequestre.objects.filter(
+        sous_commande=sous_commande, etat=Sequestre.BLOQUE
+    ).first()
+
+
+def _litige_en_cours(sous_commande) -> bool:
+    from apps.orders.models import Litige
+
+    with contexte_boutique(sous_commande.boutique_id):
+        return Litige.objects.filter(
+            sous_commande=sous_commande, etat__in=Litige.ETATS_OUVERTS
+        ).exists()
 
 
 def _reintegrer_le_stock(sous_commande, *, motif: str, cree_par=None) -> None:

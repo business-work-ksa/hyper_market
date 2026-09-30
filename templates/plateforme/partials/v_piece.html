@@ -1,0 +1,51 @@
+{% comment %}
+Une pièce du dossier. Le numéro n'existe plus en clair nulle part — seulement son empreinte à clé
+et ses quatre derniers caractères. Les décisions postent vers `verification_piece`.
+Paramètre : `ligne` = {dossier, alertes, refus_moi}.
+{% endcomment %}
+{% with d=ligne.dossier %}
+<article class="v-element{% if cible == d.pk|stringformat:'s' %} v-element--cible{% endif %}" id="piece-{{ d.pk }}">
+  <div class="v-element__tete">
+    <span class="v-icone {% if d.etat == 'valide' %}v-icone--bon{% elif d.etat == 'rejete' %}v-icone--critique{% else %}v-icone--or{% endif %}" aria-hidden="true">
+      <svg><use href="#{% if d.type_piece == 'TELEPHONE' %}ic-utilisateur{% elif d.est_piece_identite %}ic-cle{% else %}ic-document{% endif %}"></use></svg>
+    </span>
+    <span class="pile-sm" style="gap:1px;min-width:0">
+      <span class="v-element__titre">{{ d.get_type_piece_display }}</span>
+      <span class="t-legende">{% if d.utilisateur %}{{ d.utilisateur.nom_complet }}{% else %}La boutique{% endif %} · <span class="v-numero">{{ d.numero_masque }}</span></span>
+    </span>
+    {% include "plateforme/partials/v_etat.html" with etat=d.etat libelle=d.get_etat_display %}
+  </div>
+  <dl class="cles">
+    {% if d.nom_lu and d.type_piece != 'TELEPHONE' %}<dt>Nom lu</dt><dd>{{ d.nom_lu }}</dd>{% endif %}
+    <dt>Pays émetteur</dt><dd>{{ d.pays }}</dd>
+    {% if d.expire_le %}<dt>Expire le</dt><dd>{{ d.expire_le|date:"d/m/Y" }}</dd>{% endif %}
+    <dt>Vu</dt><dd>{{ d.get_mode_verification_display }}</dd>
+    {% if d.empreinte %}<dt>Empreinte</dt><dd><span class="v-empreinte-courte" title="{{ d.empreinte }}">{{ d.empreinte|slice:":16" }}…</span></dd>{% endif %}
+    {% if d.copie %}<dt>Copie</dt><dd><a class="t-lien" href="?copie={{ d.pk }}">Télécharger la copie conservée</a> <span class="t-legende">(inscrit au journal)</span></dd>{% endif %}
+    <dt>{% if d.type_piece == 'TELEPHONE' %}Appelé par{% else %}Attestée par{% endif %}</dt><dd>{% if d.declare_par %}{{ d.declare_par.nom_complet }}{% else %}{{ d.verifie_par.nom_complet|default:"—" }}{% endif %}, le {{ d.cree_le|date:"d/m/Y à H:i" }}</dd>
+    {% if d.etat == 'valide' and d.declare_par %}<dt>Validée par</dt><dd>{{ d.verifie_par.nom_complet|default:"—" }}, le {{ d.verifie_le|date:"d/m/Y" }}</dd>{% endif %}
+    {% if d.etat == 'rejete' %}<dt>Motif du rejet</dt><dd>{{ d.motif_rejet }}</dd>{% endif %}
+  </dl>
+  {% for alerte in ligne.alertes %}
+    <div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ alerte }}</span></div>
+  {% endfor %}
+  {% if d.etat == 'en_attente' %}
+    <form class="v-decision" method="post" action="{% url 'plateforme:verification_piece' d.pk %}">
+      {% csrf_token %}
+      {% if ligne.refus_moi %}
+        <p class="v-refus-moi"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg><span>{{ ligne.refus_moi }}</span></p>
+      {% else %}
+        <button class="btn btn--primaire" type="submit" name="decision" value="valider">
+          <svg aria-hidden="true"><use href="#ic-check"></use></svg>Valider
+        </button>
+      {% endif %}
+      <details>
+        <summary class="btn">Rejeter…</summary>
+        <label class="lecteur-seul" for="motif-{{ d.pk }}">Motif du rejet</label>
+        <textarea class="champ" id="motif-{{ d.pk }}" name="motif" rows="2" maxlength="300" placeholder="Ce que le commerçant doit corriger"></textarea>
+        <button class="btn btn--danger" type="submit" name="decision" value="rejeter" style="margin-top:8px">Rejeter avec ce motif</button>
+      </details>
+    </form>
+  {% endif %}
+</article>
+{% endwith %}

@@ -332,3 +332,38 @@ serveur **refuse de démarrer** si cette barrière n'est pas en place.
 **Suspendre n'est pas supprimer.** Une boutique en retard de loyer disparaît de la vitrine mais
 garde son back-office : couper la gestion d'un commerçant reviendrait à lui couper l'accès à sa
 propre comptabilité.
+
+---
+
+## 11. La console de la plateforme
+
+Réservée au **superadministrateur** et aux **administrateurs du marché**, à l'adresse `/plateforme/`.
+Un compte d'administration qui se connecte y arrive directement. Le rail sombre et le sceau doré
+disent qu'on est chez le bailleur, pas chez un commerçant.
+
+| Écran | Ce qu'on y fait |
+|---|---|
+| Tableau de bord | Boutiques, loyers du mois et recouvrement, impayés, revenus, emplacements ; la file « À traiter » |
+| Boutiques | Chercher, filtrer, ouvrir la fiche d'une boutique : bail, loyers, équipe, accès journalisés |
+| Loyers | Voir les factures par mois, encaisser un loyer |
+| Rayons et commissions | Taux par rayon ; le modifier avec un motif |
+| Emplacements premium | En cours, à venir, terminés |
+| Activité des boutiques | Chiffre d'affaires, ventes, dernière vente — **sous motif** |
+| Journal des accès | Qui a regardé quoi, quand, et pourquoi |
+| Administrateurs, Santé technique | Superadministrateur seulement |
+
+**Les assistants** mènent les gestes étape par étape, avec un récapitulatif avant de confirmer :
+ouvrir une boutique (identité, légal, offre et bail, gérant, récapitulatif), vendre un emplacement
+premium, nommer un administrateur du marché. Rien n'est créé avant la confirmation, et tout l'est
+d'un bloc.
+
+**Pourquoi un motif pour voir l'activité.** Les chiffres d'une boutique appartiennent à son
+commerçant. L'exploitant peut les consulter en agrégat — pour calculer une commission, relancer un
+loyer, instruire un litige — mais il dit pourquoi, une fois pour trente minutes, et chaque écran
+consulté est inscrit au journal. La fiche de chaque boutique montre ces lignes : le commerçant peut
+savoir qui l'a regardé. La marge, le coût d'achat, le stock détaillé et les clients ne sont jamais
+affichés dans la console (ADR-012).
+
+**Deux casquettes, deux comptes.** Un administrateur du marché qui tient aussi une boutique utilise
+un autre compte pour vendre. La console refuse de le désigner gérant avec son compte
+d'administration.

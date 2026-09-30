@@ -24,6 +24,7 @@ l'acheteur qui découvre le marché.
 {% endcomment %}
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 {% include "partials/charte.html" %}
+<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
 <link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
 </head>
 <body class="vitrine">
@@ -63,7 +64,7 @@ l'acheteur qui découvre le marché.
   {% if messages %}
     <div class="colonne" style="gap:8px;margin-bottom:16px">
       {% for message in messages %}
-        <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% endif %}" role="status">
+        <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% elif message.tags == 'success' %}bandeau-info--succes{% endif %} bandeau-info--message" role="status">
           <svg><use href="#{% if message.tags == 'error' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
           <span>{{ message }}</span>
         </div>

@@ -13,7 +13,7 @@ elle flotte seule à gauche d'un vide et on ne sait plus ce qu'elle coche.
     </label>
     {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
     {% for erreur in champ.errors %}
-      <span class="t-petit" style="color:var(--critique);font-weight:550">{{ erreur }}</span>
+      <span class="t-petit" style="color:var(--critique-encre);font-weight:550">{{ erreur }}</span>
     {% endfor %}
   </div>
 {% else %}
@@ -22,7 +22,7 @@ elle flotte seule à gauche d'un vide et on ne sait plus ce qu'elle coche.
     {{ champ }}
     {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
     {% for erreur in champ.errors %}
-      <span class="t-petit" style="color:var(--critique);font-weight:550">{{ erreur }}</span>
+      <span class="t-petit" style="color:var(--critique-encre);font-weight:550">{{ erreur }}</span>
     {% endfor %}
   </div>
 {% endif %}

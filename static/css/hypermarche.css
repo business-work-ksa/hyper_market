@@ -28,7 +28,7 @@
   /* Encre */
   --encre:           #14140F;
   --encre-2:         #56564E;
-  --encre-muette:    #86867C;
+  --encre-muette:    #6B6B62;   /* 4,8:1 sur le plan, 4,6:1 sur un creux (l'ancien #86867C tombait à 3,1:1) */
   --encre-inverse:   #FCFBF8;
 
   /* Traits */
@@ -53,6 +53,30 @@
   --bon-teinte:      #E4F5E4;
   --alerte-teinte:   #FBF0DA;
   --critique-teinte: #F9E5E5;
+
+  /* Encres de statut : la couleur de statut elle-même, posée en *texte* sur sa
+     teinte, passe sous 4,5:1 (vert 2,95:1, rouge 3,97:1). La marque et la pastille
+     gardent la couleur validée ; le mot, lui, prend une encre plus profonde de la
+     même famille. Le sens ne change pas, la lecture en plein soleil si. */
+  --bon-encre:       #087A08;
+  --alerte-encre:    #8A6408;
+  --critique-encre:  #B02E2E;
+  --or-encre:        #8F6308;
+  /* Texte de marque sur une teinte de marque (onglet actif, puce, jeton) : 4,17:1
+     avec `--marque`, 6,2:1 avec son appui. `--marque-appui` suit la charte du
+     commerçant (partials/charte.html), celle-ci aussi, sans rien redéclarer. */
+  --marque-texte:    var(--marque-appui);
+
+  /* Ombre de défilement d'un tableau trop large */
+  --ombre-bord:      rgba(20, 20, 15, 0.16);
+
+  /* Vignette d'article sans photo (vitrine) : la teinte vient du commerçant
+     (filtre `teinte`), la saturation et la clarté d'ici. Chroma basse : c'est
+     un repère, pas une série de données — la palette de statut n'est pas touchée. */
+  --vignette-chroma:  30%;
+  --vignette-fond:    92%;
+  --vignette-fond-2:  86%;
+  --vignette-encre:   30%;
 
   /* Chrome de graphique */
   --grille:          #E9E7DF;
@@ -91,7 +115,7 @@
 
     --encre:           #F3F3ED;
     --encre-2:         #B6B6AB;
-    --encre-muette:    #83837A;
+    --encre-muette:    #8E8E85;
     --encre-inverse:   #0B0D0B;
 
     --filet:           #262A26;
@@ -108,6 +132,15 @@
     --bon-teinte:      #0F2410;
     --alerte-teinte:   #2A2109;
     --critique-teinte: #2C1414;
+    --bon-encre:       #45C445;
+    --alerte-encre:    #FAB219;
+    --critique-encre:  #EE6B6B;
+    --or-encre:        #D9A441;
+    --ombre-bord:      rgba(0, 0, 0, 0.55);
+    --vignette-chroma:  20%;
+    --vignette-fond:    16%;
+    --vignette-fond-2:  12%;
+    --vignette-encre:   74%;
 
     --grille:          #232723;
     --ligne-base:      #333833;
@@ -130,7 +163,7 @@
 
   --encre:           #F3F3ED;
   --encre-2:         #B6B6AB;
-  --encre-muette:    #83837A;
+  --encre-muette:    #8E8E85;
   --encre-inverse:   #0B0D0B;
 
   --filet:           #262A26;
@@ -147,6 +180,15 @@
   --bon-teinte:      #0F2410;
   --alerte-teinte:   #2A2109;
   --critique-teinte: #2C1414;
+  --bon-encre:       #45C445;
+  --alerte-encre:    #FAB219;
+  --critique-encre:  #EE6B6B;
+  --or-encre:        #D9A441;
+  --ombre-bord:      rgba(0, 0, 0, 0.55);
+  --vignette-chroma:  20%;
+  --vignette-fond:    16%;
+  --vignette-fond-2:  12%;
+  --vignette-encre:   74%;
 
   --grille:          #232723;
   --ligne-base:      #333833;
@@ -177,6 +219,18 @@ body {
 
 img, svg { display: block; max-width: 100%; }
 
+/* Le flash gris d'Android au toucher remplace un vrai état pressé : chaque
+   contrôle en a un ci-dessous, celui du navigateur n'ajoute que du bruit. */
+a, button, summary, label { -webkit-tap-highlight-color: transparent; }
+::selection { background: var(--marque-teinte); color: var(--encre); }
+
+/* Masqué à l'écran, lu par un lecteur d'écran : le libellé long d'un onglet
+   quand la barre mobile n'affiche que sa forme courte. */
+.lecteur-seul {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 /* Un sélecteur de classe l'emporte sur la règle `[hidden]` du navigateur : sans
    ce rappel, tout composant à `display` explicite reste visible une fois masqué
    par l'attribut. */
@@ -192,7 +246,12 @@ table { border-collapse: collapse; width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  /* Une seule itération : une animation infinie ramenée à 0,01 ms clignoterait
+     au lieu de s'arrêter (l'indicateur de chargement du bouton de connexion). */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -290,7 +349,8 @@ table { border-collapse: collapse; width: 100%; }
 .lien:hover { background: var(--survol); color: var(--encre); }
 .lien svg { width: 17px; height: 17px; flex-shrink: 0; opacity: 0.85; }
 
-.lien--actif { background: var(--actif); color: var(--marque); font-weight: 600; }
+.lien:active { background: var(--actif); }
+.lien--actif { background: var(--actif); color: var(--marque-texte); font-weight: 600; }
 .lien--actif svg { opacity: 1; }
 .lien--actif::before {
   content: "";
@@ -317,6 +377,8 @@ table { border-collapse: collapse; width: 100%; }
 }
 
 .rail__pied { padding: 12px; border-top: 1px solid var(--filet); flex-shrink: 0; }
+/* Forme courte d'un libellé d'onglet : réservée à la barre mobile. */
+.lien__court { display: none; }
 
 /* ---- Bandeau ---- */
 .bandeau {
@@ -332,8 +394,20 @@ table { border-collapse: collapse; width: 100%; }
   z-index: 30;
 }
 
-.bandeau__titre { font-size: 15px; font-weight: 620; letter-spacing: -0.012em; }
+.bandeau__titre {
+  font-size: 15px; font-weight: 620; letter-spacing: -0.012em;
+  /* Un libellé d'article long (« Brouette galvanisée renforcée ») : deux
+     lignes serrées au plus, puis points de suspension. Le titre ne pousse plus
+     les actions hors du bandeau, et reste entier dans la plupart des cas. */
+  min-width: 0; line-height: 1.2;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
 .bandeau__actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* Les actions propres à l'écran, regroupées pour pouvoir passer sur une
+   seconde ligne en mobile sans emporter les outils permanents. */
+.bandeau__page { display: flex; align-items: center; gap: 8px; }
+.bandeau__page:empty { display: none; }
+.bandeau--boutique .bandeau__actions { flex-shrink: 0; }
 
 .zone { padding: 22px; max-width: 1400px; }
 .zone--large { max-width: none; }
@@ -352,8 +426,14 @@ table { border-collapse: collapse; width: 100%; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 16px;
+  /* Hauteur minimale commune : un en-tête qui porte un bouton et un en-tête
+     qui n'en porte pas s'alignent quand leurs cartes sont côte à côte. */
+  min-height: 52px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--filet);
+  /* Titre + puce + bouton ne tiennent pas toujours sur 360 px (inventaire) :
+     ils passent à la ligne au lieu d'élargir la page. */
+  flex-wrap: wrap; row-gap: 8px;
 }
 .carte__entete > .t-section { margin-right: auto; }
 .carte__corps { padding: 16px; }
@@ -384,9 +464,15 @@ table { border-collapse: collapse; width: 100%; }
   min-width: 0;
 }
 
-.tuile__libelle { display: flex; align-items: center; gap: 7px; }
-.tuile__libelle svg { width: 14px; height: 14px; color: var(--encre-muette); }
-.tuile__valeur { font-size: 26px; font-weight: 650; letter-spacing: -0.026em; line-height: 1.1; }
+.tuile__libelle { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.tuile__libelle svg { width: 14px; height: 14px; color: var(--encre-muette); flex-shrink: 0; }
+/* L'unité peut passer à la ligne : « 14 038 900 FCFA » ne tient pas dans une
+   demi-largeur de téléphone, et un montant qui déborde de sa tuile se lit mal. */
+.tuile__valeur {
+  font-size: 26px; font-weight: 650; letter-spacing: -0.026em; line-height: 1.1;
+  display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 4px;
+}
+.tuile__valeur .unite { margin-left: 0; }
 /* Suffixe d'unité — « FCFA » après un montant. Défini sans portée : la vitrine
    affiche les mêmes montants que le back-office, et un montant collé à son
    unité se lit mal partout. */
@@ -395,8 +481,8 @@ table { border-collapse: collapse; width: 100%; }
 
 .ecart { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; font-size: 12px; }
 .ecart svg { width: 12px; height: 12px; }
-.ecart--hausse { color: var(--bon); }
-.ecart--baisse { color: var(--critique); }
+.ecart--hausse { color: var(--bon-encre); }
+.ecart--baisse { color: var(--critique-encre); }
 
 /* ------------------------------------------------------------------ */
 /* 7. Contrôles                                                        */
@@ -418,8 +504,11 @@ table { border-collapse: collapse; width: 100%; }
   white-space: nowrap;
   transition: background var(--t-rapide), border-color var(--t-rapide), transform var(--t-rapide);
 }
-.btn:hover { background: var(--survol); }
-.btn:active { transform: translateY(0.5px); }
+.btn:hover { background: var(--survol); border-color: var(--filet-fort); }
+/* Pressé : le bouton s'enfonce d'un demi-pixel et s'assombrit. Sur un écran
+   tactile, sans survol, c'est le seul retour que le doigt reçoit avant la
+   réponse du réseau — il doit se voir. */
+.btn:active:where(:not(:disabled, [aria-disabled="true"])) { transform: translateY(0.5px); background: var(--actif); }
 .btn svg { width: 15px; height: 15px; }
 
 /* Un bouton indisponible doit *se voir* indisponible, sinon on clique et rien
@@ -440,7 +529,7 @@ table { border-collapse: collapse; width: 100%; }
 /* Action destructrice : rouge seulement au survol et dans la boîte de
    confirmation. Un bouton rouge en permanence dans une barre d'outils finit par
    ne plus rien signaler du tout. */
-.btn--danger { color: var(--critique); border-color: var(--filet-fort); }
+.btn--danger { color: var(--critique-encre); border-color: var(--filet-fort); }
 .btn--danger:hover:not(:disabled) {
   background: var(--critique-teinte);
   border-color: var(--critique);
@@ -451,22 +540,28 @@ table { border-collapse: collapse; width: 100%; }
   color: #FFFFFF;
   font-weight: 600;
 }
-.btn--danger-plein:hover:not(:disabled) { background: #B93232; border-color: #B93232; }
+.btn--danger-plein:hover:not(:disabled),
+.btn--danger-plein:active:not(:disabled) { background: #B93232; border-color: #B93232; }
 
 .btn--primaire {
   background: var(--marque);
   border-color: var(--marque);
   color: var(--marque-encre);
   font-weight: 600;
+  /* Un liseré clair en haut et une ombre courte : le bouton principal se lit
+     comme un objet qu'on presse, pas comme un aplat. Coût : zéro octet d'image. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 40, 32, 0.22);
 }
 .btn--primaire:hover { background: var(--marque-appui); border-color: var(--marque-appui); }
+.btn--primaire:active:not(:disabled) { background: var(--marque-appui); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22); }
+.btn--primaire:disabled, .btn--primaire[aria-disabled="true"] { box-shadow: none; }
 
 .btn--discret { background: transparent; border-color: transparent; color: var(--encre-2); }
-.btn--discret:hover { background: var(--survol); color: var(--encre); }
+.btn--discret:hover { background: var(--survol); border-color: transparent; color: var(--encre); }
 
 .btn--grand { height: 44px; padding: 0 20px; font-size: 15px; }
 .btn--bloc { width: 100%; }
-.btn--icone { width: 36px; padding: 0; }
+.btn--icone { width: 36px; padding: 0; flex-shrink: 0; }
 
 .champ {
   height: 36px;
@@ -479,7 +574,8 @@ table { border-collapse: collapse; width: 100%; }
   font-size: 14px;
   transition: border-color var(--t-rapide), box-shadow var(--t-rapide);
 }
-.champ::placeholder { color: var(--encre-muette); }
+.champ::placeholder { color: var(--encre-muette); opacity: 1; }
+.champ:hover:not(:focus):not(:disabled) { border-color: var(--encre-muette); }
 .champ:focus {
   outline: none;
   border-color: var(--marque);
@@ -490,6 +586,15 @@ table { border-collapse: collapse; width: 100%; }
    ligne : `rows="4"` est alors ignoré, et le champ ment sur ce qu'il attend.
    C'est le cas du mode opératoire d'une fiche technique comme des numéros de
    série d'une réception — on y colle plusieurs lignes. */
+input[type="file"].champ { height: auto; padding: 5px; font-size: 13px; color: var(--encre-2); cursor: pointer; }
+.champ::file-selector-button {
+  height: 32px; margin-right: 12px; padding: 0 13px;
+  border: 1px solid var(--filet-fort); border-radius: var(--r-xs);
+  background: var(--surface-creuse); color: var(--encre);
+  font: inherit; font-weight: 580; cursor: pointer;
+  transition: background var(--t-rapide);
+}
+.champ::file-selector-button:hover { background: var(--survol); }
 textarea.champ {
   height: auto;
   min-height: 76px;
@@ -542,7 +647,7 @@ textarea.champ {
   font-size: 12.5px;
   font-weight: 580;
   background: var(--marque-teinte);
-  color: var(--marque);
+  color: var(--marque-texte);
 }
 .etiquette--simple { padding-right: 11px; }
 .etiquette form { display: flex; }
@@ -594,25 +699,33 @@ textarea.champ {
   font-family: var(--mono);
   font-size: 26px; font-weight: 660; letter-spacing: 0.06em;
   padding: 14px 16px; border-radius: var(--r-md);
-  background: var(--marque-teinte); color: var(--marque);
+  background: var(--marque-teinte); color: var(--marque-texte);
   text-align: center; user-select: all;
 }
 
-/* Statut : toujours icône + libellé, jamais la couleur seule. */
-.puce--bon      { background: var(--bon-teinte);      color: var(--bon); }
-.puce--alerte   { background: var(--alerte-teinte);   color: #8A6408; }
-.puce--critique { background: var(--critique-teinte); color: var(--critique); }
-.puce--marque   { background: var(--marque-teinte);   color: var(--marque); }
-:root[data-theme="dark"] .puce--alerte,
-:root:not([data-theme="light"]) .puce--alerte { color: var(--alerte); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .puce--alerte { color: var(--alerte); }
-}
+/* Statut : toujours icône + libellé, jamais la couleur seule. Le mot prend
+   l'encre de statut (≥ 4,5:1 sur sa teinte, dans les deux modes) : l'ancienne
+   puce « bon » écrivait en vert vif sur vert pâle, à 2,95:1. */
+.puce--bon      { background: var(--bon-teinte);      color: var(--bon-encre); }
+.puce--alerte   { background: var(--alerte-teinte);   color: var(--alerte-encre); }
+.puce--critique { background: var(--critique-teinte); color: var(--critique-encre); }
+.puce--marque   { background: var(--marque-teinte);   color: var(--marque-texte); }
 
 /* ------------------------------------------------------------------ */
 /* 8. Tableaux                                                         */
 /* ------------------------------------------------------------------ */
-.tableau-boite { overflow-x: auto; }
+.tableau-boite {
+  overflow-x: auto;
+  /* Ombres de défilement sans script : deux voiles attachés au contenu
+     (`local`) masquent deux ombres attachées au cadre (`scroll`) tant qu'on est
+     au bord. Dès qu'une colonne dépasse, une ombre apparaît du côté où il reste
+     à lire — sans elle, rien ne dit à 390 px que l'état du stock est à droite. */
+  background:
+    linear-gradient(90deg, var(--surface) 40%, transparent) left / 28px 100% no-repeat local,
+    linear-gradient(270deg, var(--surface) 40%, transparent) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--ombre-bord), transparent) left / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--ombre-bord), transparent) right / 12px 100% no-repeat scroll;
+}
 
 .tableau { font-size: 13.5px; }
 .tableau thead th {
@@ -636,6 +749,9 @@ textarea.champ {
 .tableau tbody tr { transition: background var(--t-rapide); }
 .tableau tbody tr:hover { background: var(--survol); }
 .tableau .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Un numéro de ticket ou une date ne se coupent pas : « T- / 00000009 » sur
+   deux lignes ne se lit plus comme un identifiant. */
+.tableau td.chiffre { white-space: nowrap; }
 .tableau .principal { font-weight: 560; }
 
 /* ---- Tableau de données : sélection, barre d'outils, assistance ----
@@ -644,7 +760,14 @@ textarea.champ {
    de cette ligne-là**. La règle qui gouverne le reste : on ne modifie qu'une
    ligne à la fois — deux lignes différentes n'ont pas la même correction à
    apporter — alors qu'on supprime ce qu'on veut d'un geste. */
-.tableau-panneau { position: relative; }
+.tableau-panneau { position: relative; container-type: inline-size; }
+/* Dans une carte étroite (une colonne de `.duo`, un téléphone), le titre prend
+   sa propre ligne : sinon les boutons se replient au hasard et le séparateur
+   reste orphelin en bout de ligne. */
+@container (max-width: 520px) {
+  .tableau-barre:has(.btn--primaire, [data-action]) .tableau-barre__titre { flex-basis: 100%; }
+  .tableau-barre__separateur { display: none; }
+}
 
 .tableau-barre {
   display: flex;
@@ -656,7 +779,10 @@ textarea.champ {
   background: var(--surface);
   border-radius: var(--r-md) var(--r-md) 0 0;
   position: sticky;
-  top: 0;
+  /* Sous le bandeau collant, pas derrière lui : à `top: 0` la barre se collait
+     sous un en-tête opaque de z-index supérieur, invisible au moment précis où
+     l'on défile une longue liste. */
+  top: var(--entete);
   z-index: 6;
 }
 .tableau-barre__titre { font-weight: 620; font-size: 14px; margin-right: 2px; }
@@ -669,7 +795,7 @@ textarea.champ {
    texte ferait sauter le tableau de quinze pixels à chaque clic. */
 .tableau-assistance {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   min-height: 34px;
   padding: 7px 14px;
@@ -678,10 +804,11 @@ textarea.champ {
   font-size: 12.5px;
   color: var(--encre-2);
 }
-.tableau-assistance svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--encre-muette); }
-.tableau-assistance[data-selection="1"] { background: var(--marque-teinte); color: var(--marque); }
+.tableau-assistance svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: var(--encre-muette); }
+.tableau-assistance { transition: background var(--t-normal), color var(--t-normal); }
+.tableau-assistance[data-selection="1"] { background: var(--marque-teinte); color: var(--marque-texte); }
 .tableau-assistance[data-selection="1"] svg { color: var(--marque); }
-.tableau-assistance[data-selection="n"] { background: var(--or-teinte); color: var(--or); }
+.tableau-assistance[data-selection="n"] { background: var(--or-teinte); color: var(--or-encre); }
 .tableau-assistance[data-selection="n"] svg { color: var(--or); }
 .tableau-assistance b { font-weight: 640; }
 
@@ -911,7 +1038,14 @@ textarea.champ {
   transition: border-color var(--t-rapide), box-shadow var(--t-rapide), transform var(--t-rapide);
 }
 .article-tuile:hover { border-color: var(--marque); box-shadow: var(--ombre-2); }
-.article-tuile:active { transform: scale(0.985); }
+.article-tuile:active { transform: scale(0.985); border-color: var(--marque); background: var(--actif); }
+/* Rupture : la tuile reste touchable — le stock négatif est une anomalie à
+   régulariser, pas un refus de vendre (docs/19) — mais elle le dit avant qu'on
+   la touche. Le serveur rend « 0,0 » (localisé), le catalogue rafraîchi « 0 ». */
+.article-tuile:is([data-stock="0"], [data-stock="0,0"], [data-stock^="-"]) { background: var(--surface-creuse); }
+.article-tuile:is([data-stock="0"], [data-stock="0,0"], [data-stock^="-"]) .article-tuile__pied .t-legende {
+  color: var(--critique-encre); font-weight: 600;
+}
 .article-tuile__nom {
   font-size: 13.5px; font-weight: 570; line-height: 1.3;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -939,7 +1073,10 @@ textarea.champ {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 9px; color: var(--encre-muette); padding: 30px 20px; text-align: center;
 }
-.ticket__vide svg { width: 30px; height: 30px; opacity: 0.4; }
+.ticket__vide svg {
+  width: 52px; height: 52px; padding: 14px; border-radius: 50%;
+  background: var(--surface-creuse); color: var(--encre-muette);
+}
 
 .ligne-ticket {
   display: grid;
@@ -973,6 +1110,7 @@ textarea.champ {
   font-size: 15px; line-height: 1;
 }
 .pas-a-pas button:hover { background: var(--survol); color: var(--encre); }
+.pas-a-pas button:active { background: var(--actif); color: var(--marque-texte); }
 .pas-a-pas span { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13.5px; }
 
 .ticket__totaux { padding: 13px 16px; border-top: 1px solid var(--filet); display: flex; flex-direction: column; gap: 7px; }
@@ -994,17 +1132,26 @@ textarea.champ {
 }
 .moyen svg { width: 17px; height: 17px; }
 .moyen:hover { border-color: var(--filet-fort); background: var(--survol); }
-.moyen[aria-pressed="true"] { border-color: var(--marque); background: var(--actif); color: var(--marque); }
+.moyen[aria-pressed="true"] { border-color: var(--marque); background: var(--actif); color: var(--marque-texte); box-shadow: inset 0 0 0 1px var(--marque); }
 
 /* ------------------------------------------------------------------ */
 /* 11. États et divers                                                 */
 /* ------------------------------------------------------------------ */
 .vide {
-  padding: 48px 24px;
+  padding: 44px 24px;
   text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 9px;
 }
-.vide svg { width: 32px; height: 32px; color: var(--encre-muette); opacity: 0.5; }
+/* L'icône dans une pastille creuse : un état vide doit se lire comme un état,
+   pas comme une icône qui n'a pas fini de charger. */
+.vide svg {
+  width: 52px; height: 52px; padding: 14px; margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--surface-creuse);
+  color: var(--encre-muette);
+}
+.vide > .t-2:first-of-type { font-weight: 560; color: var(--encre); }
+.vide .btn { margin-top: 6px; }
 
 .bandeau-info {
   display: flex; align-items: flex-start; gap: 10px;
@@ -1016,7 +1163,14 @@ textarea.champ {
 }
 .bandeau-info svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
 .bandeau-info--alerte { background: var(--alerte-teinte); border-color: transparent; }
-.bandeau-info--alerte svg { color: #8A6408; }
+.bandeau-info--alerte svg { color: var(--alerte-encre); }
+/* Retour d'une action réussie : la confirmation se distingue d'une simple
+   information, et arrive en glissant d'un rien — assez pour que l'œil la
+   remarque après le rechargement, pas assez pour distraire. */
+.bandeau-info--succes { background: var(--bon-teinte); border-color: transparent; }
+.bandeau-info--succes svg { color: var(--bon-encre); }
+.bandeau-info--message { animation: message-entree var(--t-normal) both; }
+@keyframes message-entree { from { opacity: 0; transform: translateY(-4px); } }
 
 .rangee { display: flex; align-items: center; gap: 10px; }
 .rangee--espace { justify-content: space-between; }
@@ -1028,6 +1182,14 @@ textarea.champ {
 /* Une rangée dont un seul écran est ouvert au rôle : la carte restante prend
    toute la largeur plutôt que de laisser un vide là où l'autre est refusée. */
 .duo--plein { grid-template-columns: minmax(0, 1fr); }
+/* Deux cartes de longueurs sans rapport (une balance de onze comptes, un
+   journal de quarante écritures) : chacune garde sa hauteur. Étirées, la plus
+   courte devenait un grand cadre vide. */
+.duo--libre { align-items: start; }
+@media (min-width: 1081px) {
+  /* La carte courte accompagne le défilement de la longue. */
+  .duo--libre > .duo__collant { position: sticky; top: calc(var(--entete) + 16px); }
+}
 
 /* Sélecteur de dépôt d'exploitation, dans le bandeau. N'apparaît qu'à partir de
    deux dépôts (voir templates/base.html). */
@@ -1045,13 +1207,14 @@ textarea.champ {
 
 .indic-reseau {
   display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap; flex-shrink: 0;
   font-size: 11.5px; font-weight: 560; color: var(--encre-2);
   padding: 0 9px; height: 26px;
   border-radius: var(--r-pilule);
   background: var(--surface-creuse);
 }
 .indic-reseau__point { width: 6px; height: 6px; border-radius: 50%; background: var(--bon); }
-.indic-reseau[data-hors-ligne="true"] { background: var(--alerte-teinte); color: #8A6408; }
+.indic-reseau[data-hors-ligne="true"] { background: var(--alerte-teinte); color: var(--alerte-encre); }
 .indic-reseau[data-hors-ligne="true"] .indic-reseau__point { background: var(--alerte); }
 
 .compte {
@@ -1062,7 +1225,7 @@ textarea.champ {
 .compte:hover { background: var(--survol); }
 .jeton {
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--marque-teinte); color: var(--marque);
+  background: var(--marque-teinte); color: var(--marque-texte);
   display: grid; place-items: center;
   font-size: 11.5px; font-weight: 650; flex-shrink: 0;
 }
@@ -1098,7 +1261,74 @@ textarea.champ {
 .portail__preuve svg { width: 17px; height: 17px; flex-shrink: 0; margin-top: 1px; }
 
 .portail__formulaire { display: grid; place-items: center; padding: 40px 24px; }
-.portail__boite { width: 100%; max-width: 348px; display: flex; flex-direction: column; gap: 20px; }
+.portail__boite { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 20px; }
+.portail__boite .t-titre { font-size: 26px; letter-spacing: -0.025em; }
+
+/* La marque, sur les écrans où le panneau de gauche a disparu. */
+.portail__marque {
+  display: none; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 640; letter-spacing: -0.015em;
+  margin-bottom: 8px;
+}
+.portail__marque .sceau { width: 34px; height: 34px; border-radius: 9px; font-size: 14px; }
+
+/* Ticket dessiné : verre dépoli simulé par deux blancs translucides (pas de
+   `backdrop-filter`, coûteux sur un Android d'entrée de gamme). */
+.portail__apercu { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 8px; }
+.portail__ticket {
+  width: 300px; padding: 16px 18px 14px;
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 24px 48px rgba(0, 30, 24, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  font-size: 12.5px;
+  transform: rotate(-1.5deg);
+}
+.portail__ticket-num { opacity: 0.8; font-variant-numeric: tabular-nums; }
+.portail__ticket-etat {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: var(--r-pilule);
+  background: rgba(255, 255, 255, 0.18); font-weight: 620; font-size: 11.5px;
+}
+.portail__ticket-etat svg { width: 12px; height: 12px; }
+.portail__ticket-montant {
+  margin: 10px 0 12px; font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;
+}
+.portail__ticket-montant span { font-size: 13px; font-weight: 600; margin-left: 5px; opacity: 0.8; letter-spacing: 0; }
+.portail__ticket-effets { list-style: none; padding: 10px 0 0; border-top: 1px dashed rgba(255, 255, 255, 0.3); display: flex; flex-direction: column; gap: 7px; }
+.portail__ticket-effets li { display: flex; align-items: center; gap: 8px; }
+.portail__ticket-effets svg { width: 14px; height: 14px; opacity: 0.85; flex-shrink: 0; }
+.portail__ticket-effets b { margin-left: auto; font-weight: 640; font-variant-numeric: tabular-nums; }
+.portail__barres { display: flex; align-items: flex-end; gap: 6px; height: 96px; padding-bottom: 6px; }
+.portail__barres span { width: 12px; border-radius: 4px 4px 0 0; background: rgba(255, 255, 255, 0.26); }
+.portail__barres .portail__barre-jour { background: #FFFFFF; }
+
+/* Mot de passe : l'œil dans le champ, à droite, cible de 44 px. */
+.champ-mdp { position: relative; }
+.champ-mdp .champ { padding-right: 50px; }
+.champ-mdp__bouton {
+  position: absolute; right: 1px; top: 1px; bottom: 1px; width: 46px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: transparent; color: var(--encre-muette); cursor: pointer;
+  transition: color var(--t-rapide);
+}
+.champ-mdp__bouton:hover, .champ-mdp__bouton[aria-pressed="true"] { color: var(--encre); }
+.champ-mdp__bouton svg { width: 19px; height: 19px; }
+.champ-mdp__bouton:focus-visible { outline-offset: -3px; }
+
+.portail__demo { align-items: center; }
+.portail__demo .btn { height: 34px; padding: 0 12px; }
+
+/* Bouton qui travaille : il ne pâlit pas comme un bouton indisponible, il
+   tourne. Le mouvement s'arrête avec `prefers-reduced-motion`, le texte reste. */
+.btn[aria-busy="true"], .btn[aria-busy="true"]:disabled { opacity: 1; cursor: progress; }
+.btn[aria-busy="true"]::before {
+  content: ""; width: 15px; height: 15px; flex-shrink: 0;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: rotation 700ms linear infinite;
+}
+@keyframes rotation { to { transform: rotate(360deg); } }
 
 /* ------------------------------------------------------------------ */
 /* 13. Adaptation aux petits écrans                                    */
@@ -1108,6 +1338,8 @@ textarea.champ {
   .duo { grid-template-columns: minmax(0, 1fr); }
   .portail { grid-template-columns: minmax(0, 1fr); }
   .portail__scene { display: none; }
+  .portail__marque { display: flex; }
+  .portail__formulaire { place-items: start center; padding: 36px 20px; }
 }
 
 @media (max-width: 860px) {
@@ -1122,7 +1354,12 @@ textarea.champ {
     padding: 0 4px env(safe-area-inset-bottom);
     box-shadow: var(--ombre-3);
   }
-  .rail__marque, .rail__pied, .rail__groupe .t-sur-titre, .rail__groupe--secondaire { display: none; }
+  /* Le groupe « Gestion » reste dans la barre : c'était l'intention d'origine
+     de le masquer, mais la règle était écrasée par `.rail__groupe` posée juste
+     après — et heureusement, car la comptabilité et la boutique n'auraient eu
+     aucune autre entrée sur téléphone. Il suit donc le premier groupe, séparé
+     d'un filet. */
+  .rail__marque, .rail__pied, .rail__groupe .t-sur-titre { display: none; }
   .rail__nav { display: flex; padding: 5px; width: 100%; overflow-x: auto; }
   .rail__groupe { display: flex; gap: 2px; width: 100%; margin: 0 !important; }
   .lien {
@@ -1143,8 +1380,128 @@ textarea.champ {
   .indic-reseau[data-hors-ligne="false"] { padding: 0; width: 26px; justify-content: center; }
   .indic-reseau[data-hors-ligne="false"] span:not(.indic-reseau__point) { display: none; }
   .tuiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tuile { padding: 13px 14px 12px; }
   .tuile__valeur { font-size: 22px; }
   .grille-articles { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); }
+
+  /* ---- Barre d'onglets du back-office ----
+     Une ligne par libellé, une largeur par onglet : ils se partagent l'écran
+     tant qu'ils y tiennent, et la barre défile au-delà (une pharmacie en a
+     neuf). L'onglet actif porte une gélule sous son icône plutôt qu'un fond
+     sur toute la case : on le repère au pouce sans relire les mots. */
+  .rail--onglets .rail__nav { padding: 4px 2px; gap: 0; scrollbar-width: none; }
+  .rail--onglets .rail__nav::-webkit-scrollbar { display: none; }
+  .rail--onglets .rail__groupe { width: auto; flex: 1 0 auto; }
+  .rail--onglets .rail__groupe + .rail__groupe {
+    border-left: 1px solid var(--filet); padding-left: 2px; margin-left: 2px !important;
+  }
+  .rail--onglets .lien {
+    flex: 1 0 auto; min-width: 58px; min-height: 54px; padding: 5px 5px 6px;
+    justify-content: center; white-space: nowrap; font-weight: 550; letter-spacing: -0.005em;
+  }
+  .rail--onglets .lien svg {
+    width: 44px; height: 26px; padding: 3px 12px; border-radius: var(--r-pilule);
+    transition: background var(--t-normal);
+  }
+  .rail--onglets .lien:hover { background: transparent; }
+  .rail--onglets .lien--actif { background: transparent; }
+  .rail--onglets .lien--actif svg { background: var(--actif); }
+  .rail--onglets .lien:active svg { background: var(--survol); }
+  .rail--onglets .lien__pastille { top: 1px; margin-right: -22px; box-shadow: 0 0 0 2px var(--surface); }
+  .rail--onglets .lien__court { display: inline; }
+  /* Le libellé long reste lu par un lecteur d'écran ; la forme courte, elle,
+     est `aria-hidden` (voir la balise `nav` de hm.py). */
+  .rail--onglets .lien__long {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
+  }
+
+  /* ---- Bandeau du back-office : deux rangées ----
+     À 390 px, titre + action de l'écran + aide + dépôt + réseau + thème +
+     sortie demandaient 580 px : la page défilait de côté jusqu'à 612 px.
+     Première rangée : le titre et les outils permanents. Seconde rangée : ce
+     qui est propre à l'écran (action, état de caisse) et le choix du dépôt.
+     Le bandeau ne colle plus en haut : la navigation vit en bas de l'écran, et
+     deux rangées collantes mangeraient un huitième de la hauteur utile. */
+  .bandeau--boutique {
+    position: static; height: auto; min-height: var(--entete);
+    flex-wrap: wrap; row-gap: 0; column-gap: 6px; padding: 5px 8px 6px 14px;
+  }
+  .bandeau--boutique .bandeau__titre { flex: 1 1 0; min-width: 0; font-size: 16px; }
+  .bandeau--boutique .bandeau__actions { display: contents; }
+  .bandeau--boutique::after { content: ""; order: 1; flex-basis: 100%; }
+  /* Les actions de l'écran et le dépôt se partagent la seconde rangée comme
+     des mots dans une phrase : trois boutons et le dépôt tiennent sur deux
+     lignes au lieu de trois. */
+  .bandeau--boutique .bandeau__page { display: contents; }
+  .bandeau--boutique .bandeau__page > *,
+  .bandeau--boutique .choix-depot { order: 2; margin: 3px 0; }
+  .bandeau--boutique .bandeau__page > :last-child { margin-right: auto; }
+  /* Les puces de contexte (valeur du stock, caisse ouverte) restent masquées :
+     leur information est répétée dans la page, et elles poussaient le dépôt
+     sur une troisième rangée. Le mot « Dépôt » aussi, lu mais pas affiché. */
+  .bandeau--boutique .bandeau__page > .puce { display: none; }
+  .bandeau--boutique .choix-depot { margin-left: auto; }
+  .bandeau--boutique .choix-depot label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
+  }
+  .bandeau--boutique .champ--compact { min-width: 0; max-width: 168px; }
+  .bandeau--boutique .indic-reseau[data-hors-ligne="false"] { width: 30px; background: transparent; }
+  body.back-office .tableau-barre { top: 0; }
+
+  /* Hors ligne, l'état quitte le bandeau (qui défile) pour flotter au-dessus
+     de la barre d'onglets : ADR-004 veut qu'il reste visible en permanence. */
+  .bandeau--boutique .indic-reseau[data-hors-ligne="true"] {
+    position: fixed; z-index: 45; left: 50%; transform: translateX(-50%);
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    height: 34px; padding: 0 14px; max-width: calc(100vw - 28px);
+    box-shadow: var(--ombre-2); border: 1px solid var(--filet);
+  }
+}
+
+/* Cibles tactiles : 44 px sur téléphone et sur tout écran qu'on touche (la
+   tablette du caissier). Les contrôles de 36 px, confortables à la souris, se
+   ratent debout d'une main. `:where()` : aucune spécificité ajoutée, chaque
+   composant reste libre de se redéfinir après. La console a son propre
+   calibrage et n'est pas concernée. */
+@media (max-width: 860px), (pointer: coarse) {
+  :where(body:not(.console)) .btn { height: 44px; }
+  :where(body:not(.console)) .btn--icone { width: 44px; }
+  :where(body:not(.console)) .champ { height: 44px; font-size: 16px; }
+  :where(body:not(.console)) .champ--compact { height: 44px; font-size: 14px; }
+  :where(body:not(.console)) textarea.champ { height: auto; }
+  :where(body:not(.console)) input[type="file"].champ { height: auto; }
+  :where(body:not(.console)) .pas-a-pas button { width: 40px; height: 40px; font-size: 18px; }
+  :where(body:not(.console)) .aide-sommaire__lien { min-height: 44px; padding: 0 14px; }
+  :where(body:not(.console)) .vitrine__rayon { display: inline-flex; align-items: center; min-height: 40px; }
+  :where(body:not(.console)) .etiquette__retirer { width: 28px; height: 28px; }
+  :where(body:not(.console)) .etiquette { height: 34px; }
+  :where(body:not(.console)) .tableau td.col-sel input,
+  :where(body:not(.console)) .tableau th.col-sel input { width: 22px; height: 22px; }
+  :where(body:not(.console)) .case { width: 22px; height: 22px; }
+  :where(body:not(.console)) .case-ligne { min-height: 44px; }
+}
+
+/* Tableaux sur téléphone : plutôt que d'écraser huit colonnes sur trois ou
+   quatre lignes chacune, la ligne garde sa hauteur et le tableau défile de
+   côté (l'ombre de bord le signale). Seule la colonne principale se replie. */
+@media (max-width: 680px) {
+  .tableau-boite .tableau thead th,
+  .tableau-boite .tableau tbody td { white-space: nowrap; padding-left: 12px; padding-right: 12px; }
+  /* La première colonne de données porte l'identité de la ligne (article,
+     personne, ticket) : elle seule se replie, sur 170 px au moins. */
+  .tableau-boite .tableau tbody td.principal,
+  .tableau-boite .tableau tbody td.col-sel + td,
+  .tableau-boite .tableau tbody td:first-child:not(.col-sel) { white-space: normal; min-width: 170px; }
+  /* Le graphe est dessiné pour 740 unités ; sur 320 px il est réduit de
+     moitié et ses étiquettes tombaient à 4,6 px. Elles grossissent dans ses
+     unités propres pour rester vers 8-9 px à l'écran (la marge gauche de 64
+     unités loge encore « 400 000 »). */
+  .back-office .graphe .tick { font-size: 19px; }
+  /* La barre de rang double un chiffre déjà écrit : sur téléphone, elle cède
+     sa place au chiffre d'affaires, qui sinon sortait de l'écran. */
+  .col-rang { display: none; }
+  .back-office .graphe .etiquette-directe { font-size: 21px; }
+  .tableau-boite .tableau td.col-sel, .tableau-boite .tableau th.col-sel { padding-left: 12px; padding-right: 0; }
 }
 
 /* ==========================================================================
@@ -1156,31 +1513,46 @@ textarea.champ {
    plus que celle de la caisse, où chaque pixel sert à tenir les 4 secondes
    par ligne.
    ========================================================================== */
-body.vitrine { background: var(--plan); }
+body.vitrine {
+  background: var(--plan);
+  /* Le pied reste en bas même sur une page courte (panier vide) : il flottait
+     au milieu de l'écran, sous trois lignes de contenu. */
+  display: flex; flex-direction: column; min-height: 100vh;
+  /* Gouttière qui aligne l'en-tête et les rayons sur la zone centrée de
+     1 180 px : le panier finit au même aplomb que la dernière tuile. */
+  --gouttiere: max(22px, calc((100% - 1180px) / 2 + 22px));
+}
+body.vitrine > .vitrine__zone { flex: 1 0 auto; width: 100%; }
 
 .vitrine__entete {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 14px;
-  padding: 12px 22px;
+  padding: 11px var(--gouttiere);
   background: var(--surface-haute);
   border-bottom: 1px solid var(--filet);
 }
 .vitrine__marque {
   display: flex; align-items: center; gap: 9px;
   font-weight: 640; letter-spacing: -0.015em; color: var(--encre); flex-shrink: 0;
+  margin-right: 8px;
 }
 .vitrine__recherche { position: relative; flex: 1; min-width: 0; max-width: 560px; }
 .vitrine__recherche svg {
-  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   width: 16px; height: 16px; color: var(--encre-muette); pointer-events: none;
 }
-.vitrine__recherche .champ { width: 100%; padding-left: 34px; }
+.vitrine__recherche .champ {
+  width: 100%; height: 40px; padding-left: 36px;
+  border-radius: var(--r-pilule); background: var(--surface-creuse); border-color: transparent;
+}
+.vitrine__recherche .champ:focus { background: var(--surface-haute); }
 
-.btn--panier { gap: 8px; flex-shrink: 0; }
+.btn--panier { gap: 8px; flex-shrink: 0; margin-left: auto; border-radius: var(--r-pilule); }
+.btn--panier .puce { height: 20px; padding: 0 7px; }
 
 .vitrine__rayons {
   display: flex; gap: 6px; overflow-x: auto;
-  padding: 10px 22px; background: var(--surface-haute);
+  padding: 9px var(--gouttiere); background: var(--surface-haute);
   border-bottom: 1px solid var(--filet);
   scrollbar-width: none;
 }
@@ -1191,14 +1563,33 @@ body.vitrine { background: var(--plan); }
   transition: background var(--t-rapide), color var(--t-rapide);
 }
 .vitrine__rayon:hover { background: var(--survol); color: var(--encre); }
-.vitrine__rayon.est-actif { background: var(--marque); color: #fff; }
+.vitrine__rayon.est-actif { background: var(--marque); color: var(--marque-encre); font-weight: 600; }
 
 .vitrine__zone { max-width: 1180px; margin: 0 auto; padding: 24px 22px 64px; }
 
-.vitrine__accroche { margin-bottom: 26px; }
+/* L'accroche : un bandeau teinté de la marque, et trois engagements tirés de
+   ce que la place de marché promet déjà. Aucune image : un dégradé de deux
+   jetons coûte zéro octet de plus sur une connexion payée au mégaoctet. */
+.vitrine__accroche {
+  margin-bottom: 30px; padding: 30px 32px 26px;
+  border: 1px solid var(--filet); border-radius: var(--r-lg);
+  background:
+    radial-gradient(520px 260px at 100% 0%, var(--marque-teinte), transparent 70%),
+    linear-gradient(160deg, var(--surface) 30%, var(--marque-teinte));
+}
 .vitrine__accroche h1 {
-  font-size: 30px; font-weight: 660; letter-spacing: -0.025em; line-height: 1.15;
-  margin-bottom: 8px;
+  font-size: 34px; font-weight: 680; letter-spacing: -0.03em; line-height: 1.1;
+  margin-bottom: 10px; max-width: 24ch; text-wrap: balance;
+}
+.vitrine__accroche > .t-2 { max-width: 64ch; font-size: 15px; text-wrap: pretty; }
+.vitrine__garanties {
+  display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 20px;
+  padding: 0; list-style: none;
+}
+.vitrine__garantie { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 580; color: var(--encre); }
+.vitrine__garantie svg {
+  width: 28px; height: 28px; padding: 6px; border-radius: 50%;
+  background: var(--surface-haute); color: var(--marque-texte); box-shadow: var(--ombre-1);
 }
 
 .vitrine__boutique { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
@@ -1206,9 +1597,10 @@ body.vitrine { background: var(--plan); }
 
 .vitrine__pied {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  max-width: 1180px; margin: 0 auto; padding: 20px 22px 40px;
+  width: 100%; max-width: 1180px; margin: 0 auto; padding: 20px 22px 40px;
   border-top: 1px solid var(--filet);
 }
+.vitrine__pied a { text-decoration: underline; text-underline-offset: 3px; }
 
 /* La tuile de vitrine n'est pas celle de la caisse : celle-ci se parcourt,
    l'autre se tape vite. Deux composants, deux contraintes. */
@@ -1217,19 +1609,41 @@ body.vitrine { background: var(--plan); }
   background: var(--surface);
   border: 1px solid var(--filet);
   border-radius: var(--r-md);
-  padding: 12px;
-  transition: border-color var(--t-rapide), box-shadow var(--t-rapide);
+  padding: 10px 10px 12px;
+  box-shadow: var(--ombre-1);
+  transition: border-color var(--t-rapide), box-shadow var(--t-normal), transform var(--t-normal);
 }
-.vitrine-tuile:hover { border-color: var(--marque); box-shadow: var(--ombre-2); }
-.vitrine-tuile__lien { display: flex; flex-direction: column; gap: 6px; color: var(--encre); }
-.vitrine-tuile__image {
+/* Soulevée au survol seulement là où le survol existe : sur un écran tactile,
+   la tuile resterait levée après le premier effleurement. */
+@media (hover: hover) {
+  .vitrine-tuile:hover { border-color: var(--filet-fort); box-shadow: var(--ombre-2); transform: translateY(-2px); }
+}
+/* Le lien occupe la hauteur libre : les boutons « Ajouter au panier » d'une
+   même rangée s'alignent, qu'un titre tienne sur une ligne ou sur deux. */
+.vitrine-tuile__lien { display: flex; flex-direction: column; gap: 6px; color: var(--encre); flex: 1; }
+.vitrine-tuile__lien:hover .vitrine-tuile__titre { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Vignette sans photo : le monogramme de l'article sur la teinte de son
+   commerçant. Le rectangle gris et son chariot à 45 % se lisaient comme une
+   image cassée ; ici chaque article a un visage, et ceux d'un même commerçant
+   se reconnaissent entre eux. */
+.vitrine-tuile__image,
+.article-fiche__image {
   display: grid; place-items: center;
-  aspect-ratio: 4 / 3; border-radius: var(--r-sm);
-  background: var(--surface-creuse); margin-bottom: 2px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(150deg,
+    hsl(var(--teinte, 165) var(--vignette-chroma) var(--vignette-fond)),
+    hsl(var(--teinte, 165) var(--vignette-chroma) var(--vignette-fond-2)));
+  color: hsl(var(--teinte, 165) var(--vignette-chroma) var(--vignette-encre));
+  overflow: hidden;
 }
-.vitrine-tuile__image svg { width: 26px; height: 26px; color: var(--encre-muette); opacity: 0.45; }
+.vitrine-tuile__image { aspect-ratio: 4 / 3; margin-bottom: 4px; }
+.vitrine-tuile__image svg, .article-fiche__image svg { width: 26px; height: 26px; opacity: 0.55; }
+.vignette__monogramme { font-size: 34px; font-weight: 640; letter-spacing: -0.035em; line-height: 1; }
+.article-fiche__image .vignette__monogramme { font-size: 64px; }
+
 .vitrine-tuile__titre {
-  font-size: 14px; font-weight: 570; line-height: 1.3;
+  font-size: 14px; font-weight: 580; line-height: 1.3; letter-spacing: -0.005em;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .vitrine-tuile__marchand {
@@ -1237,14 +1651,14 @@ body.vitrine { background: var(--plan); }
   font-size: 12px; color: var(--encre-2); margin-top: auto;
 }
 .vitrine-tuile__prix {
-  font-size: 17px; font-weight: 660; font-variant-numeric: tabular-nums;
+  font-size: 17px; font-weight: 680; font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 .grille-vitrine {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
-  gap: 12px;
+  gap: 14px;
   align-content: start;
 }
 
@@ -1256,34 +1670,44 @@ body.vitrine { background: var(--plan); }
   background: var(--surface); border: 1px solid var(--filet);
   border-radius: var(--r-md); padding: 12px;
   color: var(--encre);
-  transition: border-color var(--t-rapide);
+  transition: border-color var(--t-rapide), box-shadow var(--t-normal);
 }
-.boutique-tuile:hover { border-color: var(--marque); }
+.boutique-tuile:hover { border-color: var(--filet-fort); box-shadow: var(--ombre-2); }
+/* Le jeton d'un commerçant prend la teinte de ses vignettes. */
+.jeton--teinte {
+  background: hsl(var(--teinte, 165) var(--vignette-chroma) var(--vignette-fond-2));
+  color: hsl(var(--teinte, 165) var(--vignette-chroma) var(--vignette-encre));
+}
 
-.article-fiche__image {
-  display: grid; place-items: center;
-  aspect-ratio: 16 / 10; border-radius: var(--r-md);
-  background: var(--surface-creuse);
-}
-.article-fiche__image svg { width: 46px; height: 46px; color: var(--encre-muette); opacity: 0.4; }
+.article-fiche__image { aspect-ratio: 16 / 10; border-radius: var(--r-md); }
 .article-fiche__prix {
-  font-size: 26px; font-weight: 680; letter-spacing: -0.025em;
+  font-size: 30px; font-weight: 700; letter-spacing: -0.028em;
   font-variant-numeric: tabular-nums;
 }
+/* Quantité et bouton : ils se replient plutôt que de pousser le bouton hors de
+   l'écran (33 px de débordement à 390 px). */
+.article-fiche__achat { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.article-fiche__achat .btn { flex: 1 1 200px; }
 
 .panier-ligne {
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center; gap: 12px;
 }
+.panier-ligne + .panier-ligne { border-top: 1px solid var(--filet); padding-top: 14px; }
 
 @media (max-width: 720px) {
-  .vitrine__entete { padding: 10px 14px; gap: 10px; }
+  body.vitrine { --gouttiere: 14px; }
+  .vitrine__entete { gap: 10px; }
+  .vitrine__marque { margin-right: 0; }
   .vitrine__marque span:not(.sceau) { display: none; }
+  .vitrine__recherche .champ { height: 44px; }
   .vitrine__panier-mot { display: none; }
-  .vitrine__rayons { padding: 9px 14px; }
   .vitrine__zone { padding: 16px 14px 48px; }
-  .vitrine__accroche h1 { font-size: 24px; }
-  .grille-vitrine { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .vitrine__accroche { padding: 22px 18px 20px; margin-bottom: 24px; }
+  .vitrine__accroche h1 { font-size: 26px; }
+  .vitrine__garanties { flex-direction: column; gap: 10px; }
+  .grille-vitrine { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .vignette__monogramme { font-size: 26px; }
   .panier-ligne { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .vitrine__pied { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
@@ -1328,7 +1752,7 @@ body.vitrine { background: var(--plan); }
   text-decoration: none;
 }
 .aide-sommaire__lien:hover {
-  border-color: var(--marque); color: var(--marque); background: var(--marque-teinte);
+  border-color: var(--marque); color: var(--marque-texte); background: var(--marque-teinte);
 }
 
 /* La fiche visée par l'ancre se signale un instant : arriver au milieu d'une

@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 {% include "partials/charte.html" %}
 <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
 <link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
 <script src="{% static 'js/hors-ligne.js' %}" defer></script>
 {% comment %}
@@ -28,11 +29,11 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
   })();
 </script>
 </head>
-<body>
+<body class="back-office">
 {% include "partials/icones.html" %}
 
 <div class="coquille">
-  <nav class="rail" aria-label="Navigation principale">
+  <nav class="rail rail--onglets" aria-label="Navigation principale">
     {% comment %}
     Le commerçant qui a mis son logo voit son logo. C'est lui qui loue
     l'emplacement ; HyperMarché reste nommé en pied de page, là où le locataire
@@ -55,7 +56,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
     <div class="rail__nav">
       <div class="rail__groupe">
         <p class="t-sur-titre">Exploitation</p>
-        {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page %}{% endif %}
+        {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page court='Accueil' %}{% endif %}
         {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' 'Caisse' page %}{% endif %}
         {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' 'Stock' page alertes %}{% endif %}
         {% comment %}
@@ -96,7 +97,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
       {% if 'comptabilite.voir' in droits or 'boutique.voir' in droits %}
         <div class="rail__groupe rail__groupe--secondaire">
           <p class="t-sur-titre">Gestion</p>
-          {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page %}{% endif %}
+          {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page court='Compta' %}{% endif %}
           {% if 'boutique.voir' in droits %}{% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}{% endif %}
         </div>
       {% endif %}
@@ -114,10 +115,16 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
   </nav>
 
   <div style="min-width:0">
-    <header class="bandeau">
+    {% comment %}
+    `bandeau--boutique` : sur téléphone, ce bandeau passe sur deux rangées (voir
+    hypermarche.css). Les actions propres à l'écran sont regroupées dans
+    `bandeau__page` pour descendre ensemble à la seconde ; le bloc tient sur une
+    ligne pour qu'un écran sans action laisse le conteneur réellement vide.
+    {% endcomment %}
+    <header class="bandeau bandeau--boutique">
       <h1 class="bandeau__titre">{% block entete %}{% endblock %}</h1>
       <div class="bandeau__actions">
-        {% block actions_entete %}{% endblock %}
+        <div class="bandeau__page">{% block actions_entete %}{% endblock %}</div>
 
         {% comment %}
         Le « ? » de l'écran courant, posé ici une fois plutôt que dans chaque
@@ -165,11 +172,18 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         </span>
 
         <button class="btn btn--icone btn--discret" id="bascule-theme"
-                aria-label="Basculer le thème clair ou sombre">
+                aria-label="Basculer le thème clair ou sombre" title="Thème clair ou sombre">
           <svg id="icone-theme"><use href="#ic-sombre"></use></svg>
         </button>
 
-        <a class="btn btn--icone btn--discret" href="{% url 'connexion' %}" aria-label="Se déconnecter">
+        {% comment %}
+        Vers `deconnexion`, qui ferme la session. Le lien menait à `connexion` :
+        la page de connexion s'affichait, mais la session restait ouverte — sur la
+        tablette partagée d'une boutique, le suivant n'avait qu'à revenir en
+        arrière pour travailler sous le nom du précédent.
+        {% endcomment %}
+        <a class="btn btn--icone btn--discret" href="{% url 'deconnexion' %}" aria-label="Se déconnecter"
+           title="Se déconnecter">
           <svg><use href="#ic-sortie"></use></svg>
         </a>
       </div>
@@ -179,7 +193,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
       {% if messages %}
         <div class="colonne" style="gap:8px;margin-bottom:16px">
           {% for message in messages %}
-            <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% endif %}"
+            <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% elif message.tags == 'success' %}bandeau-info--succes{% endif %} bandeau-info--message"
                  role="status">
               <svg><use href="#{% if message.tags == 'error' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
               <span>{{ message }}</span>

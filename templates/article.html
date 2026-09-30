@@ -287,7 +287,7 @@
                 <td class="principal">{{ m.get_type_display }}</td>
                 <td class="t-2">{{ m.commentaire|default:"—"|truncatechars:28 }}</td>
                 <td class="t-2">{{ m.depot.libelle }}</td>
-                <td class="num" style="font-weight:620;{% if m.quantite < 0 %}color:var(--critique){% else %}color:var(--bon){% endif %}">
+                <td class="num" style="font-weight:620;{% if m.quantite < 0 %}color:var(--critique-encre){% else %}color:var(--bon-encre){% endif %}">
                   {% if m.quantite > 0 %}+{% endif %}{{ m.quantite|quantite }}
                 </td>
                 {% if 'cout.voir' in droits %}

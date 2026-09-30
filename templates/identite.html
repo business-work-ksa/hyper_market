@@ -161,7 +161,11 @@
     {% else %}
       <div class="vide">
         <svg><use href="#ic-boutique"></use></svg>
-        <p class="t-2">Aucun lien ne correspond.</p>
+        {% comment %}
+        « Ne correspond » n'a de sens que derrière un filtre. Sans filtre, la
+        liste est simplement vide : on le dit, et on dit à quoi elle servira.
+        {% endcomment %}
+        <p class="t-2">{% if filtres.actifs %}Aucun lien ne correspond.{% else %}Aucun lien pour l'instant.{% endif %}</p>
         {% if filtres.actifs %}
           <a class="btn" href="{% url 'identite' %}">Retirer les filtres</a>
         {% else %}

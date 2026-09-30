@@ -10,8 +10,13 @@ de ses ventes à ses concurrents.
 {% endcomment %}
 <article class="vitrine-tuile">
   <a class="vitrine-tuile__lien" href="{% url 'vitrine_article' article.pk %}">
-    <span class="vitrine-tuile__image" aria-hidden="true">
-      <svg><use href="#ic-panier"></use></svg>
+    {% comment %}
+    Sans photo, la vignette porte le monogramme de l'article sur la teinte de son
+    commerçant (filtre `teinte`) : chaque article a un visage, et ceux d'un même
+    vendeur se reconnaissent d'un coup d'œil. Aucun octet d'image en plus.
+    {% endcomment %}
+    <span class="vitrine-tuile__image" aria-hidden="true" style="--teinte:{{ article.boutique.enseigne|teinte }}">
+      <span class="vignette__monogramme">{{ article.produit.libelle|monogramme }}</span>
     </span>
     <span class="vitrine-tuile__titre">{{ article.produit.libelle }}</span>
     {% if article.attributs %}

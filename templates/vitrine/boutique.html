@@ -8,7 +8,7 @@
   {% if identite.logo %}
     <img class="vitrine__logo" src="{{ identite.logo.url }}" alt="{{ boutique.enseigne }}">
   {% else %}
-    <span class="jeton jeton--grand">{{ boutique.enseigne|initiales }}</span>
+    <span class="jeton jeton--grand jeton--teinte" style="--teinte:{{ boutique.enseigne|teinte }}">{{ boutique.enseigne|initiales }}</span>
   {% endif %}
   <div class="pile-sm">
     <h1 class="t-section" style="font-size:1.4rem">{{ boutique.enseigne }}</h1>

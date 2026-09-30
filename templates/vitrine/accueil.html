@@ -10,6 +10,18 @@
     Des commerçants de Douala et Yaoundé, leurs prix affichés sans intermédiaire.
     Vous commandez, c'est le commerçant lui-même qui vous livre.
   </p>
+  {% comment %}
+  Trois engagements, et seulement ceux que la place de marché tient déjà
+  (voir le paragraphe ci-dessus et la fiche article) : un visiteur de passage
+  décide en quelques secondes s'il fait confiance, et une promesse de plus
+  qu'on ne tiendrait pas coûterait la suivante.
+  {% endcomment %}
+  <ul class="vitrine__garanties">
+    <li class="vitrine__garantie"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg>
+      {% if boutiques %}{{ boutiques|length }} commerçant{{ boutiques|length|pluralize }} du marché{% else %}Des commerçants du marché{% endif %}</li>
+    <li class="vitrine__garantie"><svg aria-hidden="true"><use href="#ic-argent"></use></svg>Prix fixés par le commerçant</li>
+    <li class="vitrine__garantie"><svg aria-hidden="true"><use href="#ic-camion"></use></svg>Livré par celui qui vend</li>
+  </ul>
 </section>
 
 {% if articles %}
@@ -37,7 +49,7 @@
     <div class="grille-boutiques">
       {% for b in boutiques %}
         <a class="boutique-tuile" href="{% url 'vitrine_boutique' b.slug %}">
-          <span class="jeton">{{ b.enseigne|initiales }}</span>
+          <span class="jeton jeton--teinte" style="--teinte:{{ b.enseigne|teinte }}">{{ b.enseigne|initiales }}</span>
           <span class="pile-sm">
             <span class="principal">{{ b.enseigne }}</span>
             <span class="t-legende">{{ b.ville }}{% if b.rayon_principal %} · {{ b.rayon_principal.libelle }}{% endif %}</span>

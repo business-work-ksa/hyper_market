@@ -11,7 +11,8 @@
   <div class="vide">
     <svg><use href="#ic-panier"></use></svg>
     <p class="t-2">Votre panier est vide.</p>
-    <a class="btn btn--primaire" href="{% url 'vitrine_catalogue' %}">Parcourir le marché</a>
+    <p class="t-legende">Chaque article s'ajoute depuis sa tuile ou sa fiche ; le panier se garde pendant votre visite.</p>
+    <a class="btn btn--primaire btn--grand" href="{% url 'vitrine_catalogue' %}">Parcourir le marché</a>
   </div>
 {% else %}
   <div class="duo">

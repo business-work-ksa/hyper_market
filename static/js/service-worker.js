@@ -18,7 +18,10 @@
  * rejouer avec sa clé d'idempotence.
  */
 
-const VERSION = "hm-v2";
+// Montée à chaque refonte visuelle : la coquille met en cache
+// `/static/css/hypermarche.css` sous son nom nu, et sans changement de version un
+// poste déjà installé garderait l'ancienne feuille face aux nouveaux gabarits.
+const VERSION = "hm-v3";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_PAGES = `${VERSION}-pages`;
 

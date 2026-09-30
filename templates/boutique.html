@@ -6,7 +6,13 @@
 
 {% block contenu %}
 <div class="colonne">
-  <div class="duo">
+  {% comment %}
+  L'emplacement loué vivait seul dans une rangée `.duo` : la moitié droite de
+  l'écran restait vide. Il rejoint l'identité, en colonne, face à ce que le
+  métier change ; `duo--libre` laisse chaque colonne à sa hauteur.
+  {% endcomment %}
+  <div class="duo duo--libre">
+    <div class="colonne">
     <section class="carte">
       <header class="carte__entete"><h2 class="t-section">Identité</h2></header>
       <div class="carte__corps colonne" style="gap:14px">
@@ -25,6 +31,26 @@
         </div>
       </div>
     </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Emplacement loué</h2></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% if bail %}
+          <div class="rangee rangee--espace"><span class="t-2">Offre</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
+          <div class="rangee rangee--espace"><span class="t-2">Loyer mensuel</span><span class="chiffre">{{ bail.loyer_mensuel|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Dépôt de garantie</span><span class="chiffre">{{ bail.depot_garantie|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Depuis le</span><span class="chiffre">{{ bail.debut|date:"d/m/Y" }}</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Préavis</span><span>{{ bail.preavis_jours }} jours</span></div>
+          <div class="rangee rangee--espace">
+            <span class="t-2">État</span>
+            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{{ bail.get_etat_display }}</span>
+          </div>
+        {% else %}
+          <div class="vide"><svg><use href="#ic-boutique"></use></svg><p class="t-2">Aucun bail actif.</p></div>
+        {% endif %}
+      </div>
+    </section>
+    </div>
 
     <section class="carte">
       <header class="carte__entete"><h2 class="t-section">Ce que votre métier change</h2></header>
@@ -64,28 +90,7 @@
     </section>
   </div>
 
-  <div class="duo">
-    <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Emplacement loué</h2></header>
-      <div class="carte__corps colonne" style="gap:14px">
-        {% if bail %}
-          <div class="rangee rangee--espace"><span class="t-2">Offre</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
-          <div class="rangee rangee--espace"><span class="t-2">Loyer mensuel</span><span class="chiffre">{{ bail.loyer_mensuel|fcfa }} FCFA</span></div>
-          <div class="rangee rangee--espace"><span class="t-2">Dépôt de garantie</span><span class="chiffre">{{ bail.depot_garantie|fcfa }} FCFA</span></div>
-          <div class="rangee rangee--espace"><span class="t-2">Depuis le</span><span class="chiffre">{{ bail.debut|date:"d/m/Y" }}</span></div>
-          <div class="rangee rangee--espace"><span class="t-2">Préavis</span><span>{{ bail.preavis_jours }} jours</span></div>
-          <div class="rangee rangee--espace">
-            <span class="t-2">État</span>
-            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{{ bail.get_etat_display }}</span>
-          </div>
-        {% else %}
-          <div class="vide"><svg><use href="#ic-boutique"></use></svg><p class="t-2">Aucun bail actif.</p></div>
-        {% endif %}
-      </div>
-    </section>
-  </div>
-
-  <div class="duo">
+  <div class="duo duo--libre">
     <section class="carte">
       <header class="carte__entete">
         <h2 class="t-section">Équipe</h2>
@@ -169,7 +174,7 @@
   gérant qui confie sa caisse doit pouvoir vérifier lui-même que la marge est
   fermée à son caissier, sans avoir à croire quiconque sur parole.
   {% endcomment %}
-  <div class="duo{% if not 'exporter' in droits %} duo--plein{% endif %}">
+  <div class="duo duo--libre{% if not 'exporter' in droits %} duo--plein{% endif %}">
     <section class="carte">
       <header class="carte__entete">
         <h2 class="t-section">Ce que chaque rôle peut faire</h2>

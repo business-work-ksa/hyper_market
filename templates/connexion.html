@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#00806A">
 <title>Connexion — HyperMarché</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
 <script>(function(){try{var t=localStorage.getItem("hm-theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 </head>
 <body>
@@ -24,6 +25,31 @@
     </div>
 
     <div class="colonne" style="gap:26px">
+      {% comment %}
+      Un ticket dessiné en CSS, pas une capture : il montre ce que font les
+      trois promesses en dessous — une vente sort le stock, calcule la marge et
+      passe l'écriture — sans un octet d'image. Décoratif, donc caché aux
+      lecteurs d'écran : les phrases qui suivent disent la même chose.
+      {% endcomment %}
+      <div class="portail__apercu" aria-hidden="true">
+        <div class="portail__ticket">
+          <div class="rangee rangee--espace">
+            <span class="portail__ticket-num">Ticket T-00000142</span>
+            <span class="portail__ticket-etat"><svg><use href="#ic-check"></use></svg>Encaissé</span>
+          </div>
+          <p class="portail__ticket-montant">34&#8239;500<span>FCFA</span></p>
+          <ul class="portail__ticket-effets">
+            <li><svg><use href="#ic-stock"></use></svg>Stock mis à jour<b>−1</b></li>
+            <li><svg><use href="#ic-marge"></use></svg>Marge de la vente<b>8&#8239;500</b></li>
+            <li><svg><use href="#ic-compta"></use></svg>Écriture 571 / 701<b>passée</b></li>
+          </ul>
+        </div>
+        <div class="portail__barres">
+          <span style="height:34%"></span><span style="height:52%"></span><span style="height:41%"></span>
+          <span style="height:66%"></span><span style="height:58%"></span><span style="height:80%"></span>
+          <span class="portail__barre-jour" style="height:100%"></span>
+        </div>
+      </div>
       <p class="portail__accroche">Votre boutique sait enfin ce qu'elle gagne.</p>
       <div class="portail__preuves">
         <div class="portail__preuve">
@@ -48,6 +74,14 @@
 
   <main class="portail__formulaire">
     <div class="portail__boite">
+      {% comment %}
+      Sous 1 080 px le panneau de la marque disparaît : sans ce rappel, un
+      téléphone affichait un formulaire anonyme, sans rien qui dise où l'on est.
+      {% endcomment %}
+      <div class="portail__marque">
+        <span class="sceau" aria-hidden="true">HM</span>
+        <span>HyperMarché</span>
+      </div>
       <div class="pile-sm">
         <h1 class="t-titre">Se connecter</h1>
         <p class="t-2">Entrez le numéro de téléphone associé à votre boutique.</p>
@@ -60,7 +94,7 @@
         </div>
       {% endif %}
 
-      <form method="post" class="colonne" style="gap:14px" novalidate>
+      <form method="post" class="colonne" style="gap:14px" novalidate id="formulaire-connexion">
         {% csrf_token %}
         <div class="groupe-champ">
           <label for="telephone">Numéro de téléphone</label>
@@ -71,11 +105,24 @@
 
         <div class="groupe-champ">
           <label for="mot_de_passe">Mot de passe</label>
-          <input class="champ champ--grand" type="password" id="mot_de_passe" name="mot_de_passe"
-                 autocomplete="current-password" required>
+          <div class="champ-mdp">
+            <input class="champ champ--grand" type="password" id="mot_de_passe" name="mot_de_passe"
+                   autocomplete="current-password" required>
+            {% comment %}
+            Afficher ce qu'on tape : debout, au soleil, sur un clavier tactile, un
+            mot de passe masqué se rate deux fois sur trois. Le bouton n'existe
+            qu'avec JavaScript (attribut `hidden` levé par le script).
+            {% endcomment %}
+            <button class="champ-mdp__bouton" type="button" id="voir-mdp" hidden
+                    aria-label="Afficher le mot de passe" aria-pressed="false" aria-controls="mot_de_passe">
+              <svg aria-hidden="true"><use href="#ic-oeil"></use></svg>
+            </button>
+          </div>
         </div>
 
-        <button class="btn btn--primaire btn--grand btn--bloc" type="submit">Ouvrir ma boutique</button>
+        <button class="btn btn--primaire btn--grand btn--bloc" type="submit" id="bouton-connexion">
+          Ouvrir ma boutique
+        </button>
       </form>
 
       {% if demo %}
@@ -94,12 +141,16 @@
         **que sur une ligne**. Ouverte sur plusieurs, Django ne la reconnaît pas
         et l'affiche telle quelle, au milieu de l'écran de connexion.
         {% endcomment %}
-        <div class="bandeau-info">
+        <div class="bandeau-info portail__demo">
           <svg><use href="#ic-info"></use></svg>
-          <div class="pile-sm">
+          <div class="pile-sm" style="min-width:0;flex:1">
             <span style="font-weight:580">Démonstration</span>
             <span class="t-legende chiffre">{{ demo.telephone }} · {{ demo.mot_de_passe }} — {{ demo.boutique }}, {{ demo.ville }}</span>
           </div>
+          <button class="btn btn--discret" type="button" id="remplir-demo" hidden
+                  data-telephone="{{ demo.telephone }}" data-mot-de-passe="{{ demo.mot_de_passe }}">
+            Remplir
+          </button>
         </div>
       {% endif %}
 
@@ -110,5 +161,54 @@
     </div>
   </main>
 </div>
+<script>
+  // Trois gestes, aucun ne touche au formulaire lui-même : sans JavaScript, la
+  // page se soumet exactement comme avant.
+  (function () {
+    var formulaire = document.getElementById("formulaire-connexion");
+    var bouton = document.getElementById("bouton-connexion");
+    var champ = document.getElementById("mot_de_passe");
+    var voir = document.getElementById("voir-mdp");
+    var demo = document.getElementById("remplir-demo");
+
+    // Afficher / masquer le mot de passe.
+    voir.hidden = false;
+    voir.addEventListener("click", function () {
+      var visible = champ.type === "password";
+      champ.type = visible ? "text" : "password";
+      voir.setAttribute("aria-pressed", visible ? "true" : "false");
+      voir.setAttribute("aria-label", visible ? "Masquer le mot de passe" : "Afficher le mot de passe");
+      voir.querySelector("use").setAttribute("href", visible ? "#ic-oeil-barre" : "#ic-oeil");
+      champ.focus();
+    });
+
+    // Sur 3G, la réponse peut prendre plusieurs secondes : sans retour, on
+    // retape le bouton et l'on envoie deux fois. Le bouton dit qu'il travaille.
+    formulaire.addEventListener("submit", function () {
+      bouton.setAttribute("aria-busy", "true");
+      bouton.textContent = "Ouverture de votre boutique…";
+      // Désactivé au tour suivant : désactiver pendant l'événement annulerait
+      // l'envoi dans certains navigateurs.
+      setTimeout(function () { bouton.disabled = true; }, 0);
+    });
+    // Retour arrière depuis la page suivante : le cache du navigateur rend la
+    // page telle qu'on l'a quittée, bouton bloqué compris.
+    window.addEventListener("pageshow", function () {
+      bouton.disabled = false;
+      bouton.removeAttribute("aria-busy");
+      bouton.textContent = "Ouvrir ma boutique";
+    });
+
+    // Démonstration : un geste au lieu de recopier deux identifiants.
+    if (demo) {
+      demo.hidden = false;
+      demo.addEventListener("click", function () {
+        document.getElementById("telephone").value = demo.dataset.telephone;
+        champ.value = demo.dataset.motDePasse;
+        bouton.focus();
+      });
+    }
+  })();
+</script>
 </body>
 </html>

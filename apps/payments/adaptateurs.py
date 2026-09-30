@@ -8,18 +8,19 @@ connaître le nom d'un prestataire.
 Ce que ce module contient, et ce qu'il ne contient pas
 ------------------------------------------------------
 
-Il contient tout ce qui est **vérifiable sans compte marchand** : le contrat
-d'adaptateur, un prestataire simulé aux réponses déterministes, et le disjoncteur
-qui protège des appels sortants.
+Il contient le contrat d'adaptateur, un prestataire simulé aux réponses
+déterministes, le disjoncteur qui protège des appels sortants — et, depuis que le
+paiement en ligne est ouvert, les **clients HTTP de MTN MoMo et d'Orange Money**
+(`apps/payments/operateurs.py`).
 
-Il ne contient **pas** les appels HTTP vers MTN, Orange et Camtel. Écrire une
-intégration bancaire sans jamais pouvoir l'exécuter produirait du code
-vraisemblable et faux — sur un chemin où l'erreur s'appelle « double débit ».
-Ces adaptateurs existent donc en coquille : ils portent leur configuration et
-échouent avec un message explicite tant qu'aucun identifiant de bac à sable n'est
-fourni. Le jour où les comptes seront ouverts, il ne restera que la couche HTTP à
-écrire — le cycle de vie de la transaction, l'idempotence et le routage seront
-déjà là, et déjà testés.
+Ces deux clients sont écrits contre les spécifications publiées par les
+opérateurs et testés contre des réponses HTTP simulées. **Ils n'ont pas encore été
+exécutés contre un vrai bac à sable** : il faut pour cela des identifiants que
+seul le titulaire du compte marchand peut obtenir. La commande
+`essayer_prestataire` fait ce premier aller-retour ; tant qu'elle n'a pas réussi,
+un prestataire réel ne doit pas être activé en production. Sans identifiants, ils
+refusent net, avec un message qui nomme ce qui manque — jamais une erreur réseau
+déguisée. Camtel reste une coquille : aucune spécification publique.
 """
 
 import time
@@ -35,8 +36,6 @@ __all__ = [
     "PrestatairePaiement",
     "Disjoncteur",
     "FauxPrestataire",
-    "AdaptateurMtnMomo",
-    "AdaptateurOrangeMoney",
     "AdaptateurCamtel",
     "adaptateur_pour",
     "enregistrer_adaptateur",
@@ -79,9 +78,15 @@ class PrestatairePaiement(Protocol):
 
     code: str
 
-    def initier(self, *, reference: str, montant: Decimal, numero: str) -> ReponseInitiation: ...
+    # `url_retour` : la page où l'opérateur renvoie l'acheteur quand le paiement se fait chez lui
+    # (Orange WebPay) ; ignoré par un opérateur qui pousse la demande sur le téléphone (MTN).
+    def initier(
+        self, *, reference: str, montant: Decimal, numero: str, url_retour: str = ""
+    ) -> ReponseInitiation: ...
 
-    def statut(self, reference_externe: str) -> StatutTransaction: ...
+    # `charge_utile` : ce que l'opérateur a rendu à l'initiation. Orange exige de rappeler son
+    # jeton de paiement et le montant pour dire où en est la transaction.
+    def statut(self, reference_externe: str, *, charge_utile: dict | None = None) -> StatutTransaction: ...
 
     def rembourser(self, reference_externe: str, montant: Decimal) -> StatutTransaction: ...
 
@@ -167,7 +172,9 @@ class FauxPrestataire:
         chiffres = "".join(c for c in numero if c.isdigit())
         return chiffres[-1] if chiffres else "5"
 
-    def initier(self, *, reference: str, montant: Decimal, numero: str) -> ReponseInitiation:
+    def initier(
+        self, *, reference: str, montant: Decimal, numero: str, url_retour: str = ""
+    ) -> ReponseInitiation:
         from apps.payments.models import Transaction
 
         cas = self._cas(numero)
@@ -189,7 +196,7 @@ class FauxPrestataire:
             message="Paiement accepté.",
         )
 
-    def statut(self, reference_externe: str) -> StatutTransaction:
+    def statut(self, reference_externe: str, *, charge_utile: dict | None = None) -> StatutTransaction:
         from apps.payments.models import Transaction
 
         return StatutTransaction(etat=Transaction.REUSSIE, message="Paiement accepté.")
@@ -219,10 +226,8 @@ class AdaptateurHttp:
     L'échec est ainsi lisible dans un journal d'exploitation — « clé MTN absente »
     — plutôt que déguisé en erreur réseau à trois heures du matin.
 
-    Ce que l'implémentation devra ajouter, quand un compte de bac à sable existera :
-    l'obtention du jeton, l'appel de demande de paiement, la lecture du statut, et
-    la **vérification de signature des notifications** entrantes. Aucune de ces
-    quatre choses ne peut être écrite honnêtement sans pouvoir l'exécuter une fois.
+    Ne sert plus qu'à Camtel, dont aucune spécification d'API n'est publique : MTN et
+    Orange ont leurs clients réels dans `apps/payments/operateurs.py`.
     """
 
     code = ""
@@ -245,10 +250,12 @@ class AdaptateurHttp:
             "Il sera écrit contre le bac à sable de l'opérateur, jamais à l'aveugle."
         )
 
-    def initier(self, *, reference: str, montant: Decimal, numero: str) -> ReponseInitiation:
+    def initier(
+        self, *, reference: str, montant: Decimal, numero: str, url_retour: str = ""
+    ) -> ReponseInitiation:
         self._exiger_configuration()
 
-    def statut(self, reference_externe: str) -> StatutTransaction:
+    def statut(self, reference_externe: str, *, charge_utile: dict | None = None) -> StatutTransaction:
         self._exiger_configuration()
 
     def rembourser(self, reference_externe: str, montant: Decimal) -> StatutTransaction:
@@ -256,16 +263,6 @@ class AdaptateurHttp:
 
     def verser(self, *, reference: str, beneficiaire: str, montant: Decimal) -> ReponseInitiation:
         self._exiger_configuration()
-
-
-class AdaptateurMtnMomo(AdaptateurHttp):
-    code = "MTN_MOMO"
-    variables_requises = ("cle_abonnement", "identifiant_api", "cle_api", "environnement")
-
-
-class AdaptateurOrangeMoney(AdaptateurHttp):
-    code = "ORANGE_MONEY"
-    variables_requises = ("identifiant_client", "secret_client", "code_marchand")
 
 
 class AdaptateurCamtel(AdaptateurHttp):
@@ -290,15 +287,16 @@ def adaptateur_pour(code: str) -> PrestatairePaiement:
     prestataire simulé ; un déploiement réel remplace une entrée en appelant
     `enregistrer_adaptateur`, sans toucher au code métier.
     """
+    # Les clients réels vivent dans `operateurs.py`, qui importe ce module-ci : ils s'enregistrent
+    # eux-mêmes à leur chargement. Les charger ici, au premier besoin, plutôt qu'en tête de module,
+    # évite l'import circulaire — dont le symptôme dépendait de l'ordre de chargement, donc
+    # n'apparaissait qu'en production.
+    import apps.payments.operateurs  # noqa: F401
+
     if code not in _registre:
         raise PaiementIndisponible(f"Aucun adaptateur enregistré pour « {code} ».")
     return _registre[code]
 
 
-for _adaptateur in (
-    FauxPrestataire(),
-    AdaptateurMtnMomo(),
-    AdaptateurOrangeMoney(),
-    AdaptateurCamtel(),
-):
+for _adaptateur in (FauxPrestataire(), AdaptateurCamtel()):
     enregistrer_adaptateur(_adaptateur)

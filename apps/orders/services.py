@@ -471,8 +471,33 @@ def livrer(sous_commande, *, maintenant=None) -> SousCommande:
     """
     maintenant = maintenant or timezone.now()
     _avancer(sous_commande, SousCommande.LIVREE, livree_le=maintenant)
+    if sous_commande.mode_paiement == SousCommande.A_LA_LIVRAISON:
+        _constater_paiement_a_la_livraison(sous_commande, maintenant)
     _propager_l_etat_de_la_commande(sous_commande.commande, maintenant=maintenant)
     return sous_commande
+
+
+def _constater_paiement_a_la_livraison(sous_commande, maintenant) -> None:
+    """Une part payée à la livraison est encaissée quand elle est remise : c'est là que naissent
+    sa vente dans les livres et les commissions d'affiliation — sur du chiffre d'affaires encaissé,
+    comme l'exige l'invariant 3 du document 06.
+
+    Un échec comptable ne bloque pas la livraison : la marchandise est chez l'acheteur, et le
+    refuser ici ne la ferait pas revenir. Il est journalisé pour le comptable.
+    """
+    import logging
+
+    from apps.accounting.services import EcritureInvalide, comptabiliser_vente_a_la_livraison
+
+    try:
+        with transaction.atomic():
+            comptabiliser_vente_a_la_livraison(sous_commande, date_ecriture=timezone.localdate(maintenant))
+    except EcritureInvalide as erreur:
+        logging.getLogger(__name__).error(
+            "Vente à la livraison %s : écritures non passées (%s).", sous_commande.pk, erreur
+        )
+    with contexte_boutique(sous_commande.boutique_id):
+        calculer_commissions(sous_commande)
 
 
 def _propager_l_etat_de_la_commande(commande, *, maintenant) -> None:

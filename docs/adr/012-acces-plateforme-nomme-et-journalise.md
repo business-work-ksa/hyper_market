@@ -92,6 +92,7 @@ Cinq droits nouveaux, nommés par ce qu'ils ouvrent :
 | `plateforme.emplacements` | Vendre et attribuer les emplacements premium |
 | `plateforme.litiges` | Accéder à une commande contestée — motif obligatoire |
 | `plateforme.apporteurs` | Le réseau d'affiliation et ses versements |
+| `plateforme.versements` | Exécuter les versements aux marchands (ajouté avec le séquestre, ADR-013) |
 
 **Aucun d'eux n'ouvre `MARGE_VOIR`, `COUT_VOIR`, ni le cahier d'une boutique.** J'ai listé ce que
 l'exploitant fait réellement — valider une boutique, suspendre pour loyer impayé, ajuster une

@@ -59,7 +59,9 @@ d'œil.
         {% if 'plateforme.litiges' in droits %}
           {% nav 'plateforme:litiges' 'ic-retour' 'Litiges' page %}
         {% endif %}
-        {% nav 'plateforme:versements' 'ic-momo' 'Versements' page %}
+        {% if 'plateforme.versements' in droits %}
+          {% nav 'plateforme:versements' 'ic-momo' 'Versements' page %}
+        {% endif %}
         {% nav 'plateforme:rayons' 'ic-rayons' 'Rayons et commissions' page %}
         {% nav 'plateforme:emplacements' 'ic-etoile' 'Emplacements premium' page %}
       </div>

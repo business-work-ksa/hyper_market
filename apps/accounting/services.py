@@ -30,6 +30,8 @@ __all__ = [
     "comptabiliser_expedition",
     "comptabiliser_liberation_sequestre",
     "comptabiliser_versement",
+    "comptabiliser_remboursement",
+    "comptabiliser_vente_a_la_livraison",
     "comptabiliser_reglement_cahier",
     "balance",
     "solde_compte",
@@ -387,6 +389,90 @@ def _comptabiliser_vente_en_ligne(sous_commande, *, date_ecriture=None) -> list[
     return ecritures
 
 
+def comptabiliser_vente_a_la_livraison(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:
+    """Vente en ligne **payée à la livraison** : l'argent passe de la main de l'acheteur à celle du
+    livreur du marchand, jamais par la plateforme.
+
+    Elle n'était comptabilisée nulle part : `marquer_payee` ne voit que les parts prépayées. Un
+    marchand qui vend surtout à la livraison — le cas le plus courant ici — avait donc un chiffre
+    d'affaires en ligne absent de ses livres.
+
+    Trois écritures, comme au comptoir, écrites **à la livraison** parce que c'est là que l'argent
+    change de main :
+
+    1. la vente et sa TVA collectée (`411` / `701`, `4431`) ;
+    2. l'encaissement en caisse (`571` / `411`) — le livreur rapporte des espèces ; un règlement par
+       Mobile Money au livreur se reclasse à la main, faute de savoir comment il a été fait ;
+    3. la commission de place, due à la plateforme même sans séquestre (`632`, `4452` / `401`) :
+       elle sera facturée avec le loyer, pas retenue sur un versement.
+
+    Idempotent : une part déjà comptabilisée ne l'est pas deux fois.
+    """
+    with contexte_boutique(sous_commande.boutique_id):
+        return _comptabiliser_vente_a_la_livraison(sous_commande, date_ecriture=date_ecriture)
+
+
+def _comptabiliser_vente_a_la_livraison(sous_commande, *, date_ecriture=None) -> list[EcritureComptable]:
+    from django.conf import settings
+    from django.utils import timezone
+
+    reference = {"origine_type": "orders.SousCommande", "origine_id": sous_commande.pk}
+    if EcritureComptable.objects_all_tenants.filter(
+        boutique_id=sous_commande.boutique_id, journal__code=Journal.VENTES, **reference
+    ).exists():
+        return []
+
+    boutique_id = sous_commande.boutique_id
+    date = date_ecriture or timezone.localdate()
+    numero = sous_commande.commande.numero
+    ttc = Decimal(sous_commande.total_ttc)
+    if ttc <= 0:
+        return []
+
+    lignes_vente = [
+        (C_CLIENTS, ttc, Decimal("0")),
+        (C_VENTES_MARCHANDISES, Decimal("0"), sous_commande.total_ht),
+    ]
+    if sous_commande.total_tva > 0:
+        lignes_vente.append((C_TVA_FACTUREE, Decimal("0"), sous_commande.total_tva))
+    ecritures = [
+        passer_ecriture(
+            boutique_id=boutique_id,
+            code_journal=Journal.VENTES,
+            date_ecriture=date,
+            libelle=f"Vente en ligne à la livraison {numero}",
+            lignes=lignes_vente,
+            **reference,
+        ),
+        passer_ecriture(
+            boutique_id=boutique_id,
+            code_journal=Journal.CAISSE,
+            date_ecriture=date,
+            libelle=f"Encaissement à la livraison {numero}",
+            lignes=[(C_CAISSE, ttc, Decimal("0")), (C_CLIENTS, Decimal("0"), ttc)],
+            **reference,
+        ),
+    ]
+    commission = Decimal(sous_commande.commission_plateforme)
+    if commission > 0:
+        tva = (commission * Decimal(settings.TAUX_TVA_DEFAUT) / 100).quantize(CENTIME)
+        ecritures.append(
+            passer_ecriture(
+                boutique_id=boutique_id,
+                code_journal=Journal.ACHATS,
+                date_ecriture=date,
+                libelle=f"Commission de place {numero}",
+                lignes=[
+                    (C_COMMISSIONS, commission, Decimal("0")),
+                    (C_TVA_DEDUCTIBLE, tva, Decimal("0")),
+                    (C_FOURNISSEURS, Decimal("0"), commission + tva),
+                ],
+                **reference,
+            )
+        )
+    return ecritures
+
+
 def comptabiliser_liberation_sequestre(sequestre, *, date_ecriture=None) -> list[EcritureComptable]:
     """La plateforme se paie sa commission sur la créance du marchand, à la libération.
 
@@ -418,6 +504,95 @@ def comptabiliser_liberation_sequestre(sequestre, *, date_ecriture=None) -> list
             origine_type="payments.Sequestre",
             origine_id=sequestre.pk,
         )
+    ]
+
+
+def comptabiliser_remboursement(sequestre, *, date_ecriture=None) -> list[EcritureComptable]:
+    """L'acheteur est remboursé : la vente est défaite, en tout ou en partie, dans les livres.
+
+    Sans ces écritures, un marchand remboursé gardait dans ses comptes un chiffre d'affaires et une
+    TVA collectée qu'il n'a jamais encaissés — et il les déclarait.
+
+    * **Remboursement total** : les trois écritures de la vente en ligne (vente et TVA, séquestre,
+      commission de place) sont **contre-passées**. C'est la seule correction qu'admet un journal en
+      ajout seul, et elle rend exactement ce que la vente avait mis : le `5313` retombe à zéro, la
+      commission disparaît avec la vente, la TVA collectée aussi. La sortie de stock n'est pas
+      touchée — une marchandise non rendue n'est pas rentrée.
+    * **Remboursement partiel** : un **avoir** au prorata de la vente (le HT et la TVA dans la
+      proportion du TTC rendu), puis la sortie du `5313` vers l'acheteur. La commission subsiste,
+      la vente aussi : c'est une réduction consentie, pas une annulation.
+
+    Idempotent : une vente déjà contre-passée ne l'est pas deux fois ; un avoir déjà passé n'est pas
+    repassé.
+    """
+    with contexte_boutique(sequestre.boutique_id):
+        return _comptabiliser_remboursement(sequestre, date_ecriture=date_ecriture)
+
+
+def _comptabiliser_remboursement(sequestre, *, date_ecriture=None) -> list[EcritureComptable]:
+    from django.utils import timezone
+
+    from apps.payments.models import Sequestre
+
+    date = date_ecriture or timezone.localdate()
+    part = sequestre.sous_commande
+    numero = part.commande.numero
+
+    if sequestre.etat == Sequestre.REMBOURSE:
+        originales = EcritureComptable.objects_all_tenants.filter(
+            boutique_id=sequestre.boutique_id,
+            origine_type="orders.SousCommande",
+            origine_id=part.pk,
+            journal__code__in=[Journal.VENTES, Journal.BANQUE, Journal.ACHATS],
+            contrepassee_par__isnull=True,
+        )
+        # Une contre-passation porte la même origine que ce qu'elle annule : on écarte les inverses,
+        # sans quoi un second appel « annulerait l'annulation ».
+        inverses = EcritureComptable.objects_all_tenants.filter(
+            boutique_id=sequestre.boutique_id, contrepassee_par__isnull=False
+        ).values_list("contrepassee_par_id", flat=True)
+        return [
+            contrepasser(e, date_ecriture=date, motif=f"Avoir — remboursement total {numero}"[:255])
+            for e in originales.exclude(pk__in=inverses).order_by("cree_le")
+        ]
+
+    rendu = Decimal(sequestre.rembourse_acheteur or 0).quantize(CENTIME)
+    if sequestre.etat != Sequestre.PARTAGE or rendu <= 0:
+        return []
+    deja = EcritureComptable.objects_all_tenants.filter(
+        boutique_id=sequestre.boutique_id,
+        origine_type="payments.Sequestre",
+        origine_id=sequestre.pk,
+        libelle__startswith="Avoir partiel",
+    ).exists()
+    if deja:
+        return []
+
+    total_ttc = Decimal(part.total_ttc)
+    ht = (rendu * Decimal(part.total_ht) / total_ttc).quantize(CENTIME) if total_ttc else rendu
+    tva = rendu - ht
+    lignes_avoir = [(C_VENTES_MARCHANDISES, ht, Decimal("0"))]
+    if tva > 0:
+        lignes_avoir.append((C_TVA_FACTUREE, tva, Decimal("0")))
+    lignes_avoir.append((C_CLIENTS, Decimal("0"), rendu))
+    reference = {"origine_type": "payments.Sequestre", "origine_id": sequestre.pk}
+    return [
+        passer_ecriture(
+            boutique_id=sequestre.boutique_id,
+            code_journal=Journal.VENTES,
+            date_ecriture=date,
+            libelle=f"Avoir partiel {numero}",
+            lignes=lignes_avoir,
+            **reference,
+        ),
+        passer_ecriture(
+            boutique_id=sequestre.boutique_id,
+            code_journal=Journal.BANQUE,
+            date_ecriture=date,
+            libelle=f"Avoir partiel {numero} — remboursé par le séquestre",
+            lignes=[(C_CLIENTS, rendu, Decimal("0")), (C_COMPTE_PLATEFORME, Decimal("0"), rendu)],
+            **reference,
+        ),
     ]
 
 

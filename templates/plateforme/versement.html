@@ -41,7 +41,33 @@
       </div>
     </section>
 
-    {% if v.etat == 'demande' %}
+    {% if v.etat == 'demande' and envoi_en_cours %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">Envoi en cours chez l'opérateur</h2>
+          <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>En attente</span></header>
+        <div class="carte__corps">
+          <p class="t-2">Transmis le {{ envoi_en_cours.cree_le|date:"d/m/Y à H:i" }}. Le versement sera
+            marqué exécuté dès que l'opérateur le confirmera ; la tâche quotidienne relit son statut.
+            Ne le refaites pas à la main.</p>
+        </div>
+      </section>
+    {% elif v.etat == 'demande' and envoi_api %}
+      <form class="carte" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="envoyer_api">
+        <header class="carte__entete"><h2 class="t-section">Envoyer par MTN MoMo</h2></header>
+        <div class="carte__corps colonne" style="gap:10px">
+          <p class="t-2">L'application demande à MTN de verser <strong class="chiffre">{{ v.montant|fcfa }} FCFA</strong>
+            au <span class="chiffre">{{ v.numero }}</span>, et marque le versement exécuté quand MTN
+            le confirme, avec sa référence. Un double clic ne verse pas deux fois.</p>
+        </div>
+        <footer class="carte__pied assistant__pied">
+          <button class="btn btn--primaire" type="submit">Envoyer le versement</button>
+        </footer>
+      </form>
+    {% endif %}
+
+    {% if v.etat == 'demande' and not envoi_en_cours %}
       <form class="carte" method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="executer">
@@ -50,7 +76,7 @@
           <p class="t-2">
             Faites le virement chez l'opérateur ou l'agrégateur, vers la destination ci-dessus
             <strong>et nulle autre</strong>, puis saisissez la référence qu'il vous a donnée.
-            L'application ne fait pas le virement elle-même : elle constate qu'il est fait.
+            Ce formulaire ne fait pas le virement : il constate un virement fait hors de l'application.
           </p>
           <label class="groupe-champ">
             <span class="t-petit" style="font-weight:560">Référence de l'opération</span>

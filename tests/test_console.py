@@ -211,4 +211,6 @@ class TachesQuotidiennesTest(TestCase):
                 self.url, HTTP_AUTHORIZATION="Bearer le-bon-secret-long"
             )
         self.assertEqual(reponse.status_code, 200, reponse.content)
-        self.assertEqual(set(reponse.json()), {"liberer_sequestres", "evaluer_confiance"})
+        self.assertEqual(
+            set(reponse.json()), {"actualiser_paiements", "liberer_sequestres", "evaluer_confiance"}
+        )

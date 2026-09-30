@@ -36,6 +36,7 @@ un code à usage unique pour cela, et il n'existe pas encore.
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Utilisateur
@@ -43,8 +44,9 @@ from apps.core.tenancy import contexte_plateforme
 from apps.marketplace.confiance import palier_de
 from apps.orders.models import Commande, Litige, SousCommande
 from apps.orders.services import CommandeInvalide, PrepaiementRefuse, passer_commande
+from apps.payments import paiement_en_ligne
 from apps.payments import sequestre as sequestre_service
-from apps.payments.models import Sequestre
+from apps.payments.models import Sequestre, Transaction
 from apps.vitrine import panier as panier_service
 from apps.vitrine.catalogue import (
     article_par_identifiant,
@@ -237,7 +239,8 @@ def commander(request):
 
     groupes = panier_service.par_boutique(lignes)
     refus = _refus_de_prepaiement(groupes)
-    formulaire = CommandeForm(request.POST or None)
+    ouverts = paiement_en_ligne.operateurs_ouverts()
+    formulaire = CommandeForm(request.POST or None, prepaiement_ouvert=bool(ouverts))
     if request.method == "POST" and formulaire.is_valid():
         try:
             commande = _enregistrer(request, lignes, formulaire.cleaned_data)
@@ -271,6 +274,7 @@ def commander(request):
             refus=refus,
             a_la_livraison=",".join(sorted(refus)),
             tout_refuse=bool(groupes) and len(refus) == len(groupes),
+            operateurs_ouverts=ouverts,
         ),
     )
 
@@ -414,6 +418,12 @@ def commande(request, identifiant):
             request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404
         )
     reconnu = _acheteur_reconnu(request, commande_vue)
+    paiement = _paiement_de(commande_vue) if reconnu else None
+    if paiement and paiement["en_cours"] is not None:
+        # Retour de la page Orange, ou acheteur qui revient : on relit l'opérateur avant d'afficher.
+        paiement["en_cours"] = paiement_en_ligne.actualiser(paiement["en_cours"])
+        commande_vue, parts = _lire_commande(identifiant)
+        paiement = _paiement_de(commande_vue)
     _decorer_pour_l_acheteur(parts, reconnu)
 
     return render(
@@ -427,8 +437,83 @@ def commande(request, identifiant):
             reconnu=reconnu,
             prepayee=any(p.prepayee for p in parts),
             delai_implicite=sequestre_service.DELAI_CONFIRMATION_IMPLICITE.days,
+            paiement=paiement,
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Paiement en ligne (MTN MoMo, Orange Money)
+# ---------------------------------------------------------------------------
+def _paiement_de(commande_vue) -> dict | None:
+    """Ce que la page de commande doit dire du paiement d'avance, s'il en reste un à faire."""
+    if commande_vue.etat != Commande.CONFIRMEE:
+        return None
+    du = paiement_en_ligne.montant_a_payer(commande_vue)
+    if du <= 0:
+        return None
+    tentatives = list(paiement_en_ligne.transactions_de(commande_vue))
+    en_cours = next((t for t in reversed(tentatives) if t.etat == Transaction.INITIEE), None)
+    dernier_echec = next(
+        (t for t in reversed(tentatives) if t.etat in (Transaction.ECHOUEE, Transaction.EXPIREE)),
+        None,
+    )
+    return {
+        "montant": du,
+        "en_cours": en_cours,
+        "dernier_echec": dernier_echec if en_cours is None else None,
+        "operateurs": paiement_en_ligne.operateurs_ouverts(),
+        "simule": paiement_en_ligne.paiements_simules(),
+        "numero": commande_vue.acheteur.telephone if commande_vue.acheteur_id else "",
+    }
+
+
+@require_POST
+def payer(request, identifiant):
+    """Lance le paiement d'avance. Réservé à la session qui a passé la commande."""
+    commande_vue, _ = _lire_commande(identifiant)
+    if commande_vue is None or not _acheteur_reconnu(request, commande_vue):
+        return render(request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404)
+
+    numero = (request.POST.get("numero") or "").strip().replace(" ", "")
+    retour = request.build_absolute_uri(reverse("vitrine_commande", args=[commande_vue.pk]))
+    try:
+        operation = paiement_en_ligne.payer_commande(commande_vue, numero=numero, url_retour=retour)
+    except paiement_en_ligne.PaiementImpossible as erreur:
+        messages.error(request, str(erreur))
+        return redirect("vitrine_commande", identifiant=commande_vue.pk)
+
+    # Orange : le paiement se fait chez lui. On n'y envoie que vers l'adresse qu'il nous a rendue,
+    # enregistrée sur la transaction — jamais vers une adresse lue dans la requête.
+    adresse = (operation.charge_utile_psp or {}).get("payment_url", "")
+    if operation.etat == Transaction.INITIEE and adresse.startswith("https://"):
+        return redirect(adresse)
+    paiement_en_ligne.constater(operation)
+    if operation.etat == Transaction.ECHOUEE:
+        messages.error(request, f"Le paiement n'a pas abouti : {_message_de(operation)}")
+    return redirect("vitrine_commande", identifiant=commande_vue.pk)
+
+
+def paiement_etat(request, identifiant):
+    """Où en est le paiement : relu auprès de l'opérateur. JSON pour la page qui attend, sinon retour."""
+    from django.http import JsonResponse
+
+    commande_vue, _ = _lire_commande(identifiant)
+    if commande_vue is None or not _acheteur_reconnu(request, commande_vue):
+        return JsonResponse({"etat": "inconnu"}, status=404)
+    en_cours = paiement_en_ligne.tentative_en_cours(commande_vue)
+    if en_cours is not None:
+        en_cours = paiement_en_ligne.actualiser(en_cours)
+    commande_vue.refresh_from_db()
+    etat = "payee" if commande_vue.etat != Commande.CONFIRMEE else (en_cours.etat if en_cours else "aucun")
+    if request.method == "POST" or "application/json" not in request.headers.get("Accept", ""):
+        return redirect("vitrine_commande", identifiant=commande_vue.pk)
+    return JsonResponse({"etat": etat})
+
+
+def _message_de(operation) -> str:
+    charge = operation.charge_utile_psp or {}
+    return charge.get("dernier_message") or charge.get("message") or charge.get("refus") or "refusé par l'opérateur."
 
 
 def _part_de_l_acheteur(request, identifiant, part_id):

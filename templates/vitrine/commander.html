@@ -36,6 +36,7 @@
         {% endfor %}
       </fieldset>
 
+      {% if operateurs_ouverts %}
       <div class="bandeau-info" role="note">
         <svg><use href="#ic-verrou"></use></svg>
         <span>
@@ -46,8 +47,9 @@
           commande, et l'argent reste bloqué le temps que la plateforme tranche.
         </span>
       </div>
+      {% endif %}
 
-      {% if refus %}
+      {% if refus and operateurs_ouverts %}
         <div class="bandeau-info bandeau-info--alerte" role="status">
           <svg><use href="#ic-info"></use></svg>
           <span class="colonne" style="gap:6px">
@@ -56,12 +58,18 @@
         </div>
       {% endif %}
 
-      <p class="t-legende">
-        Le paiement en ligne n'est pas encore ouvert : rien n'est débité maintenant. Pour un
-        paiement d'avance, les instructions vous parviennent sur votre numéro ; à la livraison,
-        vous payez en recevant la marchandise. Chaque commerçant vous appelle pour convenir de
-        la remise.
-      </p>
+      {% if operateurs_ouverts %}
+        <p class="t-legende">
+          Rien n'est débité à l'envoi. Pour un paiement d'avance, la page suivante vous propose de
+          payer avec {{ operateurs_ouverts|join:" ou " }}. À la livraison, vous payez en recevant
+          la marchandise. Chaque commerçant vous appelle pour convenir de la remise.
+        </p>
+      {% else %}
+        <p class="t-legende">
+          Le paiement en ligne n'est pas encore ouvert : vous payez en recevant la marchandise.
+          Chaque commerçant vous appelle pour convenir de la remise.
+        </p>
+      {% endif %}
 
       <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
         Envoyer la commande

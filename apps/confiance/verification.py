@@ -1037,3 +1037,109 @@ def file_des_verifications(*, jour=None) -> dict:
             .order_by("expire_le")
         ),
     }
+
+
+# ----------------------------------------------------------------------------
+# L'avis au gérant : « un compte de versement a été déclaré pour votre boutique »
+# ----------------------------------------------------------------------------
+# Le délai de carence ne protège que si quelqu'un regarde pendant qu'il court. Le gérant est la seule
+# personne qui sait avec certitude si un numéro est le sien. Chaque compte déclaré par **quelqu'un
+# d'autre que lui** — un employé, un administrateur, un voleur de mot de passe — lui est donc montré
+# dans son back-office, avec deux réponses : « c'est bien moi » ou « ce n'est pas moi ».
+#
+# Pas de SMS : aucune passerelle n'est branchée, et un avis inventé serait pire qu'aucun. L'avis vit
+# dans le back-office, où le gérant passe chaque jour ; le délai de carence lui en laisse le temps.
+FENETRE_AVIS = timedelta(days=14)
+
+
+def comptes_a_confirmer(boutique, gerant) -> list:
+    """Les comptes déclarés récemment par un autre que ce gérant, auxquels il n'a pas répondu."""
+    if boutique is None or gerant is None:
+        return []
+    return list(
+        CompteVersement.objects.filter(
+            boutique_id=boutique.pk,
+            etat__in=[CompteVersement.EN_ATTENTE, CompteVersement.VERIFIE],
+            confirme_par_gerant_le__isnull=True,
+            conteste_le__isnull=True,
+            cree_le__gte=timezone.now() - FENETRE_AVIS,
+        )
+        .exclude(declare_par_id=gerant.pk)
+        .order_by("-cree_le")
+    )
+
+
+def _exiger_gerant(compte, par) -> None:
+    if par is None or par.pk not in {g.pk for g in gerants(compte.boutique)}:
+        raise PermissionDenied("Seul un gérant de la boutique répond pour son compte de versement.")
+
+
+@transaction.atomic
+def confirmer_compte_par_gerant(compte, *, par) -> CompteVersement:
+    """« C'est bien moi » : l'avis disparaît. Rien d'autre ne change — la vérification suit son cours."""
+    compte = CompteVersement.objects.select_for_update().select_related("boutique").get(pk=compte.pk)
+    _exiger_gerant(compte, par)
+    if compte.conteste_le is None and compte.confirme_par_gerant_le is None:
+        compte.confirme_par_gerant_le = timezone.now()
+        compte.save(update_fields=["confirme_par_gerant_le", "modifie_le"])
+    return compte
+
+
+def contester_compte(compte, *, par) -> CompteVersement:
+    """« Ce n'est pas moi » : le compte est retiré, les versements qui y partaient sont annulés, et
+    la plateforme reçoit un signal critique. Un humain enquête ; rien ne part entre-temps.
+
+    Le compte n'est pas supprimé : qui l'a déclaré, quand, et vers quel numéro, c'est précisément ce
+    que l'enquête lira.
+    """
+    from apps.confiance.models import SignalRisque
+    from apps.confiance.signaux import Constat, enregistrer
+    from apps.payments.models import Versement
+    from apps.payments.versements import VersementRefuse, annuler_versement
+
+    maintenant = timezone.now()
+    with transaction.atomic():
+        compte = CompteVersement.objects.select_for_update(of=("self",)).select_related("boutique", "declare_par").get(pk=compte.pk)
+        _exiger_gerant(compte, par)
+        if compte.conteste_le is not None:
+            return compte
+        compte.conteste_le = maintenant
+        compte.conteste_par = par
+        if compte.etat in (CompteVersement.EN_ATTENTE, CompteVersement.VERIFIE):
+            compte.etat = CompteVersement.RETIRE
+            compte.retire_le = maintenant
+        compte.motif = "Contesté par le gérant : il ne l'a pas déclaré."
+        compte.save(update_fields=["conteste_le", "conteste_par", "etat", "retire_le", "motif", "modifie_le"])
+
+    annules = 0
+    for versement in Versement.objects.filter(compte=compte, etat=Versement.DEMANDE):
+        try:
+            annuler_versement(versement, motif="Compte de destination contesté par le gérant.", par=par)
+            annules += 1
+        except VersementRefuse:
+            pass
+
+    declarant = compte.declare_par.nom_complet if compte.declare_par_id else "inconnu"
+    enregistrer(
+        Constat(
+            boutique_id=compte.boutique_id,
+            type=SignalRisque.CHANGEMENT_COMPTE,
+            gravite=SignalRisque.CRITIQUE,
+            score=100,
+            resume=(
+                f"Le gérant conteste le compte {compte.get_operateur_display()} {masquer(compte.numero)} "
+                f"déclaré par {declarant}."
+            )[:240],
+            preuves={
+                "compte": str(compte.pk),
+                "numero": masquer(compte.numero),
+                "declare_par": declarant,
+                "declare_le": compte.cree_le.isoformat(timespec="minutes"),
+                "conteste_par": par.nom_complet,
+                "versements_annules": annules,
+            },
+            faits=[f"conteste:{compte.pk}"],
+        ),
+        maintenant=maintenant,
+    )
+    return compte

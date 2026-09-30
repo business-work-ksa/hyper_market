@@ -532,6 +532,20 @@ def _comptabiliser_liberation(sequestre, maintenant) -> None:
         )
 
 
+def _comptabiliser_remboursement(sequestre, maintenant) -> None:
+    """L'avoir chez le marchand. Même règle que la libération : un échec comptable ne retient pas
+    l'argent de l'acheteur ; il est journalisé pour que le comptable passe l'écriture à la main."""
+    from apps.accounting.services import EcritureInvalide, comptabiliser_remboursement
+
+    try:
+        with transaction.atomic():
+            comptabiliser_remboursement(sequestre, date_ecriture=timezone.localdate(maintenant))
+    except EcritureInvalide as erreur:
+        journal.error(
+            "Remboursement du séquestre %s : avoir non passé (%s).", sequestre.pk, erreur
+        )
+
+
 def liberer_echus(*, maintenant=None) -> dict:
     """Confirmations implicites et libérations échues, pour toutes les boutiques.
 
@@ -638,6 +652,7 @@ def rembourser(
                     ]
                 )
                 annuler_commissions(sequestre.sous_commande, motif=motif[:200])
+                _comptabiliser_remboursement(sequestre, maintenant)
                 return sequestre
 
             rendu = Decimal(montant_marchand).quantize(CENTIME)
@@ -675,6 +690,9 @@ def rembourser(
                     "modifie_le",
                 ]
             )
+            # L'avoir d'abord, la commission retenue ensuite : le `5313` descend du rendu, puis de
+            # la commission, et ce qui reste est exactement la part libérée.
+            _comptabiliser_remboursement(sequestre, maintenant)
             _comptabiliser_liberation(sequestre, maintenant)
             return sequestre
 

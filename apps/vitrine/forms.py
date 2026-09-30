@@ -62,8 +62,19 @@ class CommandeForm(forms.Form):
     # qu'on n'applique jamais un paiement à la livraison qu'il n'a pas vu annoncé.
     a_la_livraison = forms.CharField(required=False, widget=forms.HiddenInput)
 
+    def __init__(self, *args, prepaiement_ouvert: bool = True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.prepaiement_ouvert = prepaiement_ouvert
+        if not prepaiement_ouvert:
+            # Aucun moyen de payer en ligne n'est ouvert : on ne propose pas ce qu'on ne peut pas
+            # encaisser. Le choix reste affiché, seul, pour que l'acheteur sache comment il paiera.
+            self.fields["mode_paiement"].choices = [("livraison", "Payer à la livraison")]
+            self.fields["mode_paiement"].initial = "livraison"
+
     def clean_mode_paiement(self):
-        return self.cleaned_data.get("mode_paiement") or "livraison"
+        choix = self.cleaned_data.get("mode_paiement") or "livraison"
+        # Un envoi forgé ne doit pas engager un prépaiement que la page n'offrait pas.
+        return choix if self.prepaiement_ouvert else "livraison"
 
     def clean_a_la_livraison(self):
         return {v for v in (self.cleaned_data.get("a_la_livraison") or "").split(",") if v}

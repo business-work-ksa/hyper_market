@@ -535,6 +535,15 @@ class CompteVersement(BaseModel):
     )
     motif = models.CharField(max_length=300, blank=True, help_text="Motif du rejet ou du retrait.")
     retire_le = models.DateTimeField(null=True, blank=True)
+    # La réponse du gérant à l'avis « un compte de versement a été déclaré pour votre boutique ».
+    # C'est la seule personne qui sait avec certitude si ce numéro est le sien : quand quelqu'un
+    # d'autre — un employé, un administrateur, un compte volé — déclare un compte, le gérant le
+    # voit, et peut dire « ce n'est pas moi » pendant le délai de carence, avant que l'argent parte.
+    confirme_par_gerant_le = models.DateTimeField(null=True, blank=True)
+    conteste_le = models.DateTimeField(null=True, blank=True)
+    conteste_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
 
     class Meta:
         verbose_name = "compte de versement"

@@ -45,7 +45,9 @@ def taches_quotidiennes(request):
         return HttpResponseForbidden("Accès refusé.")
 
     resultats = {}
-    for commande in ("liberer_sequestres", "evaluer_confiance"):
+    # Dans cet ordre : constater les paiements d'abord (ils ouvrent des séquestres), libérer ensuite,
+    # évaluer la confiance en dernier (elle lit les livraisons confirmées que la libération a vues).
+    for commande in ("actualiser_paiements", "liberer_sequestres", "evaluer_confiance"):
         sortie = io.StringIO()
         try:
             call_command(commande, stdout=sortie, stderr=sortie)

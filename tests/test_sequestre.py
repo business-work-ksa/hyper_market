@@ -16,7 +16,7 @@ from decimal import Decimal
 
 from django.core.management import call_command
 from django.db.models import Sum
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.accounting.services import solde_compte
@@ -218,6 +218,7 @@ class PlafondTest(SocleSequestre):
         self.commander([(self.creme, Decimal("5"))])
 
 
+@override_settings(PAIEMENTS_SIMULES=True)  # le prépaiement n'est proposé que s'il peut être payé
 class PlafondEnVitrineTest(SocleSequestre):
     def test_la_vitrine_annonce_le_refus_et_propose_la_livraison(self):
         from django.urls import reverse

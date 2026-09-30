@@ -30,7 +30,7 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from apps.accounts.permissions import PLATEFORME_LITIGES
+from apps.accounts.permissions import PLATEFORME_LITIGES, PLATEFORME_VERSEMENTS
 from apps.core.tenancy import acces_plateforme
 from apps.marketplace.confiance import palier_de
 from apps.orders.models import LigneCommande, Litige
@@ -39,7 +39,7 @@ from apps.payments import versements as versements_service
 from apps.payments.models import MouvementPortefeuille, Sequestre, Versement
 from apps.plateforme.acces import contexte_console, exige_console, lecture_journalisee
 
-DROIT_VERSEMENTS = PLATEFORME_LITIGES
+DROIT_VERSEMENTS = PLATEFORME_VERSEMENTS
 
 # L'engagement pris envers l'acheteur (docs/08, §8) : une décision sous 72 heures.
 DELAI_D_INSTRUCTION = timedelta(hours=72)
@@ -313,6 +313,8 @@ def versement(request, versement_id):
             bilan=bilan,
             mouvements=mouvements,
             anomalie=bilan["ecart"] != 0,
+            envoi_api=versements_service.envoi_par_api_possible(v) and not ecarts,
+            envoi_en_cours=versements_service.envoi_en_cours(v),
         ),
     )
 
@@ -336,6 +338,23 @@ def _agir_sur_le_versement(request, versement_id):
             ):
                 versements_service.executer_versement(v, reference=reference, par=request.user)
             messages.success(request, "Versement exécuté : la référence de l'opérateur est enregistrée.")
+        elif action == "envoyer_api":
+            with acces_plateforme(
+                utilisateur=request.user,
+                motif="Envoi du versement par l'API de l'opérateur",
+                ecran=f"Versement {versement_id} — envoi par API",
+                boutique_id=v.boutique_id,
+            ):
+                operation = versements_service.envoyer_par_api(v, par=request.user)
+            v.refresh_from_db()
+            if v.etat == v.EXECUTE:
+                messages.success(request, "Versement parti et confirmé par l'opérateur.")
+            else:
+                messages.success(
+                    request,
+                    "Versement transmis à l'opérateur ; il sera marqué exécuté dès sa confirmation "
+                    f"({operation.get_etat_display().lower()}).",
+                )
         elif action == "annuler":
             motif = (request.POST.get("motif") or "").strip()
             if len(motif) < versements_service.LONGUEUR_MIN_MOTIF:

@@ -5,6 +5,83 @@
 {% block rayons %}{% endblock %}
 
 {% block contenu %}
+{% comment %}
+Le paiement d'avance vient en premier quand il reste à faire : c'est le seul geste qui attend
+l'acheteur, et tant qu'il n'est pas fait, aucun commerçant ne prépare rien.
+
+Trois états : rien de lancé (formulaire), demande en attente (MTN attend le code sur le téléphone ;
+la page relit l'opérateur toutes les cinq secondes, et un bouton le fait sans JavaScript), ou
+dernier essai échoué (le motif, puis le formulaire à nouveau).
+{% endcomment %}
+{% if paiement %}
+  <section class="carte paiement" style="margin-bottom:16px" id="paiement"
+           {% if paiement.en_cours %}data-attente="{% url 'vitrine_paiement_etat' commande.pk %}"{% endif %}>
+    <div class="carte__corps colonne" style="gap:12px">
+      <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
+        <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>Paiement d'avance attendu</span>
+        <span class="chiffre" style="font-size:1.5rem;font-weight:680">{{ paiement.montant|fcfa }} <span class="unite">FCFA</span></span>
+      </div>
+
+      {% if paiement.simule %}
+        <div class="bandeau-info bandeau-info--alerte" role="note">
+          <svg><use href="#ic-info"></use></svg>
+          <span><strong>Démonstration : aucun argent réel ne bouge.</strong> Un numéro finissant
+            par 0 simule un refus, par 9 une attente ; tout autre, une réussite.</span>
+        </div>
+      {% endif %}
+
+      {% if paiement.en_cours %}
+        <div class="colonne" style="gap:8px" role="status" aria-live="polite">
+          <p class="t-section" id="paiement-texte">Validez le paiement sur votre téléphone</p>
+          <p class="t-2">
+            Une demande de {{ paiement.montant|fcfa }} FCFA a été envoyée au
+            <span class="chiffre">{{ paiement.en_cours.numero_payeur }}</span>. Composez votre code
+            secret Mobile Money pour l'accepter. Cette page se met à jour toute seule.
+          </p>
+          <p class="t-legende">
+            HyperMarché ne vous demandera jamais votre code secret, ni au téléphone ni par message.
+          </p>
+        </div>
+        <form method="post" action="{% url 'vitrine_paiement_etat' commande.pk %}">
+          {% csrf_token %}
+          <button class="btn" type="submit">J'ai validé — vérifier maintenant</button>
+        </form>
+      {% else %}
+        {% if paiement.dernier_echec %}
+          <div class="bandeau-info bandeau-info--alerte" role="alert">
+            <svg><use href="#ic-alerte"></use></svg>
+            <span>Le dernier essai n'a pas abouti{% if paiement.dernier_echec.etat == 'expiree' %} : la demande a expiré{% endif %}.
+              Vous pouvez réessayer, avec ce numéro ou un autre.</span>
+          </div>
+        {% endif %}
+        {% if paiement.operateurs %}
+          <form class="colonne" style="gap:10px" method="post" action="{% url 'vitrine_payer' commande.pk %}">
+            {% csrf_token %}
+            <label class="groupe-champ">
+              <span class="t-petit" style="font-weight:560">Numéro Mobile Money qui paie</span>
+              <input class="champ champ--grand" name="numero" value="{{ paiement.numero }}" required
+                     inputmode="tel" autocomplete="tel" maxlength="20">
+              <span class="t-legende">Le numéro décide de l'opérateur : {{ paiement.operateurs|join:", " }}.</span>
+            </label>
+            <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+              Payer {{ paiement.montant|fcfa }} FCFA
+            </button>
+            <p class="t-legende">
+              L'argent reste en séquestre chez notre partenaire agréé jusqu'à ce que vous confirmiez
+              la réception. Le commerçant ne le reçoit pas avant.
+            </p>
+          </form>
+        {% else %}
+          <p class="t-2">
+            Le paiement en ligne n'est pas ouvert en ce moment. Le commerçant vous appellera pour
+            convenir du règlement.
+          </p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </section>
+{% endif %}
+
 <section class="carte" style="margin-bottom:16px">
   <div class="carte__corps colonne" style="gap:10px">
     <span class="puce puce--bon" style="align-self:flex-start">
@@ -173,4 +250,28 @@ l'une des deux.
 <div class="rangee" style="gap:10px;margin-top:16px">
   <a class="btn btn--primaire" href="{% url 'vitrine_catalogue' %}">Retour au marché</a>
 </div>
+
+{% if paiement.en_cours %}
+<script>
+  // Relit le paiement toutes les cinq secondes, pendant cinq minutes au plus. Chaque lecture
+  // interroge l'opérateur côté serveur : ce n'est pas la page qui décide qu'un paiement a réussi.
+  (function () {
+    var bloc = document.getElementById("paiement");
+    var adresse = bloc && bloc.getAttribute("data-attente");
+    if (!adresse || !window.fetch) return;
+    var essais = 0;
+    function relire() {
+      essais += 1;
+      fetch(adresse, { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.etat === "initiee" && essais < 60) { setTimeout(relire, 5000); return; }
+          window.location.reload();
+        })
+        .catch(function () { if (essais < 60) setTimeout(relire, 5000); });
+    }
+    setTimeout(relire, 5000);
+  })();
+</script>
+{% endif %}
 {% endblock %}

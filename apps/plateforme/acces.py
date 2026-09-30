@@ -50,6 +50,7 @@ LIBELLES_CONSOLE = {
     "plateforme.emplacements": "Vendre les emplacements premium",
     "plateforme.litiges": "Instruire les litiges",
     "plateforme.apporteurs": "Gérer le réseau d'apporteurs",
+    "plateforme.versements": "Exécuter les versements aux marchands",
     CONSOLE_ADMINISTRATEURS: "Nommer les administrateurs du marché",
     CONSOLE_TECHNIQUE: "Consulter la santé technique",
 }

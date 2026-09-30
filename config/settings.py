@@ -268,6 +268,51 @@ KYC_CLE_NUMEROS = env("KYC_CLE_NUMEROS", default="")
 # le disque est éphémère : une copie qui y serait écrite disparaîtrait sans prévenir.
 KYC_STOCKAGE_COPIES = env("KYC_STOCKAGE_COPIES", default="")
 
+# Paiement en ligne : MTN MoMo et Orange Money (`apps/payments/operateurs.py`).
+#
+# Toutes les clés viennent de l'environnement et n'en sortent pas. Une variable absente ne fait
+# pas tomber l'application : l'opérateur concerné refuse net en nommant ce qui manque, et la vitrine
+# propose le paiement à la livraison.
+#
+# `URL_PUBLIQUE` : l'adresse absolue du site (https://…), sans laquelle aucun opérateur ne peut
+# nous notifier ni renvoyer l'acheteur. Orange refuse de démarrer sans elle.
+URL_PUBLIQUE = env("URL_PUBLIQUE", default="")
+PAIEMENTS_OPERATEURS = {
+    "MTN_MOMO": {
+        k: v
+        for k, v in {
+            "url_base": env("MTN_MOMO_URL_BASE", default=""),
+            # « sandbox » en bac à sable, « mtncameroon » en production.
+            "environnement": env("MTN_MOMO_ENVIRONNEMENT", default=""),
+            "devise": env("MTN_MOMO_DEVISE", default=""),
+            "cle_abonnement_collecte": env("MTN_MOMO_CLE_ABONNEMENT_COLLECTE", default=""),
+            "utilisateur_api_collecte": env("MTN_MOMO_UTILISATEUR_API_COLLECTE", default=""),
+            "cle_api_collecte": env("MTN_MOMO_CLE_API_COLLECTE", default=""),
+            "cle_abonnement_versement": env("MTN_MOMO_CLE_ABONNEMENT_VERSEMENT", default=""),
+            "utilisateur_api_versement": env("MTN_MOMO_UTILISATEUR_API_VERSEMENT", default=""),
+            "cle_api_versement": env("MTN_MOMO_CLE_API_VERSEMENT", default=""),
+        }.items()
+        if v
+    },
+    "ORANGE_MONEY": {
+        k: v
+        for k, v in {
+            "url_base": env("ORANGE_MONEY_URL_BASE", default=""),
+            # « orange-money-webpay/dev/v1 » en bac à sable, « orange-money-webpay/cm/v1 » ensuite.
+            "chemin": env("ORANGE_MONEY_CHEMIN", default=""),
+            "devise": env("ORANGE_MONEY_DEVISE", default=""),
+            "id_client": env("ORANGE_MONEY_ID_CLIENT", default=""),
+            "secret_client": env("ORANGE_MONEY_SECRET_CLIENT", default=""),
+            "cle_marchand": env("ORANGE_MONEY_CLE_MARCHAND", default=""),
+        }.items()
+        if v
+    },
+}
+# Démonstration : le paiement en ligne passe par le simulateur (`FauxPrestataire`), et la page le
+# dit en toutes lettres. **Jamais en même temps que des clés réelles** : un acheteur doit toujours
+# savoir si son argent bouge vraiment.
+PAIEMENTS_SIMULES = env.bool("PAIEMENTS_SIMULES", default=False)
+
 DEVISE = "XAF"
 DEVISE_SYMBOLE = "FCFA"
 PAYS_DEFAUT = "CM"

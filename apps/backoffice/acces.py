@@ -150,6 +150,7 @@ def contexte_commun(request, page: str) -> dict:
         "ordonnances_a_consigner": None,
         "appareils_a_l_atelier": None,
         "identite": None,
+        "comptes_a_confirmer": [],
     }
     if boutique is None:
         request._contexte_backoffice = contexte
@@ -195,8 +196,17 @@ def contexte_commun(request, page: str) -> dict:
 
         a_l_atelier = en_atelier().count() or None
 
+    # L'avis « un compte de versement a été déclaré pour votre boutique », montré au seul gérant
+    # (docs/23, §2.4) : c'est lui qui sait si le numéro est le sien.
+    comptes_a_confirmer = []
+    if "boutique.administrer" in droits:
+        from apps.confiance.verification import comptes_a_confirmer as _comptes
+
+        comptes_a_confirmer = _comptes(boutique, request.user)
+
     contexte.update(
         {
+            "comptes_a_confirmer": comptes_a_confirmer,
             "droits": droits,
             "depots": depots,
             "depot_courant": depot_courant(request) if depots else None,

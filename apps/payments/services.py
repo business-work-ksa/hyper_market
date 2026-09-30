@@ -110,8 +110,19 @@ def choisir_prestataire(numero: str) -> Prestataire:
         if disjoncteur.disponible(prestataire.code):
             return prestataire
 
+    # Le paiement à la livraison et le simulateur n'ont pas de préfixe, mais ce ne sont pas des
+    # passerelles : le premier ne débite rien, le second ne débite pas pour de vrai. Sans cette
+    # exclusion, le paiement à la livraison — frais nuls, donc premier au tri — recevait tout numéro
+    # dont l'opérateur était en panne, et un prépaiement devenait une promesse sans argent.
+    NON_PASSERELLES = {Prestataire.PAIEMENT_LIVRAISON, Prestataire.FAUX}
     generalistes = sorted(
-        (p for p in actifs if not p.prefixes_numero and disjoncteur.disponible(p.code)),
+        (
+            p
+            for p in actifs
+            if not p.prefixes_numero
+            and p.code not in NON_PASSERELLES
+            and disjoncteur.disponible(p.code)
+        ),
         key=lambda p: p.taux_frais,
     )
     if generalistes:
@@ -132,6 +143,7 @@ def initier_encaissement(
     numero_payeur: str,
     commande=None,
     prestataire: Prestataire | None = None,
+    url_retour: str = "",
 ) -> Transaction:
     """Demande un débit, **au plus une fois**.
 
@@ -176,7 +188,7 @@ def initier_encaissement(
     adaptateur = adaptateur_pour(prestataire.code)
     try:
         reponse = adaptateur.initier(
-            reference=str(operation.pk), montant=montant, numero=numero_payeur
+            reference=str(operation.pk), montant=montant, numero=numero_payeur, url_retour=url_retour
         )
     except PaiementIndisponible as erreur:
         # Le disjoncteur apprend la panne, et la transaction porte le motif :
@@ -236,12 +248,20 @@ def rafraichir_statut(operation: Transaction) -> Transaction:
 
     adaptateur = adaptateur_pour(operation.prestataire_id)
     try:
-        statut = adaptateur.statut(operation.reference_externe)
+        statut = adaptateur.statut(
+            operation.reference_externe, charge_utile=dict(operation.charge_utile_psp or {})
+        )
     except PaiementIndisponible:
         disjoncteur.echec(operation.prestataire_id)
         raise
 
     disjoncteur.succes(operation.prestataire_id)
+    if statut.charge_utile:
+        # La référence financière de l'opérateur est ce qu'un client cite au service client :
+        # elle doit rester sur la transaction, pas seulement dans un journal.
+        charge = dict(operation.charge_utile_psp or {})
+        charge.update({k: v for k, v in statut.charge_utile.items() if v})
+        operation.charge_utile_psp = charge
     return appliquer_statut(operation, statut.etat, message=statut.message)
 
 

@@ -195,6 +195,36 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
     </header>
 
     <main class="zone {% block classe_zone %}{% endblock %}">
+      {% comment %}
+      L'avis au gérant : un compte de versement a été déclaré pour sa boutique par quelqu'un
+      d'autre. Tout en haut, sur toutes les pages, tant qu'il n'a pas répondu — c'est pendant le
+      délai de carence qu'une réponse « ce n'est pas moi » empêche l'argent de partir.
+      {% endcomment %}
+      {% for compte in comptes_a_confirmer %}
+        <div class="bandeau-info bandeau-info--alerte" role="alert" style="margin-bottom:12px">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span class="colonne" style="gap:8px">
+            <span>
+              <strong>Un compte de versement a été déclaré pour votre boutique</strong> le
+              {{ compte.cree_le|date:"d/m/Y à H:i" }} : {{ compte.get_operateur_display }}
+              se terminant par <span class="chiffre">{{ compte.numero|slice:"-4:" }}</span>,
+              au nom de « {{ compte.titulaire }} ». Votre argent sera versé sur ce compte.
+              Est-ce bien vous ?
+            </span>
+            <span class="rangee" style="gap:8px;flex-wrap:wrap">
+              <form method="post" action="{% url 'compte_confirmer' compte.pk %}">{% csrf_token %}
+                <button class="btn" type="submit">C'est bien moi</button>
+              </form>
+              <form method="post" action="{% url 'compte_contester' compte.pk %}"
+                    onsubmit="return confirm('Ce compte sera retiré, les versements prévus annulés, et la plateforme prévenue. Continuer ?')">
+                {% csrf_token %}
+                <button class="btn btn--danger-plein" type="submit">Ce n'est pas moi</button>
+              </form>
+            </span>
+          </span>
+        </div>
+      {% endfor %}
+
       {% if messages %}
         <div class="colonne" style="gap:8px;margin-bottom:16px">
           {% for message in messages %}

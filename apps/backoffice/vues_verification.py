@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.accounts import permissions as droit
 from apps.accounts.models import DossierKyc
@@ -95,3 +96,44 @@ def verification(request):
         },
         status=400 if request.method == "POST" else 200,
     )
+
+
+# ----------------------------------------------------------------------------
+# L'avis au gérant : « c'est bien moi » / « ce n'est pas moi »
+# ----------------------------------------------------------------------------
+def _compte_de_la_boutique(request, compte_id):
+    boutique = boutique_courante(request)
+    return CompteVersement.objects.filter(pk=compte_id, boutique_id=getattr(boutique, "pk", None)).first()
+
+
+def _retour(request):
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    precedente = request.META.get("HTTP_REFERER", "")
+    if precedente and url_has_allowed_host_and_scheme(precedente, allowed_hosts={request.get_host()}):
+        return redirect(precedente)
+    return redirect("verification")
+
+
+@require_POST
+@exige(droit.BOUTIQUE_ADMINISTRER)
+def compte_confirmer(request, compte_id):
+    compte = _compte_de_la_boutique(request, compte_id)
+    if compte is not None:
+        regles.confirmer_compte_par_gerant(compte, par=request.user)
+        messages.success(request, "Merci. Le compte de versement est confirmé de votre part.")
+    return _retour(request)
+
+
+@require_POST
+@exige(droit.BOUTIQUE_ADMINISTRER)
+def compte_contester(request, compte_id):
+    compte = _compte_de_la_boutique(request, compte_id)
+    if compte is not None:
+        regles.contester_compte(compte, par=request.user)
+        messages.success(
+            request,
+            "Ce compte est retiré et aucun versement n'y partira. L'équipe HyperMarché est prévenue "
+            "et vous contactera. Changez votre mot de passe, puis déclarez votre vrai compte ci-dessous.",
+        )
+    return redirect("verification")

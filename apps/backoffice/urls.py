@@ -101,5 +101,7 @@ urlpatterns = [
 
     # Confiance (docs/23) : la vérification de la boutique et l'argent qui lui revient.
     path("boutique/verification/", vues_verification.verification, name="verification"),
+    path("boutique/verification/comptes/<uuid:compte_id>/confirmer/", vues_verification.compte_confirmer, name="compte_confirmer"),
+    path("boutique/verification/comptes/<uuid:compte_id>/contester/", vues_verification.compte_contester, name="compte_contester"),
     path("boutique/versements/", vues_versements.versements, name="versements_marchand"),
 ]

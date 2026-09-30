@@ -22,6 +22,8 @@ urlpatterns = [
 
     path("commander/", views.commander, name="vitrine_commander"),
     path("commande/<uuid:identifiant>/", views.commande, name="vitrine_commande"),
+    path("commande/<uuid:identifiant>/payer/", views.payer, name="vitrine_payer"),
+    path("commande/<uuid:identifiant>/paiement/", views.paiement_etat, name="vitrine_paiement_etat"),
     path(
         "commande/<uuid:identifiant>/part/<uuid:part_id>/reception/",
         views.confirmer_reception,

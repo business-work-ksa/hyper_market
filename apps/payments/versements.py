@@ -18,9 +18,11 @@ détourner. Les parades, dans l'ordre où l'argent les traverse :
 5. **Rien ne se supprime.** Un versement s'annule, avec un motif et un auteur, et l'argent revient
    au disponible par une ligne de journal.
 
-Ce qui n'est **pas** fait ici : l'appel à l'API de l'agrégateur. Il viendra se brancher à la place
-de la saisie manuelle de la référence ; en attendant, l'exécution constate un virement fait hors
-de l'application, et ne prétend jamais l'avoir fait elle-même.
+Deux façons d'exécuter : **à la main** — le virement est fait hors de l'application, et
+l'exécution le constate avec la référence de l'opérateur ; ou **par l'API de MTN** quand la
+destination est un compte MTN MoMo et que les clés de versement sont configurées (`envoyer_par_api`,
+en bas de ce module). Orange Money n'offre pas de versement par son API de paiement web : il reste
+manuel.
 """
 
 from __future__ import annotations
@@ -272,3 +274,130 @@ def annuler_versement(versement, *, motif: str, par, maintenant=None) -> Verseme
                 origine_id=verrouille.pk,
             )
     return verrouille
+
+
+# ---------------------------------------------------------------------------
+# Envoi par l'API de l'opérateur (MTN MoMo)
+# ---------------------------------------------------------------------------
+# L'exécution manuelle reste la règle générale : un administrateur fait le virement hors de
+# l'application et saisit la référence. Quand le compte de destination est un compte MTN MoMo et que
+# les clés de versement sont configurées, l'administrateur peut **demander à l'application** de faire
+# le virement elle-même. Rien ne change aux garde-fous :
+#
+# * les mêmes quatre yeux (`_controler_l_executant`) avant tout appel ;
+# * **une clé d'idempotence par versement** : `versement-<id>-essai-<n>`, et jamais de second essai
+#   tant qu'un envoi est en cours — un double clic ne verse pas deux fois ;
+# * le versement n'est **exécuté** qu'une fois l'opérateur relu à « réussi », avec sa référence
+#   financière ; un envoi en attente est suivi par la tâche quotidienne.
+OPERATEURS_API = ("MTN_MOMO",)
+
+
+def envoi_par_api_possible(versement) -> bool:
+    from django.conf import settings
+
+    from apps.payments.operateurs import AdaptateurMtnMomo
+
+    if versement.operateur not in OPERATEURS_API or versement.etat != Versement.DEMANDE:
+        return False
+    conf = getattr(settings, "PAIEMENTS_OPERATEURS", {}).get("MTN_MOMO", {})
+    return all(conf.get(c) for c in AdaptateurMtnMomo.CHAMPS_VERSEMENT)
+
+
+def envoi_en_cours(versement):
+    from apps.payments.models import Transaction
+
+    return (
+        Transaction.objects.filter(
+            sens=Transaction.VERSEMENT,
+            etat=Transaction.INITIEE,
+            cle_idempotence__startswith=f"versement-{versement.pk}-",
+        )
+        .order_by("cree_le")
+        .last()
+    )
+
+
+def envoyer_par_api(versement, *, par):
+    """Fait partir le versement par l'API MTN. Renvoie la transaction d'envoi."""
+    from apps.payments.adaptateurs import PaiementIndisponible, adaptateur_pour, disjoncteur
+    from apps.payments.models import Prestataire, Transaction
+
+    _controler_l_executant(versement, par)
+    if not envoi_par_api_possible(versement):
+        raise VersementRefuse(
+            "L'envoi automatique n'est possible que vers un compte MTN MoMo, avec les clés de "
+            "versement configurées. Exécutez ce versement à la main."
+        )
+    en_cours = envoi_en_cours(versement)
+    if en_cours is not None:
+        return suivre_envoi(en_cours)
+
+    essai = Transaction.objects.filter(cle_idempotence__startswith=f"versement-{versement.pk}-").count() + 1
+    try:
+        operation = Transaction.objects.create(
+            prestataire=Prestataire.objects.get(code=versement.operateur),
+            sens=Transaction.VERSEMENT,
+            montant=versement.montant,
+            numero_payeur=versement.numero[:16],
+            cle_idempotence=f"versement-{versement.pk}-essai-{essai}",
+            charge_utile_psp={"versement_id": str(versement.pk), "execute_par": str(par.pk)},
+        )
+    except IntegrityError:
+        raise VersementRefuse("Un envoi de ce versement vient d'être lancé : relisez la page.") from None
+
+    try:
+        reponse = adaptateur_pour(versement.operateur).verser(
+            reference=str(operation.pk), beneficiaire=versement.numero, montant=versement.montant
+        )
+    except PaiementIndisponible as erreur:
+        disjoncteur.echec(versement.operateur)
+        operation.etat = Transaction.ECHOUEE
+        operation.charge_utile_psp = {**operation.charge_utile_psp, "erreur": str(erreur)}
+        operation.save(update_fields=["etat", "charge_utile_psp", "modifie_le"])
+        raise VersementRefuse(f"L'opérateur n'a pas pris le versement : {erreur}") from erreur
+
+    disjoncteur.succes(versement.operateur)
+    operation.reference_externe = reponse.reference_externe
+    operation.etat = reponse.etat
+    operation.charge_utile_psp = {**operation.charge_utile_psp, **(reponse.charge_utile or {}), "message": reponse.message}
+    operation.save(update_fields=["reference_externe", "etat", "charge_utile_psp", "modifie_le"])
+    if operation.etat == Transaction.ECHOUEE:
+        raise VersementRefuse(reponse.message)
+    return suivre_envoi(operation)
+
+
+def suivre_envoi(operation):
+    """Relit un envoi en cours ; s'il a réussi, exécute le versement avec la référence de MTN."""
+    from apps.accounts.models import Utilisateur
+    from apps.payments.adaptateurs import PaiementIndisponible, adaptateur_pour
+    from apps.payments.models import Transaction
+    from apps.payments.services import appliquer_statut
+
+    if operation.etat == Transaction.INITIEE:
+        try:
+            statut = adaptateur_pour(operation.prestataire_id).statut_versement(operation.reference_externe)
+        except PaiementIndisponible:
+            return operation
+        if statut.charge_utile:
+            operation.charge_utile_psp = {**operation.charge_utile_psp, **{k: v for k, v in statut.charge_utile.items() if v}}
+        operation = appliquer_statut(operation, statut.etat, message=statut.message)
+
+    if operation.etat == Transaction.REUSSIE:
+        charge = operation.charge_utile_psp or {}
+        versement = Versement.objects.filter(pk=charge.get("versement_id")).select_related("compte").first()
+        par = Utilisateur.objects.filter(pk=charge.get("execute_par")).first()
+        if versement is not None and versement.etat == Versement.DEMANDE and par is not None:
+            reference = charge.get("reference_financiere") or operation.reference_externe
+            executer_versement(versement, reference=f"MTN-{reference}", par=par)
+    return operation
+
+
+def suivre_envois_en_cours() -> int:
+    """Pour la tâche quotidienne : les envois restés en attente d'une réponse de l'opérateur."""
+    from apps.payments.models import Transaction
+
+    n = 0
+    for operation in Transaction.objects.filter(sens=Transaction.VERSEMENT, etat=Transaction.INITIEE):
+        suivre_envoi(operation)
+        n += 1
+    return n

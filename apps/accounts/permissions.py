@@ -60,6 +60,9 @@ PLATEFORME_COMMISSIONS = "plateforme.commissions"
 PLATEFORME_EMPLACEMENTS = "plateforme.emplacements"
 PLATEFORME_LITIGES = "plateforme.litiges"
 PLATEFORME_APPORTEURS = "plateforme.apporteurs"
+# Exécuter un versement vers un marchand. Distinct des litiges : celui qui instruit une réclamation
+# n'est pas forcément celui à qui l'on confie le dernier mètre de l'argent.
+PLATEFORME_VERSEMENTS = "plateforme.versements"
 
 TOUS_PLATEFORME = frozenset(
     {
@@ -68,6 +71,7 @@ TOUS_PLATEFORME = frozenset(
         PLATEFORME_EMPLACEMENTS,
         PLATEFORME_LITIGES,
         PLATEFORME_APPORTEURS,
+        PLATEFORME_VERSEMENTS,
     }
 )
 
@@ -110,6 +114,7 @@ LIBELLES = {
     PLATEFORME_EMPLACEMENTS: "Vendre et attribuer les emplacements premium",
     PLATEFORME_LITIGES: "Accéder à une commande contestée, sur motif enregistré",
     PLATEFORME_APPORTEURS: "Administrer le réseau d'apporteurs et ses versements",
+    PLATEFORME_VERSEMENTS: "Exécuter les versements aux marchands",
 }
 
 # --- Attribution par rôle ---------------------------------------------------

@@ -13,6 +13,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("apps.api.urls")),
     path("marche/", include("apps.vitrine.urls")),
+    # La console du superadministrateur et de l'administrateur du marché (ADR-012).
+    path("plateforme/", include("apps.plateforme.urls")),
     # Lien court d'une boutique : il est fait pour être dicté et imprimé, donc
     # monté à la racine et pas sous /marche/.
     path("l/<str:code>/", vues_identite.suivre_lien, name="suivre_lien"),

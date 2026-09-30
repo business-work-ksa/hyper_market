@@ -210,11 +210,11 @@ def connexion(request):
         appartenance = utilisateur.appartenances.filter(actif=True).first()
         if appartenance is None:
             # L'administrateur de la plateforme est **normalement** dans ce cas : il n'a aucun
-            # droit sur aucune boutique, c'est le sens de l'ADR-012. Le renvoyer vers
-            # l'administration au lieu d'un refus sec évite de lui faire croire que son compte
-            # est cassé — ce qui est exactement ce qui s'est passé la première fois.
-            if utilisateur.is_staff:
-                return redirect("/admin/")
+            # droit sur aucune boutique, c'est le sens de l'ADR-012. Le renvoyer vers sa console
+            # au lieu d'un refus sec évite de lui faire croire que son compte est cassé — ce qui
+            # est exactement ce qui s'est passé la première fois.
+            if utilisateur.is_staff or utilisateur.is_superuser:
+                return redirect("plateforme:tableau_de_bord")
 
             logout(request)
             return render(

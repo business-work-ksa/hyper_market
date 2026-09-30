@@ -108,6 +108,10 @@ privée et être subordonné — sauf exemption légale — à un **consentement
 | Notification de violation | Procédure documentée, délai de notification à l'APDP **[À VALIDER]** |
 | Encadrement des transferts hors du Cameroun | **Impacte le choix d'hébergement — voir §4.3** |
 
+> **Pièces d'identité :** par défaut, la plateforme n'en conserve **pas** de copie ; elle garde une
+> attestation de ce qui a été vu. Le raisonnement et ses réserves sont au
+> [document 23](23-confiance-et-lutte-contre-la-fraude.md), §2.3, et à l'ADR-013 (point J14).
+
 ### 4.3 — Conflit entre effacement et obligation comptable
 
 Un client demande la suppression de ses données. Ses factures doivent être conservées pour des
@@ -153,6 +157,10 @@ L'agrément BEAC est un projet réglementaire de plusieurs années, incompatible
   il retrace une créance du marchand sur la plateforme, non un solde de monnaie électronique.
   Cette distinction doit être explicite dans les conditions générales.
 
+> Conditions de libération du séquestre, paliers de confiance, compte de versement et ce que le
+> montage implique pour le produit : [document 23](23-confiance-et-lutte-contre-la-fraude.md), §2 et
+> §4.2.
+
 ### 5.3 — Lutte anti-blanchiment
 
 Le dispositif LBC/FT s'applique. Mesures intégrées au produit :
@@ -165,6 +173,9 @@ Le dispositif LBC/FT s'applique. Mesures intégrées au produit :
   circularité entre comptes liés.
 - Conservation des justificatifs et traçabilité des flux. **[À VALIDER : seuils de déclaration
   auprès de l'ANIF.]**
+
+> Menaces, signaux de risque, textes CEMAC LBC/FT et procédure de soupçon :
+> [document 23](23-confiance-et-lutte-contre-la-fraude.md), §1.8, §2.5, §4.3 et §6.2.
 
 ---
 
@@ -212,6 +223,10 @@ sectoriel de chaque employeur. **[À VALIDER : table complète des groupes de ri
 | Non-paiement du loyer | Mise en demeure, suspension de la vitrine à J+15, résiliation à J+45, restitution des données garantie |
 | Contrefaçon ou produit illicite | Retrait immédiat sur signalement, notification au marchand, sanction graduée jusqu'à la résiliation |
 
+> Instruction d'un litige en 72 h, gel conservatoire, plainte et réquisitions :
+> [document 23](23-confiance-et-lutte-contre-la-fraude.md), §6. La portée juridique de la
+> « décision opposable » est à valider (J17).
+
 **Principe de réversibilité :** en toute circonstance, y compris en cas de résiliation pour faute,
 le marchand récupère l'intégralité de ses données (catalogue, stock, clients, écritures
 comptables, bulletins de paie) dans un format exploitable et **sans frais**. C'est une obligation
@@ -234,3 +249,15 @@ morale, un argument commercial, et une protection contre le grief d'abus de posi
 | J9 | Table des groupes de risque accidents du travail | Cabinet ONECCA / CNPS | Avant lot 4 |
 | J10 | Barèmes TDL et RAV en vigueur | Cabinet ONECCA | Avant lot 4 |
 | J11 | Convention de partenariat cabinet (arbitrages A5, A6) | Cabinet ONECCA | Avant lot 3 |
+| J12 | Rôle d'instruction de la plateforme sur le séquestre (libérer, rembourser) : statut exigé (agent, mandataire) ; titulaire du compte de cantonnement ; sort des fonds en cas de défaillance — complète J3 ([doc. 23](23-confiance-et-lutte-contre-la-fraude.md), §4.2) | COBAC via partenaire / conseil bancaire | Avant lot 1 |
+| J13 | Qualité d'assujetti LBC/FT de la plateforme, ou obligations transférées par contrat du partenaire ; filtrage des listes de sanctions (doc. 23, §4.3) | Conseil conformité / partenaire | Avant lot 1 |
+| J14 | Non-conservation des copies de pièces d'identité : compatible avec les exigences du partenaire et du règlement LBC/FT ? Sinon, qui conserve (doc. 23, §2.3) | Conseil données / partenaire | Avant lot 1 |
+| J15 | Validité des clauses : retenue, gel conservatoire (durée), compensation, délai de libération, confirmation implicite de livraison à 7 jours — envers le marchand et envers l'acheteur consommateur (doc. 23, §5) | Conseil consommation / affaires | Avant lot 1 |
+| J16 | Obligations de tiers saisi (AUPSRVE) sur les sommes dues aux marchands ; forme et authentification des réquisitions (doc. 23, §6.5) | Avocat | Avant lot 1 |
+| J17 | Statut de la décision de litige de la plateforme (décision contractuelle, médiation au sens de l'Acte uniforme de 2017, jamais « arbitrage ») (doc. 23, §4.1) | Avocat | Avant lot 1 |
+| J18 | Acceptation de l'entreprenant OHADA sans immatriculation de société ; pièces exigibles ; format du numéro RCCM (doc. 23, §2.3, §4.1) | Avocat | Avant lot 1 |
+| J19 | Durées de conservation : attestations de vérification, preuves de transaction, journaux, données de connexion (LBC/FT, loi 2010/012, loi 2024/017, AUDCIF) | Conseil données / conformité | Avant lot 1 |
+| J20 | Obligations d'information du vendeur en ligne (loi 2010/021) sur la page boutique et la fiche produit ; responsabilité de la plateforme en tant qu'intermédiaire | Avocat | Avant lot 1 |
+| J21 | Licéité et base légale du masquage automatique des coordonnées dans les messages acheteur–marchand (loi 2024/017) | Conseil données | Avant lot 2 |
+| J22 | Données pays de `apps/marketplace/cemac.py` (numérotation, identifiant fiscal, opérateurs, loi et autorité de protection des données, CRF) | Avocat local de chaque pays | Avant ouverture du pays |
+| J23 | Procédure de déclaration de soupçon (qui déclare, par quel canal) et interdiction d'informer : texte du message affiché à une boutique gelée | Conseil conformité / ANIF / partenaire | Avant lot 2 |

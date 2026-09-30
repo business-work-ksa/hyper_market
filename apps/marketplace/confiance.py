@@ -43,12 +43,16 @@ class Palier:
     livraisons_min: int
     anciennete_jours_min: int
     taux_litiges_perdus_max: Decimal  # fraction : 0.05 = 5 %
+    # Des livraisons à des acheteurs **distincts** : sans cette condition, un palier s'achète par
+    # des auto-commandes, passées depuis quelques numéros amis et « livrées » à soi-même.
+    acheteurs_distincts_min: int
     description: str
 
 
 PALIERS = (
     Palier(
         niveau=0,
+        acheteurs_distincts_min=0,
         code="nouvelle",
         libelle="Nouvelle boutique",
         delai_liberation_jours=7,
@@ -60,6 +64,7 @@ PALIERS = (
     ),
     Palier(
         niveau=1,
+        acheteurs_distincts_min=8,
         code="confirmee",
         libelle="Boutique confirmée",
         delai_liberation_jours=5,
@@ -71,6 +76,7 @@ PALIERS = (
     ),
     Palier(
         niveau=2,
+        acheteurs_distincts_min=35,
         code="reconnue",
         libelle="Boutique reconnue",
         delai_liberation_jours=3,
@@ -82,9 +88,10 @@ PALIERS = (
     ),
     Palier(
         niveau=3,
+        acheteurs_distincts_min=120,
         code="etablie",
         libelle="Boutique établie",
-        delai_liberation_jours=2,
+        delai_liberation_jours=3,
         plafond_sequestre=None,
         livraisons_min=200,
         anciennete_jours_min=180,

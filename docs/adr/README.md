@@ -30,6 +30,8 @@ Chaque fiche répond à quatre questions, dans cet ordre :
 | [ADR-009](009-recherche-postgresql-d-abord.md) | Recherche : PostgreSQL d'abord, OpenSearch sur preuve | Actée |
 | [ADR-010](010-jeton-d-api-porteur-de-la-boutique.md) | Le jeton d'API porte la boutique, le client ne la déclare pas | Actée |
 | [ADR-011](011-equivalence-deduite-des-designations.md) | L'équivalence entre articles se déduit des désignations partagées | Actée |
+| [ADR-012](012-acces-plateforme-nomme-et-journalise.md) | L'accès transverse est nommé, borné et journalisé ; trois niveaux d'administration ; la console | Actée |
+| [ADR-013](013-confiance-par-paliers-et-sequestre.md) | Confiance par paliers, séquestre jusqu'à la livraison confirmée, aucun contrôle suffisant seul | Actée (socle ; chantiers en cours) |
 
 ## Statuts
 

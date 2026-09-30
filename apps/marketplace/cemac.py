@@ -71,6 +71,10 @@ PAYS = {
             ouvert=True,
             notes=(
                 "Données personnelles : loi n° 2024/017 du 23 décembre 2024 (docs/08, §4).",
+                "Camtel (Blue Money) est actif au Cameroun (docs/02) mais n'a pas de code ici : "
+                "l'ajouter change les choix de `CompteVersement.operateur`, donc une migration.",
+                "NIU : 14 caractères (lettre, 12 chiffres, lettre) selon notre compréhension — "
+                "format à vérifier avant d'en faire une règle de validation.",
             ),
         ),
         Pays(
@@ -81,6 +85,12 @@ PAYS = {
             identifiant_fiscal="NIF",
             libelle_identifiant_fiscal="Numéro d'identification fiscale",
             operateurs=(AIRTEL_MONEY, MOOV_MONEY, VIREMENT_BANCAIRE),
+            notes=(
+                "Longueur des numéros mobiles à confirmer (8 ou 9 chiffres selon le plan de "
+                "numérotation en vigueur) avant ouverture.",
+                "Données personnelles : loi n° 001/2011 du 25 septembre 2011, autorité CNPDCP "
+                "[à vérifier].",
+            ),
         ),
         Pays(
             code="CG",
@@ -90,6 +100,9 @@ PAYS = {
             identifiant_fiscal="NIU",
             libelle_identifiant_fiscal="Numéro d'identification unique",
             operateurs=(MTN_MOMO, AIRTEL_MONEY, VIREMENT_BANCAIRE),
+            notes=(
+                "Données personnelles : loi n° 29-2019 du 10 octobre 2019 [à vérifier].",
+            ),
         ),
         Pays(
             code="TD",
@@ -99,6 +112,9 @@ PAYS = {
             identifiant_fiscal="NIF",
             libelle_identifiant_fiscal="Numéro d'identification fiscale",
             operateurs=(AIRTEL_MONEY, MOOV_MONEY, VIREMENT_BANCAIRE),
+            notes=(
+                "Données personnelles : loi n° 007/PR/2015 [à vérifier].",
+            ),
         ),
         Pays(
             code="CF",
@@ -108,6 +124,11 @@ PAYS = {
             identifiant_fiscal="NIF",
             libelle_identifiant_fiscal="Numéro d'identification fiscale",
             operateurs=(ORANGE_MONEY, MOOV_MONEY, VIREMENT_BANCAIRE),
+            notes=(
+                "Opérateurs Mobile Money à confirmer sur place (Orange Money certain ; Moov Money "
+                "et Telecel à vérifier).",
+                "Pas de loi générale de protection des données connue à la rédaction [à vérifier].",
+            ),
         ),
         Pays(
             code="GQ",
@@ -120,6 +141,9 @@ PAYS = {
             notes=(
                 "Mobile Money peu développé : versement par virement bancaire. Langue de travail "
                 "espagnole — à prévoir dans les écrans avant toute ouverture.",
+                "Le français et le portugais sont aussi langues officielles ; les pièces sont "
+                "rédigées en espagnol.",
+                "Données personnelles : loi n° 1/2016 [à vérifier].",
             ),
         ),
     )

@@ -1,6 +1,6 @@
 # ADR-012 — L'accès transverse est nommé, borné et journalisé ; il ne découle pas d'un booléen
 
-**Statut :** Actée · **Détail :** `apps/core/tenancy.py` (`acces_plateforme`) ; `apps/core/models.py` (`AccesPlateforme`) ; `apps/accounts/permissions.py` (droits `plateforme.*`) ; `apps/accounts/administration.py` (les trois niveaux)
+**Statut :** Actée · **Détail :** `apps/core/tenancy.py` (`acces_plateforme`) ; `apps/core/models.py` (`AccesPlateforme`) ; `apps/accounts/permissions.py` (droits `plateforme.*`) ; `apps/accounts/administration.py` (les trois niveaux) ; `apps/plateforme/` (la console)
 
 ---
 
@@ -52,7 +52,7 @@ clients des commerçants. Un accès transverse non journalisé à cela n'est plu
 
 **L'accès transverse devient un geste distinct, qui se nomme, et qui laisse une trace.**
 
-Quatre points, indissociables.
+Six points, indissociables.
 
 ### 1. Deux fonctions, parce qu'il y a deux gestes
 
@@ -145,6 +145,38 @@ Ce n'est pas de la bureaucratie, c'est ce qui rend le journal **lisible**. Avec 
 ligne du journal est ambiguë : agissait-il comme exploitant ou comme concurrent ? Avec deux, la
 question ne se pose plus — et le jour où un commerçant la pose, la réponse existe.
 
+### 6. La console : l'écran de travail, et le motif une fois par session
+
+`/admin/` est un recours technique, pas un écran de travail : il montre des tables, pas un marché.
+Les deux administrateurs travaillent donc dans une **console dans le site** (`apps/plateforme`,
+`/plateforme/`), distincte du back-office d'une boutique au premier coup d'œil — rail sombre,
+sceau doré — pour qu'on ne confonde jamais « je regarde le marché » et « je suis chez un
+commerçant ».
+
+Trois règles la gouvernent.
+
+**Ce qui se lit sans trace.** Les boutiques, les baux, les factures de loyer, les emplacements,
+les rayons et les offres ne sont pas scopés : ce sont les contrats du bailleur. Les lire ne
+franchit aucune barrière, et la plupart des écrans de la console n'en franchissent donc aucune.
+
+**Ce qui se lit avec un motif.** L'activité d'une boutique — chiffre d'affaires, nombre de ventes,
+dernière vente — vit dans des tables scopées. La lire passe par `acces_plateforme()`, sous un motif
+choisi dans une liste fermée (plus « Autre », à préciser). Le motif est demandé **une fois pour
+trente minutes**, puis rappelé en permanence dans le bandeau ; **chaque écran affiché** pendant ce
+temps écrit sa ligne au journal. On a écarté le motif à chaque clic : un administrateur qui doit
+justifier dix fois de suite la même consultation finit par taper « . », et un journal rempli de
+points ne vaut pas mieux qu'un journal absent. Et seulement des **agrégats** : jamais la marge, le
+coût, le stock détaillé ni les clients d'un commerçant.
+
+**Chaque geste laisse une trace.** Ouvrir une boutique, la suspendre, encaisser un loyer, fixer un
+taux, vendre un emplacement, nommer ou retirer un administrateur : une ligne au même journal, avec
+son motif. Un test interdit `contexte_plateforme()` dans toute la console — sans dérogation
+possible, contrairement au back-office.
+
+Le superadministrateur y reçoit tous les droits de plateforme et deux écrans réservés : nommer les
+administrateurs du marché, et la santé technique. Cela ne rouvre pas le court-circuit du §3 : ces
+droits sont ceux du bailleur, aucun n'ouvre les chiffres d'une boutique.
+
 ## Conséquences
 
 **Ce que cela coûte.** Un geste de plus pour l'exploitant, qui doit changer de compte pour changer de
@@ -163,10 +195,9 @@ La quatrième reste une politique, parce qu'elle ne se code pas : **publier la r
 exploitant-commerçant qui annonce d'emblée ce qu'il s'interdit est plus crédible que celui qui se
 fait découvrir.
 
-**Ce que cela rend possible plus tard.** Le jour où un vrai back-office de plateforme existe, il
-consomme les cinq droits ci-dessus et n'a jamais besoin du superutilisateur. L'administrateur créé
-aujourd'hui avec `is_superuser` est donc une transition, pas une cible — et cet ADR est la raison pour
-laquelle on saura qu'il faut la refermer.
+**Ce que cela a rendu possible.** La console du §6 consomme les cinq droits ci-dessus et n'a
+jamais besoin du superutilisateur pour le travail quotidien. Le superadministrateur reste le recours
+du jour où quelque chose est cassé — pas le compte avec lequel on valide une candidature.
 
 ## Ce qui a été écarté
 

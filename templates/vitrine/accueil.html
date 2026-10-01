@@ -1,5 +1,5 @@
 {% extends "vitrine/base.html" %}
-{% load i18n hm marche %}
+{% load static i18n hm marche %}
 
 {% block titre %}{% translate "HyperMarché — le marché de Douala et Yaoundé, livré chez vous" %}{% endblock %}
 
@@ -11,11 +11,17 @@ visiteur de passage décide de rester.
 {% endcomment %}
 
 {# ---- Accroche ---------------------------------------------------------------------------- #}
-<section class="relative isolate -mt-6 pb-12 pt-10 sm:-mt-8 sm:pb-16 sm:pt-14" aria-labelledby="accroche-titre">
+<section class="relative isolate -mt-6 pb-14 pt-12 sm:-mt-8 sm:pb-20 sm:pt-16" aria-labelledby="accroche-titre">
+  {% comment %}
+  L'arrière-plan : une rue de marché dessinée (static/marque/illustrations/marche.svg, 23 Ko),
+  qui glisse plus lentement que la page. Le dégradé garde le texte lisible au-dessus, dans les
+  deux thèmes : il part de la couleur du fond, quelle qu'elle soit.
+  {% endcomment %}
   <div class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 overflow-hidden" aria-hidden="true">
-    <div class="absolute -right-24 -top-32 size-[28rem] rounded-full bg-brand/15 blur-3xl"></div>
-    <div class="absolute -left-20 top-24 size-72 rounded-full bg-accent/20 blur-3xl"></div>
-    <div class="absolute inset-0 bg-[radial-gradient(rgb(var(--hm-encre)/0.07)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"></div>
+    <img class="absolute inset-0 size-full object-cover object-right opacity-90 dark:opacity-40" data-parallaxe
+         src="{% static 'marque/illustrations/marche.svg' %}" alt="" width="1600" height="640" fetchpriority="high" decoding="async">
+    <div class="absolute inset-0 bg-gradient-to-r from-bg via-bg/90 to-bg/5 lg:via-bg/70"></div>
+    <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg to-transparent"></div>
   </div>
 
   <div class="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
@@ -45,7 +51,7 @@ visiteur de passage décide de rester.
 
     {# Carte « paiement protégé » : la promesse la plus importante, montrée et non seulement dite. #}
     <div class="relative hidden lg:block" data-apparition style="--delai:200ms" aria-hidden="true">
-      <div class="carte rotate-[1.5deg] p-6 shadow-xl">
+      <div class="carte flotter rotate-[1.5deg] bg-surface/95 p-6 shadow-xl backdrop-blur">
         <div class="flex items-center justify-between">
           <span class="sur-titre">{% translate "Commande" %} CMD-0042</span>
           <span class="badge badge-marque">{% icone "verrou" %}{% translate "En séquestre" %}</span>
@@ -75,12 +81,17 @@ visiteur de passage décide de rester.
   <div class="mb-4 flex items-end justify-between gap-4">
     <h2 class="text-2xl font-extrabold" id="rayons-titre" data-apparition>{% translate "Parcourir les rayons" %}</h2>
   </div>
-  <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="list">
+  <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4" role="list">
     {% for r in rayons %}
       <li data-apparition style="--delai:{{ forloop.counter0|delai:40 }}">
-        <a class="carte carte-interactive flex h-full flex-col gap-3 p-4" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}">
-          <span class="jeton" style="--teinte:{{ r.libelle|teinte }}" aria-hidden="true">{{ r.libelle|sigle }}</span>
-          <span class="text-sm font-bold leading-snug">{{ r.libelle }}</span>
+        <a class="carte carte-interactive group flex h-full flex-col overflow-hidden" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}">
+          <span class="block aspect-[16/10] overflow-hidden bg-surface-sunken">
+            <img class="size-full object-cover transition-transform duration-700 ease-sortie group-hover:scale-105" src="{% illustration_rayon r.code %}" alt="" width="800" height="500" loading="lazy" decoding="async">
+          </span>
+          <span class="flex items-center justify-between gap-2 px-4 py-3">
+            <span class="text-sm font-bold leading-snug">{{ r.libelle }}</span>
+            {% icone "fleche" "size-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-1 group-hover:text-brand" %}
+          </span>
         </a>
       </li>
     {% endfor %}

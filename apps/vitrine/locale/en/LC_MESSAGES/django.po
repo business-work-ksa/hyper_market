@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: HyperMarché marché\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-01 09:17+0100\n"
+"POT-Creation-Date: 2026-10-01 16:46+0100\n"
 "PO-Revision-Date: 2026-10-01 10:00+0100\n"
 "Last-Translator: Équipe HyperMarché\n"
 "Language-Team: English\n"
@@ -18,7 +18,7 @@ msgstr ""
 #: templates/marche/composants/carte_article.html:30
 #: templates/marche/composants/confiance.html:16
 #: templates/marche/composants/confiance.html:24
-#: templates/vitrine/article.html:38
+#: templates/vitrine/article.html:38 apps/vitrine/views.py:187
 msgid "Identité vérifiée"
 msgstr "Verified identity"
 
@@ -72,6 +72,7 @@ msgstr[0] "%(n)s confirmed delivery"
 msgstr[1] "%(n)s confirmed deliveries"
 
 #: templates/marche/composants/modale.html:24
+#: templates/marche/megamenu.html:74 templates/vitrine/catalogue.html:27
 msgid "Fermer"
 msgstr "Close"
 
@@ -79,23 +80,58 @@ msgstr "Close"
 msgid "Annuler"
 msgstr "Cancel"
 
-#: templates/vitrine/accueil.html:4
+#: templates/marche/megamenu.html:35
+#: templates/vitrine/partials/resultats.html:6
+#, python-format
+msgid "%(n)s article"
+msgid_plural "%(n)s articles"
+msgstr[0] "%(n)s item"
+msgstr[1] "%(n)s items"
+
+#: templates/marche/megamenu.html:37 templates/marche/megamenu.html:86
+msgid "Tout le rayon"
+msgstr "The whole aisle"
+
+#: templates/marche/megamenu.html:42
+msgid "Catégories"
+msgstr "Categories"
+
+#: templates/marche/megamenu.html:48
+msgid "Les catégories de ce rayon arrivent."
+msgstr "Categories for this aisle are coming."
+
+#: templates/marche/megamenu.html:52
+#, python-format
+msgid "%(n)s commerçant"
+msgid_plural "%(n)s commerçants"
+msgstr[0] "%(n)s trader"
+msgstr[1] "%(n)s traders"
+
+#: templates/marche/megamenu.html:60
+msgid "Aucun commerçant pour l'instant : ouvrez le premier étal."
+msgstr "No traders yet: open the first stall."
+
+#: templates/marche/megamenu.html:73 templates/vitrine/base.html:111
+msgid "Rayons du marché"
+msgstr "Market aisles"
+
+#: templates/vitrine/accueil.html:4 templates/vitrine/base.html:43
 msgid "HyperMarché — le marché de Douala et Yaoundé, livré chez vous"
 msgstr "HyperMarché — the Douala and Yaoundé market, delivered to your door"
 
-#: templates/vitrine/accueil.html:23
+#: templates/vitrine/accueil.html:30
 msgid "Douala · Yaoundé · et bientôt toute la CEMAC"
 msgstr "Douala · Yaoundé · and soon all of CEMAC"
 
-#: templates/vitrine/accueil.html:25
+#: templates/vitrine/accueil.html:32
 msgid "Le marché,"
 msgstr "The market,"
 
-#: templates/vitrine/accueil.html:25
+#: templates/vitrine/accueil.html:32
 msgid "livré chez vous."
 msgstr "delivered to you."
 
-#: templates/vitrine/accueil.html:28
+#: templates/vitrine/accueil.html:35
 msgid ""
 "Des commerçants de Douala et Yaoundé, leurs prix affichés sans "
 "intermédiaire. Vous commandez, c'est le commerçant lui-même qui vous livre."
@@ -103,82 +139,82 @@ msgstr ""
 "Traders from Douala and Yaoundé, their prices shown with no middleman. You "
 "order, and the trader delivers to you in person."
 
-#: templates/vitrine/accueil.html:31
+#: templates/vitrine/accueil.html:38
 msgid "Que cherchez-vous ?"
 msgstr "What are you looking for?"
 
-#: templates/vitrine/accueil.html:35
+#: templates/vitrine/accueil.html:42
 msgid "Ciment, pagne, téléphone, pièce auto…"
 msgstr "Cement, wax print, phone, car part…"
 
-#: templates/vitrine/accueil.html:37
+#: templates/vitrine/accueil.html:44
 msgid "Chercher"
 msgstr "Search"
 
-#: templates/vitrine/accueil.html:40
+#: templates/vitrine/accueil.html:47
 #, python-format
 msgid "%(n)s commerçant du marché"
 msgid_plural "%(n)s commerçants du marché"
 msgstr[0] "%(n)s trader in the market"
 msgstr[1] "%(n)s traders in the market"
 
-#: templates/vitrine/accueil.html:40
+#: templates/vitrine/accueil.html:47
 msgid "Des commerçants du marché"
 msgstr "Traders from the market"
 
-#: templates/vitrine/accueil.html:41
+#: templates/vitrine/accueil.html:48
 msgid "Prix fixés par le commerçant"
 msgstr "Prices set by the trader"
 
-#: templates/vitrine/accueil.html:42
+#: templates/vitrine/accueil.html:49
 msgid "Livré par celui qui vend"
 msgstr "Delivered by the seller"
 
-#: templates/vitrine/accueil.html:50
+#: templates/vitrine/accueil.html:57
 msgid "Commande"
 msgstr "Order"
 
-#: templates/vitrine/accueil.html:51 templates/vitrine/commande.html:132
+#: templates/vitrine/accueil.html:58 templates/vitrine/commande.html:132
 msgid "En séquestre"
 msgstr "In escrow"
 
-#: templates/vitrine/accueil.html:55
+#: templates/vitrine/accueil.html:62
 msgid "Payé"
 msgstr "Paid"
 
-#: templates/vitrine/accueil.html:56
+#: templates/vitrine/accueil.html:63
 msgid "En route"
 msgstr "On the way"
 
-#: templates/vitrine/accueil.html:57
+#: templates/vitrine/accueil.html:64
 msgid "Versé"
 msgstr "Paid out"
 
-#: templates/vitrine/accueil.html:60 templates/vitrine/commande.html:154
+#: templates/vitrine/accueil.html:67 templates/vitrine/commande.html:154
 msgid "Code de remise"
 msgstr "Handover code"
 
-#: templates/vitrine/accueil.html:76
+#: templates/vitrine/accueil.html:83
 msgid "Parcourir les rayons"
 msgstr "Browse the aisles"
 
-#: templates/vitrine/accueil.html:95
+#: templates/vitrine/accueil.html:107
 msgid "Sélection du jour"
 msgstr "Today's picks"
 
-#: templates/vitrine/accueil.html:96
+#: templates/vitrine/accueil.html:108
 msgid "Au marché aujourd'hui"
 msgstr "In the market today"
 
-#: templates/vitrine/accueil.html:98
+#: templates/vitrine/accueil.html:110
 msgid "Voir tout"
 msgstr "See all"
 
-#: templates/vitrine/accueil.html:107
+#: templates/vitrine/accueil.html:119
 msgid "Aucun article en vitrine pour le moment."
 msgstr "No items on display yet."
 
-#: templates/vitrine/accueil.html:108
+#: templates/vitrine/accueil.html:120
 msgid ""
 "Les commerçants installent leurs étals : revenez dans quelques jours, ou "
 "ouvrez le vôtre."
@@ -186,23 +222,23 @@ msgstr ""
 "Traders are setting up their stalls: come back in a few days, or open your "
 "own."
 
-#: templates/vitrine/accueil.html:109 templates/vitrine/base.html:142
+#: templates/vitrine/accueil.html:121 templates/vitrine/base.html:164
 msgid "Espace commerçant"
 msgstr "Trader area"
 
-#: templates/vitrine/accueil.html:117
+#: templates/vitrine/accueil.html:129
 msgid "Acheter sans risque"
 msgstr "Buy without risk"
 
-#: templates/vitrine/accueil.html:118
+#: templates/vitrine/accueil.html:130
 msgid "Votre argent attend votre confirmation."
 msgstr "Your money waits for your confirmation."
 
-#: templates/vitrine/accueil.html:120
+#: templates/vitrine/accueil.html:132
 msgid "Vous commandez"
 msgstr "You order"
 
-#: templates/vitrine/accueil.html:120
+#: templates/vitrine/accueil.html:132
 msgid ""
 "Chez un ou plusieurs commerçants, en un seul panier. Rien n'est débité à "
 "l'envoi."
@@ -210,11 +246,11 @@ msgstr ""
 "From one or several traders, in a single cart. Nothing is charged when you "
 "send it."
 
-#: templates/vitrine/accueil.html:121
+#: templates/vitrine/accueil.html:133
 msgid "Vous payez, protégé"
 msgstr "You pay, protected"
 
-#: templates/vitrine/accueil.html:121
+#: templates/vitrine/accueil.html:133
 msgid ""
 "Par MTN MoMo ou Orange Money. L'argent reste en séquestre chez notre "
 "partenaire agréé."
@@ -222,11 +258,11 @@ msgstr ""
 "With MTN MoMo or Orange Money. The money stays in escrow with our licensed "
 "partner."
 
-#: templates/vitrine/accueil.html:122
+#: templates/vitrine/accueil.html:134
 msgid "Vous recevez, puis confirmez"
 msgstr "You receive, then confirm"
 
-#: templates/vitrine/accueil.html:122
+#: templates/vitrine/accueil.html:134
 msgid ""
 "Vous donnez votre code de remise au livreur quand vous avez la marchandise "
 "en main. Le commerçant est payé ensuite."
@@ -234,19 +270,19 @@ msgstr ""
 "You give your handover code to the courier once the goods are in your hands."
 " The trader is paid after that."
 
-#: templates/vitrine/accueil.html:141
+#: templates/vitrine/accueil.html:153
 msgid "Qui vend ici"
 msgstr "Who sells here"
 
-#: templates/vitrine/accueil.html:142
+#: templates/vitrine/accueil.html:154
 msgid "Les commerçants du marché"
 msgstr "The market's traders"
 
-#: templates/vitrine/accueil.html:165
+#: templates/vitrine/accueil.html:177
 msgid "Vous tenez un commerce ?"
 msgstr "Do you run a shop?"
 
-#: templates/vitrine/accueil.html:166
+#: templates/vitrine/accueil.html:178
 msgid ""
 "Caisse, stock, comptabilité et vitrine en ligne, dans un seul outil qui "
 "marche même sans réseau."
@@ -254,7 +290,7 @@ msgstr ""
 "Till, stock, accounting and an online storefront, in a single tool that "
 "works even without network."
 
-#: templates/vitrine/accueil.html:168
+#: templates/vitrine/accueil.html:180
 msgid "Ouvrir mon espace commerçant"
 msgstr "Open my trader area"
 
@@ -298,7 +334,7 @@ msgstr "Add one"
 msgid "Ajouter au panier"
 msgstr "Add to cart"
 
-#: templates/vitrine/article.html:72 templates/vitrine/boutique.html:35
+#: templates/vitrine/article.html:72 templates/vitrine/boutique.html:38
 msgid "Paiement protégé."
 msgstr "Protected payment."
 
@@ -352,7 +388,7 @@ msgstr ""
 msgid "Chez le même commerçant"
 msgstr "More from this trader"
 
-#: templates/vitrine/base.html:22
+#: templates/vitrine/base.html:22 templates/vitrine/base.html:44
 msgid ""
 "Les commerçants de Douala et Yaoundé, leurs prix affichés, livrés par celui "
 "qui vend. Paiement Mobile Money protégé."
@@ -360,71 +396,71 @@ msgstr ""
 "Traders from Douala and Yaoundé, their prices on display, delivered by the "
 "seller. Protected Mobile Money payment."
 
-#: templates/vitrine/base.html:44
+#: templates/vitrine/base.html:55
 msgid "Aller au contenu"
 msgstr "Skip to content"
 
-#: templates/vitrine/base.html:48
+#: templates/vitrine/base.html:59
 msgid "HyperMarché, accueil du marché"
 msgstr "HyperMarché, market home"
 
-#: templates/vitrine/base.html:54 templates/vitrine/base.html:93
+#: templates/vitrine/base.html:64 templates/vitrine/base.html:103
 msgid "Chercher dans le marché"
 msgstr "Search the market"
 
-#: templates/vitrine/base.html:57
+#: templates/vitrine/base.html:67
 msgid "Un article, une marque, une référence…"
 msgstr "An item, a brand, a reference…"
 
-#: templates/vitrine/base.html:61
+#: templates/vitrine/base.html:71
 msgid "Langue"
 msgstr "Language"
 
-#: templates/vitrine/base.html:73
+#: templates/vitrine/base.html:83
 msgid "Thème : automatique. Passer au thème clair"
 msgstr "Theme: automatic. Switch to light theme"
 
-#: templates/vitrine/base.html:74
+#: templates/vitrine/base.html:84
 msgid "Thème : clair. Passer au thème sombre"
 msgstr "Theme: light. Switch to dark theme"
 
-#: templates/vitrine/base.html:75
+#: templates/vitrine/base.html:85
 msgid "Thème : sombre. Revenir au thème automatique"
 msgstr "Theme: dark. Back to automatic theme"
 
-#: templates/vitrine/base.html:76
+#: templates/vitrine/base.html:86
 msgid "Changer de thème"
 msgstr "Change theme"
 
-#: templates/vitrine/base.html:81
+#: templates/vitrine/base.html:91
 #, python-format
 msgid "Panier, %(n)s article"
 msgid_plural "Panier, %(n)s articles"
 msgstr[0] "Cart, %(n)s item"
 msgstr[1] "Cart, %(n)s items"
 
-#: templates/vitrine/base.html:81
+#: templates/vitrine/base.html:91
 msgid "Panier, vide"
 msgstr "Cart, empty"
 
-#: templates/vitrine/base.html:83 templates/vitrine/commander.html:9
+#: templates/vitrine/base.html:93 templates/vitrine/commander.html:9
 msgid "Panier"
 msgstr "Cart"
 
-#: templates/vitrine/base.html:96
+#: templates/vitrine/base.html:106
 msgid "Chercher un article…"
 msgstr "Search for an item…"
 
-#: templates/vitrine/base.html:101
-msgid "Rayons du marché"
-msgstr "Market aisles"
+#: templates/vitrine/base.html:116 templates/vitrine/base.html:121
+msgid "Rayons"
+msgstr "Aisles"
 
-#: templates/vitrine/base.html:103 templates/vitrine/base.html:137
-#: templates/vitrine/partials/resultats.html:9
+#: templates/vitrine/base.html:124 templates/vitrine/base.html:159
+#: templates/vitrine/catalogue.html:15
 msgid "Tout le marché"
 msgstr "The whole market"
 
-#: templates/vitrine/base.html:132
+#: templates/vitrine/base.html:154
 msgid ""
 "Place de marché camerounaise. Chaque article est vendu par le commerçant "
 "nommé sur sa fiche, qui en assure la livraison."
@@ -432,24 +468,24 @@ msgstr ""
 "Cameroonian marketplace. Every item is sold by the trader named on its page,"
 " who handles the delivery."
 
-#: templates/vitrine/base.html:136
+#: templates/vitrine/base.html:158
 msgid "Acheter"
 msgstr "Buy"
 
-#: templates/vitrine/base.html:138 templates/vitrine/panier.html:4
+#: templates/vitrine/base.html:160 templates/vitrine/panier.html:4
 #: templates/vitrine/panier.html:8
 msgid "Votre panier"
 msgstr "Your cart"
 
-#: templates/vitrine/base.html:141
+#: templates/vitrine/base.html:163
 msgid "Vendre"
 msgstr "Sell"
 
-#: templates/vitrine/base.html:143
+#: templates/vitrine/base.html:165
 msgid "Design system"
 msgstr "Design system"
 
-#: templates/vitrine/base.html:149
+#: templates/vitrine/base.html:171
 msgid ""
 "Paiement protégé : l'argent payé en ligne reste en séquestre jusqu'à votre "
 "confirmation de réception. HyperMarché ne vous demandera jamais de payer sur"
@@ -458,23 +494,23 @@ msgstr ""
 "Protected payment: money paid online stays in escrow until you confirm "
 "receipt. HyperMarché will never ask you to pay to a personal number."
 
-#: templates/vitrine/boutique.html:16
+#: templates/vitrine/boutique.html:19
 #, python-format
 msgid "Logo de %(nom)s"
 msgstr "%(nom)s logo"
 
-#: templates/vitrine/boutique.html:24
+#: templates/vitrine/boutique.html:27
 #, python-format
 msgid "%(n)s article en vitrine"
 msgid_plural "%(n)s articles en vitrine"
 msgstr[0] "%(n)s item on display"
 msgstr[1] "%(n)s items on display"
 
-#: templates/vitrine/boutique.html:31
+#: templates/vitrine/boutique.html:34
 msgid "Ce que HyperMarché sait de ce commerçant"
 msgstr "What HyperMarché knows about this trader"
 
-#: templates/vitrine/boutique.html:35
+#: templates/vitrine/boutique.html:38
 msgid ""
 "Payé en ligne, votre argent reste en séquestre chez HyperMarché jusqu'à ce "
 "que vous confirmiez la livraison. HyperMarché ne vous demandera jamais de "
@@ -483,25 +519,48 @@ msgstr ""
 "Paid online, your money stays in escrow with HyperMarché until you confirm "
 "delivery. HyperMarché will never ask you to pay to a personal number."
 
-#: templates/vitrine/boutique.html:47
+#: templates/vitrine/boutique.html:50
 msgid "Aucun article en vitrine pour l'instant."
 msgstr "No items on display for now."
 
-#: templates/vitrine/boutique.html:48
+#: templates/vitrine/boutique.html:51
 msgid ""
 "Ce commerçant prépare son étal. Parcourez le reste du marché en attendant."
 msgstr ""
 "This trader is setting up their stall. Browse the rest of the market in the "
 "meantime."
 
-#: templates/vitrine/boutique.html:49
-#: templates/vitrine/partials/resultats.html:30
+#: templates/vitrine/boutique.html:52
+#: templates/vitrine/partials/resultats.html:55
 msgid "Voir tout le marché"
 msgstr "See the whole market"
 
-#: templates/vitrine/catalogue.html:12
+#: templates/vitrine/catalogue.html:14
+msgid "Recherche"
+msgstr "Search"
+
+#: templates/vitrine/catalogue.html:14
+msgid "Rayon"
+msgstr "Aisle"
+
+#: templates/vitrine/catalogue.html:14
+#: templates/vitrine/partials/titre_resultats.html:1
+msgid "Catalogue"
+msgstr "Catalogue"
+
+#: templates/vitrine/catalogue.html:19
 msgid "Chargement des articles…"
 msgstr "Loading items…"
+
+#: templates/vitrine/catalogue.html:26
+#: templates/vitrine/partials/catalogue_corps.html:7
+#: templates/vitrine/partials/resultats.html:9
+msgid "Filtres"
+msgstr "Filters"
+
+#: templates/vitrine/catalogue.html:30
+msgid "Voir les résultats"
+msgstr "Show results"
 
 #: templates/vitrine/commande.html:4
 #, python-format
@@ -948,7 +1007,7 @@ msgstr ""
 msgid "Envoyer la réclamation"
 msgstr "Send the claim"
 
-#: templates/vitrine/panier.html:11 apps/vitrine/views.py:262
+#: templates/vitrine/panier.html:11 apps/vitrine/views.py:316
 msgid "Votre panier est vide."
 msgstr "Your cart is empty."
 
@@ -1019,42 +1078,100 @@ msgstr "Checkout"
 msgid "Continuer mes achats"
 msgstr "Continue shopping"
 
-#: templates/vitrine/partials/resultats.html:7
-msgid "Recherche"
-msgstr "Search"
+#: templates/vitrine/partials/filtres.html:13
+msgid "Catégorie"
+msgstr "Category"
 
-#: templates/vitrine/partials/resultats.html:7
-msgid "Rayon"
-msgstr "Aisle"
+#: templates/vitrine/partials/filtres.html:14
+#: templates/vitrine/partials/filtres.html:39
+msgid "Toutes"
+msgstr "All"
 
-#: templates/vitrine/partials/resultats.html:7
-#: templates/vitrine/partials/titre_resultats.html:1
-msgid "Catalogue"
-msgstr "Catalogue"
+#: templates/vitrine/partials/filtres.html:22
+msgid "Prix (FCFA)"
+msgstr "Price (FCFA)"
 
-#: templates/vitrine/partials/resultats.html:12
+#: templates/vitrine/partials/filtres.html:24
+msgid "Minimum"
+msgstr "Minimum"
+
+#: templates/vitrine/partials/filtres.html:26
+msgid "Maximum"
+msgstr "Maximum"
+
+#: templates/vitrine/partials/filtres.html:32
+msgid "Confiance"
+msgstr "Trust"
+
+#: templates/vitrine/partials/filtres.html:33
+msgid "Identité du commerçant vérifiée"
+msgstr "Trader's identity verified"
+
+#: templates/vitrine/partials/filtres.html:38
+msgid "Ville"
+msgstr "City"
+
+#: templates/vitrine/partials/filtres.html:48
+msgid "Commerçant"
+msgstr "Trader"
+
+#: templates/vitrine/partials/filtres.html:49
+msgid "Tous"
+msgstr "All"
+
+#: templates/vitrine/partials/filtres.html:57
+msgid "Appliquer"
+msgstr "Apply"
+
+#: templates/vitrine/partials/resultats.html:11
+msgid "Trier par"
+msgstr "Sort by"
+
+#: templates/vitrine/partials/resultats.html:19
+msgid "Filtres actifs"
+msgstr "Active filters"
+
+#: templates/vitrine/partials/resultats.html:21
 #, python-format
-msgid "%(n)s article"
-msgid_plural "%(n)s articles"
-msgstr[0] "%(n)s item"
-msgstr[1] "%(n)s items"
+msgid "Retirer le filtre %(f)s"
+msgstr "Remove the %(f)s filter"
 
-#: templates/vitrine/partials/resultats.html:24
+#: templates/vitrine/partials/resultats.html:23
+msgid "Tout effacer"
+msgstr "Clear all"
+
+#: templates/vitrine/partials/resultats.html:35
+msgid "Voir plus d'articles"
+msgstr "Show more items"
+
+#: templates/vitrine/partials/resultats.html:41
 msgid "Rien ne correspond à cette recherche."
 msgstr "Nothing matches this search."
 
-#: templates/vitrine/partials/resultats.html:25
+#: templates/vitrine/partials/resultats.html:42
 msgid ""
 "Essayez un autre mot, une orthographe plus courte, ou parcourez un rayon."
 msgstr "Try another word, a shorter spelling, or browse an aisle."
 
-#: templates/vitrine/partials/resultats.html:27
+#: templates/vitrine/partials/resultats.html:44
+msgid "Aucun article avec ces filtres."
+msgstr "No items match these filters."
+
+#: templates/vitrine/partials/resultats.html:45
+msgid "Élargissez la fourchette de prix ou retirez un filtre."
+msgstr "Widen the price range or remove a filter."
+
+#: templates/vitrine/partials/resultats.html:47
 msgid "Ce rayon est encore vide."
 msgstr "This aisle is still empty."
 
-#: templates/vitrine/partials/resultats.html:28
+#: templates/vitrine/partials/resultats.html:48
 msgid "Les commerçants de ce rayon n'ont rien mis en vitrine pour l'instant."
 msgstr "The traders in this aisle have nothing on display yet."
+
+#: templates/vitrine/partials/resultats.html:51
+msgid "Effacer les filtres"
+msgstr "Clear filters"
 
 #: apps/vitrine/chaines.py:11
 msgid "Nouvelle boutique"
@@ -1156,15 +1273,41 @@ msgstr "Notes for the trader"
 msgid "Horaire, étage, autre numéro…"
 msgstr "Time, floor, other number…"
 
-#: apps/vitrine/views.py:212
+#: apps/vitrine/views.py:148
+msgid "Pertinence"
+msgstr "Relevance"
+
+#: apps/vitrine/views.py:149
+msgid "Prix croissant"
+msgstr "Price: low to high"
+
+#: apps/vitrine/views.py:150
+msgid "Prix décroissant"
+msgstr "Price: high to low"
+
+#: apps/vitrine/views.py:151
+msgid "Nouveautés"
+msgstr "Newest"
+
+#: apps/vitrine/views.py:183
+#, python-format
+msgid "Dès %(prix)s FCFA"
+msgstr "From %(prix)s FCFA"
+
+#: apps/vitrine/views.py:185
+#, python-format
+msgid "Jusqu'à %(prix)s FCFA"
+msgstr "Up to %(prix)s FCFA"
+
+#: apps/vitrine/views.py:266
 msgid "Cet article n'est plus disponible."
 msgstr "This item is no longer available."
 
-#: apps/vitrine/views.py:216
+#: apps/vitrine/views.py:270
 msgid "Ajouté à votre panier."
 msgstr "Added to your cart."
 
-#: apps/vitrine/views.py:278
+#: apps/vitrine/views.py:332
 msgid ""
 "Le prépaiement n'est plus possible chez une boutique de votre panier : "
 "relisez la commande, puis envoyez-la à nouveau."
@@ -1172,18 +1315,18 @@ msgstr ""
 "Advance payment is no longer possible with one shop in your cart: review the"
 " order, then send it again."
 
-#: apps/vitrine/views.py:520
+#: apps/vitrine/views.py:574
 #, python-format
 msgid "Le paiement n'a pas abouti : %(motif)s"
 msgstr "The payment did not go through: %(motif)s"
 
-#: apps/vitrine/views.py:577
+#: apps/vitrine/views.py:631
 #, python-format
 msgid ""
 "Merci : la réception de votre commande chez %(boutique)s est confirmée."
 msgstr "Thank you: receipt of your order from %(boutique)s is confirmed."
 
-#: apps/vitrine/views.py:617
+#: apps/vitrine/views.py:671
 msgid ""
 "Votre réclamation est enregistrée. L'argent de cette commande reste en "
 "séquestre, et la plateforme l'examine sous 72 heures."

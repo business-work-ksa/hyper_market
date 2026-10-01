@@ -38,6 +38,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.cache import patch_vary_headers
+from django.utils.functional import SimpleLazyObject
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -51,12 +52,15 @@ from apps.payments import sequestre as sequestre_service
 from apps.payments.models import Sequestre, Transaction
 from apps.vitrine import panier as panier_service
 from apps.vitrine.catalogue import (
+    Filtres,
     article_par_identifiant,
     articles_en_vitrine,
     boutique_par_slug,
     boutiques_en_vitrine,
     compatibilites_de,
+    menu_rayons,
     rayons_ouverts,
+    rechercher,
 )
 from apps.vitrine.design_system import contexte as jetons_du_marche
 from apps.vitrine.forms import CommandeForm
@@ -83,6 +87,9 @@ def _contexte(request, page: str, **extra) -> dict:
     contexte = {
         "page": page,
         "rayons": rayons_ouverts(),
+        # Le mégamenu : calculé au premier accès du gabarit, une seule fois — et jamais pour un
+        # fragment, qui ne l'affiche pas.
+        "menu": SimpleLazyObject(menu_rayons),
         "articles_au_panier": panier_service.nombre_articles(request.session),
         "recherche": (request.GET.get("q") or "").strip(),
     }
@@ -108,30 +115,77 @@ def accueil(request):
 
 
 def catalogue(request):
-    recherche = (request.GET.get("q") or "").strip()
-    code_rayon = request.GET.get("rayon") or ""
-
-    rayons = rayons_ouverts()
-    rayon = next((r for r in rayons if r.code == code_rayon), None)
-
-    articles = articles_en_vitrine(recherche=recherche, rayon=rayon, limite=120)
+    filtres = Filtres(request.GET, rayons_ouverts())
+    resultat = rechercher(filtres)
     contexte = _contexte(
         request,
         "catalogue",
-        articles=articles,
-        rayon_courant=rayon,
-        nombre=len(articles),
+        articles=resultat.articles,
+        resultat=resultat,
+        filtres=filtres,
+        facettes=resultat.facettes,
+        puces=_puces_actives(request, filtres, resultat.facettes),
+        rayon_courant=filtres.rayon,
+        nombre=resultat.total,
+        tris=_libelles_tris(),
+        url_suivante=_url_page(request, resultat.suivante) if resultat.suivante else "",
     )
-    # Rechargement de la seule grille (rayon, recherche) par static/js/marche.js : un fragment,
-    # pas la page. `Vary` empêche un cache de servir le fragment à qui demande la page.
-    fragment = request.headers.get("X-Fragment") == "1"
-    reponse = render(
-        request,
-        "vitrine/partials/resultats.html" if fragment else "vitrine/catalogue.html",
-        contexte,
-    )
+    # Rechargement de la seule grille (filtres, rayon, recherche) par static/js/marche.js : un
+    # fragment, pas la page ; « suite » ne rend que les cartes de la page suivante. `Vary`
+    # empêche un cache de servir le fragment à qui demande la page.
+    fragment = request.headers.get("X-Fragment")
+    gabarit = {
+        "1": "vitrine/partials/catalogue_corps.html",
+        "suite": "vitrine/partials/cartes.html",
+    }.get(fragment, "vitrine/catalogue.html")
+    reponse = render(request, gabarit, contexte)
     patch_vary_headers(reponse, ["X-Fragment"])
     return reponse
+
+
+def _libelles_tris():
+    return [
+        ("pertinence", _("Pertinence")),
+        ("prix-croissant", _("Prix croissant")),
+        ("prix-decroissant", _("Prix décroissant")),
+        ("nouveautes", _("Nouveautés")),
+    ]
+
+
+def _url_sans(request, *cles) -> str:
+    params = request.GET.copy()
+    for cle in (*cles, "page"):
+        params.pop(cle, None)
+    chaine = params.urlencode()
+    return f"{request.path}?{chaine}" if chaine else request.path
+
+
+def _url_page(request, page) -> str:
+    params = request.GET.copy()
+    params["page"] = str(page)
+    return f"{request.path}?{params.urlencode()}"
+
+
+def _puces_actives(request, filtres, facettes) -> list[dict]:
+    """Une puce par filtre posé, avec l'adresse qui l'enlève : on retire un filtre d'un geste."""
+    from apps.backoffice.templatetags.hm import fcfa
+
+    puces = []
+    if filtres.categorie:
+        libelle = next((c["libelle"] for c in facettes["categories"] if c["slug"] == filtres.categorie), filtres.categorie)
+        puces.append({"libelle": libelle, "url": _url_sans(request, "categorie")})
+    if filtres.boutique:
+        libelle = next((b["libelle"] for b in facettes["boutiques"] if b["slug"] == filtres.boutique), filtres.boutique)
+        puces.append({"libelle": libelle, "url": _url_sans(request, "boutique")})
+    if filtres.ville:
+        puces.append({"libelle": filtres.ville, "url": _url_sans(request, "ville")})
+    if filtres.prix_min is not None:
+        puces.append({"libelle": _("Dès %(prix)s FCFA") % {"prix": fcfa(filtres.prix_min)}, "url": _url_sans(request, "prix_min")})
+    if filtres.prix_max is not None:
+        puces.append({"libelle": _("Jusqu'à %(prix)s FCFA") % {"prix": fcfa(filtres.prix_max)}, "url": _url_sans(request, "prix_max")})
+    if filtres.verifie:
+        puces.append({"libelle": _("Identité vérifiée"), "url": _url_sans(request, "verifie")})
+    return puces
 
 
 def design_system(request):

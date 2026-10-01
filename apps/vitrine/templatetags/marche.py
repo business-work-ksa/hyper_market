@@ -1,6 +1,7 @@
 """Balises du marché : icônes et petits assemblages répétés dans les gabarits de la vitrine."""
 
 from django import template
+from django.templatetags.static import static
 from django.utils.html import format_html
 
 from apps.backoffice.templatetags.hm import ESPACE_FINE
@@ -65,3 +66,18 @@ def delai(rang, pas: int = 60):
         return f"{min(int(rang), 8) * int(pas)}ms"
     except (TypeError, ValueError):
         return "0ms"
+
+
+# Rayons qui ont leur illustration (outils/marque/generer_illustrations.py). Un rayon créé plus tard
+# prend l'étal générique : jamais d'image cassée, et pas de lecture de disque à chaque page.
+RAYONS_ILLUSTRES = {
+    "cosmetique-beaute", "mode-accessoires", "quincaillerie", "pieces-detachees",
+    "maison-decoration", "petit-electronique", "electromenager", "alimentaire",
+}
+
+
+@register.simple_tag
+def illustration_rayon(code: str) -> str:
+    nom = code if code in RAYONS_ILLUSTRES else "defaut"
+    return static(f"marque/illustrations/rayon-{nom}.svg")
+

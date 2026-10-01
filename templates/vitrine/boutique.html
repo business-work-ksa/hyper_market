@@ -9,8 +9,11 @@ Sur **sa** page, le commerçant est chez lui : sa couleur (`partials/charte.html
 logo. La confiance publique vient juste après son nom : des faits vérifiables, pas des étoiles.
 {% endcomment %}
 <section class="relative isolate -mt-6 mb-8 pb-8 pt-10 sm:-mt-8" aria-labelledby="boutique-titre">
-  <div class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 border-b border-line opacity-70" aria-hidden="true"
-       style="background: radial-gradient(80% 120% at 0% 0%, hsl({{ boutique.enseigne|teinte }} 45% 70% / 0.25), transparent 60%), radial-gradient(60% 90% at 100% 0%, rgb(var(--hm-accent) / 0.15), transparent 60%);"></div>
+  <div class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 overflow-hidden border-b border-line" aria-hidden="true">
+    {% if boutique.rayon_principal %}<img class="absolute inset-0 size-full object-cover object-right opacity-80 dark:opacity-30" data-parallaxe src="{% illustration_rayon boutique.rayon_principal.code %}" alt="" width="800" height="500" decoding="async">{% endif %}
+    <div class="absolute inset-0 bg-gradient-to-r from-bg via-bg/90 to-bg/20"></div>
+    <div class="absolute inset-0" style="background: radial-gradient(70% 120% at 0% 0%, hsl({{ boutique.enseigne|teinte }} 45% 70% / 0.18), transparent 60%);"></div>
+  </div>
   <div class="flex flex-col gap-6 md:flex-row md:items-center">
     {% if identite.logo %}
       <img class="size-20 rounded-2xl border border-line bg-surface object-contain p-2 shadow-sm" src="{{ identite.logo.url }}" alt="{% blocktranslate with nom=boutique.enseigne %}Logo de {{ nom }}{% endblocktranslate %}" width="80" height="80" loading="lazy" decoding="async">

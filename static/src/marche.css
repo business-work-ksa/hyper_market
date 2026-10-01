@@ -371,6 +371,66 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* 3 bis. Navigation et filtres du marché                              */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Mégamenu (bureau) : panneau sous l'en-tête, pleine largeur. */
+  .megamenu {
+    @apply absolute inset-x-0 top-full z-40 border-b border-line bg-surface-raised shadow-xl;
+  }
+  .megamenu:not([hidden]) { animation: descendre 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .megamenu-rayon {
+    @apply flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-semibold text-ink-muted transition-colors
+           hover:bg-surface-sunken hover:text-ink aria-[current=true]:bg-brand-soft aria-[current=true]:text-brand-ink;
+  }
+  .megamenu-volet { @apply grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-start gap-6; }
+  .megamenu-volet:not([hidden]) { animation: apparaitre-volet 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .megamenu-banniere { @apply relative block overflow-hidden rounded-2xl border border-line; aspect-ratio: 16 / 10; }
+  .megamenu-banniere img { @apply absolute inset-0 size-full object-cover transition-transform duration-700 ease-sortie; }
+  .megamenu-banniere:hover img { transform: scale(1.04); }
+  .megamenu-banniere-texte {
+    @apply absolute inset-x-3 bottom-3 flex flex-col gap-0.5 rounded-xl bg-surface-raised/90 px-4 py-3 shadow-md backdrop-blur;
+  }
+  .megamenu-lien { @apply rounded-md px-1.5 py-1 text-sm text-ink transition-colors hover:bg-surface-sunken hover:text-brand-ink; }
+
+  /* Feuille (téléphone) et tiroir de filtres : <dialog> collés à un bord. */
+  .feuille, .tiroir {
+    @apply m-0 flex max-h-none w-full flex-col overflow-hidden border-line bg-surface-raised p-0 text-ink shadow-xl;
+  }
+  .feuille:not([open]), .tiroir:not([open]) { display: none; }
+  .feuille { @apply mt-auto max-h-[85dvh] rounded-t-2xl border-t; max-width: 100vw; }
+  .feuille[open] { animation: monter 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .tiroir { @apply ml-auto h-dvh max-h-dvh w-[min(24rem,100vw)] border-l; }
+  .tiroir[open] { animation: glisser 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .feuille::backdrop, .tiroir::backdrop { background: rgb(15 15 12 / 0.5); backdrop-filter: blur(2px); }
+
+  .filtre-option {
+    @apply flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-ink transition-colors hover:bg-surface-sunken;
+  }
+  .filtre-option input { @apply size-4 shrink-0 accent-[rgb(var(--hm-marque))]; }
+  .filtre-compte { @apply text-xs tabular-nums text-ink-muted; }
+  .puce-filtre {
+    @apply inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-xs font-semibold text-brand-ink
+           transition-colors hover:bg-brand/20;
+  }
+  .puce-filtre-tout { @apply bg-transparent text-ink-muted underline-offset-2 hover:bg-transparent hover:text-ink hover:underline; }
+}
+
+@keyframes descendre { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes apparaitre-volet { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+@keyframes monter { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes glisser { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes rebond { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.35); } 70% { transform: scale(0.92); } }
+@keyframes flotter { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+.js [data-sans-script] { display: none; }
+.rebond { animation: rebond 600ms cubic-bezier(0.16, 1, 0.3, 1); }
+.flotter { animation: flotter 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .megamenu:not([hidden]), .megamenu-volet:not([hidden]), .feuille[open], .tiroir[open], .rebond, .flotter { animation: none; }
+}
+
+/* ------------------------------------------------------------------ */
 /* Démonstration — référence vivante seulement (/marche/design-system/) */
 /* Montre figés les états qu'on ne peut pas forcer en CSS (survol, focus, appui). */
 /* ------------------------------------------------------------------ */

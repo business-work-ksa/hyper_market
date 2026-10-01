@@ -112,27 +112,40 @@
     document.querySelectorAll('.btn[aria-busy="true"]').forEach(function (b) { b.removeAttribute("aria-busy"); });
   });
 
-  /* --- 6. Grille du catalogue : rayon et recherche sans quitter la page ---------------------- */
-  // La grille se recharge par fragment (en-tête `X-Fragment`), un squelette tient la place le
-  // temps de la réponse. L'adresse change (historique), le retour arrière fonctionne, et la
-  // région annonce le nombre de résultats aux lecteurs d'écran.
+  /* --- 6. Catalogue : filtres, tri, « Voir plus », sans quitter la page ------------------- */
+  // Le corps du catalogue (filtres + résultats) se recharge par fragment (en-tête `X-Fragment`) ;
+  // un squelette tient la place des résultats le temps de la réponse. L'adresse change (on la
+  // partage, on revient en arrière), et la région annonce le nombre de résultats.
   var region = document.querySelector("[data-catalogue]");
   var gabarit = document.getElementById("squelette-grille");
   var annonce = document.querySelector("[data-catalogue-annonce]");
+  var tiroirCorps = document.querySelector("[data-tiroir-corps]");
   var enCours = null;
+
+  function urlDuFormulaire(form) {
+    var url = new URL(form.action, window.location.href);
+    var params = new URLSearchParams();
+    new FormData(form).forEach(function (valeur, cle) { if (valeur !== "") params.append(cle, valeur); });
+    url.search = params.toString();
+    return url.toString();
+  }
 
   function charger(url, pousser) {
     if (!region || !window.fetch) { window.location.href = url; return; }
     if (enCours) enCours.abort();
     enCours = "AbortController" in window ? new AbortController() : null;
+    var focus = document.activeElement && document.activeElement.id;
+    var resultats = region.querySelector("[data-resultats]") || region;
     region.setAttribute("aria-busy", "true");
-    if (gabarit) region.replaceChildren(gabarit.content.cloneNode(true));
+    if (gabarit) resultats.replaceChildren(gabarit.content.cloneNode(true));
     if (annonce) annonce.textContent = annonce.getAttribute("data-chargement") || "";
     fetch(url, { headers: { "X-Fragment": "1" }, credentials: "same-origin", signal: enCours && enCours.signal })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
       .then(function (html) {
         region.innerHTML = html;
         region.removeAttribute("aria-busy");
+        var source = region.querySelector("[data-tiroir-source]");
+        if (source && tiroirCorps) tiroirCorps.replaceChildren(source.content.cloneNode(true));
         var titre = region.querySelector("[data-titre-resultats]");
         if (titre) document.title = titre.getAttribute("data-titre-resultats");
         if (annonce) {
@@ -140,7 +153,7 @@
           annonce.textContent = compte ? compte.textContent.trim() : "";
         }
         if (pousser) history.pushState({ catalogue: true }, "", url);
-        majPuces(url);
+        if (focus && document.getElementById(focus)) document.getElementById(focus).focus({ preventScroll: true });
         observer(region);
       })
       .catch(function (err) {
@@ -149,35 +162,140 @@
       });
   }
 
-  function majPuces(url) {
-    var cible = new URL(url, window.location.href);
-    var rayon = cible.searchParams.get("rayon") || "";
-    var q = cible.searchParams.get("q") || "";
-    document.querySelectorAll("a[data-filtre]").forEach(function (a) {
-      var r = new URL(a.href, window.location.href).searchParams.get("rayon") || "";
-      if (r === rayon && !q) a.setAttribute("aria-current", "page");
-      else a.removeAttribute("aria-current");
-    });
-  }
-
   if (region) {
+    // Puces de filtres actifs, « Tout effacer ».
     document.addEventListener("click", function (e) {
-      var lien = e.target.closest("a[data-filtre]");
+      var lien = e.target.closest("[data-catalogue] a[data-filtre]");
       if (!lien || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       e.preventDefault();
       charger(lien.href, true);
     });
-    document.querySelectorAll("form[data-recherche]").forEach(function (form) {
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var url = new URL(form.action, window.location.href);
-        url.search = new URLSearchParams(new FormData(form)).toString();
+    // Colonne de filtres : chaque changement s'applique ; les prix, à la sortie du champ.
+    document.addEventListener("change", function (e) {
+      var form = e.target.closest("[data-catalogue] form[data-filtres]");
+      if (form) { charger(urlDuFormulaire(form), true); return; }
+      if (e.target.matches("[data-tri]")) {
+        var url = new URL(window.location.href);
+        url.searchParams.set("tri", e.target.value);
+        url.searchParams.delete("page");
         charger(url.toString(), true);
-        var champ = form.querySelector("input[type=search]");
-        if (champ) champ.blur();
+      }
+    });
+    // Tiroir mobile : on règle tout, puis « Voir les résultats ».
+    var tiroir = document.getElementById("tiroir-filtres");
+    if (tiroir) {
+      tiroir.addEventListener("close", function () {
+        var form = tiroir.querySelector("form[data-filtres]");
+        var url = form && urlDuFormulaire(form);
+        if (url && url !== window.location.href) charger(url, true);
       });
+    }
+    document.addEventListener("submit", function (e) {
+      var form = e.target.closest("form[data-filtres]");
+      if (!form) return;
+      e.preventDefault();
+      var d = form.closest("dialog");
+      if (d) d.close(); else charger(urlDuFormulaire(form), true);
+    });
+    // « Voir plus » : la page suivante s'ajoute à la grille, sans remplacer ce qu'on a vu.
+    document.addEventListener("click", function (e) {
+      var bouton = e.target.closest("[data-voir-plus]");
+      if (!bouton || !window.fetch) return;
+      e.preventDefault();
+      bouton.setAttribute("aria-busy", "true");
+      fetch(bouton.href, { headers: { "X-Fragment": "suite" }, credentials: "same-origin" })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(function (html) {
+          var grille = region.querySelector("[data-grille]");
+          var tampon = document.createElement("div");
+          tampon.innerHTML = html;
+          var suite = tampon.querySelector("[data-suite]");
+          if (suite) suite.remove();
+          var premiere = tampon.firstElementChild;
+          while (tampon.firstChild) grille.appendChild(tampon.firstChild);
+          observer(grille);
+          if (premiere) { var lien = premiere.querySelector("h3 a"); if (lien) lien.focus({ preventScroll: true }); }
+          if (suite) { bouton.href = suite.getAttribute("data-suite"); bouton.removeAttribute("aria-busy"); }
+          else bouton.parentElement.remove();
+        })
+        .catch(function () { window.location.href = bouton.href; });
     });
     window.addEventListener("popstate", function () { charger(window.location.href, false); });
+  }
+
+  /* --- 7. Mégamenu des rayons ------------------------------------------------------------- */
+  var boutonMenu = document.querySelector("[data-megamenu-bouton]");
+  var menu = document.querySelector("[data-megamenu]");
+  if (boutonMenu && menu) {
+    boutonMenu.setAttribute("role", "button");
+    var minuterie = null;
+    var chevron = boutonMenu.querySelector("svg:last-child");
+    function ouvrir() {
+      clearTimeout(minuterie);
+      if (!menu.hidden) return;
+      menu.hidden = false;
+      boutonMenu.setAttribute("aria-expanded", "true");
+      if (chevron) chevron.style.transform = "rotate(-90deg)";
+    }
+    function fermer(rendreFocus) {
+      clearTimeout(minuterie);
+      if (menu.hidden) return;
+      menu.hidden = true;
+      boutonMenu.setAttribute("aria-expanded", "false");
+      if (chevron) chevron.style.transform = "";
+      if (rendreFocus) boutonMenu.focus();
+    }
+    boutonMenu.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (menu.hidden) { ouvrir(); var premier = menu.querySelector(".megamenu-rayon"); if (premier && e.detail === 0) premier.focus(); }
+      else fermer(false);
+    });
+    // Survol avec intention : on ouvre après un court arrêt, on ferme après un court départ —
+    // traverser l'en-tête en allant ailleurs n'ouvre rien.
+    var zone = boutonMenu.closest("nav");
+    boutonMenu.addEventListener("mouseenter", function () { clearTimeout(minuterie); minuterie = setTimeout(ouvrir, 140); });
+    zone.addEventListener("mouseleave", function () { clearTimeout(minuterie); minuterie = setTimeout(function () { fermer(false); }, 260); });
+    menu.addEventListener("mouseenter", function () { clearTimeout(minuterie); });
+    function montrer(lien) {
+      var cible = document.getElementById(lien.getAttribute("data-volet"));
+      if (!cible) return;
+      menu.querySelectorAll(".megamenu-volet").forEach(function (v) { v.hidden = v !== cible; });
+      menu.querySelectorAll(".megamenu-rayon").forEach(function (l) {
+        if (l === lien) l.setAttribute("aria-current", "true"); else l.removeAttribute("aria-current");
+      });
+    }
+    menu.querySelectorAll(".megamenu-rayon").forEach(function (lien) {
+      lien.addEventListener("mouseenter", function () { montrer(lien); });
+      lien.addEventListener("focus", function () { montrer(lien); });
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) fermer(true); });
+    document.addEventListener("click", function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && !boutonMenu.contains(e.target)) fermer(false);
+    });
+    menu.addEventListener("focusout", function (e) {
+      if (e.relatedTarget && !menu.contains(e.relatedTarget) && e.relatedTarget !== boutonMenu) fermer(false);
+    });
+  }
+
+  /* --- 8. Profondeur : l'illustration du bandeau glisse plus lentement que la page ---------- */
+  var plans = document.querySelectorAll("[data-parallaxe]");
+  if (plans.length && !mouvementReduit) {
+    var demande = false;
+    window.addEventListener("scroll", function () {
+      if (demande) return;
+      demande = true;
+      requestAnimationFrame(function () {
+        var y = window.scrollY;
+        plans.forEach(function (p) { if (y < 900) p.style.transform = "translateY(" + (y * 0.18).toFixed(1) + "px) scale(1.06)"; });
+        demande = false;
+      });
+    }, { passive: true });
+  }
+
+  /* --- 9. Le panier vient de recevoir un article : sa pastille rebondit --------------------- */
+  var pastille = document.querySelector("[data-pastille-panier]");
+  if (pastille && document.querySelector("[data-message-succes]") && !mouvementReduit) {
+    pastille.classList.add("rebond");
   }
 
   observer(document);

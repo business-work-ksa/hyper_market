@@ -1,0 +1,14 @@
+{% load i18n %}{% comment %}
+Le corps du catalogue — colonne de filtres et résultats —, rendu dans la page ou seul (en-tête
+`X-Fragment: 1`) : les cases cochées suivent toujours les résultats. Le <template> porte la version
+« tiroir » des filtres, que le script recopie dans le tiroir mobile resté ouvert.
+{% endcomment %}
+<div class="grid gap-8 lg:grid-cols-[15rem_1fr]">
+  <aside class="hidden lg:block" aria-label="{% translate 'Filtres' %}">
+    <div class="sticky top-36">{% include "vitrine/partials/filtres.html" with prefixe="col-" %}</div>
+  </aside>
+  <div class="min-w-0" data-resultats>
+    {% include "vitrine/partials/resultats.html" %}
+  </div>
+</div>
+<template data-tiroir-source>{% include "vitrine/partials/filtres.html" with prefixe="tiroir-" %}</template>

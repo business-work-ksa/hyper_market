@@ -60,7 +60,7 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
       {% include "marche/logo.html" with hauteur="h-9" %}
     </a>
 
-    <form class="relative hidden flex-1 md:block" method="get" action="{% url 'vitrine_catalogue' %}" role="search" data-recherche>
+    <form class="relative hidden flex-1 md:block" method="get" action="{% url 'vitrine_catalogue' %}" role="search">
       <label class="sr-only" for="recherche-entete">{% translate "Chercher dans le marché" %}</label>
       {% icone "recherche" "pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-ink-muted" %}
       <input class="input rounded-full pl-11" id="recherche-entete" type="search" name="q" value="{{ recherche }}"
@@ -92,14 +92,14 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
         {% icone "panier" "size-5" %}
         <span class="hidden sm:inline">{% translate "Panier" %}</span>
         {% if articles_au_panier %}
-          <span class="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-2xs font-extrabold text-accent-on ring-2 ring-bg" aria-hidden="true">{{ articles_au_panier }}</span>
+          <span class="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-2xs font-extrabold text-accent-on ring-2 ring-bg" aria-hidden="true" data-pastille-panier>{{ articles_au_panier }}</span>
         {% endif %}
       </a>
     </div>
   </div>
 
   <div class="px-4 pb-3 md:hidden">
-    <form class="relative" method="get" action="{% url 'vitrine_catalogue' %}" role="search" data-recherche>
+    <form class="relative" method="get" action="{% url 'vitrine_catalogue' %}" role="search">
       <label class="sr-only" for="recherche-mobile">{% translate "Chercher dans le marché" %}</label>
       {% icone "recherche" "pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-ink-muted" %}
       <input class="input rounded-full pl-11" id="recherche-mobile" type="search" name="q" value="{{ recherche }}"
@@ -108,13 +108,25 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
   </div>
 
   {% block rayons %}
-    <nav class="border-t border-line/70" aria-label="{% translate 'Rayons du marché' %}">
-      <ul class="defilement-discret mx-auto flex max-w-contenu gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8">
-        <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}" data-filtre {% if request.resolver_match.url_name == "vitrine_catalogue" and not rayon_courant and not recherche %}aria-current="page"{% endif %}>{% translate "Tout le marché" %}</a></li>
+    <nav class="relative border-t border-line/70" aria-label="{% translate 'Rayons du marché' %}">
+      <ul class="defilement-discret mx-auto flex max-w-contenu items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8">
+        <li class="hidden lg:block">
+          <a class="puce-nav gap-1.5 border-ink bg-ink text-ink-inverse hover:text-ink-inverse" href="{% url 'vitrine_catalogue' %}"
+             data-megamenu-bouton aria-expanded="false" aria-controls="megamenu">
+            {% icone "tableau" "size-4" %}{% translate "Rayons" %}{% icone "chevron" "size-3.5 rotate-90 transition-transform" %}
+          </a>
+        </li>
+        <li class="lg:hidden">
+          <a class="puce-nav gap-1.5 border-ink bg-ink text-ink-inverse hover:text-ink-inverse" href="{% url 'vitrine_catalogue' %}" data-modale-ouvrir="feuille-rayons">
+            {% icone "tableau" "size-4" %}{% translate "Rayons" %}
+          </a>
+        </li>
+        <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}" {% if request.resolver_match.url_name == "vitrine_catalogue" and not rayon_courant and not recherche %}aria-current="page"{% endif %}>{% translate "Tout le marché" %}</a></li>
         {% for r in rayons %}
-          <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}" data-filtre {% if rayon_courant and rayon_courant.code == r.code %}aria-current="page"{% endif %}>{{ r.libelle }}</a></li>
+          <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}" {% if rayon_courant and rayon_courant.code == r.code %}aria-current="page"{% endif %}>{{ r.libelle }}</a></li>
         {% endfor %}
       </ul>
+      {% include "marche/megamenu.html" %}
     </nav>
   {% endblock %}
 </header>
@@ -123,7 +135,7 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
   {% if messages %}
     <div class="mb-6 flex flex-col gap-2" role="status" aria-live="polite">
       {% for message in messages %}
-        <div class="bandeau {% if message.tags == 'error' %}bandeau-erreur{% elif message.tags == 'success' %}bandeau-succes{% elif message.tags == 'warning' %}bandeau-alerte{% else %}bandeau-info{% endif %}">
+        <div class="bandeau {% if message.tags == 'error' %}bandeau-erreur{% elif message.tags == 'success' %}bandeau-succes{% elif message.tags == 'warning' %}bandeau-alerte{% else %}bandeau-info{% endif %}"{% if message.tags == 'success' %} data-message-succes{% endif %}>
           {% if message.tags == 'error' %}{% icone "alerte" %}{% else %}{% icone "check" %}{% endif %}
           <span>{{ message }}</span>
         </div>

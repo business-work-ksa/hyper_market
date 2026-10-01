@@ -8,6 +8,7 @@ Toute la comptabilité, la commission et l'affiliation s'appuient sur la `SousCo
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Max
 
@@ -295,3 +296,38 @@ class Litige(TenantScopedModel):
 
     def __str__(self):
         return f"Litige {self.sous_commande} · {self.get_etat_display()}"
+
+
+class AvisCommande(TenantScopedModel):
+    """Un avis WhatsApp envoyé à une personne de l'équipe pour une part de commande.
+
+    Un par part et par destinataire, pas davantage : la contrainte d'unicité arbitre, comme pour
+    tout ce qui peut être déclenché deux fois (ADR-004). Le journal dit aussi ce qui **n'est pas**
+    parti, et pourquoi — l'écran de la commande le montre, avec le lien pour prévenir à la main.
+    """
+
+    ENVOYE = "envoye"
+    ECHEC = "echec"
+    ETATS = [(ENVOYE, "Envoyé"), (ECHEC, "Non parti")]
+
+    sous_commande = models.ForeignKey(SousCommande, on_delete=models.CASCADE, related_name="avis")
+    destinataire = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+"
+    )
+    numero = models.CharField(max_length=20, help_text="Figé à l'envoi.")
+    etat = models.CharField(max_length=8, choices=ETATS)
+    reference = models.CharField(max_length=128, blank=True)
+    erreur = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "avis de commande"
+        verbose_name_plural = "avis de commande"
+        ordering = ["cree_le"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sous_commande", "destinataire"], name="un_avis_par_part_et_destinataire"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.sous_commande} → {self.numero} ({self.get_etat_display()})"

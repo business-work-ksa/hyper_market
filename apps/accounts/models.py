@@ -141,6 +141,12 @@ class Appartenance(models.Model):
     actif = models.BooleanField(default=True)
     depuis = models.DateField(default=timezone.localdate)
     jusqu_a = models.DateField(null=True, blank=True)
+    # Prévenir cette personne sur WhatsApp de chaque nouvelle commande (`apps/orders/avis.py`).
+    # Ne vaut que si son rôle ouvre `commandes.traiter` : l'avis ne donne jamais à voir ce que le
+    # rôle ne montre pas. Le gérant le coupe pour qui ne veut pas être dérangé.
+    avis_commandes = models.BooleanField(
+        default=True, verbose_name="prévenir des commandes sur WhatsApp"
+    )
 
     class Meta:
         verbose_name = "appartenance"

@@ -50,6 +50,7 @@
             <th scope="col">Personne</th>
             <th scope="col">Rôle</th>
             <th scope="col">Accès</th>
+            <th scope="col">Commandes sur WhatsApp</th>
           </tr>
         </thead>
         <tbody>
@@ -79,10 +80,27 @@
                   </span>
                 {% endif %}
               </td>
+              <td>
+                {% if membre.actif and membre.traite_commandes %}
+                  <form method="post" action="{% url 'equipe_avis_commandes' membre.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn--discret" type="submit" aria-pressed="{{ membre.avis_commandes|yesno:'true,false' }}"
+                            title="{% if membre.avis_commandes %}Ne plus prévenir{% else %}Prévenir{% endif %} {{ membre.utilisateur.nom_complet }} des nouvelles commandes">
+                      {% if membre.avis_commandes %}
+                        <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Prévenu</span>
+                      {% else %}
+                        <span class="puce">Non prévenu</span>
+                      {% endif %}
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="t-legende">—</span>
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="3">
+              <td colspan="4">
                 <div class="vide">
                   <svg><use href="#ic-boutique"></use></svg>
                   <p class="t-2">Personne ne correspond.</p>

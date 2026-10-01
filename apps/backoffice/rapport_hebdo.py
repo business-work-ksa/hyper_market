@@ -25,17 +25,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
-from urllib.parse import quote
 
 from django.db.models import DecimalField, F, Sum
 from django.utils import timezone
 
 from apps.accounts import permissions as droit
+from apps.core import whatsapp
 from apps.core.tenancy import contexte_boutique
 
 ARTICLES = 5
 RUPTURES_NOMMEES = 3
-INDICATIF = "237"
 
 
 @dataclass
@@ -169,12 +168,8 @@ def texte(rapport: Rapport) -> str:
 
 
 def lien_whatsapp(message: str, numero: str = "") -> str:
-    """Le lien qui ouvre WhatsApp avec le message déjà écrit.
+    """Le lien qui ouvre WhatsApp avec le message déjà écrit (`apps/core/whatsapp.py`).
 
     Sans numéro, WhatsApp demande à qui l'envoyer : le patron choisit lui-même, ou se l'envoie.
-    Un numéro camerounais saisi sans indicatif (neuf chiffres) reçoit le 237 que wa.me exige.
     """
-    chiffres = "".join(c for c in (numero or "") if c.isdigit())
-    if len(chiffres) == 9:
-        chiffres = INDICATIF + chiffres
-    return f"https://wa.me/{chiffres}?text={quote(message)}"
+    return whatsapp.lien(message, numero)

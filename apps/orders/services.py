@@ -53,6 +53,7 @@ from apps.core.tenancy import contexte_boutique, contexte_plateforme
 from apps.inventory.models import Depot, MouvementStock
 from apps.inventory.services import entrer_stock, sortir_stock
 from apps.marketplace.models import Bail
+from apps.orders.avis import aviser_apres_validation
 from apps.orders.models import CENTIME, Commande, LigneCommande, Retour, SousCommande
 
 __all__ = [
@@ -191,6 +192,9 @@ def _passer_commande(
 
     _verifier_les_plafonds(parts)
     _recalculer_commande(commande)
+    # Une part payée à la livraison est à préparer tout de suite ; une part prépayée attend que
+    # l'argent soit constaté (`marquer_payee`).
+    aviser_apres_validation([p for p in parts if p.mode_paiement == SousCommande.A_LA_LIVRAISON])
     return commande
 
 
@@ -361,6 +365,7 @@ def marquer_payee(commande, *, date_ecriture=None) -> Commande:
 
         commande.etat = Commande.PAYEE
         commande.save(update_fields=["etat", "modifie_le"])
+        aviser_apres_validation(parts)
     # L'appelant garde son objet : il doit voir l'état qu'il vient de provoquer.
     origine.etat = commande.etat
     return origine

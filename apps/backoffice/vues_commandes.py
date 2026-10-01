@@ -34,7 +34,9 @@ from apps.backoffice.acces import contexte_commun, depot_courant, exige
 from apps.backoffice.filtres import FiltresCommandesForm
 from apps.marketplace.confiance import palier_de
 from apps.orders import services as commandes_service
-from apps.orders.models import LigneCommande, Litige, Retour, SousCommande
+from apps.core import whatsapp
+from apps.orders import avis as avis_service
+from apps.orders.models import AvisCommande, Commande, LigneCommande, Litige, Retour, SousCommande
 from apps.payments import sequestre as sequestre_service
 from apps.payments.models import Sequestre
 
@@ -260,9 +262,23 @@ def commande(request, sous_commande_id):
                 else None
             ),
             "palier": palier_de(contexte["boutique"]),
+            "prevenir": (
+                avis_service.liens(part, request.build_absolute_uri("/")) if _a_faire(part) else []
+            ),
+            "avis_envoyes": list(
+                AvisCommande.objects.filter(sous_commande=part).select_related("destinataire")
+            ),
+            "avis_automatiques": whatsapp.api_configuree("gabarit_commande"),
         }
     )
     return render(request, "commande.html", contexte)
+
+
+def _a_faire(part) -> bool:
+    """La part attend-elle un geste de la boutique ? Une part prépayée non payée, pas encore."""
+    if part.etat in TERMINEES:
+        return False
+    return not (part.prepayee and part.commande.etat == Commande.CONFIRMEE)
 
 
 def _saisir_le_code(request, part):

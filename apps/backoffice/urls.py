@@ -98,6 +98,7 @@ urlpatterns = [
     path("boutique/equipe/retirer/", vues_equipe.equipe_retirer_lot, name="equipe_retirer_lot"),
     path("boutique/equipe/<uuid:appartenance_id>/role/", vues_equipe.equipe_role, name="equipe_role"),
     path("boutique/equipe/<uuid:appartenance_id>/retirer/", vues_equipe.equipe_retirer, name="equipe_retirer"),
+    path("boutique/equipe/<uuid:appartenance_id>/avis-commandes/", vues_equipe.equipe_avis_commandes, name="equipe_avis_commandes"),
     path("boutique/equipe/<uuid:appartenance_id>/reactiver/", vues_equipe.equipe_reactiver, name="equipe_reactiver"),
     path("boutique/equipe/<uuid:appartenance_id>/mot-de-passe/", vues_equipe.equipe_mot_de_passe, name="equipe_mot_de_passe"),
 

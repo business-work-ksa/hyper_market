@@ -169,6 +169,46 @@
   </section>
   {% endif %}
 
+  {% if prevenir or avis_envoyes %}
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Prévenir l'équipe sur WhatsApp</h2>
+      {% if avis_automatiques %}<span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Envoi automatique actif</span>{% endif %}
+    </header>
+    <div class="carte__corps colonne" style="gap:12px">
+      {% if avis_envoyes %}
+        <ul class="colonne" style="list-style:none;margin:0;padding:0;gap:8px">
+          {% for avis in avis_envoyes %}
+            <li class="rangee rangee--espace">
+              <span>{{ avis.destinataire.nom_complet }}</span>
+              <span>
+                <span class="puce {% if avis.etat == 'envoye' %}puce--bon{% else %}puce--alerte{% endif %}">{{ avis.get_etat_display }} · {{ avis.cree_le|date:"d/m H:i" }}</span>
+                {% if avis.erreur %}<span class="t-legende">{{ avis.erreur }}</span>{% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if prevenir %}
+        <div class="rangee" style="gap:8px;flex-wrap:wrap">
+          {% for entree in prevenir %}
+            <a class="btn" href="{{ entree.lien }}" target="_blank" rel="noopener">
+              <svg><use href="#ic-momo"></use></svg> {{ entree.personne.nom_complet }}
+            </a>
+          {% endfor %}
+        </div>
+      {% elif not avis_envoyes %}
+        <p class="t-2">Personne dans l'équipe n'est désigné pour recevoir les commandes sur WhatsApp.</p>
+      {% endif %}
+      <p class="t-legende">
+        Le message donne le numéro, les articles, le total et le lien vers cette page — jamais le
+        nom, le téléphone ni l'adresse de l'acheteur. Qui le reçoit se règle dans
+        {% if 'boutique.administrer' in droits %}<a class="lien" href="{% url 'equipe' %}">l'équipe</a>{% else %}l'équipe{% endif %}.
+      </p>
+    </div>
+  </section>
+  {% endif %}
+
   {% if peut_refuser or peut_retourner %}
   <div class="duo{% if duo_plein %} duo--plein{% endif %}">
     {% if peut_refuser %}

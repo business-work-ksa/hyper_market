@@ -78,6 +78,39 @@ seulement pour qui a `cahier.voir`, les ruptures seulement pour qui a `stock.voi
 l'envoi automatique du lundi par l'API WhatsApp Business, une fois un gabarit validé par Meta — le
 texte est déjà celui que ce gabarit portera.
 
+### 2.2 bis — Les commandes, envoyées sur WhatsApp à ceux qui les traitent
+
+Le vendeur sert au comptoir ; il n'a pas le back-office ouvert. Une commande qui attend trois heures
+son acceptation est une commande que l'acheteur annule. L'avis va donc sur le téléphone qu'il
+regarde déjà (`apps/orders/avis.py`).
+
+* **Qui** : les personnes de la boutique dont le rôle ouvre `commandes.traiter` (gérant, vendeur…),
+  que le gérant n'a pas retirées — colonne « Commandes sur WhatsApp » de l'écran *Équipe*. Ni le
+  caissier, ni la boutique voisine.
+* **Quand** : une part payée à la livraison dès la commande ; une part prépayée seulement quand
+  l'argent est constaté. Toujours **après** l'enregistrement de la transaction.
+* **Quoi** : numéro, articles, total, mode de paiement, lien vers la commande. **Jamais le nom, le
+  téléphone ni l'adresse de l'acheteur** : un message WhatsApp se transfère, ces données restent
+  derrière la connexion du back-office (minimisation, loi n° 2024/017 — [À VÉRIFIER] par un juriste).
+* **Comment** : sans clés, rien ne part tout seul, et la fiche de chaque commande propose un bouton
+  par responsable qui ouvre WhatsApp, message déjà écrit (`wa.me`). Avec les clés de l'API WhatsApp
+  Business, l'avis part seul ; un avis par personne et par part (contrainte d'unicité), et un avis
+  qui échoue est noté sur la fiche sans jamais faire échouer la commande.
+
+**Mettre en service l'envoi automatique** (à faire par l'exploitant, jamais dans le dépôt) :
+
+1. Compte Meta Business vérifié, application avec le produit WhatsApp, numéro dédié.
+2. Gabarit de catégorie *Utilitaire*, langue *français*, par exemple `nouvelle_commande` :
+   « Nouvelle commande {{1}} pour {{2}} : {{3}}. Total {{4}} FCFA, {{5}}. À traiter ici : {{6}} »
+   — six variables, dans cet ordre : numéro, boutique, articles, total, paiement, lien.
+3. Dans Vercel, en variables **Sensitive** : `WHATSAPP_JETON` (jeton d'utilisateur système, pas le
+   jeton temporaire de 24 h), `WHATSAPP_NUMERO_ID`, `WHATSAPP_GABARIT_COMMANDE`. Facultatives :
+   `WHATSAPP_VERSION` (défaut `v21.0`), `WHATSAPP_LANGUE` (défaut `fr`). `URL_PUBLIQUE` doit être
+   posée pour que le lien de l'avis soit absolu.
+
+Coût : facturé par Meta à la conversation utilitaire — de l'ordre d'un avis par commande et par
+responsable. Le gérant qui trouve la note trop haute retire des personnes de la liste.
+
 ### 2.3 — La relance du client dormant et du panier abandonné
 
 Deux mécaniques, un seul canal.

@@ -26,6 +26,7 @@ from apps.accounts.models import ALPHABET_CODE, Appartenance, Role, Utilisateur
 from apps.backoffice.acces import contexte_commun, exige
 from apps.backoffice.filtres import FiltresEquipeForm
 from apps.backoffice.forms import ChangementDeRoleForm, MembreEquipeForm
+from apps.orders.avis import roles_qui_traitent
 
 CLE_MOT_DE_PASSE = "mot_de_passe_provisoire"
 
@@ -107,6 +108,9 @@ def equipe(request):
 
     filtres = FiltresEquipeForm(request.GET, roles=roles)
     membres = list(_filtrer(_tous_les_membres(boutique), filtres.valeurs))
+    qui_traitent = set(roles_qui_traitent())
+    for membre in membres:
+        membre.traite_commandes = membre.role.code in qui_traitent
 
     contexte.update(
         {
@@ -388,4 +392,27 @@ def equipe_mot_de_passe(request, appartenance_id):
         "telephone": membre.utilisateur.telephone,
         "valeur": mot_de_passe,
     }
+    return redirect("equipe")
+
+
+@exige(droit.BOUTIQUE_ADMINISTRER)
+@require_POST
+def equipe_avis_commandes(request, appartenance_id):
+    """Prévenir — ou ne plus prévenir — cette personne des nouvelles commandes, sur WhatsApp."""
+    contexte = contexte_commun(request, "boutique")
+    membre = get_object_or_404(
+        Appartenance, pk=appartenance_id, boutique=contexte["boutique"], actif=True
+    )
+    if membre.role.code not in roles_qui_traitent():
+        messages.error(request, "Son rôle ne traite pas les commandes : il n'y a rien à lui envoyer.")
+        return redirect("equipe")
+    membre.avis_commandes = not membre.avis_commandes
+    membre.save(update_fields=["avis_commandes"])
+    nom = membre.utilisateur.nom_complet
+    messages.success(
+        request,
+        f"{nom} sera prévenu des nouvelles commandes sur WhatsApp."
+        if membre.avis_commandes
+        else f"{nom} ne sera plus prévenu des nouvelles commandes.",
+    )
     return redirect("equipe")

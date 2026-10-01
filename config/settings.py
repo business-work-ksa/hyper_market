@@ -313,6 +313,23 @@ PAIEMENTS_OPERATEURS = {
 # savoir si son argent bouge vraiment.
 PAIEMENTS_SIMULES = env.bool("PAIEMENTS_SIMULES", default=False)
 
+# WhatsApp Business (Cloud API), pour prévenir l'équipe d'une commande sans attendre qu'elle ouvre
+# le back-office (`apps/orders/avis.py`). Vide : aucun envoi automatique, et le back-office propose
+# le lien `wa.me` à la place. Le jeton se pose dans l'hébergeur, en variable « Sensitive » —
+# jamais dans le dépôt. Le gabarit doit avoir été validé par Meta, en français, avec six variables
+# (docs/22, §2.2 bis).
+WHATSAPP = {
+    k: v
+    for k, v in {
+        "jeton": env("WHATSAPP_JETON", default=""),
+        "numero_id": env("WHATSAPP_NUMERO_ID", default=""),
+        "version": env("WHATSAPP_VERSION", default=""),
+        "langue": env("WHATSAPP_LANGUE", default=""),
+        "gabarit_commande": env("WHATSAPP_GABARIT_COMMANDE", default=""),
+    }.items()
+    if v
+}
+
 DEVISE = "XAF"
 DEVISE_SYMBOLE = "FCFA"
 PAYS_DEFAUT = "CM"

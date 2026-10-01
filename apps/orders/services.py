@@ -498,6 +498,11 @@ def _constater_paiement_a_la_livraison(sous_commande, maintenant) -> None:
         )
     with contexte_boutique(sous_commande.boutique_id):
         calculer_commissions(sous_commande)
+    # La commission de place ne passe par aucun séquestre : elle est retenue sur ce que la
+    # plateforme doit au marchand (`payments.sequestre.compenser_commission_a_la_livraison`).
+    from apps.payments.sequestre import compenser_commission_a_la_livraison
+
+    compenser_commission_a_la_livraison(sous_commande, maintenant=maintenant)
 
 
 def _propager_l_etat_de_la_commande(commande, *, maintenant) -> None:

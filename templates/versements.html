@@ -15,7 +15,11 @@
     <article class="tuile">
       <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Disponible</span></div>
       <p class="tuile__valeur">{{ bilan.disponible|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Ce que vous pouvez demander à recevoir</span></p>
+      {% if bilan.disponible < zero %}
+        <p class="tuile__note"><span class="t-muet">Commissions de vos ventes à la livraison restant à régler : elles se retiennent sur vos prochains paiements en ligne.</span></p>
+      {% else %}
+        <p class="tuile__note"><span class="t-muet">Ce que vous pouvez demander à recevoir{% if bilan.commissions_compensees %}, après {{ bilan.commissions_compensees|fcfa }} FCFA de commissions sur vos ventes à la livraison{% endif %}</span></p>
+      {% endif %}
     </article>
     <article class="tuile">
       <div class="tuile__libelle"><svg><use href="#ic-momo"></use></svg><span class="t-sur-titre">Versé</span></div>

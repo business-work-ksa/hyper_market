@@ -32,6 +32,7 @@ __all__ = [
     "comptabiliser_versement",
     "comptabiliser_remboursement",
     "comptabiliser_vente_a_la_livraison",
+    "comptabiliser_compensation_commission",
     "comptabiliser_reglement_cahier",
     "balance",
     "solde_compte",
@@ -594,6 +595,41 @@ def _comptabiliser_remboursement(sequestre, *, date_ecriture=None) -> list[Ecrit
             **reference,
         ),
     ]
+
+
+def comptabiliser_compensation_commission(sous_commande, montant, *, date_ecriture=None) -> list[EcritureComptable]:
+    """La commission d'une vente à la livraison, retenue par la plateforme sur ce qu'elle doit.
+
+    Même écriture qu'à la libération d'un séquestre : la dette `401` (commission due, passée à la
+    remise) est soldée contre le compte de la plateforme `5313`. Idempotent par part.
+    """
+    from django.utils import timezone
+
+    montant = Decimal(montant).quantize(CENTIME)
+    if montant <= 0:
+        return []
+    reference = {"origine_type": "orders.SousCommande", "origine_id": sous_commande.pk}
+    with contexte_boutique(sous_commande.boutique_id):
+        if EcritureComptable.objects_all_tenants.filter(
+            boutique_id=sous_commande.boutique_id,
+            journal__code=Journal.OPERATIONS_DIVERSES,
+            libelle__startswith="Commission compensée",
+            **reference,
+        ).exists():
+            return []
+        return [
+            passer_ecriture(
+                boutique_id=sous_commande.boutique_id,
+                code_journal=Journal.OPERATIONS_DIVERSES,
+                date_ecriture=date_ecriture or timezone.localdate(),
+                libelle=f"Commission compensée {sous_commande.commande.numero}",
+                lignes=[
+                    (C_FOURNISSEURS, montant, Decimal("0")),
+                    (C_COMPTE_PLATEFORME, Decimal("0"), montant),
+                ],
+                **reference,
+            )
+        ]
 
 
 # Compte de trésorerie qui reçoit un versement, selon l'opérateur figé sur le versement.

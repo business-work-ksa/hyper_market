@@ -248,12 +248,16 @@ class MouvementPortefeuille(TenantScopedModel):
     REMBOURSEMENT = "remboursement"
     VERSEMENT = "versement"
     VERSEMENT_ANNULE = "versement_annule"
+    # La commission d'une vente payée à la livraison, retenue sur ce que la plateforme doit au
+    # marchand : l'argent de cette vente n'est jamais passé par elle (`sequestre.compenser_...`).
+    COMMISSION_LIVRAISON = "commission_livraison"
     LIBELLES_TYPES = {
         SEQUESTRE: "Paiement en séquestre",
         LIBERATION: "Libération",
         REMBOURSEMENT: "Remboursement de l'acheteur",
         VERSEMENT: "Versement demandé",
         VERSEMENT_ANNULE: "Versement annulé",
+        COMMISSION_LIVRAISON: "Commission d'une vente payée à la livraison",
     }
 
     portefeuille = models.ForeignKey(

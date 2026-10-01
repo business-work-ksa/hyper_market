@@ -5,6 +5,11 @@
 {% block entete %}Tableau de bord{% endblock %}
 
 {% block actions_entete %}
+  {% if 'ventes.voir' in droits %}
+    <a class="btn" href="{% url 'rapport_semaine' %}">
+      <svg><use href="#ic-ventes"></use></svg> Rapport de la semaine
+    </a>
+  {% endif %}
   {% if 'caisse.encaisser' in droits %}
     <a class="btn btn--primaire" href="{% url 'caisse' %}">
       <svg><use href="#ic-caisse"></use></svg> Encaisser

@@ -69,6 +69,15 @@ ruptures, le total du cahier en cours, et la comparaison avec la semaine précé
 par Meta. Un message hebdomadaire par boutique est négligeable ; « notifications illimitées » ne
 l'est pas. Ce qui suit (§2.3) doit donc être vendu à l'usage, jamais en illimité.
 
+**État (livré, première marche).** Le rapport existe dans le back-office, *Tableau de bord →
+Rapport de la semaine* (`/rapport/semaine/`, droit `ventes.voir`) : le message tel qu'il partira,
+et un bouton qui ouvre WhatsApp avec ce message déjà écrit (lien `wa.me`, aucune clé, aucun coût).
+Le patron choisit à qui l'envoyer — à lui-même, à son associé. Le calcul est dans
+`apps/backoffice/rapport_hebdo.py` : semaine du lundi au dimanche, **jamais la marge**, le cahier
+seulement pour qui a `cahier.voir`, les ruptures seulement pour qui a `stock.voir`. Reste à faire :
+l'envoi automatique du lundi par l'API WhatsApp Business, une fois un gabarit validé par Meta — le
+texte est déjà celui que ce gabarit portera.
+
 ### 2.3 — La relance du client dormant et du panier abandonné
 
 Deux mécaniques, un seul canal.

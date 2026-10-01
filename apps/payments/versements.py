@@ -127,7 +127,13 @@ def demander_versement(boutique, *, par, maintenant=None) -> Versement:
             portefeuille = _portefeuille(boutique_id)
             disponible = portefeuille.solde_disponible if portefeuille else Decimal("0")
             disponible = Decimal(disponible).quantize(CENTIME)
-            if disponible <= 0:
+            if disponible < 0:
+                raise VersementRefuse(
+                    "Rien à verser : les commissions de vos ventes payées à la livraison dépassent "
+                    "votre disponible. La différence se règle d'elle-même sur vos prochains "
+                    "paiements en ligne."
+                )
+            if disponible == 0:
                 raise VersementRefuse("Rien à verser : votre solde disponible est nul.")
             if Versement.objects.filter(boutique_id=boutique_id, etat=Versement.DEMANDE).exists():
                 raise VersementRefuse(

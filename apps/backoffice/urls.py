@@ -9,6 +9,7 @@ from apps.backoffice import (
     vues_identite,
     vues_ordonnancier,
     vues_production,
+    vues_rapport,
     vues_sav,
     vues_verification,
     vues_versements,
@@ -22,6 +23,7 @@ urlpatterns = [
     path("deconnexion/", views.deconnexion, name="deconnexion"),
     path("depot/", views.choisir_depot, name="choisir_depot"),
     path("aide/", views.aide, name="aide"),
+    path("rapport/semaine/", vues_rapport.rapport_semaine, name="rapport_semaine"),
 
     path("caisse/", views.caisse, name="caisse"),
     path("caisse/encaisser/", views.caisse_encaisser, name="caisse_encaisser"),

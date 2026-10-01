@@ -861,6 +861,56 @@ def trancher_litige(
 # ---------------------------------------------------------------------------
 # Bilan : l'invariant de l'argent
 # ---------------------------------------------------------------------------
+def compenser_commission_a_la_livraison(sous_commande, *, maintenant=None):
+    """La commission d'une vente payée à la livraison, retenue sur ce que la plateforme doit au
+    marchand.
+
+    L'argent de cette vente est passé de la main de l'acheteur à celle du livreur : la plateforme
+    n'en a jamais rien vu, et sa commission n'avait aucun chemin pour lui revenir. Elle est donc
+    **compensée** sur le disponible du marchand — l'argent de ses ventes prépayées que la plateforme
+    lui doit déjà — par une ligne de journal. Si le disponible ne suffit pas, il devient négatif :
+    c'est une dette, qui se rembourse d'elle-même sur les prochaines libérations, et qui bloque toute
+    demande de versement tant qu'elle court. La compensation est une clause des conditions
+    générales (docs/23, §5) : elle doit y être écrite avant d'être appliquée à un vrai commerçant.
+
+    Chez le marchand, l'écriture est celle d'une libération : la dette `401` (commission due) est
+    soldée contre le compte de la plateforme `5313`. Idempotent : une part n'est compensée qu'une fois.
+    """
+    from apps.payments.models import MouvementPortefeuille
+    from apps.payments.services import mouvementer_portefeuille
+
+    montant = commission_ttc(sous_commande)
+    if montant <= 0:
+        return None
+    maintenant = maintenant or timezone.now()
+    with contexte_boutique(sous_commande.boutique_id):
+        with transaction.atomic():
+            mouvement = mouvementer_portefeuille(
+                boutique=sous_commande.boutique_id,
+                compartiment=MouvementPortefeuille.DISPONIBLE,
+                montant=-montant,
+                type_mouvement=MouvementPortefeuille.COMMISSION_LIVRAISON,
+                origine_type="orders.SousCommande",
+                origine_id=sous_commande.pk,
+            )
+    _comptabiliser_compensation(sous_commande, montant, maintenant)
+    return mouvement
+
+
+def _comptabiliser_compensation(sous_commande, montant, maintenant) -> None:
+    from apps.accounting.services import EcritureInvalide, comptabiliser_compensation_commission
+
+    try:
+        with transaction.atomic():
+            comptabiliser_compensation_commission(
+                sous_commande, montant, date_ecriture=timezone.localdate(maintenant)
+            )
+    except EcritureInvalide as erreur:
+        journal.error(
+            "Compensation de la commission %s : écriture non passée (%s).", sous_commande.pk, erreur
+        )
+
+
 def bilan(boutique) -> dict:
     """Où est l'argent d'une boutique, et la preuve qu'il n'en manque pas.
 
@@ -886,6 +936,9 @@ def bilan(boutique) -> dict:
     ).aggregate(t=Sum("montant"))["t"]
     with contexte_boutique(boutique_id):
         portefeuille = PortefeuilleMarchand.objects.filter(boutique_id=boutique_id).first()
+        compense = MouvementPortefeuille.objects.filter(
+            boutique_id=boutique_id, type=MouvementPortefeuille.COMMISSION_LIVRAISON
+        ).aggregate(t=Sum("montant"))["t"]
 
     zero = Decimal("0.00")
     resultat = {
@@ -897,6 +950,9 @@ def bilan(boutique) -> dict:
         "verse": (verse or zero).quantize(CENTIME),
         "en_attente_de_versement": (en_attente or zero).quantize(CENTIME),
         "rembourse": (sommes["rembourse"] or zero).quantize(CENTIME),
+        # Les commissions des ventes à la livraison, retenues sur le disponible : de l'argent du
+        # séquestre que la plateforme garde pour elle, au lieu de le verser.
+        "commissions_compensees": (-(compense or zero)).quantize(CENTIME),
     }
     resultat["ecart"] = (
         resultat["encaisse_net"]
@@ -904,5 +960,6 @@ def bilan(boutique) -> dict:
         - resultat["disponible"]
         - resultat["verse"]
         - resultat["rembourse"]
+        - resultat["commissions_compensees"]
     ).quantize(CENTIME)
     return resultat

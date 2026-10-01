@@ -79,5 +79,46 @@ class VenteALaLivraisonTest(SocleSequestre):
         self.assertEqual(-self.solde("701"), part.total_ht)
         self.assertEqual(self.solde("571"), part.total_ttc, "le livreur rapporte le TTC en caisse")
         self.assertEqual(self.solde("411"), 0)
-        self.assertLess(self.solde("401"), 0, "la commission de place est due à la plateforme")
-        self.assertEqual(self.solde("5313"), 0, "rien ne passe par le séquestre")
+        # La commission due (401) est aussitôt compensée sur ce que la plateforme doit au marchand
+        # (5313) : la dette s'éteint, et le compte plateforme porte la retenue.
+        commission = service.commission_ttc(part)
+        self.assertGreater(commission, 0)
+        self.assertEqual(self.solde("401"), 0)
+        self.assertEqual(self.solde("5313"), -commission)
+
+    def test_la_commission_est_retenue_sur_le_disponible_et_l_argent_tombe_juste(self):
+        from apps.payments import versements
+
+        commande = self.commander(mode_paiement=SousCommande.A_LA_LIVRAISON)
+        part = self.expediee(self.part(commande))
+        livrer(part)
+        self.recharger(part)
+
+        bilan = service.bilan(self.ateba)
+        self.assertEqual(bilan["disponible"], -service.commission_ttc(part))
+        self.assertEqual(bilan["commissions_compensees"], service.commission_ttc(part))
+        self.assertEqual(bilan["ecart"], 0, "aucun franc ne disparaît ni n'apparaît")
+
+    def test_la_compensation_ne_se_fait_qu_une_fois(self):
+        commande = self.commander(mode_paiement=SousCommande.A_LA_LIVRAISON)
+        part = self.expediee(self.part(commande))
+        livrer(part)
+        self.recharger(part)
+        service.compenser_commission_a_la_livraison(part)
+        self.assertEqual(service.bilan(self.ateba)["disponible"], -service.commission_ttc(part))
+
+
+from tests.test_versements import SocleVersement  # noqa: E402
+
+
+class DetteDeCommissionTest(SocleVersement):
+    def test_tant_que_la_dette_court_rien_n_est_verse_et_le_marchand_sait_pourquoi(self):
+        from apps.payments import versements
+
+        self.compte()
+        commande = self.commander(mode_paiement=SousCommande.A_LA_LIVRAISON)
+        part = self.expediee(self.part(commande))
+        livrer(part)
+        with self.assertRaisesMessage(versements.VersementRefuse, "ventes payées à la livraison"):
+            versements.demander_versement(self.ateba, par=self.gerant)
+        self.verifier_l_invariant()

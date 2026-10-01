@@ -12,6 +12,7 @@ from apps.plateforme.acces import (
     fermer_suivi,
     ouvrir_suivi,
 )
+from django.utils.translation import gettext as _
 
 
 def _suite_sure(request, suite: str) -> str:
@@ -37,8 +38,7 @@ def suivi_ouvrir(request):
         else:
             messages.success(
                 request,
-                f"Suivi ouvert pour {int(DUREE_DU_SUIVI.total_seconds() // 60)} minutes : "
-                f"« {motif} ». Chaque écran consulté est inscrit au journal.",
+                _('Suivi ouvert pour %(int)s minutes : « %(motif)s ». Chaque écran consulté est inscrit au journal.') % {"int": int(DUREE_DU_SUIVI.total_seconds() // 60), "motif": motif},
             )
             return redirect(_suite_sure(request, suite))
 
@@ -62,5 +62,5 @@ def suivi_ouvrir(request):
 @exige_console()
 def suivi_fermer(request):
     fermer_suivi(request)
-    messages.success(request, "Suivi fermé. Les écrans d'activité redemanderont un motif.")
+    messages.success(request, _("Suivi fermé. Les écrans d'activité redemanderont un motif."))
     return redirect("plateforme:tableau_de_bord")

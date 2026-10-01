@@ -55,6 +55,7 @@ from apps.inventory.services import entrer_stock, sortir_stock
 from apps.marketplace.models import Bail
 from apps.orders.avis import aviser_apres_validation
 from apps.orders.models import CENTIME, Commande, LigneCommande, Retour, SousCommande
+from django.utils.translation import gettext as _
 
 __all__ = [
     "CommandeInvalide",
@@ -119,7 +120,7 @@ def passer_commande(
     """
     lignes = list(lignes)
     if not lignes:
-        raise CommandeInvalide("Un panier vide ne se commande pas.")
+        raise CommandeInvalide(_("Un panier vide ne se commande pas."))
 
     if operation_id is not None:
         existante = Commande.objects.filter(operation_id=operation_id).first()
@@ -161,7 +162,7 @@ def _passer_commande(
     a_la_livraison,
 ) -> Commande:
     if mode_paiement not in dict(SousCommande.MODES_PAIEMENT):
-        raise CommandeInvalide("Mode de paiement inconnu.")
+        raise CommandeInvalide(_("Mode de paiement inconnu."))
     n1, n2 = _attribuer_et_resoudre(acheteur, code_apporteur)
 
     commande = Commande.objects.create(
@@ -341,7 +342,7 @@ def marquer_payee(commande, *, date_ecriture=None) -> Commande:
             return origine
         if commande.etat != Commande.CONFIRMEE:
             raise CommandeInvalide(
-                f"Une commande {commande.get_etat_display().lower()} ne peut pas être payée."
+                _('Une commande %(lower)s ne peut pas être payée.') % {"lower": commande.get_etat_display().lower()}
             )
 
         with contexte_plateforme():
@@ -350,7 +351,7 @@ def marquer_payee(commande, *, date_ecriture=None) -> Commande:
             )
         if not parts:
             raise CommandeInvalide(
-                "Cette commande se paie entièrement à la livraison : il n'y a rien à constater."
+                _("Cette commande se paie entièrement à la livraison : il n'y a rien à constater.")
             )
 
         for sous_commande in parts:
@@ -397,8 +398,7 @@ def _avancer(sous_commande, etat: str, **champs) -> SousCommande:
     """
     if etat not in SUITES[sous_commande.etat]:
         raise CommandeInvalide(
-            f"Une sous-commande {sous_commande.get_etat_display().lower()} "
-            f"ne peut pas passer à « {etat} »."
+            _('Une sous-commande %(lower)s ne peut pas passer à « %(etat)s ».') % {"lower": sous_commande.get_etat_display().lower(), "etat": etat}
         )
     sous_commande.etat = etat
     for nom, valeur in champs.items():
@@ -429,7 +429,7 @@ def expedier(sous_commande, *, depot: Depot | None = None, cree_par=None) -> Sou
     with contexte_boutique(sous_commande.boutique_id):
         depot = depot or _depot_d_expedition()
         if depot is None:
-            raise CommandeInvalide("Cette boutique n'a aucun dépôt actif pour expédier.")
+            raise CommandeInvalide(_("Cette boutique n'a aucun dépôt actif pour expédier."))
 
         deja_sorti = MouvementStock.objects_all_tenants.filter(
             origine_type="orders.SousCommande", origine_id=sous_commande.pk
@@ -579,7 +579,7 @@ def annuler_sous_commande(sous_commande, *, motif: str = "", cree_par=None) -> S
 
 def demander_retour(sous_commande, *, motif: str) -> Retour:
     if sous_commande.etat not in (SousCommande.EXPEDIEE, SousCommande.LIVREE):
-        raise CommandeInvalide("On ne retourne que ce qui a été expédié.")
+        raise CommandeInvalide(_("On ne retourne que ce qui a été expédié."))
     with contexte_boutique(sous_commande.boutique_id):
         return Retour.objects.create(
             boutique_id=sous_commande.boutique_id, sous_commande=sous_commande, motif=motif
@@ -595,7 +595,7 @@ def accepter_retour(retour, *, montant_rembourse=None, cree_par=None) -> Retour:
     charge.
     """
     if retour.etat != Retour.DEMANDE:
-        raise CommandeInvalide("Ce retour a déjà été tranché.")
+        raise CommandeInvalide(_("Ce retour a déjà été tranché."))
 
     from apps.payments.sequestre import MESSAGE_GEL
 

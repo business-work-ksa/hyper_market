@@ -34,6 +34,7 @@ from apps.backoffice.forms import AtelierForm, SortieAtelierForm
 from apps.inventory import series
 from apps.inventory.models import NumeroSerie
 from apps.marketplace import metiers
+from django.utils.translation import gettext as _
 
 # Un commerce d'électronique vend quelques appareils par jour : cinquante lignes
 # couvrent plusieurs semaines. Au-delà, la liste ne se lit plus — c'est la
@@ -123,7 +124,7 @@ def atelier_entrer(request, exemplaire_id):
     exemplaire = _exemplaire_de(request, exemplaire_id)
     formulaire = AtelierForm(request.POST)
     if not formulaire.is_valid():
-        messages.error(request, "Indiquez la panne constatée : c'est elle qui se retrouve.")
+        messages.error(request, _("Indiquez la panne constatée : c'est elle qui se retrouve."))
         return _retour(exemplaire)
 
     try:
@@ -135,7 +136,7 @@ def atelier_entrer(request, exemplaire_id):
         return _retour(exemplaire)
 
     couverture = "sous garantie" if passage.sous_garantie else "hors garantie"
-    messages.success(request, f"{exemplaire.numero} déposé à l'atelier, {couverture}.")
+    messages.success(request, _("%(numero)s déposé à l'atelier, %(couverture)s.") % {"numero": exemplaire.numero, "couverture": couverture})
     return _retour(exemplaire)
 
 
@@ -151,9 +152,9 @@ def atelier_sortir(request, exemplaire_id):
 
     passage = series.sortir_de_l_atelier(exemplaire, resultat=resultat)
     if passage is None:
-        messages.error(request, f"{exemplaire.numero} n'est pas à l'atelier.")
+        messages.error(request, _("%(numero)s n'est pas à l'atelier.") % {"numero": exemplaire.numero})
     else:
-        messages.success(request, f"{exemplaire.numero} est ressorti de l'atelier.")
+        messages.success(request, _("%(numero)s est ressorti de l'atelier.") % {"numero": exemplaire.numero})
     return _retour(exemplaire)
 
 

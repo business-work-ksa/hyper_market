@@ -1,2 +1,2 @@
-{% comment %}Statut d'un emplacement premium (`e.statut`) : pastille et mot, jamais la couleur seule.{% endcomment %}
-{% if e.statut == 'en_cours' %}<span class="statut statut--en_cours">En cours</span>{% elif e.statut == 'a_venir' %}<span class="statut statut--a_venir">À venir</span>{% else %}<span class="statut statut--termine">Terminé</span>{% endif %}
+{% load i18n %}{% comment %}Statut d'un emplacement premium (`e.statut`) : pastille et mot, jamais la couleur seule.{% endcomment %}
+{% if e.statut == 'en_cours' %}<span class="statut statut--en_cours">{% translate "En cours" %}</span>{% elif e.statut == 'a_venir' %}<span class="statut statut--a_venir">{% translate "À venir" %}</span>{% else %}<span class="statut statut--termine">{% translate "Terminé" %}</span>{% endif %}

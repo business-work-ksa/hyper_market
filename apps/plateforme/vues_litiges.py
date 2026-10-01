@@ -38,6 +38,7 @@ from apps.payments import sequestre as sequestre_service
 from apps.payments import versements as versements_service
 from apps.payments.models import MouvementPortefeuille, Sequestre, Versement
 from apps.plateforme.acces import contexte_console, exige_console, lecture_journalisee
+from django.utils.translation import gettext as _
 
 DROIT_VERSEMENTS = PLATEFORME_VERSEMENTS
 
@@ -201,11 +202,11 @@ def _agir_sur_le_litige(request, litige_id):
             ):
                 litige_vu = Litige.objects.get(pk=litige_id)
                 sequestre_service.prendre_en_instruction(litige_vu, par=request.user)
-            messages.success(request, "Litige pris en instruction.")
+            messages.success(request, _("Litige pris en instruction."))
         elif action == "trancher":
             if len(motivation) < sequestre_service.LONGUEUR_MIN_MOTIVATION:
                 raise sequestre_service.SequestreRefuse(
-                    "Une décision se motive : quelques phrases, que l'acheteur et le marchand liront."
+                    _("Une décision se motive : quelques phrases, que l'acheteur et le marchand liront.")
                 )
             libelle = dict(sequestre_service.DECISIONS).get(decision, decision)
             with acces_plateforme(
@@ -221,11 +222,11 @@ def _agir_sur_le_litige(request, litige_id):
                     par=request.user,
                     montant=request.POST.get("montant"),
                 )
-            messages.success(request, f"Litige tranché — {libelle.split(' —')[0].lower()}.")
+            messages.success(request, _('Litige tranché — %(lower)s.') % {"lower": libelle.split(' —')[0].lower()})
         else:
-            messages.error(request, "Geste inconnu.")
+            messages.error(request, _("Geste inconnu."))
     except Litige.DoesNotExist:
-        messages.error(request, "Ce litige n'existe pas.")
+        messages.error(request, _("Ce litige n'existe pas."))
         return redirect("plateforme:litiges")
     except sequestre_service.SequestreRefuse as refus:
         messages.error(request, str(refus))
@@ -324,7 +325,7 @@ def _agir_sur_le_versement(request, versement_id):
     try:
         v = Versement.objects.select_related("compte").get(pk=versement_id)
     except Versement.DoesNotExist:
-        messages.error(request, "Ce versement n'existe pas.")
+        messages.error(request, _("Ce versement n'existe pas."))
         return redirect("plateforme:versements")
 
     try:
@@ -337,7 +338,7 @@ def _agir_sur_le_versement(request, versement_id):
                 boutique_id=v.boutique_id,
             ):
                 versements_service.executer_versement(v, reference=reference, par=request.user)
-            messages.success(request, "Versement exécuté : la référence de l'opérateur est enregistrée.")
+            messages.success(request, _("Versement exécuté : la référence de l'opérateur est enregistrée."))
         elif action == "envoyer_api":
             with acces_plateforme(
                 utilisateur=request.user,
@@ -348,17 +349,16 @@ def _agir_sur_le_versement(request, versement_id):
                 operation = versements_service.envoyer_par_api(v, par=request.user)
             v.refresh_from_db()
             if v.etat == v.EXECUTE:
-                messages.success(request, "Versement parti et confirmé par l'opérateur.")
+                messages.success(request, _("Versement parti et confirmé par l'opérateur."))
             else:
                 messages.success(
                     request,
-                    "Versement transmis à l'opérateur ; il sera marqué exécuté dès sa confirmation "
-                    f"({operation.get_etat_display().lower()}).",
+                    _("Versement transmis à l'opérateur ; il sera marqué exécuté dès sa confirmation (%(lower)s).") % {"lower": operation.get_etat_display().lower()},
                 )
         elif action == "annuler":
             motif = (request.POST.get("motif") or "").strip()
             if len(motif) < versements_service.LONGUEUR_MIN_MOTIF:
-                raise versements_service.VersementRefuse("Une annulation se motive, en une phrase.")
+                raise versements_service.VersementRefuse(_("Une annulation se motive, en une phrase."))
             with acces_plateforme(
                 utilisateur=request.user,
                 motif=f"Annulation du versement : {motif}",
@@ -366,9 +366,9 @@ def _agir_sur_le_versement(request, versement_id):
                 boutique_id=v.boutique_id,
             ):
                 versements_service.annuler_versement(v, motif=motif, par=request.user)
-            messages.success(request, "Versement annulé : le montant est revenu au disponible du marchand.")
+            messages.success(request, _("Versement annulé : le montant est revenu au disponible du marchand."))
         else:
-            messages.error(request, "Geste inconnu.")
+            messages.error(request, _("Geste inconnu."))
     except versements_service.VersementRefuse as refus:
         messages.error(request, str(refus))
     return redirect("plateforme:versement", versement_id=versement_id)

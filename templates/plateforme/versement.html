@@ -1,14 +1,15 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm %}
-{% block titre %}Versement {{ v.boutique.enseigne }}{% endblock %}
-{% block fil %}<p class="fil"><a href="{% url 'plateforme:versements' %}">Versements</a><span class="fil__sep">›</span><span>{{ v.boutique.enseigne }}</span></p>{% endblock %}
-{% block entete %}Versement — {{ v.boutique.enseigne }}{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=v.boutique.enseigne trimmed %}Versement {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block fil %}<p class="fil"><a href="{% url 'plateforme:versements' %}">{% translate "Versements" %}</a><span class="fil__sep">›</span><span>{{ v.boutique.enseigne }}</span></p>{% endblock %}
+{% block entete %}{% blocktranslate with enseigne=v.boutique.enseigne trimmed %}Versement — {{ enseigne }}{% endblocktranslate %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-litiges.css' %}">{% endblock %}
 
 {% block contenu %}
 <div class="entete-page">
   <div class="entete-page__texte">
-    <p class="t-sur-titre">Demandé le {{ v.cree_le|date:"d/m/Y à H:i" }} par {{ v.demande_par.nom_complet }}</p>
+    <p class="t-sur-titre">{% blocktranslate with cree_le=v.cree_le|date:"d/m/Y à H:i" nom_complet=v.demande_par.nom_complet trimmed %}Demandé le {{ cree_le }} par {{ nom_complet }}{% endblocktranslate %}</p>
     <h2 class="entete-page__titre">{{ v.montant|fcfa }} FCFA</h2>
     <p class="entete-page__phrase">{% include "plateforme/partials/l_statut_versement.html" with versement=v %}</p>
   </div>
@@ -22,47 +23,47 @@
 {% if anomalie %}
   <div class="bandeau-info bandeau-info--alerte" role="alert" style="margin-bottom:12px">
     <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
-    <span><strong>Le bilan de cette boutique ne tombe pas juste</strong> (écart de {{ bilan.ecart|fcfa }} FCFA) : n'exécutez rien avant d'avoir compris pourquoi.</span>
+    <span><strong>{% translate "Le bilan de cette boutique ne tombe pas juste" %}</strong> {% blocktranslate with ecart=bilan.ecart|fcfa trimmed %}(écart de {{ ecart }} FCFA) : n'exécutez rien avant d'avoir compris pourquoi.{% endblocktranslate %}</span>
   </div>
 {% endif %}
 
 <div class="grille-console">
   <div class="col-7 colonne">
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Destination figée</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Destination figée" %}</h2></header>
       <div class="carte__corps colonne" style="gap:12px">
         <p class="l-destination">{{ v.libelle_operateur }} · {{ v.numero }}</p>
         <dl class="cles">
-          <dt>Titulaire</dt><dd>{{ v.titulaire }}</dd>
-          <dt>Pays</dt><dd>{{ v.pays }}</dd>
-          <dt>Compte aujourd'hui</dt><dd>{{ compte.get_etat_display }}{% if compte.verifie_le %} · vérifié le {{ compte.verifie_le|date:"d/m/Y" }}{% endif %}{% if compte.utilisable_le %} · utilisable depuis le {{ compte.utilisable_le|date:"d/m/Y" }}{% endif %}</dd>
+          <dt>{% translate "Titulaire" %}</dt><dd>{{ v.titulaire }}</dd>
+          <dt>{% translate "Pays" %}</dt><dd>{{ v.pays }}</dd>
+          <dt>{% translate "Compte aujourd'hui" %}</dt><dd>{{ compte.get_etat_display }}{% if compte.verifie_le %} {% blocktranslate with verifie_le=compte.verifie_le|date:"d/m/Y" trimmed %}· vérifié le {{ verifie_le }}{% endblocktranslate %}{% endif %}{% if compte.utilisable_le %} {% blocktranslate with utilisable_le=compte.utilisable_le|date:"d/m/Y" trimmed %}· utilisable depuis le {{ utilisable_le }}{% endblocktranslate %}{% endif %}</dd>
         </dl>
-        <p class="t-legende">Le versement part vers ce numéro-ci, recopié à la demande — même si le compte de la boutique a changé depuis.</p>
+        <p class="t-legende">{% translate "Le versement part vers ce numéro-ci, recopié à la demande — même si le compte de la boutique a changé depuis." %}</p>
       </div>
     </section>
 
     {% if v.etat == 'demande' and envoi_en_cours %}
       <section class="carte">
-        <header class="carte__entete"><h2 class="t-section">Envoi en cours chez l'opérateur</h2>
-          <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>En attente</span></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Envoi en cours chez l'opérateur" %}</h2>
+          <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>{% translate "En attente" %}</span></header>
         <div class="carte__corps">
-          <p class="t-2">Transmis le {{ envoi_en_cours.cree_le|date:"d/m/Y à H:i" }}. Le versement sera
+          <p class="t-2">{% blocktranslate with cree_le=envoi_en_cours.cree_le|date:"d/m/Y à H:i" trimmed %}Transmis le {{ cree_le }}. Le versement sera
             marqué exécuté dès que l'opérateur le confirmera ; la tâche quotidienne relit son statut.
-            Ne le refaites pas à la main.</p>
+            Ne le refaites pas à la main.{% endblocktranslate %}</p>
         </div>
       </section>
     {% elif v.etat == 'demande' and envoi_api %}
       <form class="carte" method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="envoyer_api">
-        <header class="carte__entete"><h2 class="t-section">Envoyer par MTN MoMo</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Envoyer par MTN MoMo" %}</h2></header>
         <div class="carte__corps colonne" style="gap:10px">
-          <p class="t-2">L'application demande à MTN de verser <strong class="chiffre">{{ v.montant|fcfa }} FCFA</strong>
-            au <span class="chiffre">{{ v.numero }}</span>, et marque le versement exécuté quand MTN
-            le confirme, avec sa référence. Un double clic ne verse pas deux fois.</p>
+          <p class="t-2">{% translate "L'application demande à MTN de verser" %} <strong class="chiffre">{{ v.montant|fcfa }} FCFA</strong>
+            {% translate "au" %} <span class="chiffre">{{ v.numero }}</span>{% blocktranslate trimmed %}, et marque le versement exécuté quand MTN
+            le confirme, avec sa référence. Un double clic ne verse pas deux fois.{% endblocktranslate %}</p>
         </div>
         <footer class="carte__pied assistant__pied">
-          <button class="btn btn--primaire" type="submit">Envoyer le versement</button>
+          <button class="btn btn--primaire" type="submit">{% translate "Envoyer le versement" %}</button>
         </footer>
       </form>
     {% endif %}
@@ -71,38 +72,38 @@
       <form class="carte" method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="executer">
-        <header class="carte__entete"><h2 class="t-section">Exécuter</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Exécuter" %}</h2></header>
         <div class="carte__corps colonne" style="gap:12px">
           <p class="t-2">
-            Faites le virement chez l'opérateur ou l'agrégateur, vers la destination ci-dessus
-            <strong>et nulle autre</strong>, puis saisissez la référence qu'il vous a donnée.
-            Ce formulaire ne fait pas le virement : il constate un virement fait hors de l'application.
+            {% translate "Faites le virement chez l'opérateur ou l'agrégateur, vers la destination ci-dessus" %}
+            <strong>{% translate "et nulle autre" %}</strong>{% blocktranslate trimmed %}, puis saisissez la référence qu'il vous a donnée.
+            Ce formulaire ne fait pas le virement : il constate un virement fait hors de l'application.{% endblocktranslate %}
           </p>
           <label class="groupe-champ">
-            <span class="t-petit" style="font-weight:560">Référence de l'opération</span>
-            <input class="champ chiffre" name="reference" required minlength="4" maxlength="120" autocomplete="off" placeholder="Ex. : MP260930.1542.A12345">
+            <span class="t-petit" style="font-weight:560">{% translate "Référence de l'opération" %}</span>
+            <input class="champ chiffre" name="reference" required minlength="4" maxlength="120" autocomplete="off" placeholder="{% translate 'Ex. : MP260930.1542.A12345' %}">
           </label>
-          <p class="t-legende">Vous ne pouvez pas exécuter le versement d'une boutique dont vous êtes membre, ni vers un compte que vous avez vérifié vous-même.</p>
+          <p class="t-legende">{% translate "Vous ne pouvez pas exécuter le versement d'une boutique dont vous êtes membre, ni vers un compte que vous avez vérifié vous-même." %}</p>
         </div>
         <footer class="carte__pied assistant__pied">
-          <a class="btn" href="{% url 'plateforme:versements' %}">Retour à la file</a>
-          <button class="btn btn--primaire" type="submit">Constater l'exécution</button>
+          <a class="btn" href="{% url 'plateforme:versements' %}">{% translate "Retour à la file" %}</a>
+          <button class="btn btn--primaire" type="submit">{% translate "Constater l'exécution" %}</button>
         </footer>
       </form>
 
       <form class="carte" method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="annuler">
-        <header class="carte__entete"><h2 class="t-section">Annuler</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Annuler" %}</h2></header>
         <div class="carte__corps colonne" style="gap:12px">
           <label class="groupe-champ">
-            <span class="t-petit" style="font-weight:560">Motif <span class="t-legende">— obligatoire, consigné au journal</span></span>
-            <input class="champ" name="motif" required minlength="10" maxlength="300" placeholder="Ex. : compte de destination retiré par le marchand">
+            <span class="t-petit" style="font-weight:560">{% translate "Motif" %} <span class="t-legende">{% translate "— obligatoire, consigné au journal" %}</span></span>
+            <input class="champ" name="motif" required minlength="10" maxlength="300" placeholder="{% translate 'Ex. : compte de destination retiré par le marchand' %}">
           </label>
-          <p class="t-legende">Le montant revient au disponible du marchand. Le versement reste dans l'historique.</p>
+          <p class="t-legende">{% translate "Le montant revient au disponible du marchand. Le versement reste dans l'historique." %}</p>
         </div>
         <footer class="carte__pied assistant__pied">
-          <button class="btn btn--danger" type="submit">Annuler ce versement</button>
+          <button class="btn btn--danger" type="submit">{% translate "Annuler ce versement" %}</button>
         </footer>
       </form>
     {% else %}
@@ -111,11 +112,11 @@
         <div class="carte__corps">
           <dl class="cles">
             {% if v.etat == 'execute' %}
-              <dt>Référence</dt><dd class="chiffre">{{ v.reference_operateur }}</dd>
-              <dt>Par</dt><dd>{{ v.execute_par.nom_complet }}, le {{ v.execute_le|date:"d/m/Y à H:i" }}</dd>
+              <dt>{% translate "Référence" %}</dt><dd class="chiffre">{{ v.reference_operateur }}</dd>
+              <dt>{% translate "Par" %}</dt><dd>{% blocktranslate with nom_complet=v.execute_par.nom_complet execute_le=v.execute_le|date:"d/m/Y à H:i" trimmed %}{{ nom_complet }}, le {{ execute_le }}{% endblocktranslate %}</dd>
             {% else %}
-              <dt>Motif</dt><dd>{{ v.motif_annulation }}</dd>
-              <dt>Par</dt><dd>{{ v.annule_par.nom_complet }}, le {{ v.annule_le|date:"d/m/Y à H:i" }}</dd>
+              <dt>{% translate "Motif" %}</dt><dd>{{ v.motif_annulation }}</dd>
+              <dt>{% translate "Par" %}</dt><dd>{% blocktranslate with nom_complet=v.annule_par.nom_complet annule_le=v.annule_le|date:"d/m/Y à H:i" trimmed %}{{ nom_complet }}, le {{ annule_le }}{% endblocktranslate %}</dd>
             {% endif %}
           </dl>
         </div>
@@ -125,20 +126,20 @@
 
   <div class="col-5 colonne">
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Bilan de la boutique</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Bilan de la boutique" %}</h2></header>
       <div class="carte__corps">
         <dl class="cles">
-          <dt>Encaissé net</dt><dd class="chiffre">{{ bilan.encaisse_net|fcfa }} FCFA</dd>
-          <dt>Bloqué</dt><dd class="chiffre">{{ bilan.bloque|fcfa }} FCFA</dd>
-          <dt>Disponible</dt><dd class="chiffre">{{ bilan.disponible|fcfa }} FCFA</dd>
-          <dt>Versé ou en cours</dt><dd class="chiffre">{{ bilan.verse|fcfa }} FCFA</dd>
-          <dt>Remboursé</dt><dd class="chiffre">{{ bilan.rembourse|fcfa }} FCFA</dd>
-          <dt>Écart</dt><dd class="chiffre">{{ bilan.ecart|fcfa }} FCFA</dd>
+          <dt>{% translate "Encaissé net" %}</dt><dd class="chiffre">{{ bilan.encaisse_net|fcfa }} FCFA</dd>
+          <dt>{% translate "Bloqué" %}</dt><dd class="chiffre">{{ bilan.bloque|fcfa }} FCFA</dd>
+          <dt>{% translate "Disponible" %}</dt><dd class="chiffre">{{ bilan.disponible|fcfa }} FCFA</dd>
+          <dt>{% translate "Versé ou en cours" %}</dt><dd class="chiffre">{{ bilan.verse|fcfa }} FCFA</dd>
+          <dt>{% translate "Remboursé" %}</dt><dd class="chiffre">{{ bilan.rembourse|fcfa }} FCFA</dd>
+          <dt>{% translate "Écart" %}</dt><dd class="chiffre">{{ bilan.ecart|fcfa }} FCFA</dd>
         </dl>
       </div>
     </section>
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Derniers mouvements</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Derniers mouvements" %}</h2></header>
       {% if mouvements %}
         <div class="tableau-boite">
           <table class="tableau">
@@ -150,7 +151,7 @@
           </table>
         </div>
       {% else %}
-        <div class="carte__corps t-legende">Aucun mouvement.</div>
+        <div class="carte__corps t-legende">{% translate "Aucun mouvement." %}</div>
       {% endif %}
     </section>
   </div>

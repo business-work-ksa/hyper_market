@@ -1,13 +1,14 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Ventes — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Ventes{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Ventes — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Ventes" %}{% endblock %}
 
 {% block actions_entete %}
   {% if 'caisse.encaisser' in droits %}
     <a class="btn btn--primaire" href="{% url 'caisse' %}">
-      <svg><use href="#ic-caisse"></use></svg> Nouvelle vente
+      <svg><use href="#ic-caisse"></use></svg> {% translate "Nouvelle vente" %}
     </a>
   {% endif %}
 {% endblock %}
@@ -16,19 +17,19 @@
 <div class="colonne">
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">Tickets affichés</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">{% translate "Tickets affichés" %}</span></div>
       <p class="tuile__valeur">{{ tickets|length }}</p>
-      <p class="tuile__note"><span class="t-muet">Ventes clôturées les plus récentes</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Ventes clôturées les plus récentes" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Total encaissé</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Total encaissé" %}</span></div>
       <p class="tuile__valeur">{{ total_periode|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Toutes taxes comprises</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Toutes taxes comprises" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">TVA collectée</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">{% translate "TVA collectée" %}</span></div>
       <p class="tuile__valeur">{{ tva_periode|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Reportée automatiquement au compte 4431</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Reportée automatiquement au compte 4431" %}</span></p>
     </article>
   </section>
 
@@ -44,13 +45,13 @@
         <table class="tableau">
           <thead>
             <tr>
-              <th scope="col">Ticket</th>
-              <th scope="col">Date</th>
-              <th scope="col">Caissier</th>
-              <th scope="col">Articles</th>
-              <th scope="col" class="num">Hors taxes</th>
+              <th scope="col">{% translate "Ticket" %}</th>
+              <th scope="col">{% translate "Date" %}</th>
+              <th scope="col">{% translate "Caissier" %}</th>
+              <th scope="col">{% translate "Articles" %}</th>
+              <th scope="col" class="num">{% translate "Hors taxes" %}</th>
               <th scope="col" class="num">TVA</th>
-              <th scope="col" class="num">Total</th>
+              <th scope="col" class="num">{% translate "Total" %}</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -72,13 +73,13 @@
                 <td class="num t-2">{{ ticket.total_tva|fcfa }}</td>
                 <td class="num" style="font-weight:620">{{ ticket.total_ttc|fcfa }}</td>
                 <td class="num">
-                  <a class="btn btn--discret" href="{% url 'ticket' ticket.pk %}">Ticket</a>
+                  <a class="btn btn--discret" href="{% url 'ticket' ticket.pk %}">{% translate "Ticket" %}</a>
                 </td>
               </tr>
             {% empty %}
               <tr><td colspan="8"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
-                <p class="t-2">Aucune vente ne correspond.</p>
-                {% if filtres.actifs %}<a class="btn" href="{% url 'ventes' %}">Retirer les filtres</a>{% endif %}
+                <p class="t-2">{% translate "Aucune vente ne correspond." %}</p>
+                {% if filtres.actifs %}<a class="btn" href="{% url 'ventes' %}">{% translate "Retirer les filtres" %}</a>{% endif %}
                 </div></td></tr>
             {% endfor %}
           </tbody>

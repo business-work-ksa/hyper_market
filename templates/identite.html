@@ -1,13 +1,14 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Mon identité — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Mon identité{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Mon identité — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Mon identité" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'boutique' %}">Ma boutique</a>
+  <a class="btn" href="{% url 'boutique' %}">{% translate "Ma boutique" %}</a>
   <a class="btn btn--primaire" href="{{ lien_vitrine }}" target="_blank" rel="noopener">
-    Voir ma vitrine
+    {% translate "Voir ma vitrine" %}
   </a>
 {% endblock %}
 
@@ -15,15 +16,15 @@
 <div class="colonne">
   <div class="duo">
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Logo et couleurs</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Logo et couleurs" %}</h2></header>
       <form method="post" enctype="multipart/form-data" class="carte__corps colonne"
             style="gap:16px" novalidate>
         {% csrf_token %}
         {% if identite.logo %}
           <div class="rangee" style="gap:14px">
-            <img class="apercu-logo" src="{{ identite.logo.url }}" alt="Votre logo">
+            <img class="apercu-logo" src="{{ identite.logo.url }}" alt="{% translate 'Votre logo' %}">
             <span class="t-legende">
-              Il apparaît dans votre back-office et en tête de votre vitrine.
+              {% translate "Il apparaît dans votre back-office et en tête de votre vitrine." %}
             </span>
           </div>
         {% endif %}
@@ -35,7 +36,7 @@
           qu'on choisit et qui change ensuite serait le pire des deux mondes.
           {% endcomment %}
           <div class="colonne" style="gap:8px">
-            <span class="t-legende">Trouvées dans votre logo — cliquez pour choisir</span>
+            <span class="t-legende">{% translate "Trouvées dans votre logo — cliquez pour choisir" %}</span>
             <div class="rangee" style="gap:8px;flex-wrap:wrap">
               {% for p in proposees %}
                 <button type="button" class="pastille" data-couleur="{{ p.couleur }}"
@@ -54,53 +55,53 @@
           <div class="bandeau-info bandeau-info--alerte" role="status">
             <svg><use href="#ic-info"></use></svg>
             <span>
-              Votre couleur a été ajustée : {{ identite.motif_ajustement }}.
-              La teinte, elle, n'est jamais modifiée.
+              {% blocktranslate with motif_ajustement=identite.motif_ajustement trimmed %}Votre couleur a été ajustée : {{ motif_ajustement }}.
+              La teinte, elle, n'est jamais modifiée.{% endblocktranslate %}
             </span>
           </div>
         {% endif %}
 
         <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
-          Enregistrer ma charte
+          {% translate "Enregistrer ma charte" %}
         </button>
       </form>
     </section>
 
     <div class="colonne">
       <section class="carte">
-        <header class="carte__entete"><h2 class="t-section">Aperçu</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Aperçu" %}</h2></header>
         <div class="carte__corps colonne" style="gap:14px">
           <div class="rangee" style="gap:10px;flex-wrap:wrap">
-            <button type="button" class="btn btn--primaire">Encaisser</button>
-            <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>Actif</span>
+            <button type="button" class="btn btn--primaire">{% translate "Encaisser" %}</button>
+            <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>{% translate "Actif" %}</span>
             <span class="jeton">{{ boutique.enseigne|initiales }}</span>
           </div>
           <p class="t-legende">
-            Ces éléments portent déjà votre couleur : ce que vous voyez ici est
-            ce que voient votre équipe et vos clients.
+            {% blocktranslate trimmed %}Ces éléments portent déjà votre couleur : ce que vous voyez ici est
+            ce que voient votre équipe et vos clients.{% endblocktranslate %}
           </p>
           <div class="rangee rangee--espace">
-            <span class="t-2">Mode clair</span>
+            <span class="t-2">{% translate "Mode clair" %}</span>
             <span class="chiffre">{{ identite.couleur_marque }}</span>
           </div>
           <div class="rangee rangee--espace">
-            <span class="t-2">Mode sombre</span>
+            <span class="t-2">{% translate "Mode sombre" %}</span>
             <span class="chiffre">{{ identite.couleur_marque_sombre }}</span>
           </div>
           <p class="t-legende">
-            La version sombre est <strong>éclaircie, jamais inversée</strong> :
-            une couleur retournée n'est plus la vôtre.
+            {% translate "La version sombre est" %} <strong>{% translate "éclaircie, jamais inversée" %}</strong> {% blocktranslate trimmed %}:
+            une couleur retournée n'est plus la vôtre.{% endblocktranslate %}
           </p>
         </div>
       </section>
 
       <section class="carte">
-        <header class="carte__entete"><h2 class="t-section">L'adresse de ma boutique</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "L'adresse de ma boutique" %}</h2></header>
         <div class="carte__corps colonne" style="gap:10px">
           <code class="adresse-boutique">{{ lien_vitrine }}</code>
           <p class="t-legende">
-            C'est votre vitrine publique. Elle fonctionne sans que vos clients
-            aient de compte.
+            {% blocktranslate trimmed %}C'est votre vitrine publique. Elle fonctionne sans que vos clients
+            aient de compte.{% endblocktranslate %}
           </p>
         </div>
       </section>
@@ -116,11 +117,11 @@
         <table class="tableau">
           <thead>
             <tr>
-              <th scope="col">Lien</th>
-              <th scope="col">Usage</th>
-              <th scope="col">Vers</th>
-              <th scope="col" class="num">Clics</th>
-              <th scope="col">État</th>
+              <th scope="col">{% translate "Lien" %}</th>
+              <th scope="col">{% translate "Usage" %}</th>
+              <th scope="col">{% translate "Vers" %}</th>
+              <th scope="col" class="num">{% translate "Clics" %}</th>
+              <th scope="col">{% translate "État" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -134,7 +135,7 @@
                 <td class="t-2">{{ lien.libelle }}</td>
                 <td class="t-2">
                   {% if lien.article %}{{ lien.article.produit.libelle|truncatechars:28 }}
-                  {% else %}<span class="t-muet">Ma vitrine</span>{% endif %}
+                  {% else %}<span class="t-muet">{% translate "Ma vitrine" %}</span>{% endif %}
                   {% if lien.code_apporteur %}
                     <span class="puce puce--marque">{{ lien.code_apporteur }}</span>
                   {% endif %}
@@ -142,9 +143,9 @@
                 <td class="num" style="font-weight:620">{{ lien.clics }}</td>
                 <td>
                   {% if lien.actif %}
-                    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Actif</span>
+                    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Actif" %}</span>
                   {% else %}
-                    <span class="puce">Retiré</span>
+                    <span class="puce">{% translate "Retiré" %}</span>
                   {% endif %}
                 </td>
               </tr>
@@ -154,8 +155,8 @@
       </div>
       <footer class="tableau-pied">
         <span>
-          Le compteur compte des <strong>clics, pas des ventes</strong> : il dit
-          quel support amène du monde, pas qui a acheté.
+          {% translate "Le compteur compte des" %} <strong>{% translate "clics, pas des ventes" %}</strong> {% blocktranslate trimmed %}: il dit
+          quel support amène du monde, pas qui a acheté.{% endblocktranslate %}
         </span>
       </footer>
     {% else %}
@@ -165,13 +166,13 @@
         « Ne correspond » n'a de sens que derrière un filtre. Sans filtre, la
         liste est simplement vide : on le dit, et on dit à quoi elle servira.
         {% endcomment %}
-        <p class="t-2">{% if filtres.actifs %}Aucun lien ne correspond.{% else %}Aucun lien pour l'instant.{% endif %}</p>
+        <p class="t-2">{% if filtres.actifs %}{% translate "Aucun lien ne correspond." %}{% else %}{% translate "Aucun lien pour l'instant." %}{% endif %}</p>
         {% if filtres.actifs %}
-          <a class="btn" href="{% url 'identite' %}">Retirer les filtres</a>
+          <a class="btn" href="{% url 'identite' %}">{% translate "Retirer les filtres" %}</a>
         {% else %}
           <p class="t-legende">
-            Un lien par support — flyer, statut WhatsApp, enseigne — et vous
-            saurez lequel travaille.
+            {% blocktranslate trimmed %}Un lien par support — flyer, statut WhatsApp, enseigne — et vous
+            saurez lequel travaille.{% endblocktranslate %}
           </p>
         {% endif %}
       </div>
@@ -183,19 +184,19 @@
 <dialog class="modale" id="modale-nouveau-lien">
   <form method="post" action="{% url 'lien_creer' %}" novalidate>
     {% csrf_token %}
-    <header class="modale__entete"><h2 class="t-section">Créer un lien</h2></header>
+    <header class="modale__entete"><h2 class="t-section">{% translate "Créer un lien" %}</h2></header>
     <div class="modale__corps colonne" style="gap:16px">
       {% include "partials/champ.html" with champ=formulaire_lien.libelle %}
       {% include "partials/champ.html" with champ=formulaire_lien.article %}
       {% include "partials/champ.html" with champ=formulaire_lien.code_apporteur %}
       <p class="t-legende">
-        Le code est court et sans caractère ambigu : il finit toujours par être
-        lu à voix haute une fois, et une confusion coûte une visite.
+        {% blocktranslate trimmed %}Le code est court et sans caractère ambigu : il finit toujours par être
+        lu à voix haute une fois, et une confusion coûte une visite.{% endblocktranslate %}
       </p>
     </div>
     <footer class="modale__pied">
-      <button class="btn" type="button" data-ferme>Annuler</button>
-      <button class="btn btn--primaire" type="submit">Créer le lien</button>
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+      <button class="btn btn--primaire" type="submit">{% translate "Créer le lien" %}</button>
     </footer>
   </form>
 </dialog>
@@ -209,21 +210,21 @@ changer les rendrait tous muets d'un coup, et personne ne saurait pourquoi.
   <form method="post" data-action-modele="{% url 'lien_modifier' '00000000-0000-0000-0000-000000000000' %}">
     {% csrf_token %}
     <header class="modale__entete">
-      <h2 class="t-section">Renommer « <span data-cible-libelle></span> »</h2>
+      <h2 class="t-section">{% translate "Renommer «" %} <span data-cible-libelle></span> »</h2>
     </header>
     <div class="modale__corps colonne" style="gap:14px">
       <div class="groupe-champ">
-        <label for="libelle-lien">À quoi sert ce lien</label>
+        <label for="libelle-lien">{% translate "À quoi sert ce lien" %}</label>
         <input class="champ" id="libelle-lien" name="libelle" maxlength="120"
-               placeholder="Flyer marché central, statut WhatsApp…">
+               placeholder="{% translate 'Flyer marché central, statut WhatsApp…' %}">
       </div>
       <p class="t-legende">
-        Le code court reste le même : il est peut-être déjà imprimé.
+        {% translate "Le code court reste le même : il est peut-être déjà imprimé." %}
       </p>
     </div>
     <footer class="modale__pied">
-      <button class="btn" type="button" data-ferme>Annuler</button>
-      <button class="btn btn--primaire" type="submit">Renommer</button>
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+      <button class="btn btn--primaire" type="submit">{% translate "Renommer" %}</button>
     </footer>
   </form>
 </dialog>

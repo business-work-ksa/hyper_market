@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from urllib.parse import quote
 
 from django.conf import settings
+from django.utils.translation import gettext as _
 
 INDICATIF = "237"
 DELAI_RESEAU = 8  # secondes : un avis ne retient jamais une commande plus longtemps
@@ -89,7 +90,7 @@ def requete_http(url: str, *, entetes: dict, corps: bytes) -> ReponseHttp:
     except urllib.error.HTTPError as exc:
         return ReponseHttp(exc.code, exc.read() or b"")
     except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError) as exc:
-        raise WhatsAppIndisponible(f"WhatsApp injoignable ({type(exc).__name__}).") from exc
+        raise WhatsAppIndisponible(_('WhatsApp injoignable (%(name)s).') % {"name": type(exc).__name__}) from exc
 
 
 def envoyer_gabarit(numero: str, *, gabarit: str = "gabarit_commande", parametres: list[str]) -> str:
@@ -100,10 +101,10 @@ def envoyer_gabarit(numero: str, *, gabarit: str = "gabarit_commande", parametre
     """
     configuration = _configuration()
     if not api_configuree(gabarit):
-        raise WhatsAppRefuse("API WhatsApp non configurée : aucun appel n'a été tenté.")
+        raise WhatsAppRefuse(_("API WhatsApp non configurée : aucun appel n'a été tenté."))
     destinataire = numero_international(numero)
     if len(destinataire) < 8:
-        raise WhatsAppRefuse("Numéro de destinataire invalide.")
+        raise WhatsAppRefuse(_("Numéro de destinataire invalide."))
 
     version = configuration.get("version") or "v21.0"
     url = f"{URL_GRAPH}/{version}/{configuration['numero_id']}/messages"
@@ -135,9 +136,9 @@ def envoyer_gabarit(numero: str, *, gabarit: str = "gabarit_commande", parametre
     except ValueError:
         donnees = {}
     if reponse.statut >= 500:
-        raise WhatsAppIndisponible(f"WhatsApp indisponible (HTTP {reponse.statut}).")
+        raise WhatsAppIndisponible(_('WhatsApp indisponible (HTTP %(statut)s).') % {"statut": reponse.statut})
     if reponse.statut >= 400 or not donnees.get("messages"):
         erreur = (donnees.get("error") or {}).get("message") or f"HTTP {reponse.statut}"
         # Le message d'erreur de Meta ne contient pas le jeton ; on le tronque quand même.
-        raise WhatsAppRefuse(f"WhatsApp a refusé le message : {erreur[:200]}")
+        raise WhatsAppRefuse(_('WhatsApp a refusé le message : %(element)s') % {"element": erreur[:200]})
     return str(donnees["messages"][0].get("id", ""))

@@ -26,6 +26,7 @@ from apps.marketplace.confiance import palier_de
 from apps.payments import sequestre as sequestre_service
 from apps.payments import versements as versements_service
 from apps.payments.models import MouvementPortefeuille, Versement
+from django.utils.translation import gettext as _
 
 
 @exige(droit.COMPTABILITE_VOIR)
@@ -36,7 +37,7 @@ def versements(request):
 
     if request.method == "POST":
         if not peut_demander:
-            messages.error(request, "Seul le gérant de la boutique demande un versement.")
+            messages.error(request, _("Seul le gérant de la boutique demande un versement."))
             return redirect("versements_marchand")
         try:
             versement = versements_service.demander_versement(boutique, par=request.user)
@@ -45,9 +46,7 @@ def versements(request):
         else:
             messages.success(
                 request,
-                f"Versement de {sequestre_service.montant_lisible(versement.montant)} FCFA demandé, vers "
-                f"{versement.libelle_operateur} {versement.numero}. La plateforme l'exécute et "
-                "vous en communique la référence.",
+                _("Versement de %(montant_lisible)s FCFA demandé, vers %(libelle_operateur)s %(numero)s. La plateforme l'exécute et vous en communique la référence.") % {"montant_lisible": sequestre_service.montant_lisible(versement.montant), "libelle_operateur": versement.libelle_operateur, "numero": versement.numero},
             )
         return redirect("versements_marchand")
 

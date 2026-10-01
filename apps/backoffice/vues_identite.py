@@ -34,6 +34,8 @@ from apps.backoffice.forms import CharteForm, LienMarketingForm
 from apps.catalog.models import Variante
 from apps.marketplace import charte as service_charte
 from apps.marketplace.models import IdentiteVisuelle, LienMarketing
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 LONGUEUR_CODE = 7
 
@@ -45,7 +47,7 @@ def identite_de(boutique) -> IdentiteVisuelle:
     toutes. La créer à la lecture évite d'avoir à la créer à l'inscription, donc
     d'avoir à rattraper les boutiques créées avant l'existence de cet écran.
     """
-    identite, _ = IdentiteVisuelle.objects.get_or_create(boutique=boutique)
+    identite, _cree = IdentiteVisuelle.objects.get_or_create(boutique=boutique)
     return identite
 
 
@@ -56,7 +58,7 @@ def generer_code() -> str:
     ni O/0 ni I/1. Un lien marketing finit toujours par être lu à voix haute une
     fois, et une confusion coûte une visite.
     """
-    for _ in range(20):
+    for _essai in range(20):
         code = "".join(secrets.choice(ALPHABET_CODE) for _ in range(LONGUEUR_CODE))
         if not LienMarketing.objects_all_tenants.filter(code=code).exists():
             return code
@@ -76,11 +78,10 @@ def identite(request):
             if enregistree.motif_ajustement:
                 messages.success(
                     request,
-                    f"Charte enregistrée. Une correction a été appliquée : "
-                    f"{enregistree.motif_ajustement}",
+                    _('Charte enregistrée. Une correction a été appliquée : %(motif_ajustement)s') % {"motif_ajustement": enregistree.motif_ajustement},
                 )
             else:
-                messages.success(request, "Charte enregistrée.")
+                messages.success(request, _("Charte enregistrée."))
             return redirect("identite")
     else:
         formulaire = CharteForm(instance=identite_visuelle)
@@ -198,7 +199,7 @@ def lien_creer(request):
         code_apporteur=formulaire.cleaned_data.get("code_apporteur", ""),
         cree_par=request.user,
     )
-    messages.success(request, f"Lien créé : {request.build_absolute_uri(lien.chemin())}")
+    messages.success(request, _('Lien créé : %(build_absolute_uri)s') % {"build_absolute_uri": request.build_absolute_uri(lien.chemin())})
     return redirect("identite")
 
 
@@ -215,11 +216,11 @@ def lien_modifier(request, lien_id):
     lien = get_object_or_404(LienMarketing.objects, pk=lien_id)
     libelle = (request.POST.get("libelle") or "").strip()[:120]
     if not libelle:
-        messages.error(request, "Un lien sans usage ne se retrouve pas dans la liste.")
+        messages.error(request, _("Un lien sans usage ne se retrouve pas dans la liste."))
         return redirect("identite")
 
     LienMarketing.objects.filter(pk=lien.pk).update(libelle=libelle)
-    messages.success(request, f"Lien renommé en « {libelle} ».")
+    messages.success(request, _('Lien renommé en « %(libelle)s ».') % {"libelle": libelle})
     return redirect("identite")
 
 
@@ -234,7 +235,7 @@ def lien_retirer(request, lien_id):
     """
     lien = get_object_or_404(LienMarketing.objects, pk=lien_id)
     LienMarketing.objects.filter(pk=lien.pk).update(actif=False)
-    messages.success(request, f"« {lien.libelle} » ne redirige plus.")
+    messages.success(request, _('« %(libelle)s » ne redirige plus.') % {"libelle": lien.libelle})
     return redirect("identite")
 
 
@@ -249,16 +250,17 @@ def liens_retirer(request):
     contexte_commun(request, "boutique")
     liens = list(LienMarketing.objects.filter(pk__in=request.POST.getlist("ids"), actif=True))
     if not liens:
-        messages.error(request, "Aucun lien actif à retirer.")
+        messages.error(request, _("Aucun lien actif à retirer."))
         return redirect("identite")
 
     LienMarketing.objects.filter(pk__in=[l.pk for l in liens]).update(actif=False)
     messages.success(
         request,
-        f"{len(liens)} lien{'s' if len(liens) > 1 else ''} ne redirige"
-        f"{'nt' if len(liens) > 1 else ''} plus : "
-        + ", ".join(l.libelle for l in liens)
-        + ". Leurs compteurs restent lisibles.",
+        ngettext(
+            "%(n)s lien ne redirige plus : %(liens)s. Son compteur reste lisible.",
+            "%(n)s liens ne redirigent plus : %(liens)s. Leurs compteurs restent lisibles.",
+            len(liens),
+        ) % {"n": len(liens), "liens": ", ".join(l.libelle for l in liens)},
     )
     return redirect("identite")
 

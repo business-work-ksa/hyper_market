@@ -27,7 +27,6 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.template.defaultfilters import pluralize
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -89,6 +88,8 @@ from apps.marketplace import metiers
 from apps.marketplace.models import Boutique
 from apps.pos import services as caisse_service
 from apps.pos.models import LigneTicket, ReglementTicket, Ticket
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 JOURS_HISTORIQUE = 14
 
@@ -1036,7 +1037,7 @@ def exemplaires_declarer(request, variante_id):
         return redirect("article", variante_id=variante.pk)
 
     messages.success(
-        request, f"{len(declares)} exemplaire{pluralize(len(declares))} nommé{pluralize(len(declares))}."
+        request, ngettext("%(n)s exemplaire nommé.", "%(n)s exemplaires nommés.", len(declares)) % {"n": len(declares)}
     )
     return redirect("article", variante_id=variante.pk)
 
@@ -1092,14 +1093,13 @@ def exemplaires_supprimer(request, variante_id):
         NumeroSerie.objects.filter(pk__in=[e.pk for e in effaces]).delete()
         messages.success(
             request,
-            f"{len(effaces)} numéro{pluralize(len(effaces))} effacé{pluralize(len(effaces))} : "
+            ngettext("%(n)s numéro effacé : ", "%(n)s numéros effacés : ", len(effaces)) % {"n": len(effaces)}
             + _enumerer([e.numero for e in effaces]),
         )
     for exemplaire in refuses:
         messages.error(
             request,
-            f"{exemplaire.numero} est {exemplaire.get_etat_display().lower()} : il porte une "
-            "histoire — une vente, une garantie, un passage à l'atelier — et ne s'efface pas.",
+            _("%(numero)s est %(lower)s : il porte une histoire — une vente, une garantie, un passage à l'atelier — et ne s'efface pas.") % {"numero": exemplaire.numero, "lower": exemplaire.get_etat_display().lower()},
         )
     return redirect("article", variante_id=variante.pk)
 
@@ -1131,7 +1131,7 @@ def compatibilite_modifier(request, variante_id, compatibilite_id):
         annee_debut=formulaire.cleaned_data.get("annee_debut"),
         annee_fin=formulaire.cleaned_data.get("annee_fin"),
     )
-    messages.success(request, "Compatibilité corrigée.")
+    messages.success(request, _("Compatibilité corrigée."))
     return redirect("article", variante_id=variante.pk)
 
 
@@ -1151,7 +1151,7 @@ def compatibilites_retirer(request, variante_id):
     if retirees:
         messages.success(
             request,
-            f"{retirees} compatibilité{pluralize(retirees, 's,s')} retirée{pluralize(retirees)}.",
+            ngettext("%(n)s compatibilité retirée.", "%(n)s compatibilités retirées.", retirees) % {"n": retirees},
         )
     return redirect("article", variante_id=variante_id)
 
@@ -1215,7 +1215,7 @@ def designation_ajouter(request, variante_id):
         source=formulaire.cleaned_data.get("source", "").strip(),
         cree_par=request.user,
     )
-    messages.success(request, f"« {formulaire.cleaned_data['valeur']} » désigne aussi cet article.")
+    messages.success(request, _('« %(element)s » désigne aussi cet article.') % {"element": formulaire.cleaned_data['valeur']})
     return redirect("article", variante_id=variante.pk)
 
 
@@ -1243,7 +1243,7 @@ def designation_modifier(request, variante_id, designation_id):
         valeur=formulaire.cleaned_data["valeur"],
         source=formulaire.cleaned_data.get("source", "").strip(),
     )
-    messages.success(request, "Désignation corrigée.")
+    messages.success(request, _("Désignation corrigée."))
     return redirect("article", variante_id=variante.pk)
 
 
@@ -1265,7 +1265,7 @@ def designations_retirer(request, variante_id):
     if retirees:
         messages.success(
             request,
-            f"{retirees} désignation{pluralize(retirees)} retirée{pluralize(retirees)}.",
+            ngettext("%(n)s désignation retirée.", "%(n)s désignations retirées.", retirees) % {"n": retirees},
         )
     return redirect("article", variante_id=variante_id)
 
@@ -1294,7 +1294,7 @@ def nouvel_article(request):
         formulaire = ArticleForm(request.POST, boutique=boutique)
         if formulaire.is_valid():
             variante = _creer_article(formulaire.cleaned_data, boutique, depot, request.user)
-            messages.success(request, f"« {variante.produit.libelle} » ajouté à votre stock.")
+            messages.success(request, _('« %(libelle)s » ajouté à votre stock.') % {"libelle": variante.produit.libelle})
             suite = "nouvel_article" if request.POST.get("enchainer") else "stock"
             return redirect(suite)
     else:
@@ -1376,7 +1376,7 @@ def article_modifier(request, variante_id):
         formulaire = ArticleModifierForm(request.POST, boutique=boutique, variante=variante)
         if formulaire.is_valid():
             _appliquer_les_corrections(variante, formulaire.cleaned_data, contexte["depot_courant"])
-            messages.success(request, f"« {formulaire.cleaned_data['libelle']} » mis à jour.")
+            messages.success(request, _('« %(element)s » mis à jour.') % {"element": formulaire.cleaned_data['libelle']})
             return redirect("article", variante_id=variante.pk)
     else:
         formulaire = ArticleModifierForm(boutique=boutique, variante=variante)
@@ -1446,7 +1446,7 @@ def articles_supprimer(request):
         Variante.objects.filter(pk__in=identifiants).select_related("produit")
     )
     if not variantes:
-        messages.error(request, "Aucun article à supprimer.")
+        messages.error(request, _("Aucun article à supprimer."))
         return _retour_liste(request, "stock")
 
     supprimes, retires = [], []
@@ -1460,14 +1460,18 @@ def articles_supprimer(request):
     if supprimes:
         messages.success(
             request,
-            f"{len(supprimes)} article{pluralize(len(supprimes))} supprimé{pluralize(len(supprimes))} : "
+            ngettext("%(n)s article supprimé : ", "%(n)s articles supprimés : ", len(supprimes)) % {"n": len(supprimes)}
             + _enumerer(supprimes),
         )
     if retires:
         messages.success(
             request,
-            f"{len(retires)} article{pluralize(len(retires))} retiré{pluralize(len(retires))} de la vente "
-            f"(l'historique les garde) : " + _enumerer(retires),
+            ngettext(
+                "%(n)s article retiré de la vente (l'historique le garde) : ",
+                "%(n)s articles retirés de la vente (l'historique les garde) : ",
+                len(retires),
+            ) % {"n": len(retires)}
+            + _enumerer(retires),
         )
     return _retour_liste(request, "stock")
 
@@ -1477,7 +1481,8 @@ def _enumerer(libelles, maximum: int = 4) -> str:
     if len(libelles) <= maximum:
         return ", ".join(libelles) + "."
     debut = ", ".join(libelles[:maximum])
-    return f"{debut} et {len(libelles) - maximum} autre{pluralize(len(libelles) - maximum)}."
+    reste = len(libelles) - maximum
+    return ngettext("%(debut)s et %(n)s autre.", "%(debut)s et %(n)s autres.", reste) % {"debut": debut, "n": reste}
 
 
 def _retour_liste(request, defaut: str):
@@ -1537,7 +1542,9 @@ def entree_stock(request, variante_id):
                 except series.NumeroInvalide as erreur:
                     messages.error(request, str(erreur))
                     return redirect("article", variante_id=variante.pk)
-                annonce += f" {len(declares)} exemplaire{pluralize(len(declares))} nommé{pluralize(len(declares))}."
+                annonce += " " + ngettext(
+                    "%(n)s exemplaire nommé.", "%(n)s exemplaires nommés.", len(declares)
+                ) % {"n": len(declares)}
 
             messages.success(request, annonce)
             return redirect("article", variante_id=variante.pk)
@@ -1659,7 +1666,7 @@ def transfert_stock(request, variante_id):
     depots = depots_disponibles()
     source = contexte["depot_courant"]
     if source is None or len(depots) < 2:
-        messages.error(request, "Un transfert demande au moins deux dépôts.")
+        messages.error(request, _("Un transfert demande au moins deux dépôts."))
         return redirect("article", variante_id=variante.pk)
 
     niveau = NiveauStock.objects.filter(variante=variante, depot=source).first()
@@ -1682,8 +1689,7 @@ def transfert_stock(request, variante_id):
             else:
                 messages.success(
                     request,
-                    f"{formulaire.cleaned_data['quantite']:.0f} unité(s) transférée(s) "
-                    f"vers « {formulaire.cleaned_data['cible'].libelle} ».",
+                    _('%(element)s unité(s) transférée(s) vers « %(libelle)s ».') % {"element": format(formulaire.cleaned_data['quantite'], ".0f"), "libelle": formulaire.cleaned_data['cible'].libelle},
                 )
                 return redirect("article", variante_id=variante.pk)
     else:
@@ -1745,14 +1751,13 @@ def inventaire(request):
 
         if comptees == 0:
             inventaire_en_cours.delete()
-            messages.error(request, "Aucune quantité saisie : l'inventaire n'a pas été enregistré.")
+            messages.error(request, _("Aucune quantité saisie : l'inventaire n'a pas été enregistré."))
             return redirect("inventaire")
 
         mouvements = regulariser_inventaire(inventaire_en_cours, cree_par=request.user)
         messages.success(
             request,
-            f"Inventaire validé : {comptees} article(s) comptés, "
-            f"{len(mouvements)} écart(s) régularisé(s).",
+            _('Inventaire validé : %(comptees)s article(s) comptés, %(len)s écart(s) régularisé(s).') % {"comptees": comptees, "len": len(mouvements)},
         )
         return redirect("stock")
 
@@ -1781,7 +1786,7 @@ def session_caisse(request):
     session = _session_ouverte(request)
     depot = session.depot if session else contexte["depot_courant"]
     if depot is None:
-        messages.error(request, "Aucun dépôt n'est ouvert : créez-en un avant d'encaisser.")
+        messages.error(request, _("Aucun dépôt n'est ouvert : créez-en un avant d'encaisser."))
         return redirect("boutique")
 
     if request.method == "POST":
@@ -1793,7 +1798,7 @@ def session_caisse(request):
                     caissier=request.user,
                     fonds_ouverture=formulaire.cleaned_data["fonds_ouverture"],
                 )
-                messages.success(request, f"Caisse ouverte sur « {depot.libelle} ».")
+                messages.success(request, _('Caisse ouverte sur « %(libelle)s ».') % {"libelle": depot.libelle})
                 return redirect("caisse")
         else:
             formulaire = FermetureCaisseForm(request.POST)
@@ -1803,11 +1808,11 @@ def session_caisse(request):
                 )
                 ecart = fermee.ecart
                 if ecart == 0:
-                    messages.success(request, "Caisse fermée, aucun écart.")
+                    messages.success(request, _("Caisse fermée, aucun écart."))
                 else:
                     signe = "manquant" if ecart < 0 else "excédent"
                     messages.error(
-                        request, f"Caisse fermée avec un {signe} de {abs(ecart):.0f} FCFA."
+                        request, _('Caisse fermée avec un %(signe)s de %(abs)s FCFA.') % {"signe": signe, "abs": format(abs(ecart), ".0f")}
                     )
                 return redirect("caisse")
     else:
@@ -2241,7 +2246,7 @@ def depot_modifier(request, depot_id):
 
     libelle = (request.POST.get("libelle") or "").strip()[:120]
     if not libelle:
-        messages.error(request, "Un dépôt sans nom ne se distingue pas des autres.")
+        messages.error(request, _("Un dépôt sans nom ne se distingue pas des autres."))
         return redirect("boutique")
 
     types_connus = {code for code, _ in Depot.TYPES if code != Depot.ENTREPOT_PLATEFORME}
@@ -2251,7 +2256,7 @@ def depot_modifier(request, depot_id):
         type=type_demande if type_demande in types_connus else depot.type,
         adresse=(request.POST.get("adresse") or "").strip()[:255],
     )
-    messages.success(request, f"Dépôt renommé en « {libelle} ».")
+    messages.success(request, _('Dépôt renommé en « %(libelle)s ».') % {"libelle": libelle})
     return redirect("boutique")
 
 
@@ -2270,7 +2275,7 @@ def depots_supprimer(request):
     contexte_commun(request, "boutique")
     depots = list(Depot.objects.filter(pk__in=request.POST.getlist("ids")))
     if not depots:
-        messages.error(request, "Aucun dépôt à fermer.")
+        messages.error(request, _("Aucun dépôt à fermer."))
         return redirect("boutique")
 
     supprimes, fermes, refuses = [], [], []
@@ -2289,16 +2294,16 @@ def depots_supprimer(request):
         supprimes.append(depot.libelle)
 
     if supprimes:
-        messages.success(request, f"Dépôt supprimé : {_enumerer(supprimes)}")
+        messages.success(request, _('Dépôt supprimé : %(enumerer)s') % {"enumerer": _enumerer(supprimes)})
     if fermes:
         messages.success(
             request,
-            f"Dépôt fermé (son historique de mouvements reste lisible) : {_enumerer(fermes)}",
+            _('Dépôt fermé (son historique de mouvements reste lisible) : %(enumerer)s') % {"enumerer": _enumerer(fermes)},
         )
     for nom in refuses:
         messages.error(
             request,
-            f"« {nom} » est le dépôt principal : désignez-en un autre avant de le fermer.",
+            _('« %(nom)s » est le dépôt principal : désignez-en un autre avant de le fermer.') % {"nom": nom},
         )
     return redirect("boutique")
 
@@ -2345,8 +2350,7 @@ def nouveau_depot(request):
     if existants >= quota:
         messages.error(
             request,
-            f"Votre emplacement autorise {quota} dépôt(s). "
-            "Passez à une offre supérieure pour en ouvrir un de plus.",
+            _('Votre emplacement autorise %(quota)s dépôt(s). Passez à une offre supérieure pour en ouvrir un de plus.') % {"quota": quota},
         )
         return redirect("boutique")
 
@@ -2361,7 +2365,7 @@ def nouveau_depot(request):
                 principal=existants == 0,
                 cree_par=request.user,
             )
-            messages.success(request, f"Dépôt « {depot.libelle} » ouvert.")
+            messages.success(request, _('Dépôt « %(libelle)s » ouvert.') % {"libelle": depot.libelle})
             return redirect("boutique")
     else:
         formulaire = DepotForm()

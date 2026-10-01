@@ -150,6 +150,22 @@ class IsolationDesVuesTest(TestCase):
             with self.subTest(page=nom):
                 self.assertEqual(self.client.get(reverse(nom)).status_code, 200)
 
+    def test_le_back_office_se_lit_en_anglais_sur_demande(self):
+        francais = self.client.get(reverse("stock"))
+        self.assertContains(francais, '<html lang="fr"')
+        self.assertContains(francais, "Valeur totale")
+        self.client.cookies["hm_langue"] = "en"
+        for nom in ("tableau_de_bord", "caisse", "stock", "ventes", "comptabilite", "boutique"):
+            with self.subTest(page=nom):
+                reponse = self.client.get(reverse(nom))
+                self.assertEqual(reponse.status_code, 200)
+                self.assertContains(reponse, '<html lang="en"')
+                self.assertContains(reponse, 'aria-pressed="true" title="English"')
+        anglais = self.client.get(reverse("stock"))
+        self.assertContains(anglais, "Total value")
+        self.assertNotContains(anglais, "Valeur totale")
+        self.assertContains(anglais, "ALPHA-1")
+
     def test_un_visiteur_anonyme_est_renvoye_vers_la_connexion(self):
         self.client.logout()
         reponse = self.client.get(reverse("tableau_de_bord"))

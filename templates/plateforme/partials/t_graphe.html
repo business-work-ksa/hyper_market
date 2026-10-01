@@ -1,4 +1,4 @@
-{% load hm l10n %}
+{% load i18n hm l10n %}
 {% comment %}
 Graphe en barres d'une série unique, calculé côté serveur (`indicateurs.graphe_de`).
 
@@ -34,10 +34,10 @@ d'écran et copiables.
 </div>
 {% if not graphe.vide %}
 <details class="t-chiffres">
-  <summary>Voir les chiffres</summary>
+  <summary>{% translate "Voir les chiffres" %}</summary>
   <div class="tableau-boite">
     <table class="tableau">
-      <thead><tr><th scope="col">Période</th><th scope="col" class="num">Montant (FCFA)</th></tr></thead>
+      <thead><tr><th scope="col">{% translate "Période" %}</th><th scope="col" class="num">{% translate "Montant (FCFA)" %}</th></tr></thead>
       <tbody>
         {% for p in graphe.serie reversed %}
           <tr><td>{{ p.libelle_long }}</td><td class="num">{{ p.valeur|fcfa }}</td></tr>

@@ -45,6 +45,8 @@ from apps.inventory.services import (
     sortir_stock,
 )
 from apps.marketplace import metiers
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 
 def _exiger_le_metier(contexte):
@@ -159,12 +161,10 @@ def production_lancer(request, recette_id):
     if droit.COUT_VOIR in contexte["droits"]:
         messages.success(
             request,
-            f"{entree.quantite:.0f} × {recette.variante} produits · "
-            f"{len(sorties)} ingrédients consommés · "
-            f"revient à {entree.cout_unitaire:.0f} FCFA l'unité.",
+            _("%(quantite)s × %(variante)s produits · %(len)s ingrédients consommés · revient à %(cout_unitaire)s FCFA l'unité.") % {"quantite": format(entree.quantite, ".0f"), "variante": recette.variante, "len": len(sorties), "cout_unitaire": format(entree.cout_unitaire, ".0f")},
         )
     else:
-        messages.success(request, f"{entree.quantite:.0f} × {recette.variante} produits.")
+        messages.success(request, _('%(quantite)s × %(variante)s produits.') % {"quantite": format(entree.quantite, ".0f"), "variante": recette.variante})
     return redirect("production")
 
 
@@ -189,7 +189,7 @@ def production_invendus(request):
         commentaire=formulaire.cleaned_data.get("motif") or "Invendus de la journée",
         cree_par=request.user,
     )
-    messages.success(request, "Invendus enregistrés.")
+    messages.success(request, _("Invendus enregistrés."))
     return redirect("production")
 
 
@@ -246,7 +246,7 @@ def fiche_creer(request):
         note=formulaire.cleaned_data.get("note", ""),
         cree_par=request.user,
     )
-    messages.success(request, "Fiche ouverte. Ajoutez maintenant ses ingrédients.")
+    messages.success(request, _("Fiche ouverte. Ajoutez maintenant ses ingrédients."))
     return redirect("fiche", recette_id=recette.pk)
 
 
@@ -343,11 +343,11 @@ def fiche_ingredient_modifier(request, recette_id, ligne_id):
     except (ArithmeticError, ValueError):
         quantite = Decimal("0")
     if quantite <= 0:
-        messages.error(request, "Un ingrédient entre pour une quantité positive.")
+        messages.error(request, _("Un ingrédient entre pour une quantité positive."))
         return redirect("fiche", recette_id=recette.pk)
 
     LigneRecette.objects.filter(pk=ligne_id, recette=recette).update(quantite=quantite)
-    messages.success(request, "Quantité corrigée.")
+    messages.success(request, _("Quantité corrigée."))
     return redirect("fiche", recette_id=recette.pk)
 
 
@@ -369,7 +369,7 @@ def fiche_ingredients_retirer(request, recette_id):
     ).delete()[0]
     if retirees:
         messages.success(
-            request, f"{retirees} ingrédient{'s' if retirees > 1 else ''} retiré de la fiche."
+            request, ngettext("%(n)s ingrédient retiré de la fiche.", "%(n)s ingrédients retirés de la fiche.", retirees) % {"n": retirees}
         )
     return redirect("fiche", recette_id=recette.pk)
 
@@ -410,7 +410,7 @@ def fiche_modifier(request, recette_id):
     except (ArithmeticError, ValueError):
         rendement = Decimal("0")
     if rendement <= 0:
-        messages.error(request, "Le rendement d'une fiche est une quantité positive.")
+        messages.error(request, _("Le rendement d'une fiche est une quantité positive."))
         return redirect("fiches")
 
     jours = (request.POST.get("duree_conservation_jours") or "").strip()
@@ -419,7 +419,7 @@ def fiche_modifier(request, recette_id):
         duree_conservation_jours=int(jours) if jours.isdigit() else None,
         note=(request.POST.get("note") or "").strip(),
     )
-    messages.success(request, f"Fiche « {recette.variante} » mise à jour.")
+    messages.success(request, _('Fiche « %(variante)s » mise à jour.') % {"variante": recette.variante})
     return redirect("fiches")
 
 
@@ -442,7 +442,7 @@ def fiches_supprimer(request):
         )
     )
     if not fiches_visees:
-        messages.error(request, "Aucune fiche à supprimer.")
+        messages.error(request, _("Aucune fiche à supprimer."))
         return redirect("fiches")
 
     supprimees, retirees = [], []
@@ -459,12 +459,11 @@ def fiches_supprimer(request):
             supprimees.append(str(recette.variante))
 
     if supprimees:
-        messages.success(request, f"Fiche supprimée : {', '.join(supprimees)}.")
+        messages.success(request, _('Fiche supprimée : %(join)s.') % {"join": ', '.join(supprimees)})
     if retirees:
         messages.success(
             request,
-            "Fiche retirée de la production (elle explique des fournées déjà "
-            f"faites) : {', '.join(retirees)}.",
+            _('Fiche retirée de la production (elle explique des fournées déjà faites) : %(join)s.') % {"join": ', '.join(retirees)},
         )
     return redirect("fiches")
 

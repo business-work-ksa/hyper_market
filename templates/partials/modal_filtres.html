@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Boîte de filtres d'un écran de liste.
 
 Les filtres sont un **formulaire Django ordinaire, en GET** : l'état filtré vit
@@ -26,7 +26,7 @@ déplie sur place : les filtres restent atteignables, simplement moins jolis.
     <header class="modale__entete">
       <h2 class="t-section" id="titre-{{ id }}">{{ titre|default:"Filtres" }}</h2>
       {% if formulaire.actifs %}
-        <span class="puce puce--marque">{{ formulaire.actifs }} actif{{ formulaire.actifs|pluralize }}</span>
+        <span class="puce puce--marque">{% blocktranslate count actifs=formulaire.actifs trimmed %}{{ actifs }} actif{% plural %}{{ actifs }} actifs{% endblocktranslate %}</span>
       {% endif %}
     </header>
 
@@ -58,10 +58,10 @@ déplie sur place : les filtres restent atteignables, simplement moins jolis.
       champs : vider les champs sans valider laisse la liste filtrée sous une
       boîte qui prétend le contraire.
       {% endcomment %}
-      <a class="btn btn--discret pousse-gauche" href="{{ action }}">Tout effacer</a>
-      <button class="btn" type="button" data-ferme>Annuler</button>
+      <a class="btn btn--discret pousse-gauche" href="{{ action }}">{% translate "Tout effacer" %}</a>
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
       <button class="btn btn--primaire" type="submit">
-        <svg><use href="#ic-filtre"></use></svg> Appliquer
+        <svg><use href="#ic-filtre"></use></svg> {% translate "Appliquer" %}
       </button>
     </footer>
   </form>

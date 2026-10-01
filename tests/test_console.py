@@ -214,3 +214,21 @@ class TachesQuotidiennesTest(TestCase):
         self.assertEqual(
             set(reponse.json()), {"actualiser_paiements", "liberer_sequestres", "evaluer_confiance"}
         )
+
+
+class ConsoleEnAnglaisTest(PersonnagesMixin, TestCase):
+    """La console suit la langue choisie, comme le marché et le back-office."""
+
+    def setUp(self):
+        self.poser_les_personnages()
+        self.client.force_login(self.superadmin)
+
+    def test_la_console_se_lit_en_anglais(self):
+        self.client.cookies["hm_langue"] = "en"
+        for nom in ("plateforme:tableau_de_bord", "plateforme:boutiques", "plateforme:rayons"):
+            with self.subTest(ecran=nom):
+                reponse = self.client.get(reverse(nom))
+                self.assertEqual(reponse.status_code, 200)
+                self.assertContains(reponse, '<html lang="en"')
+                self.assertContains(reponse, 'class="choix-langue"')
+        self.assertContains(self.client.get(reverse("plateforme:boutiques")), "Open a shop")

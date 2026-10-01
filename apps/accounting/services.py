@@ -20,6 +20,7 @@ from apps.accounting.models import (
     Journal,
     LigneEcriture,
 )
+from django.utils.translation import gettext as _
 
 __all__ = [
     "EcritureInvalide",
@@ -68,9 +69,9 @@ def _exercice_courant(boutique_id, date_ecriture) -> Exercice:
         .first()
     )
     if exercice is None:
-        raise EcritureInvalide(f"Aucun exercice ouvert ne couvre le {date_ecriture}.")
+        raise EcritureInvalide(_('Aucun exercice ouvert ne couvre le %(date_ecriture)s.') % {"date_ecriture": date_ecriture})
     if exercice.etat == Exercice.CLOTURE:
-        raise EcritureInvalide("L'exercice est clôturé : passez l'écriture sur l'exercice suivant.")
+        raise EcritureInvalide(_("L'exercice est clôturé : passez l'écriture sur l'exercice suivant."))
     return exercice
 
 
@@ -80,8 +81,7 @@ def _compte(boutique_id, numero: str) -> CompteBoutique:
     ).first()
     if compte is None:
         raise EcritureInvalide(
-            f"Le compte {numero} n'existe pas dans le plan de cette boutique. "
-            "Initialisez le plan comptable (commande `initialiser_plan_comptable`)."
+            _("Le compte %(numero)s n'existe pas dans le plan de cette boutique. Initialisez le plan comptable (commande `initialiser_plan_comptable`).") % {"numero": numero}
         )
     return compte
 
@@ -126,23 +126,23 @@ def _passer_ecriture(
     exploitable, quelle que soit l'origine de l'opération.
     """
     if not lignes:
-        raise EcritureInvalide("Une écriture sans ligne n'a pas de sens.")
+        raise EcritureInvalide(_("Une écriture sans ligne n'a pas de sens."))
 
     total_debit = sum((Decimal(d) for _, d, _ in lignes), Decimal("0")).quantize(CENTIME)
     total_credit = sum((Decimal(c) for _, _, c in lignes), Decimal("0")).quantize(CENTIME)
     if total_debit != total_credit:
         raise EcritureInvalide(
-            f"Écriture déséquilibrée : débit {total_debit} ≠ crédit {total_credit}."
+            _('Écriture déséquilibrée : débit %(total_debit)s ≠ crédit %(total_credit)s.') % {"total_debit": total_debit, "total_credit": total_credit}
         )
     if total_debit == 0:
-        raise EcritureInvalide("Une écriture de montant nul n'a pas de sens.")
+        raise EcritureInvalide(_("Une écriture de montant nul n'a pas de sens."))
 
     exercice = _exercice_courant(boutique_id, date_ecriture)
     journal = Journal.objects_all_tenants.filter(
         boutique_id=boutique_id, code=code_journal
     ).first()
     if journal is None:
-        raise EcritureInvalide(f"Le journal {code_journal} n'existe pas pour cette boutique.")
+        raise EcritureInvalide(_("Le journal %(code_journal)s n'existe pas pour cette boutique.") % {"code_journal": code_journal})
 
     ecriture = EcritureComptable(
         boutique_id=boutique_id,
@@ -183,7 +183,7 @@ def contrepasser(ecriture: EcritureComptable, *, date_ecriture=None, motif: str 
 @transaction.atomic
 def _contrepasser(ecriture: EcritureComptable, *, date_ecriture=None, motif: str = "") -> EcritureComptable:
     if ecriture.contrepassee_par_id is not None:
-        raise EcritureInvalide("Cette écriture a déjà été contre-passée.")
+        raise EcritureInvalide(_("Cette écriture a déjà été contre-passée."))
 
     from django.utils import timezone
 
@@ -653,8 +653,7 @@ def comptabiliser_versement(versement, *, date_ecriture=None) -> list[EcritureCo
     compte = COMPTE_DE_TRESORERIE.get(versement.operateur)
     if compte is None:
         raise EcritureInvalide(
-            f"Aucun compte de trésorerie n'est prévu pour l'opérateur {versement.operateur} : "
-            "complétez le plan comptable avant d'ouvrir ce pays."
+            _("Aucun compte de trésorerie n'est prévu pour l'opérateur %(operateur)s : complétez le plan comptable avant d'ouvrir ce pays.") % {"operateur": versement.operateur}
         )
     montant = Decimal(versement.montant).quantize(CENTIME)
     return [
@@ -797,7 +796,7 @@ def comptabiliser_reglement_cahier(reglement):
     from apps.pos.models import ReglementCahier
 
     if not isinstance(reglement, ReglementCahier):
-        raise EcritureInvalide("comptabiliser_reglement_cahier attend un règlement de cahier.")
+        raise EcritureInvalide(_("comptabiliser_reglement_cahier attend un règlement de cahier."))
 
     comptes_par_moyen = {
         ReglementCahier.ESPECES: (Journal.CAISSE, C_CAISSE),
@@ -808,7 +807,7 @@ def comptabiliser_reglement_cahier(reglement):
         code_journal, compte = comptes_par_moyen[reglement.moyen]
     except KeyError:
         raise EcritureInvalide(
-            f"Moyen de règlement « {reglement.moyen} » sans compte de trésorerie associé."
+            _('Moyen de règlement « %(moyen)s » sans compte de trésorerie associé.') % {"moyen": reglement.moyen}
         ) from None
 
     return passer_ecriture(

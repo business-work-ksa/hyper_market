@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Accès refusé — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Accès refusé{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Accès refusé — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Accès refusé" %}{% endblock %}
 
 {% block contenu %}
 {% comment %}
@@ -12,18 +13,18 @@ ce qui lui manque, et sait à qui s'adresser.
 {% endcomment %}
 <section class="carte" style="max-width:560px">
   <header class="carte__entete">
-    <h2 class="t-section">Cet écran n'est pas ouvert à votre rôle</h2>
+    <h2 class="t-section">{% translate "Cet écran n'est pas ouvert à votre rôle" %}</h2>
     <span class="puce puce--alerte"><svg><use href="#ic-verrou"></use></svg>403</span>
   </header>
 
   <div class="carte__corps colonne" style="gap:16px">
     <p class="t-2">
-      Vous êtes rattaché à <strong>{{ boutique.enseigne }}</strong> en tant que
-      {% for role in roles %}<strong>{{ role }}</strong>{% if not forloop.last %}, {% endif %}{% empty %}<strong>utilisateur sans rôle actif</strong>{% endfor %}.
+      {% translate "Vous êtes rattaché à" %} <strong>{{ boutique.enseigne }}</strong> {% translate "en tant que" %}
+      {% for role in roles %}<strong>{{ role }}</strong>{% if not forloop.last %}, {% endif %}{% empty %}<strong>{% translate "utilisateur sans rôle actif" %}</strong>{% endfor %}.
     </p>
 
     <div class="colonne" style="gap:8px">
-      <p class="t-sur-titre">Ce que cet écran demande</p>
+      <p class="t-sur-titre">{% translate "Ce que cet écran demande" %}</p>
       {% for manquant in manquants %}
         <span class="rangee" style="gap:8px">
           <svg class="icone-ligne" style="color:var(--critique)"><use href="#ic-alerte"></use></svg>
@@ -33,20 +34,20 @@ ce qui lui manque, et sait à qui s'adresser.
     </div>
 
     <p class="t-legende">
-      Les droits sont attachés au rôle, pas à la personne : c'est le gérant de la boutique qui
-      peut vous en attribuer un autre.
+      {% blocktranslate trimmed %}Les droits sont attachés au rôle, pas à la personne : c'est le gérant de la boutique qui
+      peut vous en attribuer un autre.{% endblocktranslate %}
     </p>
   </div>
 
   <footer class="carte__pied rangee" style="gap:9px">
     {% if 'caisse.encaisser' in droits %}
-      <a class="btn btn--primaire" href="{% url 'caisse' %}">Aller à la caisse</a>
+      <a class="btn btn--primaire" href="{% url 'caisse' %}">{% translate "Aller à la caisse" %}</a>
     {% elif 'tableau_de_bord' in droits %}
-      <a class="btn btn--primaire" href="{% url 'tableau_de_bord' %}">Tableau de bord</a>
+      <a class="btn btn--primaire" href="{% url 'tableau_de_bord' %}">{% translate "Tableau de bord" %}</a>
     {% elif 'stock.voir' in droits %}
-      <a class="btn btn--primaire" href="{% url 'stock' %}">Voir le stock</a>
+      <a class="btn btn--primaire" href="{% url 'stock' %}">{% translate "Voir le stock" %}</a>
     {% endif %}
-    <a class="btn" href="{% url 'connexion' %}">Changer de compte</a>
+    <a class="btn" href="{% url 'connexion' %}">{% translate "Changer de compte" %}</a>
   </footer>
 </section>
 {% endblock %}

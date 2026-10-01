@@ -1,15 +1,15 @@
-{% load hm %}
+{% load i18n hm %}
 <ul class="s-preuves">
   {% for autre in s.preuves.boutiques %}
     <li class="s-preuve">
       <span class="s-preuve__tete">
         <a class="t-lien" href="{% url 'plateforme:boutique' autre.id %}">{{ autre.enseigne }}</a>
         <span class="statut statut--{{ autre.etat }}">{{ autre.etat_libelle }}</span>
-        <span class="t-legende">ouverte le {{ autre.ouverte_le }}</span>
+        <span class="t-legende">{% blocktranslate with ouverte_le=autre.ouverte_le trimmed %}ouverte le {{ ouverte_le }}{% endblocktranslate %}</span>
       </span>
       <span class="s-preuve__champs">
         {% for c in autre.champs %}
-          <span class="puce puce--marque">Même {{ c.champ }} · <span class="chiffre">{{ c.valeur }}</span></span>
+          <span class="puce puce--marque">{% blocktranslate with champ=c.champ trimmed %}Même {{ champ }} ·{% endblocktranslate %} <span class="chiffre">{{ c.valeur }}</span></span>
         {% endfor %}
       </span>
     </li>

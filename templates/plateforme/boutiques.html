@@ -1,26 +1,27 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm %}
-{% block titre %}Boutiques{% endblock %}
-{% block entete %}Boutiques{% endblock %}
+{% block titre %}{% translate "Boutiques" %}{% endblock %}
+{% block entete %}{% translate "Boutiques" %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
 
 {% block contenu %}
 <div class="entete-page">
   <div class="entete-page__texte">
-    <p class="t-sur-titre">Marché</p>
-    <h2 class="entete-page__titre">Boutiques</h2>
-    <p class="entete-page__phrase">Les locataires du marché, leur bail et leur état. Cliquez une boutique pour ouvrir sa fiche.</p>
+    <p class="t-sur-titre">{% translate "Marché" %}</p>
+    <h2 class="entete-page__titre">{% translate "Boutiques" %}</h2>
+    <p class="entete-page__phrase">{% translate "Les locataires du marché, leur bail et leur état. Cliquez une boutique pour ouvrir sa fiche." %}</p>
   </div>
   {% if 'plateforme.boutiques' in droits %}
   <div class="entete-page__actions">
     <a class="btn btn--primaire" href="{% url 'plateforme:assistant_boutique' %}">
-      <svg aria-hidden="true"><use href="#ic-plus"></use></svg>Ouvrir une boutique
+      <svg aria-hidden="true"><use href="#ic-plus"></use></svg>{% translate "Ouvrir une boutique" %}
     </a>
   </div>
   {% endif %}
 </div>
 
-<nav class="onglets" aria-label="État des boutiques">
+<nav class="onglets" aria-label="{% translate 'État des boutiques' %}">
   {% for o in onglets %}
     <a class="onglet" href="?{% if parametres_onglet %}{{ parametres_onglet }}&amp;{% endif %}etat={{ o.code }}"
        {% if o.code == etat %}aria-current="page"{% endif %}>
@@ -33,43 +34,43 @@
   <form class="t-filtres" method="get" data-filtres role="search">
     <input type="hidden" name="etat" value="{{ etat }}">
     <label class="recherche t-filtres__recherche">
-      <span class="lecteur-seul">Rechercher</span>
+      <span class="lecteur-seul">{% translate "Rechercher" %}</span>
       <svg aria-hidden="true"><use href="#ic-recherche"></use></svg>
       <input class="champ" type="search" name="q" value="{{ texte }}"
-             placeholder="Enseigne, raison sociale, ville, téléphone, RCCM, NIU">
+             placeholder="{% translate 'Enseigne, raison sociale, ville, téléphone, RCCM, NIU' %}">
     </label>
     <label class="t-filtre">
-      <span>Rayon</span>
+      <span>{% translate "Rayon" %}</span>
       <select class="champ champ--compact" name="rayon" data-auto>
-        <option value="">Tous</option>
+        <option value="">{% translate "Tous" %}</option>
         {% for code, libelle in rayons %}<option value="{{ code }}" {% if filtres.rayon == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
-        <option value="aucun" {% if filtres.rayon == 'aucun' %}selected{% endif %}>Sans rayon</option>
+        <option value="aucun" {% if filtres.rayon == 'aucun' %}selected{% endif %}>{% translate "Sans rayon" %}</option>
       </select>
     </label>
     <label class="t-filtre">
-      <span>Ville</span>
+      <span>{% translate "Ville" %}</span>
       <select class="champ champ--compact" name="ville" data-auto>
-        <option value="">Toutes</option>
+        <option value="">{% translate "Toutes" %}</option>
         {% for v in villes %}<option value="{{ v }}" {% if filtres.ville == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
       </select>
     </label>
     <label class="t-filtre">
-      <span>Offre</span>
+      <span>{% translate "Offre" %}</span>
       <select class="champ champ--compact" name="offre" data-auto>
-        <option value="">Toutes</option>
+        <option value="">{% translate "Toutes" %}</option>
         {% for code, libelle in offres %}<option value="{{ code }}" {% if filtres.offre == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
       </select>
     </label>
     <label class="t-filtre">
-      <span>Tri</span>
+      <span>{% translate "Tri" %}</span>
       <select class="champ champ--compact" name="tri" data-auto>
         {% for code, libelle in tris %}<option value="{{ code }}" {% if tri == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
       </select>
     </label>
     <span class="t-filtres__boutons">
-      <button class="btn" type="submit" data-appliquer>Appliquer</button>
+      <button class="btn" type="submit" data-appliquer>{% translate "Appliquer" %}</button>
       {% if texte or nb_filtres %}
-        <a class="btn btn--discret" href="?etat={{ etat }}">Effacer{% if nb_filtres %} <span class="pastille-compteur">{{ nb_filtres }}</span>{% endif %}</a>
+        <a class="btn btn--discret" href="?etat={{ etat }}">{% translate "Effacer" %}{% if nb_filtres %} <span class="pastille-compteur">{{ nb_filtres }}</span>{% endif %}</a>
       {% endif %}
     </span>
   </form>
@@ -79,14 +80,14 @@
     <table class="tableau t-tableau-boutiques">
       <thead>
         <tr>
-          <th scope="col">Boutique</th>
-          <th scope="col" class="t-cache-etroit">Ville</th>
-          <th scope="col" class="t-cache-moyen">Métier</th>
-          <th scope="col" class="t-cache-etroit">Rayon</th>
-          <th scope="col" class="t-cache-etroit">Offre</th>
-          <th scope="col" class="num t-cache-etroit">Loyer</th>
-          <th scope="col">État</th>
-          <th scope="col" class="t-cache-moyen">Ouverture</th>
+          <th scope="col">{% translate "Boutique" %}</th>
+          <th scope="col" class="t-cache-etroit">{% translate "Ville" %}</th>
+          <th scope="col" class="t-cache-moyen">{% translate "Métier" %}</th>
+          <th scope="col" class="t-cache-etroit">{% translate "Rayon" %}</th>
+          <th scope="col" class="t-cache-etroit">{% translate "Offre" %}</th>
+          <th scope="col" class="num t-cache-etroit">{% translate "Loyer" %}</th>
+          <th scope="col">{% translate "État" %}</th>
+          <th scope="col" class="t-cache-moyen">{% translate "Ouverture" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -115,24 +116,24 @@
     </table>
   </div>
   <footer class="tableau-pied">
-    <span>{{ page_obj.paginator.count }} boutique{{ page_obj.paginator.count|pluralize }}{% if texte %} pour « {{ texte }} »{% endif %}</span>
+    <span>{% blocktranslate count nb=page_obj.paginator.count trimmed %}{{ nb }} boutique{% plural %}{{ nb }} boutiques{% endblocktranslate %}{% if texte %} {% blocktranslate with texte=texte trimmed %}pour « {{ texte }} »{% endblocktranslate %}{% endif %}</span>
     {% include "plateforme/partials/t_pagination.html" with parametres=parametres_page %}
   </footer>
   {% else %}
     <div class="vide">
       <svg aria-hidden="true"><use href="#{% if texte or nb_filtres %}ic-recherche{% else %}ic-boutique{% endif %}"></use></svg>
       {% if texte or nb_filtres %}
-        <p class="t-section">Aucune boutique ne correspond</p>
-        <p class="t-legende">{% if texte %}Rien pour « {{ texte }} »{% else %}Aucun résultat{% endif %} avec ces filtres{% if etat %}, dans cet onglet{% endif %}.</p>
-        <a class="btn" href="?">Tout afficher</a>
+        <p class="t-section">{% translate "Aucune boutique ne correspond" %}</p>
+        <p class="t-legende">{% if texte %}{% blocktranslate with texte=texte trimmed %}Rien pour « {{ texte }} »{% endblocktranslate %}{% else %}{% translate "Aucun résultat" %}{% endif %} {% translate "avec ces filtres" %}{% if etat %}{% translate ", dans cet onglet" %}{% endif %}.</p>
+        <a class="btn" href="?">{% translate "Tout afficher" %}</a>
       {% elif etat %}
-        <p class="t-section">Aucune boutique dans cet état</p>
-        <p class="t-legende">Les autres onglets en comptent peut-être.</p>
+        <p class="t-section">{% translate "Aucune boutique dans cet état" %}</p>
+        <p class="t-legende">{% translate "Les autres onglets en comptent peut-être." %}</p>
       {% else %}
-        <p class="t-section">Le marché n'a pas encore de boutique</p>
-        <p class="t-legende">La première s'ouvre en quelques étapes : identité, rayon, offre, bail.</p>
+        <p class="t-section">{% translate "Le marché n'a pas encore de boutique" %}</p>
+        <p class="t-legende">{% translate "La première s'ouvre en quelques étapes : identité, rayon, offre, bail." %}</p>
         {% if 'plateforme.boutiques' in droits %}
-          <a class="btn btn--primaire" href="{% url 'plateforme:assistant_boutique' %}"><svg aria-hidden="true"><use href="#ic-plus"></use></svg>Ouvrir une boutique</a>
+          <a class="btn btn--primaire" href="{% url 'plateforme:assistant_boutique' %}"><svg aria-hidden="true"><use href="#ic-plus"></use></svg>{% translate "Ouvrir une boutique" %}</a>
         {% endif %}
       {% endif %}
     </div>

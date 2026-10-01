@@ -1,4 +1,5 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static %}
 {% comment %}
 Le cadre commun des assistants : étapes à gauche (en haut sur petit écran), la question du
@@ -9,7 +10,7 @@ Chaque étape remplit `{% block etape %}` ; le récapitulatif remplit aussi `{% 
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
 {% block fil %}
   <nav class="fil" aria-label="Fil d'Ariane">
-    <a href="{% url assistant.url_abandon %}">{% block fil_parent %}Console{% endblock %}</a>
+    <a href="{% url assistant.url_abandon %}">{% block fil_parent %}{% translate "Console" %}{% endblock %}</a>
     <span class="fil__sep" aria-hidden="true">/</span>
     <span>{{ assistant.titre }}</span>
   </nav>
@@ -18,14 +19,14 @@ Chaque étape remplit `{% block etape %}` ; le récapitulatif remplit aussi `{% 
 
 {% block contenu %}
 <div class="assistant a-assistant">
-  <aside class="a-colonne-etapes" aria-label="Progression">
+  <aside class="a-colonne-etapes" aria-label="{% translate 'Progression' %}">
     {% include "plateforme/partials/a_etapes.html" %}
   </aside>
 
   <div class="assistant__principal">
     <header class="a-tete">
       <div class="a-tete__ligne">
-        <p class="t-sur-titre">Étape {{ numero }} sur {{ total }}</p>
+        <p class="t-sur-titre">{% blocktranslate with numero=numero total=total trimmed %}Étape {{ numero }} sur {{ total }}{% endblocktranslate %}</p>
         <span class="t-legende">{{ assistant.titre }}</span>
       </div>
       <div class="progression" role="progressbar" aria-label="Avancement de l'assistant"
@@ -44,7 +45,7 @@ Chaque étape remplit `{% block etape %}` ; le récapitulatif remplit aussi `{% 
       {% csrf_token %}
       {# Premier bouton d'envoi du formulaire : c'est lui que déclenche la touche Entrée. #}
       <button type="submit" name="{% if etape.recapitulatif %}_confirmer{% else %}_continuer{% endif %}" value="1"
-              class="visuellement-cache" tabindex="-1" aria-hidden="true">Continuer</button>
+              class="visuellement-cache" tabindex="-1" aria-hidden="true">{% translate "Continuer" %}</button>
       <div class="carte__corps a-carte__corps">
         {% block etape %}{% endblock %}
       </div>

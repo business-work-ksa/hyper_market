@@ -39,6 +39,8 @@ from apps.orders import avis as avis_service
 from apps.orders.models import AvisCommande, Commande, LigneCommande, Litige, Retour, SousCommande
 from apps.payments import sequestre as sequestre_service
 from apps.payments.models import Sequestre
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 # Ce que le marchand peut faire, et le geste suivant à lui proposer. Écrit ici
 # plutôt que dans le gabarit : un bouton qui n'existe pas dans cette table ne
@@ -297,8 +299,11 @@ def _saisir_le_code(request, part):
         delai = palier_de(part.boutique).delai_liberation_jours
         messages.success(
             request,
-            f"Remise confirmée par le code de l'acheteur. Votre part sera libérée dans {delai} "
-            f"jour{'s' if delai > 1 else ''}, sauf réclamation.",
+            ngettext(
+                "Remise confirmée par le code de l'acheteur. Votre part sera libérée dans %(delai)s jour, sauf réclamation.",
+                "Remise confirmée par le code de l'acheteur. Votre part sera libérée dans %(delai)s jours, sauf réclamation.",
+                delai,
+            ) % {"delai": delai},
         )
     return redirect("commande", sous_commande_id=part.pk)
 
@@ -319,7 +324,7 @@ def commande_avancer(request, sous_commande_id):
     if demandee != attendue:
         messages.error(
             request,
-            "Cette commande a changé d'état entre-temps : rechargez la page.",
+            _("Cette commande a changé d'état entre-temps : rechargez la page."),
         )
         return redirect("commande", sous_commande_id=part.pk)
 
@@ -330,12 +335,12 @@ def commande_avancer(request, sous_commande_id):
             )
             messages.success(
                 request,
-                f"Commande {part.commande.numero} expédiée. Le stock est sorti au coût moyen.",
+                _('Commande %(numero)s expédiée. Le stock est sorti au coût moyen.') % {"numero": part.commande.numero},
             )
         else:
             action, participe = ACTIONS[demandee]
             action(part)
-            messages.success(request, f"Commande {part.commande.numero} {participe}.")
+            messages.success(request, _('Commande %(numero)s %(participe)s.') % {"numero": part.commande.numero, "participe": participe})
     except commandes_service.CommandeInvalide as erreur:
         messages.error(request, str(erreur))
 
@@ -356,8 +361,7 @@ def commande_annuler(request, sous_commande_id):
 
     messages.success(
         request,
-        f"Commande {part.commande.numero} refusée. Les commissions d'affiliation "
-        "sont annulées ; le stock n'avait pas encore bougé.",
+        _("Commande %(numero)s refusée. Les commissions d'affiliation sont annulées ; le stock n'avait pas encore bougé.") % {"numero": part.commande.numero},
     )
     return redirect("commande", sous_commande_id=part.pk)
 
@@ -368,7 +372,7 @@ def commande_retour(request, sous_commande_id):
     part = get_object_or_404(SousCommande.objects, pk=sous_commande_id)
     motif = (request.POST.get("motif") or "").strip()
     if not motif:
-        messages.error(request, "Un retour se justifie : indiquez le motif.")
+        messages.error(request, _("Un retour se justifie : indiquez le motif."))
         return redirect("commande", sous_commande_id=part.pk)
 
     try:
@@ -380,6 +384,6 @@ def commande_retour(request, sous_commande_id):
 
     messages.success(
         request,
-        "Retour accepté. La marchandise est réintégrée au coût auquel elle était sortie.",
+        _("Retour accepté. La marchandise est réintégrée au coût auquel elle était sortie."),
     )
     return redirect("commande", sous_commande_id=part.pk)

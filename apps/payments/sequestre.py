@@ -53,6 +53,8 @@ from apps.core.tenancy import contexte_boutique, contexte_plateforme
 from apps.marketplace.confiance import palier_de
 from apps.payments.models import CENTIME, MouvementPortefeuille, Sequestre
 from apps.payments.services import mouvementer_portefeuille
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 journal = logging.getLogger(__name__)
 
@@ -246,7 +248,7 @@ def ouvrir_sequestre(sous_commande, *, maintenant=None) -> Sequestre:
     sur le séquestre qui arbitre, pas la lecture préalable.
     """
     if not sous_commande.prepayee:
-        raise SequestreRefuse("Une part payée à la livraison ne passe pas par le séquestre.")
+        raise SequestreRefuse(_("Une part payée à la livraison ne passe pas par le séquestre."))
 
     existant = Sequestre.objects.filter(sous_commande=sous_commande).first()
     if existant is not None:
@@ -256,7 +258,7 @@ def ouvrir_sequestre(sous_commande, *, maintenant=None) -> Sequestre:
     encaisse = Decimal(sous_commande.total_ttc).quantize(CENTIME)
     net = (encaisse - commission).quantize(CENTIME)
     if net <= 0:
-        raise SequestreRefuse("La part nette du marchand serait nulle : commande incohérente.")
+        raise SequestreRefuse(_("La part nette du marchand serait nulle : commande incohérente."))
 
     try:
         with contexte_boutique(sous_commande.boutique_id):
@@ -307,11 +309,10 @@ def _marquer_confirmee(sous_commande, quand) -> None:
 def _controler_confirmable(sous_commande, sequestre, *, pour_l_acheteur: bool) -> None:
     if sous_commande.etat not in _ETATS_LIVRABLES:
         raise SequestreRefuse(
-            "La livraison ne se confirme qu'une fois la commande expédiée : "
-            f"elle est « {sous_commande.get_etat_display().lower()} »."
+            _("La livraison ne se confirme qu'une fois la commande expédiée : elle est « %(lower)s ».") % {"lower": sous_commande.get_etat_display().lower()}
         )
     if sequestre is not None and sequestre.etat != Sequestre.BLOQUE:
-        raise SequestreRefuse("Ce séquestre est déjà tranché.")
+        raise SequestreRefuse(_("Ce séquestre est déjà tranché."))
     if _litige_en_cours(sous_commande) is not None:
         raise SequestreRefuse(
             "Votre réclamation est en cours d'examen : la plateforme tranchera."
@@ -332,8 +333,8 @@ def confirmer_par_code(sous_commande, code: str, *, par=None, maintenant=None) -
     sequestre = Sequestre.objects.filter(sous_commande=sous_commande).first()
     if sequestre is None:
         raise SequestreRefuse(
-            "Cette commande n'a pas de séquestre : elle n'est pas prépayée, ou son paiement n'a "
-            "pas encore été constaté."
+            _("Cette commande n'a pas de séquestre : elle n'est pas prépayée, ou son paiement n'a "
+            "pas encore été constaté.")
         )
     if sous_commande.livraison_confirmee_le is not None:
         return sequestre
@@ -360,11 +361,14 @@ def confirmer_par_code(sous_commande, code: str, *, par=None, maintenant=None) -
             sequestre.save(update_fields=champs)
             restants = max(ESSAIS_CODE_MAX - sequestre.essais_code_echoues, 0)
             echec = CodeIncorrect(
-                "Code incorrect."
-                + (
-                    f" Encore {restants} essai{'s' if restants > 1 else ''} avant verrouillage."
+                (
+                    ngettext(
+                        "Code incorrect. Encore %(n)s essai avant verrouillage.",
+                        "Code incorrect. Encore %(n)s essais avant verrouillage.",
+                        restants,
+                    ) % {"n": restants}
                     if restants
-                    else " Le code est maintenant verrouillé : l'acheteur doit confirmer lui-même."
+                    else _("Code incorrect. Le code est maintenant verrouillé : l'acheteur doit confirmer lui-même.")
                 ),
                 restants,
             )
@@ -392,7 +396,7 @@ def confirmer_par_acheteur(sous_commande, *, maintenant=None):
     if sous_commande.livraison_confirmee_le is not None:
         return sous_commande
     if sous_commande.etat == SousCommande.ANNULEE:
-        raise SequestreRefuse("Cette commande a été annulée.")
+        raise SequestreRefuse(_("Cette commande a été annulée."))
     sequestre = Sequestre.objects.filter(sous_commande=sous_commande).first()
     _controler_confirmable(sous_commande, sequestre, pour_l_acheteur=True)
 
@@ -400,7 +404,7 @@ def confirmer_par_acheteur(sous_commande, *, maintenant=None):
         with transaction.atomic():
             sequestre = _verrouiller(sequestre)
             if sequestre.etat != Sequestre.BLOQUE:
-                raise SequestreRefuse("Ce séquestre est déjà tranché.")
+                raise SequestreRefuse(_("Ce séquestre est déjà tranché."))
             sequestre.confirmation = Sequestre.PAR_ACHETEUR
             sequestre.save(update_fields=["confirmation", "modifie_le"])
     _marquer_confirmee(sous_commande, maintenant)
@@ -472,11 +476,11 @@ def liberer(sequestre, *, maintenant=None, motif: str = "", apres_decision: bool
                 echeance = echeance_de_liberation(sequestre)
                 if echeance is None:
                     raise SequestreRefuse(
-                        "La livraison n'est pas confirmée : une livraison déclarée ne libère rien."
+                        _("La livraison n'est pas confirmée : une livraison déclarée ne libère rien.")
                     )
                 if echeance > maintenant:
                     raise SequestreRefuse(
-                        f"Le délai du palier court jusqu'au {timezone.localtime(echeance):%d/%m/%Y}."
+                        _("Le délai du palier court jusqu'au %(localtime)s.") % {"localtime": format(timezone.localtime(echeance), "%d/%m/%Y")}
                     )
             _liberer_montant(sequestre, sequestre.montant)
             sequestre.montant_libere = sequestre.montant
@@ -614,15 +618,14 @@ def rembourser(
     maintenant = maintenant or timezone.now()
     motif = (motif or "").strip()
     if not motif:
-        raise SequestreRefuse("Un remboursement se motive.")
+        raise SequestreRefuse(_("Un remboursement se motive."))
 
     with contexte_boutique(sequestre.boutique_id):
         with transaction.atomic():
             sequestre = _verrouiller(sequestre)
             if sequestre.etat != Sequestre.BLOQUE:
                 raise SequestreRefuse(
-                    f"Ce séquestre est déjà {sequestre.get_etat_display().lower()} : "
-                    "il ne se rembourse plus."
+                    _('Ce séquestre est déjà %(lower)s : il ne se rembourse plus.') % {"lower": sequestre.get_etat_display().lower()}
                 )
             if not malgre_litige and _litige_en_cours(sequestre.sous_commande) is not None:
                 raise SequestreRefuse(MESSAGE_GEL)
@@ -658,9 +661,7 @@ def rembourser(
             rendu = Decimal(montant_marchand).quantize(CENTIME)
             if rendu <= 0 or rendu >= sequestre.montant:
                 raise SequestreRefuse(
-                    f"Un remboursement partiel est compris entre 0 et la part du marchand "
-                    f"({montant_lisible(sequestre.montant)} FCFA), bornes exclues. Pour tout rendre, "
-                    "tranchez en faveur de l'acheteur."
+                    _("Un remboursement partiel est compris entre 0 et la part du marchand (%(montant_lisible)s FCFA), bornes exclues. Pour tout rendre, tranchez en faveur de l'acheteur.") % {"montant_lisible": montant_lisible(sequestre.montant)}
                 )
             reste = (sequestre.montant - rendu).quantize(CENTIME)
             _journaliser(
@@ -724,21 +725,20 @@ def ouvrir_litige(sous_commande, *, motif: str, description: str, par=None):
 
     description = (description or "").strip()
     if motif not in dict(Litige.MOTIFS):
-        raise SequestreRefuse("Choisissez le motif du litige.")
+        raise SequestreRefuse(_("Choisissez le motif du litige."))
     if len(description) < LONGUEUR_MIN_DESCRIPTION:
         raise SequestreRefuse(
-            "Décrivez ce qui ne va pas en une ou deux phrases : c'est ce que la plateforme lira."
+            _("Décrivez ce qui ne va pas en une ou deux phrases : c'est ce que la plateforme lira.")
         )
     sequestre = Sequestre.objects.filter(sous_commande=sous_commande).first()
     if sequestre is None:
         raise SequestreRefuse(
-            "Seule une commande prépayée, dont le paiement a été constaté, se conteste ici. "
-            "Pour une commande payée à la livraison, voyez directement le commerçant."
+            _("Seule une commande prépayée, dont le paiement a été constaté, se conteste ici. "
+            "Pour une commande payée à la livraison, voyez directement le commerçant.")
         )
     if sequestre.etat != Sequestre.BLOQUE:
         raise SequestreRefuse(
-            "L'argent de cette commande n'est plus en séquestre : il a été "
-            f"{sequestre.get_etat_display().lower()}."
+            _("L'argent de cette commande n'est plus en séquestre : il a été %(lower)s.") % {"lower": sequestre.get_etat_display().lower()}
         )
     existant = _litige_en_cours(sous_commande)
     if existant is not None:
@@ -749,7 +749,7 @@ def ouvrir_litige(sous_commande, *, motif: str, description: str, par=None):
             with transaction.atomic():
                 verrouille = _verrouiller(sequestre)
                 if verrouille.etat != Sequestre.BLOQUE:
-                    raise SequestreRefuse("L'argent de cette commande n'est plus en séquestre.")
+                    raise SequestreRefuse(_("L'argent de cette commande n'est plus en séquestre."))
                 return Litige.objects.create(
                     boutique_id=sous_commande.boutique_id,
                     sous_commande=sous_commande,
@@ -789,24 +789,24 @@ def trancher_litige(
     maintenant = maintenant or timezone.now()
     motivation = (motivation or "").strip()
     if decision not in dict(DECISIONS):
-        raise SequestreRefuse("Choisissez une décision.")
+        raise SequestreRefuse(_("Choisissez une décision."))
     if len(motivation) < LONGUEUR_MIN_MOTIVATION:
         raise SequestreRefuse(
-            "Une décision se motive : quelques phrases, que l'acheteur et le marchand liront."
+            _("Une décision se motive : quelques phrases, que l'acheteur et le marchand liront.")
         )
     if not getattr(par, "is_authenticated", False):
-        raise SequestreRefuse("Une décision a un auteur identifié.")
+        raise SequestreRefuse(_("Une décision a un auteur identifié."))
 
     sous_commande = litige.sous_commande
     sequestre = Sequestre.objects.filter(sous_commande=sous_commande).first()
     if sequestre is None:
-        raise SequestreRefuse("Cette commande n'a pas de séquestre à trancher.")
+        raise SequestreRefuse(_("Cette commande n'a pas de séquestre à trancher."))
 
     with contexte_boutique(litige.boutique_id):
         with transaction.atomic():
             verrouille = Litige.objects.select_for_update().get(pk=litige.pk)
             if verrouille.etat not in Litige.ETATS_OUVERTS:
-                raise SequestreRefuse("Ce litige est déjà tranché.")
+                raise SequestreRefuse(_("Ce litige est déjà tranché."))
 
             if decision == EN_FAVEUR_DU_MARCHAND:
                 liberer(
@@ -826,11 +826,11 @@ def trancher_litige(
                 etat, rendu = Litige.TRANCHE_ACHETEUR, resultat.rembourse_acheteur
             else:
                 if montant in (None, ""):
-                    raise SequestreRefuse("Indiquez le montant remboursé à l'acheteur.")
+                    raise SequestreRefuse(_("Indiquez le montant remboursé à l'acheteur."))
                 try:
                     montant = Decimal(str(montant).replace(" ", "").replace(",", "."))
                 except Exception:  # noqa: BLE001 — une saisie illisible est un refus, pas une panne
-                    raise SequestreRefuse("Montant illisible.") from None
+                    raise SequestreRefuse(_("Montant illisible.")) from None
                 resultat = rembourser(
                     sequestre,
                     montant_marchand=montant,

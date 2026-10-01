@@ -46,6 +46,7 @@ from apps.payments.adaptateurs import (
     ReponseInitiation,
     StatutTransaction,
 )
+from django.utils.translation import gettext as _
 
 journal = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class ReponseHttp:
         try:
             donnees = json.loads(self.corps.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise PaiementIndisponible("Réponse illisible de l'opérateur.") from exc
+            raise PaiementIndisponible(_("Réponse illisible de l'opérateur.")) from exc
         return donnees if isinstance(donnees, dict) else {"valeur": donnees}
 
 
@@ -89,7 +90,7 @@ def requete_http(methode: str, url: str, *, entetes: dict, corps: bytes | None =
         # Un code d'erreur HTTP est une réponse : l'appelant décide s'il est un refus ou une panne.
         return ReponseHttp(exc.code, exc.read() or b"", dict(exc.headers or {}))
     except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError) as exc:
-        raise PaiementIndisponible(f"Opérateur injoignable ({type(exc).__name__}).") from exc
+        raise PaiementIndisponible(_('Opérateur injoignable (%(name)s).') % {"name": type(exc).__name__}) from exc
 
 
 def _configuration(code: str) -> dict:
@@ -183,11 +184,11 @@ class AdaptateurMtnMomo:
             )
             if reponse.statut != 200:
                 raise PaiementIndisponible(
-                    f"MTN a refusé le jeton d'accès ({produit}, HTTP {reponse.statut})."
+                    _("MTN a refusé le jeton d'accès (%(produit)s, HTTP %(statut)s).") % {"produit": produit, "statut": reponse.statut}
                 )
             donnees = reponse.json()
             if not donnees.get("access_token"):
-                raise PaiementIndisponible("MTN n'a pas rendu de jeton d'accès.")
+                raise PaiementIndisponible(_("MTN n'a pas rendu de jeton d'accès."))
             return donnees["access_token"], donnees.get("expires_in", 3600)
 
         return _jeton_en_cache(f"paiements:jeton:mtn:{produit}:{utilisateur}", obtenir)
@@ -226,7 +227,7 @@ class AdaptateurMtnMomo:
             corps=json.dumps(corps).encode(),
         )
         if reponse.statut >= 500:
-            raise PaiementIndisponible(f"MTN indisponible (HTTP {reponse.statut}).")
+            raise PaiementIndisponible(_('MTN indisponible (HTTP %(statut)s).') % {"statut": reponse.statut})
         if reponse.statut != 202:
             motif = reponse.json().get("message") or reponse.json().get("code") or f"HTTP {reponse.statut}"
             return ReponseInitiation(
@@ -256,7 +257,7 @@ class AdaptateurMtnMomo:
         if reponse.statut == 404:
             return StatutTransaction(etat="initiee", message="MTN ne connaît pas encore cette demande.")
         if reponse.statut != 200:
-            raise PaiementIndisponible(f"MTN : lecture du statut impossible (HTTP {reponse.statut}).")
+            raise PaiementIndisponible(_('MTN : lecture du statut impossible (HTTP %(statut)s).') % {"statut": reponse.statut})
         donnees = reponse.json()
         brut = str(donnees.get("status", "")).upper()
         etat = self.ETATS.get(brut, "initiee")
@@ -301,7 +302,7 @@ class AdaptateurMtnMomo:
             corps=json.dumps(corps).encode(),
         )
         if reponse.statut >= 500:
-            raise PaiementIndisponible(f"MTN indisponible (HTTP {reponse.statut}).")
+            raise PaiementIndisponible(_('MTN indisponible (HTTP %(statut)s).') % {"statut": reponse.statut})
         if reponse.statut != 202:
             motif = reponse.json().get("message") or f"HTTP {reponse.statut}"
             return ReponseInitiation(
@@ -366,10 +367,10 @@ class AdaptateurOrangeMoney:
                 corps=urllib.parse.urlencode({"grant_type": "client_credentials"}).encode(),
             )
             if reponse.statut != 200:
-                raise PaiementIndisponible(f"Orange a refusé le jeton d'accès (HTTP {reponse.statut}).")
+                raise PaiementIndisponible(_("Orange a refusé le jeton d'accès (HTTP %(statut)s).") % {"statut": reponse.statut})
             donnees = reponse.json()
             if not donnees.get("access_token"):
-                raise PaiementIndisponible("Orange n'a pas rendu de jeton d'accès.")
+                raise PaiementIndisponible(_("Orange n'a pas rendu de jeton d'accès."))
             return donnees["access_token"], donnees.get("expires_in", 3600)
 
         return _jeton_en_cache(f"paiements:jeton:orange:{conf['id_client']}", obtenir)
@@ -419,7 +420,7 @@ class AdaptateurOrangeMoney:
             corps=json.dumps(corps).encode(),
         )
         if reponse.statut >= 500:
-            raise PaiementIndisponible(f"Orange indisponible (HTTP {reponse.statut}).")
+            raise PaiementIndisponible(_('Orange indisponible (HTTP %(statut)s).') % {"statut": reponse.statut})
         donnees = reponse.json()
         if reponse.statut not in (200, 201) or not donnees.get("payment_url"):
             motif = donnees.get("message") or donnees.get("description") or f"HTTP {reponse.statut}"
@@ -462,7 +463,7 @@ class AdaptateurOrangeMoney:
             ).encode(),
         )
         if reponse.statut >= 500 or reponse.statut in (401, 403):
-            raise PaiementIndisponible(f"Orange : lecture du statut impossible (HTTP {reponse.statut}).")
+            raise PaiementIndisponible(_('Orange : lecture du statut impossible (HTTP %(statut)s).') % {"statut": reponse.statut})
         donnees = reponse.json()
         brut = str(donnees.get("status", "")).upper()
         return StatutTransaction(

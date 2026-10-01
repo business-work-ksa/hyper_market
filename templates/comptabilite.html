@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Comptabilité — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Comptabilité{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Comptabilité — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Comptabilité" %}{% endblock %}
 
 {% block actions_entete %}
   {% if equilibree %}
-    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Balance équilibrée</span>
+    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Balance équilibrée" %}</span>
   {% else %}
-    <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>Balance déséquilibrée</span>
+    <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>{% translate "Balance déséquilibrée" %}</span>
   {% endif %}
 {% endblock %}
 
@@ -18,36 +19,36 @@
   <div class="bandeau-info">
     <svg><use href="#ic-info"></use></svg>
     <span>
-      <strong>La plateforme prépare, votre expert-comptable révise et atteste.</strong>
-      Les écritures ci-dessous sont générées automatiquement à partir de vos ventes, de vos
-      encaissements et de vos mouvements de stock — aucune n'a été saisie à la main.
+      <strong>{% translate "La plateforme prépare, votre expert-comptable révise et atteste." %}</strong>
+      {% blocktranslate trimmed %}Les écritures ci-dessous sont générées automatiquement à partir de vos ventes, de vos
+      encaissements et de vos mouvements de stock — aucune n'a été saisie à la main.{% endblocktranslate %}
     </span>
   </div>
 
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Chiffre d'affaires</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Chiffre d'affaires" %}</span></div>
       <p class="tuile__valeur">{{ chiffre_affaires|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Compte 701 — ventes de marchandises</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Compte 701 — ventes de marchandises" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-stock"></use></svg><span class="t-sur-titre">Coût des ventes</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-stock"></use></svg><span class="t-sur-titre">{% translate "Coût des ventes" %}</span></div>
       <p class="tuile__valeur">{{ cout_ventes|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Compte 6031 — variation des stocks</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Compte 6031 — variation des stocks" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Marge brute</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">{% translate "Marge brute" %}</span></div>
       <p class="tuile__valeur">{{ marge_brute|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Chiffre d'affaires moins coût des ventes</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Chiffre d'affaires moins coût des ventes" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">TVA collectée</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">{% translate "TVA collectée" %}</span></div>
       <p class="tuile__valeur">{{ tva_collectee|fcfa }}<span class="unite">FCFA</span></p>
       <p class="tuile__note">
         {% if assujetti_tva %}
-          <span class="t-muet">Compte 4431 — à déclarer mensuellement</span>
+          <span class="t-muet">{% translate "Compte 4431 — à déclarer mensuellement" %}</span>
         {% else %}
-          <span class="puce"><svg><use href="#ic-info"></use></svg>Régime IGS — non assujetti</span>
+          <span class="puce"><svg><use href="#ic-info"></use></svg>{% translate "Régime IGS — non assujetti" %}</span>
         {% endif %}
       </p>
     </article>
@@ -61,19 +62,19 @@
   <div class="duo duo--libre">
     <section class="carte duo__collant">
       <header class="carte__entete">
-        <h2 class="t-section">Balance générale</h2>
-        <span class="puce">SYSCOHADA révisé</span>
+        <h2 class="t-section">{% translate "Balance générale" %}</h2>
+        <span class="puce">{% translate "SYSCOHADA révisé" %}</span>
       </header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Compte</th>
-                <th scope="col">Intitulé</th>
-                <th scope="col" class="num">Débit</th>
-                <th scope="col" class="num">Crédit</th>
-                <th scope="col" class="num">Solde</th>
+                <th scope="col">{% translate "Compte" %}</th>
+                <th scope="col">{% translate "Intitulé" %}</th>
+                <th scope="col" class="num">{% translate "Débit" %}</th>
+                <th scope="col" class="num">{% translate "Crédit" %}</th>
+                <th scope="col" class="num">{% translate "Solde" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -87,13 +88,13 @@
                 </tr>
               {% empty %}
                 <tr><td colspan="5"><div class="vide"><svg><use href="#ic-compta"></use></svg>
-                  <p class="t-2">Aucune écriture sur l'exercice.</p></div></td></tr>
+                  <p class="t-2">{% translate "Aucune écriture sur l'exercice." %}</p></div></td></tr>
               {% endfor %}
             </tbody>
             {% if lignes %}
               <tfoot>
                 <tr style="border-top:2px solid var(--filet-fort)">
-                  <td colspan="2" style="padding:11px 16px;font-weight:640">Totaux</td>
+                  <td colspan="2" style="padding:11px 16px;font-weight:640">{% translate "Totaux" %}</td>
                   <td class="num" style="padding:11px 16px;font-weight:640">{{ total_debit|fcfa }}</td>
                   <td class="num" style="padding:11px 16px;font-weight:640">{{ total_credit|fcfa }}</td>
                   <td class="num" style="padding:11px 16px">
@@ -125,16 +126,16 @@
                   </td>
                   <td class="num">
                     {% if e.validee %}
-                      <span class="puce puce--bon"><svg><use href="#ic-verrou"></use></svg>Validée</span>
+                      <span class="puce puce--bon"><svg><use href="#ic-verrou"></use></svg>{% translate "Validée" %}</span>
                     {% else %}
-                      <span class="puce">Brouillon</span>
+                      <span class="puce">{% translate "Brouillon" %}</span>
                     {% endif %}
                   </td>
                 </tr>
               {% empty %}
                 <tr><td><div class="vide"><svg><use href="#ic-compta"></use></svg>
-                  <p class="t-2">Aucune écriture ne correspond.</p>
-                  {% if filtres.actifs %}<a class="btn" href="{% url 'comptabilite' %}">Retirer les filtres</a>{% endif %}
+                  <p class="t-2">{% translate "Aucune écriture ne correspond." %}</p>
+                  {% if filtres.actifs %}<a class="btn" href="{% url 'comptabilite' %}">{% translate "Retirer les filtres" %}</a>{% endif %}
                   </div></td></tr>
               {% endfor %}
             </tbody>
@@ -143,8 +144,8 @@
       </div>
       <footer class="carte__pied">
         <p class="t-legende">
-          Une écriture validée est immuable. Toute correction se fait par contre-passation,
-          jamais par modification.
+          {% blocktranslate trimmed %}Une écriture validée est immuable. Toute correction se fait par contre-passation,
+          jamais par modification.{% endblocktranslate %}
         </p>
       </footer>
     </section>

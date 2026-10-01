@@ -16,6 +16,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.models import TenantScopedModel
+from django.utils.translation import gettext_lazy as _l
 
 QUANTUM = Decimal("0.0001")
 QUANTUM_MONETAIRE = Decimal("0.01")
@@ -26,9 +27,9 @@ class Depot(TenantScopedModel):
     RESERVE = "reserve"
     ENTREPOT_PLATEFORME = "entrepot_plateforme"
     TYPES = [
-        (BOUTIQUE, "Point de vente"),
-        (RESERVE, "Réserve"),
-        (ENTREPOT_PLATEFORME, "Entrepôt mutualisé de la plateforme"),
+        (BOUTIQUE, _l("Point de vente")),
+        (RESERVE, _l("Réserve")),
+        (ENTREPOT_PLATEFORME, _l("Entrepôt mutualisé de la plateforme")),
     ]
 
     libelle = models.CharField(max_length=120)
@@ -60,7 +61,7 @@ class NiveauStock(TenantScopedModel):
         verbose_name="coût moyen pondéré",
     )
     seuil_alerte = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
-    version = models.PositiveIntegerField(default=0, help_text="Verrou optimiste.")
+    version = models.PositiveIntegerField(default=0, help_text=_l("Verrou optimiste."))
 
     class Meta:
         verbose_name = "niveau de stock"
@@ -97,13 +98,13 @@ class MouvementStock(TenantScopedModel):
     CASSE = "CASSE"
     PRODUCTION = "PRODUCTION"
     TYPES = [
-        (ENTREE, "Entrée"),
-        (SORTIE, "Sortie"),
-        (TRANSFERT, "Transfert"),
-        (AJUSTEMENT, "Ajustement d'inventaire"),
-        (PERTE, "Perte"),
-        (CASSE, "Casse"),
-        (PRODUCTION, "Production"),
+        (ENTREE, _l("Entrée")),
+        (SORTIE, _l("Sortie")),
+        (TRANSFERT, _l("Transfert")),
+        (AJUSTEMENT, _l("Ajustement d'inventaire")),
+        (PERTE, _l("Perte")),
+        (CASSE, _l("Casse")),
+        (PRODUCTION, _l("Production")),
     ]
 
     depot = models.ForeignKey(Depot, on_delete=models.PROTECT, related_name="mouvements")
@@ -112,20 +113,20 @@ class MouvementStock(TenantScopedModel):
     )
     type = models.CharField(max_length=16, choices=TYPES, db_index=True)
     quantite = models.DecimalField(
-        max_digits=14, decimal_places=4, help_text="Signée : positive en entrée, négative en sortie."
+        max_digits=14, decimal_places=4, help_text=_l("Signée : positive en entrée, négative en sortie.")
     )
     cout_unitaire = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
     cmp_apres = models.DecimalField(
         max_digits=14,
         decimal_places=4,
         default=Decimal("0"),
-        help_text="CMP historisé : il ne peut pas être recalculé a posteriori.",
+        help_text=_l("CMP historisé : il ne peut pas être recalculé a posteriori."),
     )
     quantite_apres = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
-    origine_type = models.CharField(max_length=64, blank=True, help_text='Ex. "pos.Ticket".')
+    origine_type = models.CharField(max_length=64, blank=True, help_text=_l('Ex. "pos.Ticket".'))
     origine_id = models.UUIDField(null=True, blank=True)
     operation_id = models.UUIDField(
-        null=True, blank=True, help_text="Clé d'idempotence de la synchronisation hors ligne."
+        null=True, blank=True, help_text=_l("Clé d'idempotence de la synchronisation hors ligne.")
     )
     commentaire = models.CharField(max_length=255, blank=True)
 
@@ -155,7 +156,7 @@ class MouvementStock(TenantScopedModel):
 class Inventaire(TenantScopedModel):
     BROUILLON = "brouillon"
     VALIDE = "valide"
-    ETATS = [(BROUILLON, "Brouillon"), (VALIDE, "Validé")]
+    ETATS = [(BROUILLON, _l("Brouillon")), (VALIDE, _l("Validé"))]
 
     depot = models.ForeignKey(Depot, on_delete=models.PROTECT, related_name="inventaires")
     date = models.DateField(default=timezone.localdate)
@@ -219,7 +220,7 @@ class LotStock(TenantScopedModel):
     numero = models.CharField(
         max_length=64,
         blank=True,
-        help_text="Numéro de lot du fabricant. Vide quand seule la date compte.",
+        help_text=_l("Numéro de lot du fabricant. Vide quand seule la date compte."),
     )
     date_peremption = models.DateField(db_index=True)
     quantite = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
@@ -300,10 +301,10 @@ class NumeroSerie(TenantScopedModel):
     ATELIER = "atelier"
     SORTI = "sorti"
     ETATS = [
-        (EN_STOCK, "En stock"),
-        (VENDU, "Vendu"),
-        (ATELIER, "À l'atelier"),
-        (SORTI, "Sorti du parc"),
+        (EN_STOCK, _l("En stock")),
+        (VENDU, _l("Vendu")),
+        (ATELIER, _l("À l'atelier")),
+        (SORTI, _l("Sorti du parc")),
     ]
 
     variante = models.ForeignKey(
@@ -318,8 +319,8 @@ class NumeroSerie(TenantScopedModel):
         null=True,
         blank=True,
         help_text=(
-            "Échéance figée le jour de la vente. Raccourcir la garantie du "
-            "catalogue ne doit pas raccourcir celles déjà vendues."
+            _l("Échéance figée le jour de la vente. Raccourcir la garantie du "
+            "catalogue ne doit pas raccourcir celles déjà vendues.")
         ),
     )
     ticket_id = models.UUIDField(null=True, blank=True)
@@ -379,7 +380,7 @@ class PassageAtelier(TenantScopedModel):
     entre_le = models.DateTimeField(default=timezone.now)
     motif = models.CharField(max_length=255)
     sous_garantie = models.BooleanField(
-        default=False, help_text="Figé à l'entrée : c'est la date du dépôt qui décide."
+        default=False, help_text=_l("Figé à l'entrée : c'est la date du dépôt qui décide.")
     )
     sorti_le = models.DateTimeField(null=True, blank=True)
     resultat = models.CharField(max_length=255, blank=True)

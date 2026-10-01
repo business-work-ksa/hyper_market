@@ -1,23 +1,24 @@
 {% extends "plateforme/assistants/cadre.html" %}
-{% block fil_parent %}Emplacements premium{% endblock %}
-{% block question %}Pour quelle boutique ?{% endblock %}
-{% block phrase %}Seule une boutique active occupe un emplacement : les autres ne sont pas en vitrine.{% endblock %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Emplacements premium" %}{% endblock %}
+{% block question %}{% translate "Pour quelle boutique ?" %}{% endblock %}
+{% block phrase %}{% translate "Seule une boutique active occupe un emplacement : les autres ne sont pas en vitrine." %}{% endblock %}
 {% block avant_formulaire %}
   {# Recherche en GET, hors du formulaire de l'étape : elle ne valide rien, elle filtre la liste. #}
   <form class="a-recherche recherche" method="get" role="search">
     <svg aria-hidden="true"><use href="#ic-recherche"></use></svg>
-    <label class="visuellement-cache" for="a-q">Rechercher une boutique active</label>
+    <label class="visuellement-cache" for="a-q">{% translate "Rechercher une boutique active" %}</label>
     <input class="champ" id="a-q" type="search" name="q" value="{{ q }}" autocomplete="off"
-           placeholder="Enseigne, raison sociale ou ville">
-    <button class="btn" type="submit">Rechercher</button>
+           placeholder="{% translate 'Enseigne, raison sociale ou ville' %}">
+    <button class="btn" type="submit">{% translate "Rechercher" %}</button>
   </form>
 {% endblock %}
 {% block etape %}
   {% if q %}
-    <p class="t-legende">{{ cartes_boutiques|length }} résultat{{ cartes_boutiques|length|pluralize }} pour « {{ q }} » —
-      <a class="lien-modifier" href="?">tout afficher</a></p>
+    <p class="t-legende">{% blocktranslate count cartes_boutiques=cartes_boutiques|length with q=q trimmed %}{{ cartes_boutiques }} résultat pour « {{ q }} » —{% plural %}{{ cartes_boutiques }} résultats pour « {{ q }} » —{% endblocktranslate %}
+      <a class="lien-modifier" href="?">{% translate "tout afficher" %}</a></p>
   {% elif total_actives > cartes_boutiques|length %}
-    <p class="t-legende">{{ cartes_boutiques|length }} boutiques affichées sur {{ total_actives }} actives : précisez la recherche.</p>
+    <p class="t-legende">{% blocktranslate with cartes_boutiques=cartes_boutiques|length total_actives=total_actives trimmed %}{{ cartes_boutiques }} boutiques affichées sur {{ total_actives }} actives : précisez la recherche.{% endblocktranslate %}</p>
   {% endif %}
   {% include "plateforme/partials/a_cartes.html" with champ=form.boutique cartes=cartes_boutiques classe="a-cartes--boutiques" %}
 {% endblock %}

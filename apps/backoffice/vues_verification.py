@@ -22,6 +22,7 @@ from apps.backoffice.acces import boutique_courante, contexte_commun, exige
 from apps.confiance import verification as regles
 from apps.confiance.formulaires_verification import CompteForm, reporter_erreurs
 from apps.marketplace.models import CompteVersement
+from django.utils.translation import gettext as _
 
 # Les contrôles, redits pour le commerçant : ce qu'il doit faire, pas ce que l'administrateur voit.
 CE_QU_IL_FAUT_FAIRE = {
@@ -57,8 +58,7 @@ def verification(request):
             else:
                 messages.success(
                     request,
-                    "Compte déclaré. Un administrateur va le vérifier ; il ne recevra de versement "
-                    f"que {int(regles.DELAI_DE_CARENCE.total_seconds() // 3600)} heures après.",
+                    _('Compte déclaré. Un administrateur va le vérifier ; il ne recevra de versement que %(int)s heures après.') % {"int": int(regles.DELAI_DE_CARENCE.total_seconds() // 3600)},
                 )
                 return redirect("verification")
 
@@ -121,7 +121,7 @@ def compte_confirmer(request, compte_id):
     compte = _compte_de_la_boutique(request, compte_id)
     if compte is not None:
         regles.confirmer_compte_par_gerant(compte, par=request.user)
-        messages.success(request, "Merci. Le compte de versement est confirmé de votre part.")
+        messages.success(request, _("Merci. Le compte de versement est confirmé de votre part."))
     return _retour(request)
 
 
@@ -133,7 +133,7 @@ def compte_contester(request, compte_id):
         regles.contester_compte(compte, par=request.user)
         messages.success(
             request,
-            "Ce compte est retiré et aucun versement n'y partira. L'équipe HyperMarché est prévenue "
-            "et vous contactera. Changez votre mot de passe, puis déclarez votre vrai compte ci-dessous.",
+            _("Ce compte est retiré et aucun versement n'y partira. L'équipe HyperMarché est prévenue "
+            "et vous contactera. Changez votre mot de passe, puis déclarez votre vrai compte ci-dessous."),
         )
     return redirect("verification")

@@ -1,11 +1,12 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm %}
-{% block titre %}Vérification · {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Dossier de vérification{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Vérification · {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Dossier de vérification" %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static styles %}">{% endblock %}
 {% block fil %}
   <nav class="fil" aria-label="Fil d'Ariane">
-    <a href="{% url 'plateforme:verifications' %}">Vérifications</a><span class="fil__sep" aria-hidden="true">/</span>
+    <a href="{% url 'plateforme:verifications' %}">{% translate "Vérifications" %}</a><span class="fil__sep" aria-hidden="true">/</span>
     <span>{{ boutique.enseigne }}</span>
   </nav>
 {% endblock %}
@@ -23,11 +24,11 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
     <p class="entete-page__phrase">{{ boutique.raison_sociale }} · {{ boutique.ville }}{% if boutique.rccm %} · RCCM {{ boutique.rccm }}{% endif %}{% if boutique.niu %} · {{ sigle_fiscal }} {{ boutique.niu }}{% endif %}</p>
   </div>
   <div class="entete-page__actions">
-    <a class="btn" href="{% url 'plateforme:boutique' boutique.pk %}">Fiche de la boutique</a>
+    <a class="btn" href="{% url 'plateforme:boutique' boutique.pk %}">{% translate "Fiche de la boutique" %}</a>
     {% if not manques and boutique.etat == 'candidature' %}
-      <a class="btn btn--primaire" href="{% url 'plateforme:boutique_etat' boutique.pk %}?action=valider"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Valider la candidature</a>
+      <a class="btn btn--primaire" href="{% url 'plateforme:boutique_etat' boutique.pk %}?action=valider"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Valider la candidature" %}</a>
     {% elif not manques and boutique.etat == 'suspendue' %}
-      <a class="btn btn--primaire" href="{% url 'plateforme:boutique_etat' boutique.pk %}?action=reactiver">Réactiver</a>
+      <a class="btn btn--primaire" href="{% url 'plateforme:boutique_etat' boutique.pk %}?action=reactiver">{% translate "Réactiver" %}</a>
     {% endif %}
   </div>
 </div>
@@ -35,13 +36,13 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
 {% if refus %}
   <div class="bandeau-info bandeau-info--alerte" role="alert" style="margin-bottom:16px">
     <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
-    <div class="pile-sm"><strong>Ce geste n'a pas été fait.</strong>{% if refus|length == 1 %}<span>{{ refus.0 }}</span>{% else %}<ul class="v-erreurs">{% for r in refus %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}</div>
+    <div class="pile-sm"><strong>{% translate "Ce geste n'a pas été fait." %}</strong>{% if refus|length == 1 %}<span>{{ refus.0 }}</span>{% else %}<ul class="v-erreurs">{% for r in refus %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}</div>
   </div>
 {% endif %}
 {% if boutique.etat == 'active' and manques %}
   <div class="bandeau-info" role="note" style="margin-bottom:16px">
     <svg aria-hidden="true"><use href="#ic-info"></use></svg>
-    <span>Cette boutique est active mais son dossier est incomplet : elle n'est pas coupée, elle est <strong>à régulariser</strong>. Suspendue, elle ne se réactiverait pas avant.</span>
+    <span>{% translate "Cette boutique est active mais son dossier est incomplet : elle n'est pas coupée, elle est" %} <strong>{% translate "à régulariser" %}</strong>{% translate ". Suspendue, elle ne se réactiverait pas avant." %}</span>
   </div>
 {% endif %}
 
@@ -49,13 +50,13 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
   <div class="v-pile">
     <section class="carte" aria-labelledby="t-controle">
       <header class="carte__entete">
-        <h3 class="t-section" id="t-controle">Liste de contrôle</h3>
-        <span class="v-compte-titre">{{ faits }} sur {{ controles|length }}</span>
+        <h3 class="t-section" id="t-controle">{% translate "Liste de contrôle" %}</h3>
+        <span class="v-compte-titre">{% blocktranslate with faits=faits controles=controles|length trimmed %}{{ faits }} sur {{ controles }}{% endblocktranslate %}</span>
       </header>
       <div style="padding:0 16px 8px">
         <div class="v-progression" role="img" aria-label="{{ faits }} contrôles faits sur {{ controles|length }}">
           <span class="v-progression__piste"><span class="v-progression__rempli" style="width:{% widthratio faits controles|length 100 %}%"></span></span>
-          {% if manques %}{{ manques|length }} manque{{ manques|length|pluralize }}{% else %}Complet{% endif %}
+          {% if manques %}{% blocktranslate count manques=manques|length trimmed %}{{ manques }} manque{% plural %}{{ manques }} manques{% endblocktranslate %}{% else %}{% translate "Complet" %}{% endif %}
         </div>
       </div>
       <ul class="v-controles">
@@ -64,36 +65,36 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
     </section>
 
     <section class="carte" aria-labelledby="t-pieces">
-      <header class="carte__entete"><h3 class="t-section" id="t-pieces">Pièces et attestations</h3><span class="v-compte-titre">{{ pieces|length }}</span></header>
+      <header class="carte__entete"><h3 class="t-section" id="t-pieces">{% translate "Pièces et attestations" %}</h3><span class="v-compte-titre">{{ pieces|length }}</span></header>
       {% for ligne in pieces %}
         {% include "plateforme/partials/v_piece.html" %}
       {% empty %}
-        <div class="vide"><svg aria-hidden="true"><use href="#ic-document"></use></svg><p class="t-2">Aucune pièce attestée.</p><p class="t-legende">Voyez l'original, puis attestez-le à droite.</p></div>
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-document"></use></svg><p class="t-2">{% translate "Aucune pièce attestée." %}</p><p class="t-legende">{% translate "Voyez l'original, puis attestez-le à droite." %}</p></div>
       {% endfor %}
     </section>
 
     <section class="carte" aria-labelledby="t-comptes">
-      <header class="carte__entete"><h3 class="t-section" id="t-comptes">Comptes de versement</h3>
-        <span class="v-compte-titre">{% if compte_utilisable %}Utilisable : {{ compte_utilisable.get_operateur_display }}{% else %}Aucun utilisable aujourd'hui{% endif %}</span></header>
+      <header class="carte__entete"><h3 class="t-section" id="t-comptes">{% translate "Comptes de versement" %}</h3>
+        <span class="v-compte-titre">{% if compte_utilisable %}{% blocktranslate with get_operateur_display=compte_utilisable.get_operateur_display trimmed %}Utilisable : {{ get_operateur_display }}{% endblocktranslate %}{% else %}{% translate "Aucun utilisable aujourd'hui" %}{% endif %}</span></header>
       {% for ligne in comptes %}
         {% include "plateforme/partials/v_compte.html" %}
       {% empty %}
-        <div class="vide"><svg aria-hidden="true"><use href="#ic-momo"></use></svg><p class="t-2">Aucun compte déclaré.</p><p class="t-legende">Le gérant le déclare depuis son back-office, ou vous, à droite.</p></div>
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-momo"></use></svg><p class="t-2">{% translate "Aucun compte déclaré." %}</p><p class="t-legende">{% translate "Le gérant le déclare depuis son back-office, ou vous, à droite." %}</p></div>
       {% endfor %}
     </section>
   </div>
 
   <div class="v-pile">
     <section class="carte v-geste" aria-labelledby="t-attester">
-      <header class="carte__entete"><h3 class="t-section" id="t-attester">Attester une pièce vue</h3></header>
+      <header class="carte__entete"><h3 class="t-section" id="t-attester">{% translate "Attester une pièce vue" %}</h3></header>
       <form class="carte__corps" method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         <input type="hidden" name="geste" value="attester">
         <div class="v-garde">
-          <div><strong><svg aria-hidden="true"><use href="#ic-check"></use></svg>Ce qu'on garde</strong>
-            <ul><li>type, pays, expiration, nom lu</li><li>comment vous l'avez vue</li><li>empreinte du numéro et 4 derniers caractères</li><li>empreinte du document reçu</li></ul></div>
-          <div><strong><svg aria-hidden="true"><use href="#ic-oeil-barre"></use></svg>Ce qu'on ne garde pas</strong>
-            <ul><li>le numéro en clair</li><li>l'image de la pièce{% if form_attestation.stockage_ouvert %} (sauf copie ci-dessous){% endif %}</li><li>date de naissance, adresse, signature</li></ul></div>
+          <div><strong><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Ce qu'on garde" %}</strong>
+            <ul><li>{% translate "type, pays, expiration, nom lu" %}</li><li>{% translate "comment vous l'avez vue" %}</li><li>{% translate "empreinte du numéro et 4 derniers caractères" %}</li><li>{% translate "empreinte du document reçu" %}</li></ul></div>
+          <div><strong><svg aria-hidden="true"><use href="#ic-oeil-barre"></use></svg>{% translate "Ce qu'on ne garde pas" %}</strong>
+            <ul><li>{% translate "le numéro en clair" %}</li><li>{% translate "l'image de la pièce" %}{% if form_attestation.stockage_ouvert %} {% translate "(sauf copie ci-dessous)" %}{% endif %}</li><li>{% translate "date de naissance, adresse, signature" %}</li></ul></div>
         </div>
         {% if form_attestation.non_field_errors %}<div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ form_attestation.non_field_errors|join:" " }}</span></div>{% endif %}
         {% include "partials/champ.html" with champ=form_attestation.type_piece %}
@@ -111,7 +112,7 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
           {% for e in form_attestation.mode.errors %}<span class="t-petit" style="color:var(--critique-encre)">{{ e }}</span>{% endfor %}
         </fieldset>
         <div class="v-fichier">
-          <label for="v-fichier">Document reçu (facultatif) : calculer son empreinte</label>
+          <label for="v-fichier">{% translate "Document reçu (facultatif) : calculer son empreinte" %}</label>
           {# Pas d'attribut `name` : ce fichier ne quitte jamais le navigateur. #}
           <input class="champ" type="file" id="v-fichier" accept="image/*,application/pdf">
           <span class="v-fichier__etat" id="v-fichier-etat" aria-live="polite"></span>
@@ -121,31 +122,31 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
           {% include "partials/champ.html" with champ=form_attestation.copie %}
         {% else %}
           <p class="t-legende"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-verrou"></use></svg>
-            Aucune copie n'est conservée : aucun stockage persistant et privé n'est désigné
-            (réglage <code>KYC_STOCKAGE_COPIES</code>). La production n'a pas de disque durable : un fichier
-            écrit ici disparaîtrait au prochain redémarrage, et une preuve qu'on croit avoir est pire que pas de preuve.</p>
+            {% blocktranslate trimmed %}Aucune copie n'est conservée : aucun stockage persistant et privé n'est désigné
+            (réglage{% endblocktranslate %} <code>{% translate "KYC_STOCKAGE_COPIES" %}</code>{% blocktranslate trimmed %}). La production n'a pas de disque durable : un fichier
+            écrit ici disparaîtrait au prochain redémarrage, et une preuve qu'on croit avoir est pire que pas de preuve.{% endblocktranslate %}</p>
         {% endif %}
-        <button class="btn btn--primaire" type="submit"><svg aria-hidden="true"><use href="#ic-crayon"></use></svg>Attester — un autre administrateur validera</button>
+        <button class="btn btn--primaire" type="submit"><svg aria-hidden="true"><use href="#ic-crayon"></use></svg>{% translate "Attester — un autre administrateur validera" %}</button>
       </form>
     </section>
 
     {% if form_appel.gerants %}
     <section class="carte v-geste" aria-labelledby="t-appel">
-      <header class="carte__entete"><h3 class="t-section" id="t-appel">Appel de vérification</h3></header>
+      <header class="carte__entete"><h3 class="t-section" id="t-appel">{% translate "Appel de vérification" %}</h3></header>
       <form class="carte__corps" method="post" novalidate>
         {% csrf_token %}
         <input type="hidden" name="geste" value="appel">
-        <p class="t-legende">Aucun SMS n'est envoyé : il n'existe pas encore de passerelle. Appelez le gérant à son numéro, posez-lui une question que seul lui connaît, puis attestez.</p>
+        <p class="t-legende">{% translate "Aucun SMS n'est envoyé : il n'existe pas encore de passerelle. Appelez le gérant à son numéro, posez-lui une question que seul lui connaît, puis attestez." %}</p>
         {% include "partials/champ.html" with champ=form_appel.gerant %}
         {% include "partials/champ.html" with champ=form_appel.note %}
         {% include "partials/champ.html" with champ=form_appel.confirme %}
-        <button class="btn" type="submit"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Attester l'appel</button>
+        <button class="btn" type="submit"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Attester l'appel" %}</button>
       </form>
     </section>
     {% endif %}
 
     <section class="carte v-geste" aria-labelledby="t-compte">
-      <header class="carte__entete"><h3 class="t-section" id="t-compte">Déclarer un compte de versement</h3></header>
+      <header class="carte__entete"><h3 class="t-section" id="t-compte">{% translate "Déclarer un compte de versement" %}</h3></header>
       <form class="carte__corps" method="post" novalidate>
         {% csrf_token %}
         <input type="hidden" name="geste" value="compte">
@@ -157,19 +158,19 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
         </fieldset>
         {% include "partials/champ.html" with champ=form_compte.numero %}
         {% include "partials/champ.html" with champ=form_compte.titulaire %}
-        <p class="t-legende">Un autre administrateur le vérifiera ; il ne sera utilisable que {{ delai_carence_heures }} h après, et l'ancien sera retiré.</p>
-        <button class="btn" type="submit">Déclarer</button>
+        <p class="t-legende">{% blocktranslate with delai_carence_heures=delai_carence_heures trimmed %}Un autre administrateur le vérifiera ; il ne sera utilisable que {{ delai_carence_heures }} h après, et l'ancien sera retiré.{% endblocktranslate %}</p>
+        <button class="btn" type="submit">{% translate "Déclarer" %}</button>
       </form>
     </section>
 
     <section class="carte" aria-labelledby="t-journal">
-      <header class="carte__entete"><h3 class="t-section" id="t-journal">Décisions inscrites au journal</h3></header>
+      <header class="carte__entete"><h3 class="t-section" id="t-journal">{% translate "Décisions inscrites au journal" %}</h3></header>
       {% if journal %}
         <ul class="v-journal">
           {% for a in journal %}<li><span>{{ a.motif }}</span><span class="t-legende">{{ a.utilisateur.nom_complet }} · {{ a.horodatage|date:"d/m/Y H:i" }}</span></li>{% endfor %}
         </ul>
       {% else %}
-        <div class="vide"><svg aria-hidden="true"><use href="#ic-journal"></use></svg><p class="t-2">Aucune décision encore.</p></div>
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-journal"></use></svg><p class="t-2">{% translate "Aucune décision encore." %}</p></div>
       {% endif %}
     </section>
   </div>

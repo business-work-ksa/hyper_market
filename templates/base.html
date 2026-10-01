@@ -1,5 +1,5 @@
-{% load static hm %}<!doctype html>
-<html lang="fr" data-theme="{{ theme|default:'light' }}">
+{% load i18n static hm %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}" data-theme="{{ theme|default:'light' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -32,7 +32,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
 {% include "partials/icones.html" %}
 
 <div class="coquille">
-  <nav class="rail rail--onglets" aria-label="Navigation principale">
+  <nav class="rail rail--onglets" aria-label="{% translate 'Navigation principale' %}">
     {% comment %}
     Le commerçant qui a mis son logo voit son logo. C'est lui qui loue
     l'emplacement ; HyperMarché reste nommé en pied de page, là où le locataire
@@ -54,7 +54,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
     {% endcomment %}
     <div class="rail__nav">
       <div class="rail__groupe">
-        <p class="t-sur-titre">Exploitation</p>
+        <p class="t-sur-titre">{% translate "Exploitation" %}</p>
         {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page court='Accueil' %}{% endif %}
         {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' 'Caisse' page %}{% endif %}
         {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' 'Stock' page alertes %}{% endif %}
@@ -95,7 +95,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
 
       {% if 'comptabilite.voir' in droits or 'boutique.voir' in droits %}
         <div class="rail__groupe rail__groupe--secondaire">
-          <p class="t-sur-titre">Gestion</p>
+          <p class="t-sur-titre">{% translate "Gestion" %}</p>
           {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page court='Compta' %}{% endif %}
           {% comment %}
           Les versements : l'argent qui revient à la boutique, bloqué puis disponible. Ouvert à
@@ -140,8 +140,8 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         Il n'apparaît pas sur l'aide elle-même.
         {% endcomment %}
         {% if page and page != 'aide' %}
-          <a class="btn btn--icone btn--discret" aria-label="Aide sur cet écran"
-             title="Aide sur cet écran"
+          <a class="btn btn--icone btn--discret" aria-label="{% translate 'Aide sur cet écran' %}"
+             title="{% translate 'Aide sur cet écran' %}"
              href="{% url 'aide' %}?de={{ request.get_full_path|urlencode }}#{{ page }}">
             <svg><use href="#ic-info"></use></svg>
           </a>
@@ -157,7 +157,7 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
           <form class="choix-depot" method="post" action="{% url 'choisir_depot' %}">
             {% csrf_token %}
             <input type="hidden" name="suite" value="{{ request.get_full_path }}">
-            <label class="t-legende" for="choix-depot">Dépôt</label>
+            <label class="t-legende" for="choix-depot">{% translate "Dépôt" %}</label>
             <select class="champ champ--compact" name="depot" id="choix-depot"
                     onchange="this.form.submit()">
               {% for d in depots %}
@@ -166,17 +166,19 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
                 </option>
               {% endfor %}
             </select>
-            <noscript><button class="btn" type="submit">Changer</button></noscript>
+            <noscript><button class="btn" type="submit">{% translate "Changer" %}</button></noscript>
           </form>
         {% endif %}
 
-        <span class="indic-reseau" id="indic-reseau" data-hors-ligne="false" title="État de la connexion">
+        <span class="indic-reseau" id="indic-reseau" data-hors-ligne="false" title="{% translate 'État de la connexion' %}">
           <span class="indic-reseau__point" aria-hidden="true"></span>
-          <span id="indic-reseau-texte">En ligne</span>
+          <span id="indic-reseau-texte">{% translate "En ligne" %}</span>
         </span>
 
+        {% include "partials/choix_langue.html" %}
+
         <button class="btn btn--icone btn--discret" id="bascule-theme"
-                aria-label="Basculer le thème clair ou sombre" title="Thème clair ou sombre">
+                aria-label="{% translate 'Basculer le thème clair ou sombre' %}" title="{% translate 'Thème clair ou sombre' %}">
           <svg id="icone-theme"><use href="#ic-sombre"></use></svg>
         </button>
 
@@ -186,8 +188,8 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         tablette partagée d'une boutique, le suivant n'avait qu'à revenir en
         arrière pour travailler sous le nom du précédent.
         {% endcomment %}
-        <a class="btn btn--icone btn--discret" href="{% url 'deconnexion' %}" aria-label="Se déconnecter"
-           title="Se déconnecter">
+        <a class="btn btn--icone btn--discret" href="{% url 'deconnexion' %}" aria-label="{% translate 'Se déconnecter' %}"
+           title="{% translate 'Se déconnecter' %}">
           <svg><use href="#ic-sortie"></use></svg>
         </a>
       </div>
@@ -204,20 +206,20 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
           <svg><use href="#ic-alerte"></use></svg>
           <span class="colonne" style="gap:8px">
             <span>
-              <strong>Un compte de versement a été déclaré pour votre boutique</strong> le
-              {{ compte.cree_le|date:"d/m/Y à H:i" }} : {{ compte.get_operateur_display }}
-              se terminant par <span class="chiffre">{{ compte.numero|slice:"-4:" }}</span>,
-              au nom de « {{ compte.titulaire }} ». Votre argent sera versé sur ce compte.
-              Est-ce bien vous ?
+              <strong>{% translate "Un compte de versement a été déclaré pour votre boutique" %}</strong> {% blocktranslate with cree_le=compte.cree_le|date:"d/m/Y à H:i" get_operateur_display=compte.get_operateur_display trimmed %}le
+              {{ cree_le }} : {{ get_operateur_display }}
+              se terminant par{% endblocktranslate %} <span class="chiffre">{{ compte.numero|slice:"-4:" }}</span>{% blocktranslate with titulaire=compte.titulaire trimmed %},
+              au nom de « {{ titulaire }} ». Votre argent sera versé sur ce compte.
+              Est-ce bien vous ?{% endblocktranslate %}
             </span>
             <span class="rangee" style="gap:8px;flex-wrap:wrap">
               <form method="post" action="{% url 'compte_confirmer' compte.pk %}">{% csrf_token %}
-                <button class="btn" type="submit">C'est bien moi</button>
+                <button class="btn" type="submit">{% translate "C'est bien moi" %}</button>
               </form>
               <form method="post" action="{% url 'compte_contester' compte.pk %}"
                     onsubmit="return confirm('Ce compte sera retiré, les versements prévus annulés, et la plateforme prévenue. Continuer ?')">
                 {% csrf_token %}
-                <button class="btn btn--danger-plein" type="submit">Ce n'est pas moi</button>
+                <button class="btn btn--danger-plein" type="submit">{% translate "Ce n'est pas moi" %}</button>
               </form>
             </span>
           </span>

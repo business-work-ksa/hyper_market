@@ -1,18 +1,18 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Comment lire un signal : pourquoi c'est un indice, pourquoi ce n'est pas une preuve, et quoi
 vérifier avant de décider. Paramètres : `indice`, `innocent`, `verifier` (texte).
 Un administrateur qui ne comprend pas un signal l'écarte ; ce bloc est là pour qu'il le comprenne.
 {% endcomment %}
 <div class="s-lecture">
   <div class="s-lecture__bloc">
-    <h3><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>Pourquoi c'est un indice</h3>
+    <h3><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% translate "Pourquoi c'est un indice" %}</h3>
     <p>{{ indice }}</p>
   </div>
   <div class="s-lecture__bloc">
-    <h3><svg aria-hidden="true"><use href="#ic-info"></use></svg>Pourquoi ce n'est pas une preuve</h3>
+    <h3><svg aria-hidden="true"><use href="#ic-info"></use></svg>{% translate "Pourquoi ce n'est pas une preuve" %}</h3>
     <p>{{ innocent }}</p>
   </div>
 </div>
 {% if verifier %}
-  <p class="bandeau-info" style="margin:0"><svg aria-hidden="true"><use href="#ic-oeil"></use></svg><span><strong>Avant de décider :</strong> {{ verifier }}</span></p>
+  <p class="bandeau-info" style="margin:0"><svg aria-hidden="true"><use href="#ic-oeil"></use></svg><span><strong>{% translate "Avant de décider :" %}</strong> {{ verifier }}</span></p>
 {% endif %}

@@ -1,18 +1,19 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
 {% block titre %}{{ metier.nouveau }} {{ metier.article }} — {{ boutique.enseigne }}{% endblock %}
 {% block entete %}{{ metier.nouveau }} {{ metier.article }}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
+  <a class="btn" href="{% url 'stock' %}">{% translate "Retour au stock" %}</a>
 {% endblock %}
 
 {% block contenu %}
 <div class="duo">
   <section class="carte">
     <header class="carte__entete">
-      <h2 class="t-section">Article et stock initial</h2>
+      <h2 class="t-section">{% translate "Article et stock initial" %}</h2>
     </header>
 
     <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
@@ -60,9 +61,9 @@
       {% endif %}
 
       <div class="rangee" style="gap:9px;flex-wrap:wrap">
-        <button class="btn btn--primaire btn--grand" type="submit">Enregistrer</button>
+        <button class="btn btn--primaire btn--grand" type="submit">{% translate "Enregistrer" %}</button>
         <button class="btn btn--grand" type="submit" name="enchainer" value="1">
-          Enregistrer et ajouter le suivant
+          {% translate "Enregistrer et ajouter le suivant" %}
         </button>
       </div>
     </form>
@@ -70,26 +71,26 @@
 
   <section class="colonne">
     <div class="carte">
-      <header class="carte__entete"><h2 class="t-section">Pendant l'installation</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Pendant l'installation" %}</h2></header>
       <div class="carte__corps colonne" style="gap:12px">
         <p class="t-2">
-          Saisissez les <strong>20 à 60 références qui font 80 % de votre chiffre d'affaires</strong>,
-          pas tout le magasin. Quarante {{ metier.articles }} bien tenus valent mieux que quatre cents
-          abandonnés au bout d'une semaine.
+          {% translate "Saisissez les" %} <strong>{% translate "20 à 60 références qui font 80 % de votre chiffre d'affaires" %}</strong>{% blocktranslate with articles=metier.articles trimmed %},
+          pas tout le magasin. Quarante {{ articles }} bien tenus valent mieux que quatre cents
+          abandonnés au bout d'une semaine.{% endblocktranslate %}
         </p>
         <p class="t-2">
-          Le <strong>coût d'achat</strong> est ce qui rend votre marge calculable. Sans lui, la
-          plateforme sait ce que vous vendez, pas ce que vous gagnez.
+          {% translate "Le" %} <strong>{% translate "coût d'achat" %}</strong> {% blocktranslate trimmed %}est ce qui rend votre marge calculable. Sans lui, la
+          plateforme sait ce que vous vendez, pas ce que vous gagnez.{% endblocktranslate %}
         </p>
         <p class="t-2">
-          Le <strong>seuil d'alerte</strong> répond à une seule question : en dessous de combien
-          faut-il recommander ?
+          {% translate "Le" %} <strong>{% translate "seuil d'alerte" %}</strong> {% blocktranslate trimmed %}répond à une seule question : en dessous de combien
+          faut-il recommander ?{% endblocktranslate %}
         </p>
       </div>
       <footer class="carte__pied">
         <p class="t-legende">
-          Dépôt de destination : <strong>{{ depot.libelle }}</strong>. L'entrée est valorisée au
-          coût saisi et enregistrée au journal du stock.
+          {% translate "Dépôt de destination :" %} <strong>{{ depot.libelle }}</strong>{% blocktranslate trimmed %}. L'entrée est valorisée au
+          coût saisi et enregistrée au journal du stock.{% endblocktranslate %}
         </p>
       </footer>
     </div>

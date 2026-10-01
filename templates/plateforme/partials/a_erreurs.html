@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Résumé des erreurs, en tête : chaque ligne mène au champ fautif. Le focus, lui, est déjà posé
 sur la première erreur par `autofocus` (côté serveur, donc sans JavaScript).
 {% endcomment %}
@@ -7,7 +7,7 @@ sur la première erreur par `autofocus` (côté serveur, donc sans JavaScript).
     <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
     <div class="pile-sm" style="gap:4px;min-width:0">
       <p id="a-resume-titre" class="a-resume-erreurs__titre">
-        {% with n=form.errors|length %}{% if n > 1 %}{{ n }} points à corriger{% else %}Un point à corriger{% endif %}{% endwith %}
+        {% with n=form.errors|length %}{% if n > 1 %}{% blocktranslate with n=n trimmed %}{{ n }} points à corriger{% endblocktranslate %}{% else %}{% translate "Un point à corriger" %}{% endif %}{% endwith %}
       </p>
       <ul class="a-resume-erreurs__liste">
         {% for erreur in form.non_field_errors %}<li>{{ erreur }}</li>{% endfor %}

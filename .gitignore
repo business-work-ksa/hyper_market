@@ -233,4 +233,4 @@ node_modules/
 package-lock.json
 
 # Les catalogues compilés du marché sont versionnés : la construction sans serveur n'a pas gettext.
-!apps/vitrine/locale/**/*.mo
+!config/locale/**/*.mo

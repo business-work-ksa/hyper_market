@@ -193,13 +193,21 @@ class LangueTest(SocleVitrine):
         self.assertContains(commande, "Your phone")
         self.assertContains(commande, "Pay on delivery")
 
-    def test_le_back_office_reste_en_francais(self):
-        reponse = self.client.get(reverse("connexion"), HTTP_ACCEPT_LANGUAGE="en-US")
-        self.assertNotIn("Content-Language", reponse.headers)
+    def test_la_connexion_suit_la_langue_et_propose_le_choix(self):
+        reponse = self.client.get(reverse("connexion"))
+        self.assertContains(reponse, '<html lang="fr"')
+        self.assertContains(reponse, "Se connecter")
+        self.assertContains(reponse, 'class="choix-langue"')
         self.client.cookies["hm_langue"] = "en"
         reponse = self.client.get(reverse("connexion"))
+        self.assertEqual(reponse.headers["Content-Language"], "en")
+        self.assertContains(reponse, '<html lang="en"')
+        self.assertContains(reponse, "Log in")
+        self.assertContains(reponse, 'aria-pressed="true" title="English"')
+
+    def test_l_api_reste_en_francais(self):
+        reponse = self.client.get("/api/v1/", HTTP_ACCEPT_LANGUAGE="en-US")
         self.assertNotIn("Content-Language", reponse.headers)
-        self.assertContains(reponse, "Connexion")
 
 
 class CatalogueEnFragmentTest(SocleVitrine):

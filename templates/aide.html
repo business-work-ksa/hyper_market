@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 
-{% block titre %}Aide — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Aide{% endblock %}
+{% load i18n %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Aide — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Aide" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% if depuis %}{{ depuis }}{% else %}/{% endif %}">Retour</a>
+  <a class="btn" href="{% if depuis %}{{ depuis }}{% else %}/{% endif %}">{% translate "Retour" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -23,10 +24,10 @@ est une promesse qui ne sera pas tenue.
   <section class="carte">
     <div class="carte__corps colonne" style="gap:12px">
       <p class="t-2">
-        Une fiche par écran, et seulement ceux que vous pouvez ouvrir. Sur
-        n'importe quel écran, le bouton
-        <span class="puce"><svg><use href="#ic-info"></use></svg>Aide</span>
-        de l'en-tête vous amène directement à la fiche correspondante.
+        {% blocktranslate trimmed %}Une fiche par écran, et seulement ceux que vous pouvez ouvrir. Sur
+        n'importe quel écran, le bouton{% endblocktranslate %}
+        <span class="puce"><svg><use href="#ic-info"></use></svg>{% translate "Aide" %}</span>
+        {% translate "de l'en-tête vous amène directement à la fiche correspondante." %}
       </p>
       <nav class="aide-sommaire" aria-label="Sommaire de l'aide">
         {% for fiche in fiches %}
@@ -64,7 +65,7 @@ est une promesse qui ne sera pas tenue.
           exprès et qu'on prendrait autrement pour des pannes.
           {% endcomment %}
           <div class="colonne" style="gap:8px">
-            <span class="t-sur-titre">Ce qu'il faut savoir</span>
+            <span class="t-sur-titre">{% translate "Ce qu'il faut savoir" %}</span>
             {% for piege in fiche.pieges %}
               <div class="bandeau-info">
                 <svg><use href="#ic-info"></use></svg>
@@ -80,10 +81,10 @@ est une promesse qui ne sera pas tenue.
     <section class="carte">
       <div class="vide">
         <svg><use href="#ic-info"></use></svg>
-        <p class="t-2">Aucune fiche à afficher.</p>
+        <p class="t-2">{% translate "Aucune fiche à afficher." %}</p>
         <p class="t-legende">
-          Votre compte n'ouvre aucun des écrans documentés. Si c'est inattendu,
-          votre gérant peut vérifier votre rôle depuis Ma boutique › Équipe.
+          {% blocktranslate trimmed %}Votre compte n'ouvre aucun des écrans documentés. Si c'est inattendu,
+          votre gérant peut vérifier votre rôle depuis Ma boutique › Équipe.{% endblocktranslate %}
         </p>
       </div>
     </section>
@@ -91,16 +92,16 @@ est une promesse qui ne sera pas tenue.
 
   <section class="carte">
     <div class="carte__corps colonne" style="gap:8px">
-      <span class="t-sur-titre">Pour aller plus loin</span>
+      <span class="t-sur-titre">{% translate "Pour aller plus loin" %}</span>
       <p class="t-2">
-        Le <strong>manuel d'utilisation</strong> raconte une journée entière —
+        {% translate "Le" %} <strong>{% translate "manuel d'utilisation" %}</strong> {% blocktranslate trimmed %}raconte une journée entière —
         celle d'un caissier, d'un magasinier, d'un gérant — et explique ce que le
         logiciel refuse de faire, et pourquoi. Il existe aussi en version
-        imprimable, avec une fiche de poste par rôle à afficher près du comptoir.
+        imprimable, avec une fiche de poste par rôle à afficher près du comptoir.{% endblocktranslate %}
       </p>
       <p class="t-legende">
-        Demandez-le à votre gérant : <span class="chiffre">docs/21-manuel-utilisation.md</span>
-        dans le dossier du projet.
+        {% translate "Demandez-le à votre gérant :" %} <span class="chiffre">{% translate "docs/21-manuel-utilisation.md" %}</span>
+        {% translate "dans le dossier du projet." %}
       </p>
     </div>
   </section>

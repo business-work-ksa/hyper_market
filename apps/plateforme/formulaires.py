@@ -24,6 +24,8 @@ from apps.marketplace.metiers import CHOIX_METIER, METIER_DEFAUT
 from apps.marketplace.models import Boutique, EmplacementPremium, Rayon, TypeEmplacement
 from apps.plateforme import services
 from apps.plateforme.assistant import Confirmation, FormulaireEtape
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 CHAMP = {"class": "champ"}
 CHAMP_GRAND = {"class": "champ champ--grand"}
@@ -94,33 +96,33 @@ class CompteForm(FormulaireEtape):
     secrets = ("mot_de_passe", "mot_de_passe_confirmation")
 
     mode = forms.ChoiceField(
-        label="Compte",
+        label=_l("Compte"),
         choices=[(EXISTANT, "Un compte existant"), (NOUVEAU, "Un nouveau compte")],
         initial=EXISTANT,
         widget=forms.RadioSelect,
         error_messages=_choix_obligatoire("Dites s'il s'agit d'un compte existant ou nouveau."),
     )
     telephone = forms.CharField(
-        label="Numéro de téléphone",
+        label=_l("Numéro de téléphone"),
         max_length=24,  # saisi avec ses espaces ; normalisé puis validé à 16
-        help_text="Le numéro est l'identifiant de connexion. Format : +237699000000.",
+        help_text=_l("Le numéro est l'identifiant de connexion. Format : +237699000000."),
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "+237699000000", "inputmode": "tel", "autocomplete": "off"}),
         error_messages={"required": "Le numéro est obligatoire."},
     )
     nom = forms.CharField(
-        label="Nom complet",
+        label=_l("Nom complet"),
         max_length=150,
         required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Marie Ekedi", "autocomplete": "off"}),
     )
     mot_de_passe = forms.CharField(
-        label="Mot de passe initial",
+        label=_l("Mot de passe initial"),
         required=False,
         strip=False,
         widget=forms.PasswordInput(attrs={**CHAMP, "autocomplete": "new-password"}),
     )
     mot_de_passe_confirmation = forms.CharField(
-        label="Le même, une seconde fois",
+        label=_l("Le même, une seconde fois"),
         required=False,
         strip=False,
         widget=forms.PasswordInput(attrs={**CHAMP, "autocomplete": "new-password"}),
@@ -157,7 +159,7 @@ class CompteForm(FormulaireEtape):
             if existant is None:
                 self.add_error(
                     "telephone",
-                    "Aucun compte à ce numéro. Vérifiez-le, ou choisissez « Un nouveau compte ».",
+                    _("Aucun compte à ce numéro. Vérifiez-le, ou choisissez « Un nouveau compte »."),
                 )
                 return donnees
             refus = self.refuser(existant)
@@ -171,12 +173,12 @@ class CompteForm(FormulaireEtape):
         if existant is not None:
             self.add_error(
                 "telephone",
-                f"Ce numéro a déjà un compte ({existant.nom_complet}). Choisissez « Un compte existant ».",
+                _('Ce numéro a déjà un compte (%(nom_complet)s). Choisissez « Un compte existant ».') % {"nom_complet": existant.nom_complet},
             )
             return donnees
         nom = (donnees.get("nom") or "").strip()
         if not nom:
-            self.add_error("nom", "Le nom est obligatoire pour un nouveau compte.")
+            self.add_error("nom", _("Le nom est obligatoire pour un nouveau compte."))
             return donnees
 
         mdp, confirmation = donnees.get("mot_de_passe") or "", donnees.get("mot_de_passe_confirmation") or ""
@@ -185,10 +187,10 @@ class CompteForm(FormulaireEtape):
             self._hache = self.memoire["_hache"]
             return donnees
         if not mdp:
-            self.add_error("mot_de_passe", "Saisissez le mot de passe initial du compte.")
+            self.add_error("mot_de_passe", _("Saisissez le mot de passe initial du compte."))
             return donnees
         if mdp != confirmation:
-            self.add_error("mot_de_passe_confirmation", "Les deux saisies ne sont pas identiques.")
+            self.add_error("mot_de_passe_confirmation", _("Les deux saisies ne sont pas identiques."))
             return donnees
         try:
             password_validation.validate_password(
@@ -233,37 +235,37 @@ class CompteForm(FormulaireEtape):
 # ----------------------------------------------------------------------------
 class IdentiteForm(FormulaireEtape):
     enseigne = forms.CharField(
-        label="Enseigne",
+        label=_l("Enseigne"),
         max_length=120,
-        help_text="Le nom affiché aux acheteurs. L'adresse de la vitrine en est dérivée.",
+        help_text=_l("Le nom affiché aux acheteurs. L'adresse de la vitrine en est dérivée."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Quincaillerie Ateba", "autocomplete": "off"}),
         error_messages={"required": "L'enseigne est obligatoire : c'est le nom que verront les acheteurs."},
     )
     raison_sociale = forms.CharField(
-        label="Raison sociale",
+        label=_l("Raison sociale"),
         max_length=180,
-        help_text="Telle qu'elle figure au registre du commerce.",
+        help_text=_l("Telle qu'elle figure au registre du commerce."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Ets Ateba et Fils SARL", "autocomplete": "off"}),
         error_messages={"required": "La raison sociale est obligatoire : elle figure sur le bail."},
     )
     metier = forms.ChoiceField(
-        label="Métier",
+        label=_l("Métier"),
         choices=CHOIX_METIER,
         initial=METIER_DEFAUT,
         error_messages=_choix_obligatoire("Choisissez ce que la boutique vend."),
     )
     ville = forms.CharField(
-        label="Ville",
+        label=_l("Ville"),
         max_length=80,
         initial="Douala",
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "address-level2"}),
         error_messages={"required": "La ville est obligatoire."},
     )
     telephone = forms.CharField(
-        label="Téléphone de la boutique",
+        label=_l("Téléphone de la boutique"),
         max_length=24,  # saisi avec ses espaces ; normalisé puis validé à 16
         required=False,
-        help_text="Celui que les acheteurs appellent. Peut être celui du gérant.",
+        help_text=_l("Celui que les acheteurs appellent. Peut être celui du gérant."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "+237699000000", "inputmode": "tel"}),
     )
 
@@ -293,21 +295,21 @@ EXPLICATIONS_REGIMES = {
 
 class LegalForm(FormulaireEtape):
     rccm = forms.CharField(
-        label="RCCM",
+        label=_l("RCCM"),
         max_length=64,
         required=False,
-        help_text="Numéro au registre du commerce et du crédit mobilier.",
+        help_text=_l("Numéro au registre du commerce et du crédit mobilier."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "RC/DLA/2024/B/1234", "autocomplete": "off"}),
     )
     niu = forms.CharField(
-        label="NIU",
+        label=_l("NIU"),
         max_length=32,
         required=False,
-        help_text="Numéro identifiant unique, attribué par l'administration fiscale.",
+        help_text=_l("Numéro identifiant unique, attribué par l'administration fiscale."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "M012345678901A", "autocomplete": "off"}),
     )
     regime_fiscal = forms.ChoiceField(
-        label="Régime fiscal",
+        label=_l("Régime fiscal"),
         choices=Boutique.REGIMES,
         initial=Boutique.REEL_SIMPLIFIE,
         error_messages=_choix_obligatoire("Choisissez le régime fiscal de la boutique."),
@@ -329,49 +331,49 @@ class OffreForm(FormulaireEtape):
     être dite à cette étape plutôt qu'au récapitulatif.
     """
 
-    offre = forms.ChoiceField(label="Offre", error_messages=_choix_obligatoire("Choisissez l'offre louée."))
+    offre = forms.ChoiceField(label=_l("Offre"), error_messages=_choix_obligatoire("Choisissez l'offre louée."))
     rayon = forms.ChoiceField(
-        label="Rayon principal",
-        help_text="Là où la boutique est rangée dans le marché. Seuls les rayons ouverts accueillent de nouvelles boutiques.",
+        label=_l("Rayon principal"),
+        help_text=_l("Là où la boutique est rangée dans le marché. Seuls les rayons ouverts accueillent de nouvelles boutiques."),
         widget=forms.Select(attrs=CHAMP),
         error_messages=_choix_obligatoire("Choisissez le rayon de la boutique."),
     )
     debut = forms.DateField(
-        label="Début du bail",
+        label=_l("Début du bail"),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
         error_messages={"required": "La date de début est obligatoire.", "invalid": "Date invalide."},
     )
     loyer_mensuel = ChampNombre(
-        label="Loyer mensuel HT",
+        label=_l("Loyer mensuel HT"),
         required=False,
         min_value=Decimal("0"),
         max_digits=12,
         decimal_places=0,
-        help_text="En francs CFA. Vide : le loyer de l'offre.",
+        help_text=_l("En francs CFA. Vide : le loyer de l'offre."),
     )
     depot_garantie = ChampNombre(
-        label="Dépôt de garantie",
+        label=_l("Dépôt de garantie"),
         required=False,
         min_value=Decimal("0"),
         max_digits=12,
         decimal_places=0,
         placeholder="0",
-        help_text="En francs CFA, versé à la signature, restitué à la sortie après l'état des lieux.",
+        help_text=_l("En francs CFA, versé à la signature, restitué à la sortie après l'état des lieux."),
     )
     taux_commission = ChampNombre(
-        label="Commission",
+        label=_l("Commission"),
         required=False,
         min_value=Decimal("0"),
         max_value=CENT,
         max_digits=5,
         decimal_places=2,
-        help_text="En pourcent : « 5 » pour 5 %. Vide : le taux de l'offre.",
+        help_text=_l("En pourcent : « 5 » pour 5 %. Vide : le taux de l'offre."),
     )
     motif_derogation = forms.CharField(
-        label="Motif de la dérogation",
+        label=_l("Motif de la dérogation"),
         max_length=300,
         required=False,
-        help_text="Obligatoire si la commission s'écarte de celle de l'offre. Il sera relu.",
+        help_text=_l("Obligatoire si la commission s'écarte de celle de l'offre. Il sera relu."),
         widget=forms.Textarea(attrs={**CHAMP, "rows": 2, "maxlength": 300, "data-compteur": ""}),
     )
 
@@ -413,9 +415,7 @@ class OffreForm(FormulaireEtape):
         if donnees["derogation"] and not motif:
             self.add_error(
                 "motif_derogation",
-                f"Le taux négocié ({pourcent(fraction)}) s'écarte de celui de l'offre "
-                f"({pourcent(reference)}). Dites pourquoi : la dérogation est légitime, son absence "
-                "de motif ne l'est pas.",
+                _("Le taux négocié (%(pourcent)s) s'écarte de celui de l'offre (%(pourcent2)s). Dites pourquoi : la dérogation est légitime, son absence de motif ne l'est pas.") % {"pourcent": pourcent(fraction), "pourcent2": pourcent(reference)},
             )
         return donnees
 
@@ -423,7 +423,7 @@ class OffreForm(FormulaireEtape):
 class OuvertureForm(Confirmation):
     ACTIVE, CANDIDATURE = "active", "candidature"
     ouverture = forms.ChoiceField(
-        label="À la confirmation",
+        label=_l("À la confirmation"),
         choices=[
             (ACTIVE, "Ouvrir tout de suite"),
             (CANDIDATURE, "Laisser en candidature"),
@@ -443,7 +443,7 @@ class GerantForm(CompteForm):
 # ----------------------------------------------------------------------------
 class BoutiqueOccupanteForm(FormulaireEtape):
     boutique = forms.ChoiceField(
-        label="Boutique",
+        label=_l("Boutique"),
         error_messages=_choix_obligatoire("Choisissez la boutique qui occupera l'emplacement."),
     )
 
@@ -462,14 +462,14 @@ class BoutiqueOccupanteForm(FormulaireEtape):
 
 class TypeEmplacementForm(FormulaireEtape):
     type = forms.ChoiceField(
-        label="Type d'emplacement",
+        label=_l("Type d'emplacement"),
         choices=EmplacementPremium.TYPES,
         error_messages=_choix_obligatoire("Choisissez le type d'emplacement."),
     )
     rayon = forms.ChoiceField(
-        label="Rayon",
+        label=_l("Rayon"),
         required=False,
-        help_text="Pour une tête de gondole ou un bandeau. Ignoré pour la page d'accueil.",
+        help_text=_l("Pour une tête de gondole ou un bandeau. Ignoré pour la page d'accueil."),
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -496,20 +496,20 @@ class TypeEmplacementForm(FormulaireEtape):
         type_ = donnees.get("type")
         rayon = self.rayons.get(donnees.get("rayon") or "")
         if type_ in services.TYPES_A_RAYON and rayon is None:
-            self.add_error("rayon", "Une tête de gondole ou un bandeau se place dans un rayon : choisissez-le.")
+            self.add_error("rayon", _("Une tête de gondole ou un bandeau se place dans un rayon : choisissez-le."))
         donnees["rayon_objet"] = rayon if type_ in services.TYPES_A_RAYON else None
         return donnees
 
 
 class PeriodeForm(FormulaireEtape):
     debut = forms.DateField(
-        label="Premier jour",
+        label=_l("Premier jour"),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
         error_messages={"required": "La date de début est obligatoire.", "invalid": "Date invalide."},
     )
     fin = forms.DateField(
-        label="Dernier jour",
-        help_text="Inclus. L'emplacement est compté jusqu'au soir de ce jour.",
+        label=_l("Dernier jour"),
+        help_text=_l("Inclus. L'emplacement est compté jusqu'au soir de ce jour."),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
         error_messages={"required": "La date de fin est obligatoire.", "invalid": "Date invalide."},
     )
@@ -525,7 +525,7 @@ class PeriodeForm(FormulaireEtape):
         debut, fin = donnees.get("debut"), donnees.get("fin")
         if debut and fin:
             if fin <= debut:
-                self.add_error("fin", "La fin doit venir après le début.")
+                self.add_error("fin", _("La fin doit venir après le début."))
             else:
                 donnees["jours"] = (fin - debut).days + 1
         return donnees
@@ -533,11 +533,11 @@ class PeriodeForm(FormulaireEtape):
 
 class TarifForm(FormulaireEtape):
     tarif = ChampNombre(
-        label="Tarif HT de la période",
+        label=_l("Tarif HT de la période"),
         max_digits=12,
         decimal_places=0,
         placeholder="75 000",
-        help_text="En francs CFA, pour toute la période.",
+        help_text=_l("En francs CFA, pour toute la période."),
         error_messages={"required": "Le tarif est obligatoire.", "invalid": "Saisissez un montant en francs."},
     )
 
@@ -546,7 +546,7 @@ class TarifForm(FormulaireEtape):
         if tarif <= 0:
             # Court ici : la règle et sa raison sont affichées juste en dessous du champ.
             raise forms.ValidationError(
-                "Un emplacement ne se cède jamais à zéro, même à une boutique de l'exploitant : saisissez son prix."
+                _("Un emplacement ne se cède jamais à zéro, même à une boutique de l'exploitant : saisissez son prix.")
             )
         return tarif
 
@@ -561,15 +561,15 @@ class AdministrateurCompteForm(CompteForm):
 
 class RoleForm(FormulaireEtape):
     role = forms.ChoiceField(
-        label="Rôle",
+        label=_l("Rôle"),
         choices=list(LIBELLES_ROLES_ADMINISTRATION.items()),
         error_messages=_choix_obligatoire("Choisissez le rôle confié."),
     )
     motif = forms.CharField(
-        label="Motif",
+        label=_l("Motif"),
         max_length=300,
         min_length=10,
-        help_text="Pourquoi cette personne exploite le marché. Utile le jour où on se le demande.",
+        help_text=_l("Pourquoi cette personne exploite le marché. Utile le jour où on se le demande."),
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "maxlength": 300, "data-compteur": ""}),
         error_messages={
             "required": "Le motif est obligatoire : un auditeur le relira.",
@@ -584,7 +584,7 @@ class RoleForm(FormulaireEtape):
             telephone = self.assistant.saisie("compte").get("telephone")
             compte = get_user_model().objects.filter(telephone=telephone).first() if telephone else None
             if compte is not None and compte.roles_plateforme.filter(actif=True, role_id=role).exists():
-                self.add_error("role", "Ce compte porte déjà ce rôle.")
+                self.add_error("role", _("Ce compte porte déjà ce rôle."))
         return donnees
 
 
@@ -595,7 +595,7 @@ class MotifForm(FormulaireEtape):
     """Un motif, et rien d'autre : suspendre, résilier, retirer un rôle."""
 
     motif = forms.CharField(
-        label="Motif",
+        label=_l("Motif"),
         max_length=300,
         min_length=10,
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "maxlength": 300, "data-compteur": ""}),
@@ -620,14 +620,14 @@ class MotifForm(FormulaireEtape):
 
 class TauxRayonForm(FormulaireEtape):
     pourcent = ChampNombre(
-        label="Nouveau taux (%)",
+        label=_l("Nouveau taux (%)"),
         min_value=Decimal("0"),
         # La borne du modèle (`Rayon.taux_commission`, MaxValueValidator 0.30) : au-delà, c'est
         # presque toujours une fraction saisie comme un pourcentage, ou l'inverse.
         max_value=Decimal("30"),
         max_digits=5,
         decimal_places=2,
-        help_text="En pourcent : « 5 » pour 5 %, « 7,5 » pour 7,5 %. De 0 à 30 %.",
+        help_text=_l("En pourcent : « 5 » pour 5 %, « 7,5 » pour 7,5 %. De 0 à 30 %."),
         error_messages={
             "required": "Saisissez le nouveau taux.",
             "invalid": "Saisissez un nombre : « 5 » pour 5 %.",
@@ -636,10 +636,10 @@ class TauxRayonForm(FormulaireEtape):
         },
     )
     motif = forms.CharField(
-        label="Motif",
+        label=_l("Motif"),
         max_length=240,
         min_length=10,
-        help_text="Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. Dites pourquoi.",
+        help_text=_l("Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. Dites pourquoi."),
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "maxlength": 240, "data-compteur": ""}),
         error_messages={
             "required": "Le motif est obligatoire : ce changement sera relu.",

@@ -1,14 +1,15 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titre %}Taux du rayon · {{ rayon.libelle }}{% endblock %}
+{% block titre %}{% blocktranslate with libelle=rayon.libelle trimmed %}Taux du rayon · {{ libelle }}{% endblocktranslate %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
 {% block fil %}
   <nav class="fil" aria-label="Fil d'Ariane">
-    <a href="{% url 'plateforme:rayons' %}">Rayons et commissions</a><span class="fil__sep" aria-hidden="true">/</span>
+    <a href="{% url 'plateforme:rayons' %}">{% translate "Rayons et commissions" %}</a><span class="fil__sep" aria-hidden="true">/</span>
     <span>{{ rayon.libelle }}</span>
   </nav>
 {% endblock %}
-{% block entete %}Fixer le taux du rayon{% endblock %}
+{% block entete %}{% translate "Fixer le taux du rayon" %}{% endblock %}
 
 {% block contenu %}
 <div class="a-page">
@@ -16,7 +17,7 @@
     <span class="kpi__icone kpi__icone--or a-fiche-tete__icone" aria-hidden="true"><svg><use href="#ic-rayons"></use></svg></span>
     <div class="pile-sm" style="gap:3px;min-width:0">
       <h2 class="entete-page__titre">{{ rayon.libelle }}</h2>
-      <p class="t-legende">Commission actuelle : <strong>{{ ancien }}</strong> du montant HT des ventes en ligne</p>
+      <p class="t-legende">{% translate "Commission actuelle :" %} <strong>{{ ancien }}</strong> {% translate "du montant HT des ventes en ligne" %}</p>
     </div>
   </header>
 
@@ -24,9 +25,9 @@
     <div class="bandeau-info bandeau-info--alerte a-refus" role="alert">
       <svg aria-hidden="true"><use href="#{% if conflit %}ic-bouclier{% else %}ic-alerte{% endif %}"></use></svg>
       <div class="pile-sm" style="gap:4px">
-        <strong>{% if conflit %}Conflit d'intérêts : ce geste n'est pas le vôtre.{% elif bloque %}Ce geste demande un rôle de plateforme.{% else %}Le taux n'a pas été changé.{% endif %}</strong>
+        <strong>{% if conflit %}{% translate "Conflit d'intérêts : ce geste n'est pas le vôtre." %}{% elif bloque %}{% translate "Ce geste demande un rôle de plateforme." %}{% else %}{% translate "Le taux n'a pas été changé." %}{% endif %}</strong>
         <span>{{ refus }}</span>
-        {% if conflit %}<span class="t-legende">Le taux d'un rayon déplace la rentabilité de tous les concurrents d'un même geste ; celui qui y vend ne le fixe pas. La règle est écrite dans le code, pas dans une politique.</span>{% endif %}
+        {% if conflit %}<span class="t-legende">{% translate "Le taux d'un rayon déplace la rentabilité de tous les concurrents d'un même geste ; celui qui y vend ne le fixe pas. La règle est écrite dans le code, pas dans une politique." %}</span>{% endif %}
       </div>
     </div>
   {% endif %}
@@ -40,19 +41,19 @@
 
       <div class="a-effet" aria-live="polite">
         <div class="a-effet__taux">
-          <span class="a-effet__ancien"><span class="t-legende">Aujourd'hui</span><strong>{{ ancien }}</strong></span>
+          <span class="a-effet__ancien"><span class="t-legende">{% translate "Aujourd'hui" %}</span><strong>{{ ancien }}</strong></span>
           <svg aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
-          <span class="a-effet__nouveau"><span class="t-legende">Demain</span><strong data-apercu-nouveau>{% if apercu %}{{ apercu.nouveau }}{% else %}…{% endif %}</strong></span>
+          <span class="a-effet__nouveau"><span class="t-legende">{% translate "Demain" %}</span><strong data-apercu-nouveau>{% if apercu %}{{ apercu.nouveau }}{% else %}…{% endif %}</strong></span>
         </div>
         <ul class="a-effet__portee">
-          <li><strong>{{ effet.total }}</strong> boutique{{ effet.total|pluralize }} rangée{{ effet.total|pluralize }} dans ce rayon (hors résiliées).</li>
-          <li><strong>{{ effet.avec_bail }}</strong> {% if effet.avec_bail > 1 %}ont{% else %}a{% endif %} un bail actif : {% if effet.avec_bail > 1 %}leur{% else %}son{% endif %} taux négocié prime, et ne change pas.</li>
+          <li><strong>{{ effet.total }}</strong> {% blocktranslate count compte=effet.total trimmed %}boutique rangée dans ce rayon (hors résiliées).{% plural %}boutiques rangées dans ce rayon (hors résiliées).{% endblocktranslate %}</li>
+          <li><strong>{{ effet.avec_bail }}</strong> {% if effet.avec_bail > 1 %}{% translate "ont" %}{% else %}a{% endif %} {% translate "un bail actif :" %} {% if effet.avec_bail > 1 %}{% translate "leur" %}{% else %}{% translate "son" %}{% endif %} {% translate "taux négocié prime, et ne change pas." %}</li>
           {% if effet.sans_bail %}
-            <li><strong>{{ effet.sans_bail }}</strong> sans bail actif {% if effet.sans_bail > 1 %}prélèvent{% else %}prélève{% endif %} le taux du rayon : c'est ce geste qui {% if effet.sans_bail > 1 %}les{% else %}la{% endif %} touche.</li>
+            <li><strong>{{ effet.sans_bail }}</strong> {% translate "sans bail actif" %} {% if effet.sans_bail > 1 %}{% translate "prélèvent" %}{% else %}{% translate "prélève" %}{% endif %} {% translate "le taux du rayon : c'est ce geste qui" %} {% if effet.sans_bail > 1 %}{% translate "les" %}{% else %}{% translate "la" %}{% endif %} {% translate "touche." %}</li>
           {% else %}
-            <li>Aucune ne prélève aujourd'hui le taux du rayon : il ne s'appliquera qu'à une boutique privée de bail actif.</li>
+            <li>{% translate "Aucune ne prélève aujourd'hui le taux du rayon : il ne s'appliquera qu'à une boutique privée de bail actif." %}</li>
           {% endif %}
-          <li>Seules les commandes à venir sont concernées : une commande passée garde le taux de son jour.</li>
+          <li>{% translate "Seules les commandes à venir sont concernées : une commande passée garde le taux de son jour." %}</li>
         </ul>
       </div>
 
@@ -60,9 +61,9 @@
         {# Aperçu serveur : l'effet est affiché avant d'agir, même sans JavaScript. #}
         <div class="bandeau-info a-apercu" role="status">
           <svg aria-hidden="true"><use href="#ic-info"></use></svg>
-          <span>Vérifiez : la commission du rayon passe de <strong>{{ apercu.ancien }}</strong> à
-            <strong>{{ apercu.nouveau }}</strong>{% if apercu.hausse %} — une hausse{% else %} — une baisse{% endif %}.
-            Confirmez pour l'appliquer ; le changement sera inscrit au journal avec votre motif.</span>
+          <span>{% translate "Vérifiez : la commission du rayon passe de" %} <strong>{{ apercu.ancien }}</strong> à
+            <strong>{{ apercu.nouveau }}</strong>{% if apercu.hausse %} {% translate "— une hausse" %}{% else %} {% translate "— une baisse" %}{% endif %}{% blocktranslate trimmed %}.
+            Confirmez pour l'appliquer ; le changement sera inscrit au journal avec votre motif.{% endblocktranslate %}</span>
         </div>
       {% endif %}
 
@@ -72,20 +73,20 @@
       {% include "plateforme/partials/a_champ.html" with champ=form.motif %}
     </div>
     <footer class="carte__pied assistant__pied">
-      <a class="btn" href="{% url 'plateforme:rayons' %}">Annuler</a>
+      <a class="btn" href="{% url 'plateforme:rayons' %}">{% translate "Annuler" %}</a>
       {% if apercu %}
         <button class="btn btn--primaire" type="submit" name="confirmer" value="1">
-          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-check"></use></svg>Appliquer {{ apercu.nouveau }}
+          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-check"></use></svg>{% blocktranslate with nouveau=apercu.nouveau trimmed %}Appliquer {{ nouveau }}{% endblocktranslate %}
         </button>
       {% else %}
-        <button class="btn btn--primaire" type="submit">Voir l'effet
+        <button class="btn btn--primaire" type="submit">{% translate "Voir l'effet" %}
           <svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
         </button>
       {% endif %}
     </footer>
   </form>
   {% else %}
-    <a class="btn" href="{% url 'plateforme:rayons' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg>Revenir aux rayons</a>
+    <a class="btn" href="{% url 'plateforme:rayons' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg>{% translate "Revenir aux rayons" %}</a>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,57 +1,58 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm l10n %}
-{% block titre %}Rayons et commissions{% endblock %}
-{% block entete %}Rayons et commissions{% endblock %}
+{% block titre %}{% translate "Rayons et commissions" %}{% endblock %}
+{% block entete %}{% translate "Rayons et commissions" %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
 
 {% block contenu %}
 <div class="entete-page">
   <div class="entete-page__texte">
-    <p class="t-sur-titre">Marché</p>
-    <h2 class="entete-page__titre">Rayons et commissions</h2>
-    <p class="entete-page__phrase">Le rayon porte le taux de commission prélevé sur les ventes en ligne. Un bail peut négocier un autre taux, avec un motif écrit.</p>
+    <p class="t-sur-titre">{% translate "Marché" %}</p>
+    <h2 class="entete-page__titre">{% translate "Rayons et commissions" %}</h2>
+    <p class="entete-page__phrase">{% translate "Le rayon porte le taux de commission prélevé sur les ventes en ligne. Un bail peut négocier un autre taux, avec un motif écrit." %}</p>
   </div>
 </div>
 
 <div class="t-regle t-bloc-bas" role="note">
   <svg aria-hidden="true"><use href="#ic-bouclier"></use></svg>
   <div>
-    <p><strong>Règle publiée :</strong> le taux d'un rayon ne se modifie pas par quelqu'un qui y vend.
-      Changer la commission de son propre rayon déplacerait d'un geste la rentabilité de tous ses concurrents.</p>
-    {% if conflit_personnel %}<p class="t-legende">Vous êtes rattaché à au moins une boutique : les rayons où elle vend sont verrouillés pour vous.</p>{% endif %}
+    <p><strong>{% translate "Règle publiée :" %}</strong> {% blocktranslate trimmed %}le taux d'un rayon ne se modifie pas par quelqu'un qui y vend.
+      Changer la commission de son propre rayon déplacerait d'un geste la rentabilité de tous ses concurrents.{% endblocktranslate %}</p>
+    {% if conflit_personnel %}<p class="t-legende">{% translate "Vous êtes rattaché à au moins une boutique : les rayons où elle vend sont verrouillés pour vous." %}</p>{% endif %}
   </div>
 </div>
 
-<section class="kpis t-kpis t-bloc-bas" aria-label="Synthèse des rayons">
+<section class="kpis t-kpis t-bloc-bas" aria-label="{% translate 'Synthèse des rayons' %}">
   <div class="kpi">
-    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-rayons"></use></svg></span>Rayons ouverts</span>
-    <span class="kpi__valeur">{{ nb_ouverts }}<span class="unite">sur {{ rayons|length }}</span></span>
-    <span class="kpi__pied">Un rayon fermé n'accueille plus de boutique</span>
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-rayons"></use></svg></span>{% translate "Rayons ouverts" %}</span>
+    <span class="kpi__valeur">{{ nb_ouverts }}<span class="unite">{% blocktranslate with rayons=rayons|length trimmed %}sur {{ rayons }}{% endblocktranslate %}</span></span>
+    <span class="kpi__pied">{% translate "Un rayon fermé n'accueille plus de boutique" %}</span>
   </div>
   <div class="kpi">
-    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg></span>Boutiques actives</span>
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg></span>{% translate "Boutiques actives" %}</span>
     <span class="kpi__valeur">{{ total_actives }}</span>
-    <span class="kpi__pied">Rattachées par leur rayon principal</span>
+    <span class="kpi__pied">{% translate "Rattachées par leur rayon principal" %}</span>
   </div>
   <div class="kpi">
-    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>Taux moyen pondéré</span>
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>{% translate "Taux moyen pondéré" %}</span>
     <span class="kpi__valeur">{% if taux_moyen is not None %}{{ taux_moyen|pourcent:2 }}{% else %}—{% endif %}</span>
-    <span class="kpi__pied">Pondéré par le nombre de boutiques actives</span>
+    <span class="kpi__pied">{% translate "Pondéré par le nombre de boutiques actives" %}</span>
   </div>
 </section>
 
 <section class="carte">
-  <header class="carte__entete"><h2 class="t-section">Rayons</h2></header>
+  <header class="carte__entete"><h2 class="t-section">{% translate "Rayons" %}</h2></header>
   {% if rayons %}
   <div class="tableau-boite">
     <table class="tableau">
       <thead>
         <tr>
-          <th scope="col">Rayon</th>
-          <th scope="col" class="num t-cache-etroit">Taux</th>
-          <th scope="col" class="t-cache-etroit">Accueil</th>
-          <th scope="col" class="t-colonne-part">Boutiques actives</th>
-          <th scope="col" class="t-cache-etroit" aria-label="Action"></th>
+          <th scope="col">{% translate "Rayon" %}</th>
+          <th scope="col" class="num t-cache-etroit">{% translate "Taux" %}</th>
+          <th scope="col" class="t-cache-etroit">{% translate "Accueil" %}</th>
+          <th scope="col" class="t-colonne-part">{% translate "Boutiques actives" %}</th>
+          <th scope="col" class="t-cache-etroit" aria-label="{% translate 'Action' %}"></th>
         </tr>
       </thead>
       <tbody>
@@ -60,31 +61,31 @@
             <td>
               <span class="t-boutique__noms">
                 <span class="t-boutique__enseigne">{{ r.libelle }}</span>
-                <span class="t-boutique__raison"><span class="t-boutique__mobile-inline">{{ r.taux_pourcent|pourcent:2 }} · </span>{% if r.parent %}Sous-rayon de {{ r.parent.libelle }}{% else %}{{ r.code }}{% endif %}{% if r.responsable %} · {{ r.responsable.nom_complet }}{% endif %}</span>
+                <span class="t-boutique__raison"><span class="t-boutique__mobile-inline">{{ r.taux_pourcent|pourcent:2 }} · </span>{% if r.parent %}{% blocktranslate with libelle=r.parent.libelle trimmed %}Sous-rayon de {{ libelle }}{% endblocktranslate %}{% else %}{{ r.code }}{% endif %}{% if r.responsable %} · {{ r.responsable.nom_complet }}{% endif %}</span>
                 {% if 'plateforme.commissions' in droits and not r.en_conflit %}
-                  <a class="t-lien t-petit t-statut-mobile" href="{% url 'plateforme:rayon_taux' r.pk %}">Modifier le taux</a>
+                  <a class="t-lien t-petit t-statut-mobile" href="{% url 'plateforme:rayon_taux' r.pk %}">{% translate "Modifier le taux" %}</a>
                 {% elif 'plateforme.commissions' in droits %}
-                  <span class="t-legende t-statut-mobile">Vous y vendez : taux verrouillé</span>
+                  <span class="t-legende t-statut-mobile">{% translate "Vous y vendez : taux verrouillé" %}</span>
                 {% endif %}
               </span>
             </td>
             <td class="num principal t-cache-etroit">{{ r.taux_pourcent|pourcent:2 }}</td>
             <td class="t-cache-etroit">
-              {% if r.ouvert %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Ouvert</span>
-              {% else %}<span class="puce"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg>Fermé</span>{% endif %}
+              {% if r.ouvert %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Ouvert" %}</span>
+              {% else %}<span class="puce"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg>{% translate "Fermé" %}</span>{% endif %}
             </td>
             <td class="t-colonne-part">
               <div class="part">
-                <div class="part__tete"><span class="chiffre">{{ r.nb_actives }}</span><span class="t-legende">{{ r.part|floatformat:0 }} %{% if r.nb_candidatures %} · {{ r.nb_candidatures }} en attente{% endif %}</span></div>
+                <div class="part__tete"><span class="chiffre">{{ r.nb_actives }}</span><span class="t-legende">{{ r.part|floatformat:0 }} %{% if r.nb_candidatures %} {% blocktranslate with nb_candidatures=r.nb_candidatures trimmed %}· {{ nb_candidatures }} en attente{% endblocktranslate %}{% endif %}</span></div>
                 {% localize off %}<div class="part__piste"><div class="part__rempli" style="width:{{ r.largeur }}%{% if not r.nb_actives %};min-width:0{% endif %}"></div></div>{% endlocalize %}
               </div>
             </td>
             <td class="num t-cache-etroit">
               {% if 'plateforme.commissions' in droits %}
                 {% if r.en_conflit %}
-                  <span class="puce" title="Vous vendez dans ce rayon : son taux ne se modifie pas par vous."><svg aria-hidden="true"><use href="#ic-verrou"></use></svg>Vous y vendez</span>
+                  <span class="puce" title="{% translate 'Vous vendez dans ce rayon : son taux ne se modifie pas par vous.' %}"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg>{% translate "Vous y vendez" %}</span>
                 {% else %}
-                  <a class="btn btn--discret t-btn-ligne" href="{% url 'plateforme:rayon_taux' r.pk %}"><svg aria-hidden="true"><use href="#ic-crayon"></use></svg>Modifier le taux</a>
+                  <a class="btn btn--discret t-btn-ligne" href="{% url 'plateforme:rayon_taux' r.pk %}"><svg aria-hidden="true"><use href="#ic-crayon"></use></svg>{% translate "Modifier le taux" %}</a>
                 {% endif %}
               {% endif %}
             </td>
@@ -94,14 +95,14 @@
     </table>
   </div>
   {% else %}
-    <div class="vide"><svg aria-hidden="true"><use href="#ic-rayons"></use></svg><p class="t-section">Aucun rayon</p><p class="t-legende">Les rayons se chargent avec les référentiels du marché.</p></div>
+    <div class="vide"><svg aria-hidden="true"><use href="#ic-rayons"></use></svg><p class="t-section">{% translate "Aucun rayon" %}</p><p class="t-legende">{% translate "Les rayons se chargent avec les référentiels du marché." %}</p></div>
   {% endif %}
 </section>
 
 <section class="carte t-bloc">
   <header class="carte__entete">
-    <h2 class="t-section">Offres de location</h2>
-    <span class="t-legende">Lecture seule — la grille tarifaire se modifie par une décision écrite, pas depuis cet écran</span>
+    <h2 class="t-section">{% translate "Offres de location" %}</h2>
+    <span class="t-legende">{% translate "Lecture seule — la grille tarifaire se modifie par une décision écrite, pas depuis cet écran" %}</span>
   </header>
   {% if offres %}
   <div class="t-offres">
@@ -109,12 +110,12 @@
       <article class="t-offre">
         <p class="t-sur-titre">{{ o.code }}</p>
         <h3 class="t-offre__titre">{{ o.libelle }}</h3>
-        <p class="t-offre__prix">{{ o.loyer_mensuel|fcfa }} <span class="unite">FCFA / mois HT</span></p>
+        <p class="t-offre__prix">{{ o.loyer_mensuel|fcfa }} <span class="unite">{% translate "FCFA / mois HT" %}</span></p>
         <dl class="cles t-offre__cles">
-          <dt>Commission</dt><dd>{{ o.taux_pourcent|pourcent:2 }}</dd>
-          <dt>Utilisateurs</dt><dd>{{ o.quota_utilisateurs }}</dd>
-          <dt>Dépôts</dt><dd>{{ o.quota_depots }}</dd>
-          <dt>Baux actifs</dt><dd>{{ o.nb_baux }}</dd>
+          <dt>{% translate "Commission" %}</dt><dd>{{ o.taux_pourcent|pourcent:2 }}</dd>
+          <dt>{% translate "Utilisateurs" %}</dt><dd>{{ o.quota_utilisateurs }}</dd>
+          <dt>{% translate "Dépôts" %}</dt><dd>{{ o.quota_depots }}</dd>
+          <dt>{% translate "Baux actifs" %}</dt><dd>{{ o.nb_baux }}</dd>
         </dl>
         {% if o.modules_inclus %}
           <p class="t-offre__modules">{% for m in o.modules_inclus %}<span class="puce">{{ m }}</span>{% endfor %}</p>
@@ -123,7 +124,7 @@
     {% endfor %}
   </div>
   {% else %}
-    <div class="vide t-vide-compact"><p class="t-legende">Aucune offre définie.</p></div>
+    <div class="vide t-vide-compact"><p class="t-legende">{% translate "Aucune offre définie." %}</p></div>
   {% endif %}
 </section>
 {% endblock %}

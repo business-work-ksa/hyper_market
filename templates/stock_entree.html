@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Entrée de stock — {{ variante.produit.libelle }}{% endblock %}
-{% block entete %}Entrée de stock{% endblock %}
+{% block titre %}{% blocktranslate with libelle=variante.produit.libelle trimmed %}Entrée de stock — {{ libelle }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Entrée de stock" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'article' variante.pk %}">Retour à l'article</a>
+  <a class="btn" href="{% url 'article' variante.pk %}">{% translate "Retour à l'article" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -40,41 +41,41 @@
         {% include "partials/champ.html" with champ=formulaire.numeros_serie %}
       {% endif %}
       <button class="btn btn--primaire btn--grand btn--bloc" type="submit" id="valider-entree">
-        Enregistrer l'entrée
+        {% translate "Enregistrer l'entrée" %}
       </button>
       <p class="t-legende" style="text-align:center" id="message-entree" role="status"></p>
     </form>
   </section>
 
   <section class="carte">
-    <header class="carte__entete"><h2 class="t-section">État actuel</h2></header>
+    <header class="carte__entete"><h2 class="t-section">{% translate "État actuel" %}</h2></header>
     <div class="carte__corps colonne" style="gap:14px">
       {% if niveau %}
         <div class="rangee rangee--espace">
-          <span class="t-2">En stock</span>
+          <span class="t-2">{% translate "En stock" %}</span>
           <strong class="chiffre">{{ niveau.quantite|quantite }}</strong>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Coût moyen pondéré</span>
+          <span class="t-2">{% translate "Coût moyen pondéré" %}</span>
           <strong class="chiffre">{{ niveau.cmp|fcfa }} FCFA</strong>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Valeur du stock</span>
+          <span class="t-2">{% translate "Valeur du stock" %}</span>
           <strong class="chiffre">{{ niveau.valeur|fcfa }} FCFA</strong>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Seuil d'alerte</span>
+          <span class="t-2">{% translate "Seuil d'alerte" %}</span>
           <span class="chiffre">{{ niveau.seuil_alerte|quantite }}</span>
         </div>
       {% else %}
-        <p class="t-2">Aucun stock enregistré pour cet article.</p>
+        <p class="t-2">{% translate "Aucun stock enregistré pour cet article." %}</p>
       {% endif %}
     </div>
     <footer class="carte__pied">
       <p class="t-legende">
-        Une entrée recalcule le coût moyen pondéré ; une sortie ne le modifie jamais.
+        {% blocktranslate trimmed %}Une entrée recalcule le coût moyen pondéré ; une sortie ne le modifie jamais.
         Le coût appliqué est historisé sur chaque mouvement et ne pourra plus être recalculé.
-        Saisie sans réseau, elle est conservée et partira seule au retour de la connexion.
+        Saisie sans réseau, elle est conservée et partira seule au retour de la connexion.{% endblocktranslate %}
       </p>
     </footer>
   </section>

@@ -38,6 +38,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.plateforme.acces import LIBELLES_CONSOLE, contexte_console
+from django.utils.translation import gettext as _
 
 # Au-delà, l'assistant repart de zéro : une saisie de la veille décrit un monde qui a pu changer,
 # et la revalidation attraperait l'essentiel — mais un administrateur qui retrouve un récapitulatif
@@ -148,7 +149,7 @@ class Assistant:
             if etat:
                 messages.info(
                     self.request,
-                    "La saisie précédente était trop ancienne : l'assistant repart de zéro.",
+                    _("La saisie précédente était trop ancienne : l'assistant repart de zéro."),
                 )
             etat = self._etat_neuf()
             self.request.session[self.cle_session] = etat
@@ -273,8 +274,7 @@ class Assistant:
         self._sauver()
         messages.error(
             self.request,
-            f"L'étape « {etape.titre} » n'est plus valable — la base a changé depuis la saisie, "
-            "ou elle est incomplète. Corrigez-la : rien n'a encore été créé.",
+            _("L'étape « %(titre)s » n'est plus valable — la base a changé depuis la saisie, ou elle est incomplète. Corrigez-la : rien n'a encore été créé.") % {"titre": etape.titre},
         )
         return redirect(self.url(etape.code))
 
@@ -301,7 +301,7 @@ class Assistant:
 
         if self.request.method == "POST" and "_abandonner" in self.request.POST:
             self.abandonner()
-            messages.info(self.request, f"{self.titre} : abandonné. Rien n'a été créé.")
+            messages.info(self.request, _("%(titre)s : abandonné. Rien n'a été créé.") % {"titre": self.titre})
             return redirect(self.url_abandon)
 
         if not self.accessible(code):

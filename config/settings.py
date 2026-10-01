@@ -245,11 +245,12 @@ AUTH_PASSWORD_VALIDATORS = [
 # Localisation — zone CEMAC
 # --------------------------------------------------------------------------------------
 LANGUAGE_CODE = "fr"
-# Le marché se lit en français ou en anglais (`apps/vitrine/langue.py`) ; le back-office reste en
-# français. Les traductions vivent dans `apps/vitrine/locale/` : le répertoire est embarqué avec
-# l'application sur la plateforme sans serveur (`vercel.json`, `includeFiles`).
+# Toute l'application se lit en français ou en anglais (`apps/vitrine/langue.py`), sauf les adresses
+# techniques (API, notifications des opérateurs, tâches) qui restent en français. Un seul catalogue,
+# `config/locale/` : le répertoire est embarqué avec l'application sur la plateforme sans serveur
+# (`vercel.json`, `includeFiles`).
 LANGUAGES = [("fr", "Français"), ("en", "English")]
-LOCALE_PATHS = [BASE_DIR / "apps" / "vitrine" / "locale"]
+LOCALE_PATHS = [BASE_DIR / "config" / "locale"]
 LANGUAGE_COOKIE_NAME = "hm_langue"
 LANGUAGE_COOKIE_AGE = 60 * 60 * 24 * 365
 LANGUAGE_COOKIE_SAMESITE = "Lax"

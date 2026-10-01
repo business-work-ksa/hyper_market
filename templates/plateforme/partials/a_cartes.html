@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Un choix en cartes : des boutons radio, rendus comme des cartes, dans un fieldset nommé.
 Paramètres : `champ`, `cartes` (liste de {valeur, titre, texte, prix, suffixe, lignes, icone,
 monogramme, donnees}), et facultativement `aide` et `classe` (modifie la grille).
@@ -36,7 +36,7 @@ monogramme, donnees}), et facultativement `aide` et `classe` (modifie la grille)
         </span>
       </label>
     {% empty %}
-      <p class="t-legende">Aucun choix disponible.</p>
+      <p class="t-legende">{% translate "Aucun choix disponible." %}</p>
     {% endfor %}
     {% endwith %}
   </div>

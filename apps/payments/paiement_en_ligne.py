@@ -45,6 +45,7 @@ from apps.payments.services import (
     initier_encaissement,
     rafraichir_statut,
 )
+from django.utils.translation import gettext as _
 
 journal = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ def tentative_en_cours(commande) -> Transaction | None:
 
 
 def _prestataire_simule() -> Prestataire:
-    prestataire, _ = Prestataire.objects.get_or_create(
+    prestataire, _cree = Prestataire.objects.get_or_create(
         code=Prestataire.FAUX,
         defaults={
             "libelle": "Paiement simulé (démonstration)",
@@ -133,8 +134,8 @@ def _prestataire_pour(numero: str) -> Prestataire:
         raise PaiementImpossible(str(exc)) from exc
     if prestataire.code not in OPERATEURS_EN_LIGNE:
         raise PaiementImpossible(
-            "Ce numéro n'est ni un numéro MTN ni un numéro Orange : le paiement en ligne n'est "
-            "possible qu'avec MTN Mobile Money ou Orange Money. Choisissez le paiement à la livraison."
+            _("Ce numéro n'est ni un numéro MTN ni un numéro Orange : le paiement en ligne n'est "
+            "possible qu'avec MTN Mobile Money ou Orange Money. Choisissez le paiement à la livraison.")
         )
     return prestataire
 
@@ -144,10 +145,10 @@ def payer_commande(commande, *, numero: str, url_retour: str = "") -> Transactio
     with transaction.atomic():
         commande = Commande.objects.select_for_update().get(pk=commande.pk)
         if commande.etat != Commande.CONFIRMEE:
-            raise PaiementImpossible("Cette commande n'attend plus de paiement.")
+            raise PaiementImpossible(_("Cette commande n'attend plus de paiement."))
         montant = montant_a_payer(commande)
         if montant <= 0:
-            raise PaiementImpossible("Cette commande se paie à la livraison : rien à payer en ligne.")
+            raise PaiementImpossible(_("Cette commande se paie à la livraison : rien à payer en ligne."))
         en_cours = tentative_en_cours(commande)
         if en_cours is not None:
             return en_cours
@@ -166,12 +167,11 @@ def payer_commande(commande, *, numero: str, url_retour: str = "") -> Transactio
     except PrestataireNonConfigure as exc:
         journal.error("Paiement en ligne impossible : %s", exc)
         raise PaiementImpossible(
-            f"Le paiement {prestataire.libelle} n'est pas encore ouvert sur HyperMarché. "
-            "Choisissez le paiement à la livraison, ou réessayez plus tard."
+            _("Le paiement %(libelle)s n'est pas encore ouvert sur HyperMarché. Choisissez le paiement à la livraison, ou réessayez plus tard.") % {"libelle": prestataire.libelle}
         ) from exc
     except PaiementIndisponible as exc:
         raise PaiementImpossible(
-            f"{prestataire.libelle} ne répond pas en ce moment. Réessayez dans quelques minutes."
+            _('%(libelle)s ne répond pas en ce moment. Réessayez dans quelques minutes.') % {"libelle": prestataire.libelle}
         ) from exc
 
 

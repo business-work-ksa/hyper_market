@@ -15,6 +15,7 @@ from django.utils import timezone
 from apps.inventory.models import Depot, MouvementStock
 from apps.inventory.services import sortir_stock
 from apps.pos.models import CENTIME, LigneTicket, ReglementTicket, SessionCaisse, Ticket
+from django.utils.translation import gettext as _
 
 __all__ = [
     "TicketInvalide",
@@ -60,7 +61,7 @@ def _numero_suivant(boutique_id) -> str:
 
 def creer_ticket(*, session: SessionCaisse, operation_id=None, **kwargs) -> Ticket:
     if session.etat != SessionCaisse.OUVERTE:
-        raise TicketInvalide("La session de caisse est fermée.")
+        raise TicketInvalide(_("La session de caisse est fermée."))
 
     if operation_id is not None:
         existant = Ticket.objects_all_tenants.filter(operation_id=operation_id).first()
@@ -78,7 +79,7 @@ def creer_ticket(*, session: SessionCaisse, operation_id=None, **kwargs) -> Tick
 
 def ajouter_ligne(*, ticket: Ticket, variante, quantite, remise=Decimal("0")) -> LigneTicket:
     if ticket.etat != Ticket.BROUILLON:
-        raise TicketInvalide("Un ticket clôturé ne peut plus être modifié.")
+        raise TicketInvalide(_("Un ticket clôturé ne peut plus être modifié."))
 
     ligne = LigneTicket.objects_all_tenants.create(
         boutique_id=ticket.boutique_id,
@@ -199,7 +200,7 @@ def encaisser(
         return ticket, True
 
     if not LigneTicket.objects_all_tenants.filter(ticket=ticket).exists():
-        for variante, quantite, remise, _ in panier:
+        for variante, quantite, remise, _ligne in panier:
             ajouter_ligne(
                 ticket=ticket, variante=variante, quantite=quantite, remise=remise
             )
@@ -272,15 +273,15 @@ def cloturer_ticket(ticket: Ticket, *, cree_par=None, cloture_le=None) -> Ticket
     if ticket.etat == Ticket.CLOTURE:
         return ticket  # idempotent : une retransmission hors ligne ne double pas la sortie de stock
     if ticket.etat == Ticket.ANNULE:
-        raise TicketInvalide("Ce ticket a été annulé.")
+        raise TicketInvalide(_("Ce ticket a été annulé."))
 
     lignes = list(
         LigneTicket.objects_all_tenants.filter(ticket=ticket).select_related("variante")
     )
     if not lignes:
-        raise TicketInvalide("Un ticket vide ne peut pas être clôturé.")
+        raise TicketInvalide(_("Un ticket vide ne peut pas être clôturé."))
     if ticket.reste_a_payer > 0:
-        raise TicketInvalide(f"Règlement incomplet : reste {ticket.reste_a_payer} FCFA.")
+        raise TicketInvalide(_('Règlement incomplet : reste %(reste_a_payer)s FCFA.') % {"reste_a_payer": ticket.reste_a_payer})
 
     depot = ticket.session.depot
     for ligne in lignes:
@@ -350,7 +351,7 @@ def consigner_ordonnance(ticket: Ticket, *, mention: str) -> Ticket:
     """
     mention = (mention or "").strip()[:180]
     if not mention:
-        raise TicketInvalide("Une mention d'ordonnance vide ne consigne rien.")
+        raise TicketInvalide(_("Une mention d'ordonnance vide ne consigne rien."))
 
     Ticket.objects_all_tenants.filter(pk=ticket.pk).update(mention_ordonnance=mention)
     ticket.mention_ordonnance = mention

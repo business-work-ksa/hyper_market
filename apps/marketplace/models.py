@@ -17,6 +17,7 @@ from apps.core.uuid7 import uuid7
 from apps.marketplace.cemac import LIBELLES_OPERATEURS
 from apps.marketplace.confiance import CHOIX_PALIERS
 from apps.marketplace.metiers import METIER_DEFAUT, metier_de
+from django.utils.translation import gettext_lazy as _l
 
 
 class Rayon(models.Model):
@@ -32,7 +33,7 @@ class Rayon(models.Model):
         max_digits=5,
         decimal_places=4,
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("0.30"))],
-        help_text="Part du montant HT revenant à la plateforme (0.05 = 5 %).",
+        help_text=_l("Part du montant HT revenant à la plateforme (0.05 = 5 %)."),
     )
     responsable = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -40,11 +41,11 @@ class Rayon(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="rayons_geres",
-        help_text="Responsable de rayon (category manager) côté plateforme.",
+        help_text=_l("Responsable de rayon (category manager) côté plateforme."),
     )
     ouvert = models.BooleanField(
         default=True,
-        help_text="Un rayon fermé n'accepte plus de nouvelles boutiques (arbitrage A8).",
+        help_text=_l("Un rayon fermé n'accepte plus de nouvelles boutiques (arbitrage A8)."),
     )
     ordre = models.PositiveSmallIntegerField(default=100)
 
@@ -70,7 +71,7 @@ class TypeEmplacement(models.Model):
     quota_utilisateurs = models.PositiveSmallIntegerField(default=1)
     quota_depots = models.PositiveSmallIntegerField(default=1)
     modules_inclus = models.JSONField(
-        default=list, blank=True, help_text='Ex. ["catalogue", "stock", "caisse", "comptabilite"]'
+        default=list, blank=True, help_text=_l('Ex. ["catalogue", "stock", "caisse", "comptabilite"]')
     )
     ordre = models.PositiveSmallIntegerField(default=100)
 
@@ -94,10 +95,10 @@ class Boutique(BaseModel):
     SUSPENDUE = "suspendue"
     RESILIEE = "resiliee"
     ETATS = [
-        (CANDIDATURE, "Candidature"),
-        (ACTIVE, "Active"),
-        (SUSPENDUE, "Suspendue"),
-        (RESILIEE, "Résiliée"),
+        (CANDIDATURE, _l("Candidature")),
+        (ACTIVE, _l("Active")),
+        (SUSPENDUE, _l("Suspendue")),
+        (RESILIEE, _l("Résiliée")),
     ]
 
     # L'impôt libératoire et l'ancien régime simplifié ont été fusionnés dans l'IGS
@@ -106,13 +107,13 @@ class Boutique(BaseModel):
     REEL_SIMPLIFIE = "reel_simplifie"
     REEL_NORMAL = "reel_normal"
     REGIMES = [
-        (IGS, "IGS — impôt général synthétique (CA ≤ 50 M)"),
-        (REEL_SIMPLIFIE, "Réel simplifié (CA 50-100 M)"),
-        (REEL_NORMAL, "Réel normal (CA > 100 M)"),
+        (IGS, _l("IGS — impôt général synthétique (CA ≤ 50 M)")),
+        (REEL_SIMPLIFIE, _l("Réel simplifié (CA 50-100 M)")),
+        (REEL_NORMAL, _l("Réel normal (CA > 100 M)")),
     ]
 
     raison_sociale = models.CharField(max_length=180)
-    enseigne = models.CharField(max_length=120, help_text="Nom commercial affiché aux acheteurs.")
+    enseigne = models.CharField(max_length=120, help_text=_l("Nom commercial affiché aux acheteurs."))
     slug = models.SlugField(max_length=140, unique=True)
     metier = models.CharField(
         max_length=32,
@@ -120,8 +121,8 @@ class Boutique(BaseModel):
         db_index=True,
         verbose_name="métier",
         help_text=(
-            "Ce que la boutique vend. Détermine le vocabulaire des écrans, les "
-            "valeurs par défaut et les fonctions activées (apps/marketplace/metiers.py)."
+            _l("Ce que la boutique vend. Détermine le vocabulaire des écrans, les "
+            "valeurs par défaut et les fonctions activées (apps/marketplace/metiers.py).")
         ),
     )
     rccm = models.CharField(max_length=64, blank=True, verbose_name="RCCM")
@@ -203,7 +204,7 @@ class Bail(BaseModel):
     BROUILLON = "brouillon"
     ACTIF = "actif"
     RESILIE = "resilie"
-    ETATS = [(BROUILLON, "Brouillon"), (ACTIF, "Actif"), (RESILIE, "Résilié")]
+    ETATS = [(BROUILLON, _l("Brouillon")), (ACTIF, _l("Actif")), (RESILIE, _l("Résilié"))]
 
     boutique = models.ForeignKey(Boutique, on_delete=models.PROTECT, related_name="baux")
     type_emplacement = models.ForeignKey(TypeEmplacement, on_delete=models.PROTECT)
@@ -214,14 +215,14 @@ class Bail(BaseModel):
     taux_commission = models.DecimalField(
         max_digits=5,
         decimal_places=4,
-        help_text="Négocié au contrat ; prime sur le taux du rayon.",
+        help_text=_l("Négocié au contrat ; prime sur le taux du rayon."),
     )
     motif_derogation_commission = models.CharField(
         max_length=300,
         blank=True,
         help_text=(
-            "Obligatoire dès que le taux négocié s'écarte de celui de l'offre. "
-            "Une faveur commerciale est légitime ; une faveur sans raison écrite ne l'est pas."
+            _l("Obligatoire dès que le taux négocié s'écarte de celui de l'offre. "
+            "Une faveur commerciale est légitime ; une faveur sans raison écrite ne l'est pas.")
         ),
     )
     preavis_jours = models.PositiveSmallIntegerField(default=30)
@@ -279,10 +280,10 @@ class FactureLoyer(BaseModel):
     PAYEE = "payee"
     IMPAYEE = "impayee"
     ANNULEE = "annulee"
-    ETATS = [(EMISE, "Émise"), (PAYEE, "Payée"), (IMPAYEE, "Impayée"), (ANNULEE, "Annulée")]
+    ETATS = [(EMISE, _l("Émise")), (PAYEE, _l("Payée")), (IMPAYEE, _l("Impayée")), (ANNULEE, _l("Annulée"))]
 
     bail = models.ForeignKey(Bail, on_delete=models.PROTECT, related_name="factures")
-    periode = models.DateField(help_text="Premier jour du mois facturé.")
+    periode = models.DateField(help_text=_l("Premier jour du mois facturé."))
     montant_ht = models.DecimalField(max_digits=12, decimal_places=2)
     taux_tva = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal("0.1925"))
     echeance = models.DateField()
@@ -318,7 +319,7 @@ class EtatDesLieux(BaseModel):
 
     ENTREE = "entree"
     SORTIE = "sortie"
-    TYPES = [(ENTREE, "Entrée"), (SORTIE, "Sortie")]
+    TYPES = [(ENTREE, _l("Entrée")), (SORTIE, _l("Sortie"))]
 
     bail = models.ForeignKey(Bail, on_delete=models.CASCADE, related_name="etats_des_lieux")
     type = models.CharField(max_length=8, choices=TYPES)
@@ -345,9 +346,9 @@ class EmplacementPremium(BaseModel):
     BANDEAU_RAYON = "bandeau_rayon"
     ACCUEIL = "accueil"
     TYPES = [
-        (TETE_DE_GONDOLE, "Tête de gondole"),
-        (BANDEAU_RAYON, "Bandeau de rayon"),
-        (ACCUEIL, "Page d'accueil"),
+        (TETE_DE_GONDOLE, _l("Tête de gondole")),
+        (BANDEAU_RAYON, _l("Bandeau de rayon")),
+        (ACCUEIL, _l("Page d'accueil")),
     ]
 
     rayon = models.ForeignKey(
@@ -410,7 +411,7 @@ class IdentiteVisuelle(TenantScopedModel):
     motif_ajustement = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Ce que la validation a corrigé, et pourquoi. Montré au commerçant.",
+        help_text=_l("Ce que la validation a corrigé, et pourquoi. Montré au commerçant."),
     )
 
     class Meta:
@@ -456,7 +457,7 @@ class LienMarketing(TenantScopedModel):
     """
 
     libelle = models.CharField(
-        max_length=120, help_text="À quoi sert ce lien : « Flyer marché », « Statut WhatsApp »…"
+        max_length=120, help_text=_l("À quoi sert ce lien : « Flyer marché », « Statut WhatsApp »…")
     )
     code = models.CharField(max_length=16, unique=True, db_index=True)
     article = models.ForeignKey(
@@ -465,12 +466,12 @@ class LienMarketing(TenantScopedModel):
         blank=True,
         on_delete=models.CASCADE,
         related_name="liens",
-        help_text="Vide : le lien ouvre la vitrine de la boutique.",
+        help_text=_l("Vide : le lien ouvre la vitrine de la boutique."),
     )
     code_apporteur = models.CharField(
         max_length=12,
         blank=True,
-        help_text="Facultatif : rattache les commandes issues de ce lien à un apporteur.",
+        help_text=_l("Facultatif : rattache les commandes issues de ce lien à un apporteur."),
     )
     clics = models.PositiveIntegerField(default=0)
     actif = models.BooleanField(default=True)
@@ -507,20 +508,20 @@ class CompteVersement(BaseModel):
     REJETE = "rejete"
     RETIRE = "retire"
     ETATS = [
-        (EN_ATTENTE, "En attente de vérification"),
-        (VERIFIE, "Vérifié"),
-        (REJETE, "Rejeté"),
-        (RETIRE, "Retiré"),
+        (EN_ATTENTE, _l("En attente de vérification")),
+        (VERIFIE, _l("Vérifié")),
+        (REJETE, _l("Rejeté")),
+        (RETIRE, _l("Retiré")),
     ]
 
     boutique = models.ForeignKey(Boutique, on_delete=models.PROTECT, related_name="comptes_versement")
     pays = models.CharField(max_length=2, default="CM")
     operateur = models.CharField(max_length=24, choices=list(LIBELLES_OPERATEURS.items()))
     numero = models.CharField(
-        max_length=34, help_text="Numéro Mobile Money au format international, ou IBAN / RIB."
+        max_length=34, help_text=_l("Numéro Mobile Money au format international, ou IBAN / RIB.")
     )
     titulaire = models.CharField(
-        max_length=160, help_text="Nom du titulaire tel qu'il est enregistré chez l'opérateur."
+        max_length=160, help_text=_l("Nom du titulaire tel qu'il est enregistré chez l'opérateur.")
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=EN_ATTENTE, db_index=True)
     declare_par = models.ForeignKey(
@@ -531,9 +532,9 @@ class CompteVersement(BaseModel):
     )
     verifie_le = models.DateTimeField(null=True, blank=True)
     utilisable_le = models.DateTimeField(
-        null=True, blank=True, help_text="Fin du délai de carence après vérification."
+        null=True, blank=True, help_text=_l("Fin du délai de carence après vérification.")
     )
-    motif = models.CharField(max_length=300, blank=True, help_text="Motif du rejet ou du retrait.")
+    motif = models.CharField(max_length=300, blank=True, help_text=_l("Motif du rejet ou du retrait."))
     retire_le = models.DateTimeField(null=True, blank=True)
     # La réponse du gérant à l'avis « un compte de versement a été déclaré pour votre boutique ».
     # C'est la seule personne qui sait avec certitude si ce numéro est le sien : quand quelqu'un

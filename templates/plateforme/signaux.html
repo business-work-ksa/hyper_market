@@ -1,7 +1,8 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm %}
-{% block titre %}Signaux de risque{% endblock %}
-{% block entete %}Signaux de risque{% endblock %}
+{% block titre %}{% translate "Signaux de risque" %}{% endblock %}
+{% block entete %}{% translate "Signaux de risque" %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}"><link rel="stylesheet" href="{% static 'css/plateforme-signaux.css' %}">{% endblock %}
 
 {% block contenu %}
@@ -12,34 +13,34 @@ détaille et recueille la décision, avec un motif inscrit au journal des accès
 {% endcomment %}
 <div class="entete-page">
   <div class="entete-page__texte">
-    <p class="t-sur-titre">Gouvernance</p>
-    <h2 class="entete-page__titre">Signaux de risque</h2>
+    <p class="t-sur-titre">{% translate "Gouvernance" %}</p>
+    <h2 class="entete-page__titre">{% translate "Signaux de risque" %}</h2>
     <p class="entete-page__phrase">
-      Des indices, pas des preuves. Aucun signal ne suspend une boutique : vous écartez ou vous confirmez, avec un motif inscrit au journal.
-      {% if derniere_evaluation %}Dernière évaluation le {{ derniere_evaluation|date:"j F à H:i" }}.{% else %}Aucune évaluation n'a encore tourné.{% endif %}
+      {% translate "Des indices, pas des preuves. Aucun signal ne suspend une boutique : vous écartez ou vous confirmez, avec un motif inscrit au journal." %}
+      {% if derniere_evaluation %}{% blocktranslate with derniere_evaluation=derniere_evaluation|date:"j F à H:i" trimmed %}Dernière évaluation le {{ derniere_evaluation }}.{% endblocktranslate %}{% else %}{% translate "Aucune évaluation n'a encore tourné." %}{% endif %}
     </p>
   </div>
 </div>
 
-<section class="kpis s-kpis" aria-label="Signaux à décider par gravité">
+<section class="kpis s-kpis" aria-label="{% translate 'Signaux à décider par gravité' %}">
   <a class="kpi" href="?vue=ouverts">
-    <span class="kpi__tete"><span class="kpi__icone kpi__icone--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>Critiques</span>
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>{% translate "Critiques" %}</span>
     <span class="kpi__valeur">{{ compteurs.critique }}</span>
-    <span class="kpi__pied t-muet">À regarder aujourd'hui</span>
+    <span class="kpi__pied t-muet">{% translate "À regarder aujourd'hui" %}</span>
   </a>
   <a class="kpi" href="?vue=ouverts">
-    <span class="kpi__tete"><span class="kpi__icone kpi__icone--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>Élevés</span>
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>{% translate "Élevés" %}</span>
     <span class="kpi__valeur">{{ compteurs.elevee }}</span>
-    <span class="kpi__pied t-muet">Sous 24 heures</span>
+    <span class="kpi__pied t-muet">{% translate "Sous 24 heures" %}</span>
   </a>
   <a class="kpi" href="?vue=ouverts">
-    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-info"></use></svg></span>Modérés</span>
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-info"></use></svg></span>{% translate "Modérés" %}</span>
     <span class="kpi__valeur">{{ compteurs.moderee }}</span>
-    <span class="kpi__pied t-muet">Dans la semaine</span>
+    <span class="kpi__pied t-muet">{% translate "Dans la semaine" %}</span>
   </a>
 </section>
 
-<nav class="onglets" aria-label="Signaux">
+<nav class="onglets" aria-label="{% translate 'Signaux' %}">
   {% for code, libelle in vues %}
     <a class="onglet" href="?vue={{ code }}{% if type_courant %}&amp;type={{ type_courant }}{% endif %}" {% if code == vue %}aria-current="page"{% endif %}>
       {{ libelle }}{% if code == 'ouverts' %}<span class="onglet__compte">{{ compteurs.total }}</span>{% endif %}
@@ -48,8 +49,8 @@ détaille et recueille la décision, avec un motif inscrit au journal des accès
 </nav>
 
 <section class="carte">
-  <nav class="s-types" aria-label="Filtrer par type">
-    <a class="s-type" href="?vue={{ vue }}" aria-current="{% if not type_courant %}true{% else %}false{% endif %}">Tous les types</a>
+  <nav class="s-types" aria-label="{% translate 'Filtrer par type' %}">
+    <a class="s-type" href="?vue={{ vue }}" aria-current="{% if not type_courant %}true{% else %}false{% endif %}">{% translate "Tous les types" %}</a>
     {% for code, libelle, n in types %}
       <a class="s-type" href="?vue={{ vue }}&amp;type={{ code }}" aria-current="{% if type_courant == code %}true{% else %}false{% endif %}">
         {{ libelle }}{% if n %}<span class="s-type__compte">{{ n }}</span>{% endif %}
@@ -70,13 +71,13 @@ détaille et recueille la décision, avec un motif inscrit au journal des accès
             </span>
             <span class="s-ligne__resume">{{ s.resume }}</span>
             <span class="s-ligne__pied">
-              <span>Constaté le {{ s.constate_le|date:"d/m/Y" }}</span>
-              {% if s.traite_par %}<span>{{ s.get_etat_display }} par {{ s.traite_par.nom_complet }} le {{ s.traite_le|date:"d/m/Y" }}</span>{% endif %}
+              <span>{% blocktranslate with constate_le=s.constate_le|date:"d/m/Y" trimmed %}Constaté le {{ constate_le }}{% endblocktranslate %}</span>
+              {% if s.traite_par %}<span>{% blocktranslate with get_etat_display=s.get_etat_display nom_complet=s.traite_par.nom_complet traite_le=s.traite_le|date:"d/m/Y" trimmed %}{{ get_etat_display }} par {{ nom_complet }} le {{ traite_le }}{% endblocktranslate %}</span>{% endif %}
             </span>
           </span>
           <span class="s-ligne__fin">
             {% include "plateforme/partials/s_etat.html" with signal=s %}
-            <span class="s-score" title="Score : départage deux signaux de même gravité">score {{ s.score }}</span>
+            <span class="s-score" title="{% translate 'Score : départage deux signaux de même gravité' %}">{% blocktranslate with score=s.score trimmed %}score {{ score }}{% endblocktranslate %}</span>
           </span>
         </a>
       {% endfor %}
@@ -85,8 +86,8 @@ détaille et recueille la décision, avec un motif inscrit au journal des accès
   {% else %}
     <div class="vide t-vide-compact">
       <svg aria-hidden="true"><use href="#ic-check"></use></svg>
-      <p class="t-section">{% if vue == 'ouverts' %}Aucun signal à décider{% else %}Aucun signal ici{% endif %}</p>
-      <p class="t-legende">La tâche de nuit repasse chaque soir : identités partagées, prix d'appât, pics de prépaiement, litiges, comptes de versement changés, boutiques non vérifiées.</p>
+      <p class="t-section">{% if vue == 'ouverts' %}{% translate "Aucun signal à décider" %}{% else %}{% translate "Aucun signal ici" %}{% endif %}</p>
+      <p class="t-legende">{% translate "La tâche de nuit repasse chaque soir : identités partagées, prix d'appât, pics de prépaiement, litiges, comptes de versement changés, boutiques non vérifiées." %}</p>
     </div>
   {% endif %}
 </section>

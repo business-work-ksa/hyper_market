@@ -27,6 +27,7 @@ from apps.inventory.models import (
     MouvementStock,
     NiveauStock,
 )
+from django.utils.translation import gettext as _
 
 __all__ = [
     "MouvementInvalide",
@@ -105,11 +106,11 @@ def _enregistrer_mouvement(
     """
     quantite = Decimal(quantite).quantize(QUANTUM)
     if quantite == 0:
-        raise MouvementInvalide("Un mouvement de quantité nulle n'a pas de sens.")
+        raise MouvementInvalide(_("Un mouvement de quantité nulle n'a pas de sens."))
 
     if depot.boutique_id != variante.boutique_id:
         raise MouvementInvalide(
-            "Le dépôt et la variante appartiennent à des boutiques différentes."
+            _("Le dépôt et la variante appartiennent à des boutiques différentes.")
         )
 
     # Idempotence : une opération hors ligne retransmise ne doit pas dédoubler le mouvement.
@@ -125,7 +126,7 @@ def _enregistrer_mouvement(
     if quantite > 0:
         cout = Decimal(cout_unitaire if cout_unitaire is not None else niveau.cmp).quantize(QUANTUM)
         if cout < 0:
-            raise MouvementInvalide("Le coût unitaire d'une entrée ne peut pas être négatif.")
+            raise MouvementInvalide(_("Le coût unitaire d'une entrée ne peut pas être négatif."))
         nouveau_cmp = _cmp_apres_entree(niveau.quantite, niveau.cmp, quantite, cout)
     else:
         # Une sortie ne modifie jamais le CMP : elle est valorisée au CMP courant.
@@ -190,7 +191,7 @@ def _repercuter_sur_les_lots(*, depot, variante, quantite, date_peremption, nume
     if quantite > 0:
         if date_peremption is None:
             return
-        lot, _ = LotStock.objects_all_tenants.get_or_create(
+        lot, _cree = LotStock.objects_all_tenants.get_or_create(
             boutique_id=depot.boutique_id,
             depot=depot,
             variante=variante,
@@ -274,9 +275,9 @@ def transferer_stock(*, depot_source, depot_cible, variante, quantite, **kwargs)
 @transaction.atomic
 def _transferer_stock(*, depot_source, depot_cible, variante, quantite, **kwargs):
     if depot_source.boutique_id != depot_cible.boutique_id:
-        raise MouvementInvalide("Un transfert ne peut pas franchir la frontière d'une boutique.")
+        raise MouvementInvalide(_("Un transfert ne peut pas franchir la frontière d'une boutique."))
     if depot_source.pk == depot_cible.pk:
-        raise MouvementInvalide("Les dépôts source et cible sont identiques.")
+        raise MouvementInvalide(_("Les dépôts source et cible sont identiques."))
 
     niveau_source = _niveau_verrouille(depot_source, variante)
     cout = niveau_source.cmp
@@ -312,7 +313,7 @@ def _regulariser_inventaire(inventaire, *, cree_par=None) -> list[MouvementStock
     from apps.inventory.models import Inventaire
 
     if inventaire.etat == Inventaire.VALIDE:
-        raise MouvementInvalide("Cet inventaire est déjà validé.")
+        raise MouvementInvalide(_("Cet inventaire est déjà validé."))
 
     mouvements = []
     lignes = LigneInventaire.objects_all_tenants.filter(inventaire=inventaire).select_related(
@@ -437,11 +438,11 @@ def _produire(*, depot, recette, quantite, cree_par=None, operation_id=None, com
 
     quantite = Decimal(quantite).quantize(QUANTUM)
     if quantite <= 0:
-        raise MouvementInvalide("Une production porte sur une quantité positive.")
+        raise MouvementInvalide(_("Une production porte sur une quantité positive."))
     if not recette.actif:
-        raise MouvementInvalide("Cette fiche technique est désactivée.")
+        raise MouvementInvalide(_("Cette fiche technique est désactivée."))
     if recette.boutique_id != depot.boutique_id:
-        raise MouvementInvalide("La fiche et le dépôt appartiennent à des boutiques différentes.")
+        raise MouvementInvalide(_("La fiche et le dépôt appartiennent à des boutiques différentes."))
 
     lignes = list(
         LigneRecette.objects_all_tenants.filter(
@@ -450,8 +451,8 @@ def _produire(*, depot, recette, quantite, cree_par=None, operation_id=None, com
     )
     if not lignes:
         raise MouvementInvalide(
-            "Cette fiche n'a aucun ingrédient : il n'y a rien à consommer, donc "
-            "rien à produire."
+            _("Cette fiche n'a aucun ingrédient : il n'y a rien à consommer, donc "
+            "rien à produire.")
         )
 
     facteur = quantite / (recette.rendement or Decimal("1"))
@@ -480,7 +481,7 @@ def _produire(*, depot, recette, quantite, cree_par=None, operation_id=None, com
 
     if not sorties:
         raise MouvementInvalide(
-            "La quantité demandée est trop faible pour consommer le moindre ingrédient."
+            _("La quantité demandée est trop faible pour consommer le moindre ingrédient.")
         )
 
     entree = enregistrer_mouvement(

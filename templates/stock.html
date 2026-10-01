@@ -1,15 +1,16 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Stock — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Stock{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Stock — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Stock" %}{% endblock %}
 
 {% block actions_entete %}
   {% if 'cout.voir' in droits %}
-    <span class="puce"><svg><use href="#ic-stock"></use></svg>{{ valeur_totale|fcfa }} FCFA au coût moyen</span>
+    <span class="puce"><svg><use href="#ic-stock"></use></svg>{% blocktranslate with valeur_totale=valeur_totale|fcfa trimmed %}{{ valeur_totale }} FCFA au coût moyen{% endblocktranslate %}</span>
   {% endif %}
   {% if 'stock.mouvementer' in droits %}
-    <a class="btn" href="{% url 'inventaire' %}">Inventaire</a>
+    <a class="btn" href="{% url 'inventaire' %}">{% translate "Inventaire" %}</a>
   {% endif %}
 {% endblock %}
 
@@ -26,7 +27,7 @@
     <div class="recherche" style="flex:1;min-width:200px;max-width:420px">
       <svg><use href="#ic-recherche"></use></svg>
       <input class="champ" type="search" name="q" value="{{ recherche }}"
-             placeholder="Rechercher un article ou une référence" aria-label="Rechercher">
+             placeholder="{% translate 'Rechercher un article ou une référence' %}" aria-label="{% translate 'Rechercher' %}">
     </div>
     {% comment %}
     Les autres filtres voyagent en champs cachés : chercher un mot ne doit pas
@@ -35,9 +36,9 @@
     {% for cle, valeur in conserver_dans_recherche.items %}
       <input type="hidden" name="{{ cle }}" value="{{ valeur }}">
     {% endfor %}
-    <button class="btn" type="submit">Rechercher</button>
+    <button class="btn" type="submit">{% translate "Rechercher" %}</button>
     {% if recherche %}
-      <a class="btn btn--discret" href="{% url 'stock' %}">Effacer</a>
+      <a class="btn btn--discret" href="{% url 'stock' %}">{% translate "Effacer" %}</a>
     {% endif %}
   </form>
 
@@ -57,23 +58,23 @@
     <form class="carte carte__corps rangee" method="get"
           style="gap:10px;flex-wrap:wrap;align-items:flex-end" role="search">
       <div class="groupe-champ" style="flex:1;min-width:150px">
-        <label for="rech-marque">Marque du véhicule</label>
+        <label for="rech-marque">{% translate "Marque du véhicule" %}</label>
         <input class="champ" id="rech-marque" name="marque" list="marques-connues"
-               value="{{ vehicule.marque|default:'' }}" placeholder="Toyota">
+               value="{{ vehicule.marque|default:'' }}" placeholder="{% translate 'Toyota' %}">
       </div>
       <div class="groupe-champ" style="flex:1;min-width:150px">
-        <label for="rech-modele">Modèle</label>
+        <label for="rech-modele">{% translate "Modèle" %}</label>
         <input class="champ" id="rech-modele" name="modele" list="modeles-connus"
-               value="{{ vehicule.modele|default:'' }}" placeholder="Corolla">
+               value="{{ vehicule.modele|default:'' }}" placeholder="{% translate 'Corolla' %}">
       </div>
       <div class="groupe-champ" style="min-width:120px">
-        <label for="rech-annee">Année</label>
+        <label for="rech-annee">{% translate "Année" %}</label>
         <input class="champ" id="rech-annee" name="annee" inputmode="numeric"
                value="{{ vehicule.annee|default:'' }}" placeholder="2015">
       </div>
-      <button class="btn btn--primaire" type="submit">Chercher la pièce</button>
+      <button class="btn btn--primaire" type="submit">{% translate "Chercher la pièce" %}</button>
       {% if vehicule %}
-        <a class="btn btn--discret" href="{% url 'stock' %}">Effacer</a>
+        <a class="btn btn--discret" href="{% url 'stock' %}">{% translate "Effacer" %}</a>
       {% endif %}
     </form>
 
@@ -81,10 +82,12 @@
       <div class="bandeau-info" role="status">
         <svg><use href="#ic-info"></use></svg>
         <span>
-          {{ nb_compatibles }} pièce{{ nb_compatibles|pluralize }} déclarée{{ nb_compatibles|pluralize }}
-          compatible{{ nb_compatibles|pluralize }}.
-          Une compatibilité est une <strong>déclaration du vendeur</strong>, pas
-          une donnée du constructeur : elle se vérifie avant de monter.
+          {% blocktranslate count nb_compatibles=nb_compatibles trimmed %}{{ nb_compatibles }} pièce déclarée
+          compatible.
+          Une compatibilité est une{% plural %}{{ nb_compatibles }} pièces déclarées
+          compatibles.
+          Une compatibilité est une{% endblocktranslate %} <strong>{% translate "déclaration du vendeur" %}</strong>{% blocktranslate trimmed %}, pas
+          une donnée du constructeur : elle se vérifie avant de monter.{% endblocktranslate %}
         </span>
       </div>
     {% endif %}
@@ -100,19 +103,19 @@
         <thead>
           <tr>
             <th scope="col">{{ metier.article|capfirst }}</th>
-            <th scope="col">Référence</th>
-            <th scope="col">Dépôt</th>
-            <th scope="col" class="num">Quantité</th>
+            <th scope="col">{% translate "Référence" %}</th>
+            <th scope="col">{% translate "Dépôt" %}</th>
+            <th scope="col" class="num">{% translate "Quantité" %}</th>
             {% comment %}
             Le coût d'achat ne s'affiche pas au comptoir. C'est l'information
             qu'un caissier n'a aucune raison de connaître, et celle qui circule
             le plus vite dans un quartier une fois lue sur un écran.
             {% endcomment %}
             {% if 'cout.voir' in droits %}
-              <th scope="col" class="num">Coût moyen</th>
-              <th scope="col" class="num">Valeur</th>
+              <th scope="col" class="num">{% translate "Coût moyen" %}</th>
+              <th scope="col" class="num">{% translate "Valeur" %}</th>
             {% endif %}
-            <th scope="col">État</th>
+            <th scope="col">{% translate "État" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -125,7 +128,7 @@
               <td class="principal">
                 <a href="{% url 'article' niveau.variante_id %}">{{ niveau.variante.produit.libelle }}</a>
                 {% if not niveau.variante.actif %}
-                  <span class="puce">Retiré de la vente</span>
+                  <span class="puce">{% translate "Retiré de la vente" %}</span>
                 {% endif %}
               </td>
               <td class="t-2 chiffre">{{ niveau.variante.sku }}</td>
@@ -142,13 +145,14 @@
               <td colspan="7">
                 <div class="vide">
                   <svg><use href="#ic-stock"></use></svg>
-                  <p class="t-2">Aucun {{ metier.article }} ne correspond.</p>
+                  <p class="t-2">{% blocktranslate with article=metier.article trimmed %}Aucun {{ article }} ne correspond.{% endblocktranslate %}</p>
                   {% if filtres.actifs or recherche %}
                     <p class="t-legende">
-                      {{ filtres.actifs }} filtre{{ filtres.actifs|pluralize }} en place —
-                      la liste complète est peut-être derrière.
+                      {% blocktranslate count actifs=filtres.actifs trimmed %}{{ actifs }} filtre en place —
+                      la liste complète est peut-être derrière.{% plural %}{{ actifs }} filtres en place —
+                      la liste complète est peut-être derrière.{% endblocktranslate %}
                     </p>
-                    <a class="btn" href="{% url 'stock' %}">Retirer les filtres</a>
+                    <a class="btn" href="{% url 'stock' %}">{% translate "Retirer les filtres" %}</a>
                   {% elif 'stock.mouvementer' in droits %}
                     <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
                       <svg><use href="#ic-plus"></use></svg> {{ metier.nouveau }} {{ metier.article }}
@@ -164,9 +168,9 @@
 
     {% if niveaux %}
       <footer class="tableau-pied">
-        <span>{{ niveaux|length }} ligne{{ niveaux|length|pluralize }} affichée{{ niveaux|length|pluralize }}</span>
+        <span>{% blocktranslate count niveaux=niveaux|length trimmed %}{{ niveaux }} ligne affichée{% plural %}{{ niveaux }} lignes affichées{% endblocktranslate %}</span>
         {% if 'cout.voir' in droits %}
-          <span class="t-petit">Valeur totale <strong class="chiffre">{{ valeur_totale|fcfa }} FCFA</strong></span>
+          <span class="t-petit">{% translate "Valeur totale" %} <strong class="chiffre">{{ valeur_totale|fcfa }} FCFA</strong></span>
         {% endif %}
       </footer>
     {% endif %}
@@ -177,10 +181,10 @@
   <div class="bandeau-info">
     <svg><use href="#ic-info"></use></svg>
     <span>
-      Le stock est valorisé au <strong>coût moyen pondéré</strong> : chaque entrée recalcule le coût,
+      {% translate "Le stock est valorisé au" %} <strong>{% translate "coût moyen pondéré" %}</strong> {% blocktranslate trimmed %}: chaque entrée recalcule le coût,
       chaque sortie le conserve. Un stock négatif n'est pas une erreur bloquante mais une anomalie
       à régulariser par inventaire — refuser une vente déjà encaissée serait pire qu'un compteur
-      temporairement faux.
+      temporairement faux.{% endblocktranslate %}
     </span>
   </div>
 </div>

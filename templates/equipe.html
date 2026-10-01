@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Équipe — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Équipe{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Équipe — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Équipe" %}{% endblock %}
 
 {% block actions_entete %}
-  <span class="puce">{{ actifs }} / {{ quota_utilisateurs }} accès</span>
-  <a class="btn" href="{% url 'boutique' %}">Retour à ma boutique</a>
+  <span class="puce">{% blocktranslate with actifs=actifs quota_utilisateurs=quota_utilisateurs trimmed %}{{ actifs }} / {{ quota_utilisateurs }} accès{% endblocktranslate %}</span>
+  <a class="btn" href="{% url 'boutique' %}">{% translate "Retour à ma boutique" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -20,20 +21,20 @@
   {% if mot_de_passe_provisoire %}
     <section class="carte" style="border-color:var(--marque)">
       <header class="carte__entete">
-        <h2 class="t-section">Mot de passe provisoire</h2>
+        <h2 class="t-section">{% translate "Mot de passe provisoire" %}</h2>
         <span class="puce puce--alerte">
-          <svg><use href="#ic-alerte"></use></svg>Affiché une seule fois
+          <svg><use href="#ic-alerte"></use></svg>{% translate "Affiché une seule fois" %}
         </span>
       </header>
       <div class="carte__corps colonne" style="gap:12px">
         <p class="t-2">
-          Pour <strong>{{ mot_de_passe_provisoire.nom }}</strong>
+          {% translate "Pour" %} <strong>{{ mot_de_passe_provisoire.nom }}</strong>
           (<span class="chiffre">{{ mot_de_passe_provisoire.telephone }}</span>) :
         </p>
         <p class="mot-de-passe chiffre">{{ mot_de_passe_provisoire.valeur }}</p>
         <p class="t-legende">
-          Notez-le ou dictez-le maintenant — les lettres ambiguës en ont été exclues.
-          Il n'est stocké nulle part en clair : personne, pas même nous, ne pourra vous le relire.
+          {% blocktranslate trimmed %}Notez-le ou dictez-le maintenant — les lettres ambiguës en ont été exclues.
+          Il n'est stocké nulle part en clair : personne, pas même nous, ne pourra vous le relire.{% endblocktranslate %}
         </p>
       </div>
     </section>
@@ -47,10 +48,10 @@
       <table class="tableau">
         <thead>
           <tr>
-            <th scope="col">Personne</th>
-            <th scope="col">Rôle</th>
-            <th scope="col">Accès</th>
-            <th scope="col">Commandes sur WhatsApp</th>
+            <th scope="col">{% translate "Personne" %}</th>
+            <th scope="col">{% translate "Rôle" %}</th>
+            <th scope="col">{% translate "Accès" %}</th>
+            <th scope="col">{% translate "Commandes sur WhatsApp" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -73,10 +74,10 @@
               <td class="t-2">{{ membre.role.libelle }}</td>
               <td>
                 {% if membre.actif %}
-                  <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Actif</span>
+                  <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Actif" %}</span>
                 {% else %}
                   <span class="puce">
-                    Retiré{% if membre.jusqu_a %} le {{ membre.jusqu_a|date:"d/m/Y" }}{% endif %}
+                    {% translate "Retiré" %}{% if membre.jusqu_a %} {% blocktranslate with jusqu_a=membre.jusqu_a|date:"d/m/Y" trimmed %}le {{ jusqu_a }}{% endblocktranslate %}{% endif %}
                   </span>
                 {% endif %}
               </td>
@@ -87,9 +88,9 @@
                     <button class="btn btn--discret" type="submit" aria-pressed="{{ membre.avis_commandes|yesno:'true,false' }}"
                             title="{% if membre.avis_commandes %}Ne plus prévenir{% else %}Prévenir{% endif %} {{ membre.utilisateur.nom_complet }} des nouvelles commandes">
                       {% if membre.avis_commandes %}
-                        <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Prévenu</span>
+                        <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Prévenu" %}</span>
                       {% else %}
-                        <span class="puce">Non prévenu</span>
+                        <span class="puce">{% translate "Non prévenu" %}</span>
                       {% endif %}
                     </button>
                   </form>
@@ -103,9 +104,9 @@
               <td colspan="4">
                 <div class="vide">
                   <svg><use href="#ic-boutique"></use></svg>
-                  <p class="t-2">Personne ne correspond.</p>
+                  <p class="t-2">{% translate "Personne ne correspond." %}</p>
                   {% if filtres.actifs %}
-                    <a class="btn" href="{% url 'equipe' %}">Retirer les filtres</a>
+                    <a class="btn" href="{% url 'equipe' %}">{% translate "Retirer les filtres" %}</a>
                   {% endif %}
                 </div>
               </td>
@@ -117,21 +118,22 @@
 
     <footer class="tableau-pied">
       <span>
-        {{ places_restantes }} place{{ places_restantes|pluralize }} libre{{ places_restantes|pluralize }}
-        sur {{ quota_utilisateurs }}
+        {% blocktranslate count places_restantes=places_restantes with quota_utilisateurs=quota_utilisateurs trimmed %}{{ places_restantes }} place libre
+        sur {{ quota_utilisateurs }}{% plural %}{{ places_restantes }} places libres
+        sur {{ quota_utilisateurs }}{% endblocktranslate %}
       </span>
-      <span class="t-legende">Un changement de rôle prend effet à la page suivante.</span>
+      <span class="t-legende">{% translate "Un changement de rôle prend effet à la page suivante." %}</span>
     </footer>
   </section>
 
   <section class="carte">
-    <header class="carte__entete"><h2 class="t-section">Ce que chaque rôle ouvre</h2></header>
+    <header class="carte__entete"><h2 class="t-section">{% translate "Ce que chaque rôle ouvre" %}</h2></header>
     <div class="carte__corps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
       {% for role in roles_detail %}
         <div class="colonne" style="gap:6px">
           <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
           <span class="t-legende">
-            {% for libelle in role.droits %}{{ libelle }}{% if not forloop.last %} · {% endif %}{% empty %}Aucun droit sur cette boutique.{% endfor %}
+            {% for libelle in role.droits %}{{ libelle }}{% if not forloop.last %} · {% endif %}{% empty %}{% translate "Aucun droit sur cette boutique." %}{% endfor %}
           </span>
         </div>
       {% endfor %}
@@ -150,7 +152,7 @@ croirait l'avoir perdue.
         {% if formulaire.errors %}data-ouvrir-au-chargement{% endif %}>
   <form method="post" action="{% url 'equipe' %}" novalidate>
     {% csrf_token %}
-    <header class="modale__entete"><h2 class="t-section">Rattacher quelqu'un</h2></header>
+    <header class="modale__entete"><h2 class="t-section">{% translate "Rattacher quelqu'un" %}</h2></header>
     <div class="modale__corps colonne" style="gap:16px">
       {% include "partials/champ.html" with champ=formulaire.telephone %}
       {% include "partials/champ.html" with champ=formulaire.nom_complet %}
@@ -162,14 +164,14 @@ croirait l'avoir perdue.
         </div>
       {% endif %}
       <p class="t-legende">
-        Le numéro est l'identifiant : si la personne a déjà un compte HyperMarché,
-        elle est rattachée avec son mot de passe habituel, et rien n'est recréé.
+        {% blocktranslate trimmed %}Le numéro est l'identifiant : si la personne a déjà un compte HyperMarché,
+        elle est rattachée avec son mot de passe habituel, et rien n'est recréé.{% endblocktranslate %}
       </p>
     </div>
     <footer class="modale__pied">
-      <button class="btn" type="button" data-ferme>Annuler</button>
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
       <button class="btn btn--primaire" type="submit" {% if not places_restantes %}disabled{% endif %}>
-        Rattacher à la boutique
+        {% translate "Rattacher à la boutique" %}
       </button>
     </footer>
   </form>
@@ -184,7 +186,7 @@ gestes qu'on fait rarement.
 {% endcomment %}
 <dialog class="modale" id="modale-membre">
   <header class="modale__entete">
-    <h2 class="t-section">Accès de <span data-cible-libelle></span></h2>
+    <h2 class="t-section">{% translate "Accès de" %} <span data-cible-libelle></span></h2>
   </header>
 
   <form method="post" data-si="actif"
@@ -192,38 +194,38 @@ gestes qu'on fait rarement.
     {% csrf_token %}
     <div class="modale__corps colonne" style="gap:14px">
       <div class="groupe-champ">
-        <label for="role-membre">Rôle</label>
+        <label for="role-membre">{% translate "Rôle" %}</label>
         <select class="champ" id="role-membre" name="role">
           {% for role in roles %}<option value="{{ role.code }}">{{ role.libelle }}</option>{% endfor %}
         </select>
       </div>
       <p class="t-legende">
-        Le changement prend effet immédiatement, à la page suivante que la
-        personne ouvrira.
+        {% blocktranslate trimmed %}Le changement prend effet immédiatement, à la page suivante que la
+        personne ouvrira.{% endblocktranslate %}
       </p>
     </div>
     <footer class="modale__pied">
-      <button class="btn" type="button" data-ferme>Fermer</button>
-      <button class="btn btn--primaire" type="submit">Changer le rôle</button>
+      <button class="btn" type="button" data-ferme>{% translate "Fermer" %}</button>
+      <button class="btn btn--primaire" type="submit">{% translate "Changer le rôle" %}</button>
     </footer>
   </form>
 
   <div class="modale__corps colonne" style="gap:10px;border-top:1px solid var(--filet)">
-    <p class="t-sur-titre">Autres gestes</p>
+    <p class="t-sur-titre">{% translate "Autres gestes" %}</p>
     <div class="rangee" style="gap:9px;flex-wrap:wrap">
       <form method="post" data-action-modele="{% url 'equipe_mot_de_passe' '00000000-0000-0000-0000-000000000000' %}">
         {% csrf_token %}
-        <button class="btn" type="submit">Refaire le mot de passe</button>
+        <button class="btn" type="submit">{% translate "Refaire le mot de passe" %}</button>
       </form>
       <form method="post" data-sinon="actif"
             data-action-modele="{% url 'equipe_reactiver' '00000000-0000-0000-0000-000000000000' %}">
         {% csrf_token %}
-        <button class="btn" type="submit">Rendre l'accès</button>
+        <button class="btn" type="submit">{% translate "Rendre l'accès" %}</button>
       </form>
     </div>
     <p class="t-legende">
-      Sans passerelle SMS, un mot de passe oublié ne se récupère pas seul : le
-      gérant en génère un nouveau et le remet en main propre.
+      {% blocktranslate trimmed %}Sans passerelle SMS, un mot de passe oublié ne se récupère pas seul : le
+      gérant en génère un nouveau et le remet en main propre.{% endblocktranslate %}
     </p>
   </div>
 </dialog>

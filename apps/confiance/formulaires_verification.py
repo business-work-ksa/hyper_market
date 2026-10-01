@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from apps.accounts.models import DossierKyc
 from apps.confiance import verification
 from apps.marketplace import cemac
+from django.utils.translation import gettext_lazy as _l
 
 CHAMP = {"class": "champ"}
 
@@ -34,37 +35,37 @@ def reporter_erreurs(formulaire: forms.Form, erreur: ValidationError, *, corresp
 class AttestationForm(forms.Form):
     """Ce que l'administrateur a vu sur l'original. Pas de copie, sauf stockage désigné."""
 
-    type_piece = forms.ChoiceField(label="Pièce vue")
+    type_piece = forms.ChoiceField(label=_l("Pièce vue"))
     gerant = forms.ChoiceField(
-        label="Gérant", required=False, help_text="Pour une pièce d'identité : la personne dont c'est la pièce."
+        label=_l("Gérant"), required=False, help_text=_l("Pour une pièce d'identité : la personne dont c'est la pièce.")
     )
     numero = forms.CharField(
-        label="Numéro lu sur la pièce",
+        label=_l("Numéro lu sur la pièce"),
         max_length=64,
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "off", "spellcheck": "false"}),
     )
     pays = forms.CharField(
-        label="Pays émetteur",
+        label=_l("Pays émetteur"),
         max_length=2,
         required=False,
-        help_text="Code à deux lettres : CM, GA, CG, TD, CF, GQ… Pour une pièce de la boutique, c'est son pays.",
+        help_text=_l("Code à deux lettres : CM, GA, CG, TD, CF, GQ… Pour une pièce de la boutique, c'est son pays."),
         widget=forms.TextInput(attrs={**CHAMP, "list": "pays-cemac", "autocomplete": "off", "size": 4}),
     )
     expire_le = forms.DateField(
-        label="Date d'expiration",
+        label=_l("Date d'expiration"),
         required=False,
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
-        help_text="Obligatoire pour une pièce d'identité ; sans objet pour le RCCM et l'identifiant fiscal.",
+        help_text=_l("Obligatoire pour une pièce d'identité ; sans objet pour le RCCM et l'identifiant fiscal."),
     )
     nom_lu = forms.CharField(
-        label="Nom tel qu'il figure sur la pièce",
+        label=_l("Nom tel qu'il figure sur la pièce"),
         max_length=160,
         required=False,
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "off"}),
-        help_text="Recopié lettre à lettre : c'est à lui qu'on comparera le titulaire du compte de versement.",
+        help_text=_l("Recopié lettre à lettre : c'est à lui qu'on comparera le titulaire du compte de versement."),
     )
     mode = forms.ChoiceField(
-        label="Comment avez-vous vu l'original ?",
+        label=_l("Comment avez-vous vu l'original ?"),
         choices=[
             (DossierKyc.PRESENTIEL, "En présentiel"),
             (DossierKyc.VISIO, "En visio"),
@@ -74,19 +75,19 @@ class AttestationForm(forms.Form):
         initial=DossierKyc.PRESENTIEL,
     )
     empreinte = forms.CharField(
-        label="Empreinte SHA-256 du document reçu",
+        label=_l("Empreinte SHA-256 du document reçu"),
         max_length=64,
         required=False,
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "off", "spellcheck": "false", "class": "champ v-empreinte"}),
         help_text=(
-            "Choisissez le fichier ci-dessus : l'empreinte est calculée dans votre navigateur, le fichier "
-            "n'est jamais envoyé. Supprimez-le ensuite de votre téléphone ou de votre messagerie."
+            _l("Choisissez le fichier ci-dessus : l'empreinte est calculée dans votre navigateur, le fichier "
+            "n'est jamais envoyé. Supprimez-le ensuite de votre téléphone ou de votre messagerie.")
         ),
     )
     copie = forms.FileField(
-        label="Copie à conserver",
+        label=_l("Copie à conserver"),
         required=False,
-        help_text="Un stockage persistant et privé est désigné : la copie y sera conservée, et son empreinte calculée.",
+        help_text=_l("Un stockage persistant et privé est désigné : la copie y sera conservée, et son empreinte calculée."),
     )
 
     def __init__(self, *args, boutique, **kwargs):
@@ -121,17 +122,17 @@ class AttestationForm(forms.Form):
 class AppelForm(forms.Form):
     """L'appel de vérification : pas de SMS, un humain qui appelle et qui l'atteste."""
 
-    gerant = forms.ChoiceField(label="Gérant appelé")
+    gerant = forms.ChoiceField(label=_l("Gérant appelé"))
     confirme = forms.BooleanField(
-        label="J'ai appelé ce numéro, et c'est bien le gérant qui a répondu.",
+        label=_l("J'ai appelé ce numéro, et c'est bien le gérant qui a répondu."),
         error_messages={"required": "Cochez l'attestation : c'est elle qui vaut vérification."},
     )
     note = forms.CharField(
-        label="Note",
+        label=_l("Note"),
         max_length=200,
         required=False,
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "off"}),
-        help_text="Facultatif : date convenue, question de contrôle posée…",
+        help_text=_l("Facultatif : date convenue, question de contrôle posée…"),
     )
 
     def __init__(self, *args, boutique, **kwargs):
@@ -150,17 +151,17 @@ class AppelForm(forms.Form):
 class CompteForm(forms.Form):
     """Déclarer un compte de versement. Opérateurs restreints à ceux du pays de la boutique."""
 
-    operateur = forms.ChoiceField(label="Opérateur", widget=forms.RadioSelect)
+    operateur = forms.ChoiceField(label=_l("Opérateur"), widget=forms.RadioSelect)
     numero = forms.CharField(
-        label="Numéro",
+        label=_l("Numéro"),
         max_length=40,
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "off", "inputmode": "tel", "spellcheck": "false"}),
     )
     titulaire = forms.CharField(
-        label="Titulaire, tel que l'opérateur l'affiche",
+        label=_l("Titulaire, tel que l'opérateur l'affiche"),
         max_length=160,
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "off"}),
-        help_text="Le nom de la pièce d'identité du gérant, ou la raison sociale de la boutique.",
+        help_text=_l("Le nom de la pièce d'identité du gérant, ou la raison sociale de la boutique."),
     )
 
     def __init__(self, *args, boutique, **kwargs):
@@ -180,9 +181,9 @@ class DecisionForm(forms.Form):
     VALIDER, REJETER = "valider", "rejeter"
     decision = forms.ChoiceField(choices=[(VALIDER, "Valider"), (REJETER, "Rejeter")])
     motif = forms.CharField(
-        label="Motif du rejet",
+        label=_l("Motif du rejet"),
         max_length=300,
         required=False,
         widget=forms.Textarea(attrs={**CHAMP, "rows": 2, "maxlength": 300}),
-        help_text="Le commerçant le lira : dites ce qu'il doit corriger.",
+        help_text=_l("Le commerçant le lira : dites ce qu'il doit corriger."),
     )

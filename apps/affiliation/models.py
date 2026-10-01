@@ -16,6 +16,8 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.models import BaseModel
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 CENTIME = Decimal("0.01")
 
@@ -33,7 +35,7 @@ class Apporteur(BaseModel):
 
     ACTIF = "actif"
     SUSPENDU = "suspendu"
-    ETATS = [(ACTIF, "Actif"), (SUSPENDU, "Suspendu")]
+    ETATS = [(ACTIF, _l("Actif")), (SUSPENDU, _l("Suspendu"))]
 
     utilisateur = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="apporteur"
@@ -47,7 +49,7 @@ class Apporteur(BaseModel):
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=ACTIF, db_index=True)
     kyc_renforce = models.BooleanField(
-        default=False, help_text="Requis au-delà de 500 000 FCFA de gains mensuels (docs/06, §6)."
+        default=False, help_text=_l("Requis au-delà de 500 000 FCFA de gains mensuels (docs/06, §6).")
     )
 
     class Meta:
@@ -62,11 +64,11 @@ class Apporteur(BaseModel):
         if parrain is None:
             return
         if parrain.pk == self.pk:
-            raise FiliationInvalide("Un apporteur ne peut pas se parrainer lui-même.")
+            raise FiliationInvalide(_("Un apporteur ne peut pas se parrainer lui-même."))
         if parrain.parrain_n1_id == self.pk or parrain.parrain_n2_id == self.pk:
-            raise FiliationInvalide("Rattachement circulaire.")
+            raise FiliationInvalide(_("Rattachement circulaire."))
         if self.parrain_n1_id is not None:
-            raise FiliationInvalide("Cet apporteur a déjà un parrain : la filiation est définitive.")
+            raise FiliationInvalide(_("Cet apporteur a déjà un parrain : la filiation est définitive."))
 
         self.parrain_n1 = parrain
         # Le parrain du parrain, et rien au-delà : la chaîne s'arrête ici (arbitrage A11).
@@ -84,15 +86,15 @@ class Attribution(BaseModel):
     ACHETEUR = "acheteur"
     MARCHAND = "marchand"
     REVENDEUR = "revendeur"
-    CIBLES = [(ACHETEUR, "Acheteur"), (MARCHAND, "Marchand"), (REVENDEUR, "Revendeur")]
+    CIBLES = [(ACHETEUR, _l("Acheteur")), (MARCHAND, _l("Marchand")), (REVENDEUR, _l("Revendeur"))]
 
     CODE = "code"
     CLIC = "clic"
     RATTACHEMENT = "rattachement"
     ORIGINES = [
-        (CODE, "Code saisi explicitement"),
-        (CLIC, "Dernier clic non direct"),
-        (RATTACHEMENT, "Rattachement permanent du compte"),
+        (CODE, _l("Code saisi explicitement")),
+        (CLIC, _l("Dernier clic non direct")),
+        (RATTACHEMENT, _l("Rattachement permanent du compte")),
     ]
 
     apporteur = models.ForeignKey(Apporteur, on_delete=models.CASCADE, related_name="attributions")
@@ -130,7 +132,7 @@ class Revendeur(BaseModel):
 
     ACTIF = "actif"
     SUSPENDU = "suspendu"
-    ETATS = [(ACTIF, "Actif"), (SUSPENDU, "Suspendu")]
+    ETATS = [(ACTIF, _l("Actif")), (SUSPENDU, _l("Suspendu"))]
 
     utilisateur = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="revendeur"
@@ -141,7 +143,7 @@ class Revendeur(BaseModel):
         max_digits=5,
         decimal_places=4,
         default=Decimal("0"),
-        help_text="Remise maximale que le revendeur peut consentir, prise sur sa propre marge.",
+        help_text=_l("Remise maximale que le revendeur peut consentir, prise sur sa propre marge."),
     )
 
     class Meta:
@@ -194,7 +196,7 @@ class Commission(BaseModel):
     N1 = "N1"
     N2 = "N2"
     REVENDEUR = "REVENDEUR"
-    ROLES = [(N1, "Apporteur direct"), (N2, "Apporteur indirect"), (REVENDEUR, "Revendeur")]
+    ROLES = [(N1, _l("Apporteur direct")), (N2, _l("Apporteur indirect")), (REVENDEUR, _l("Revendeur"))]
 
     ATTENDUE = "attendue"
     ACQUISE = "acquise"
@@ -203,12 +205,12 @@ class Commission(BaseModel):
     ANNULEE = "annulee"
     REPRISE = "reprise"
     ETATS = [
-        (ATTENDUE, "Attendue"),
-        (ACQUISE, "Acquise"),
-        (PAYABLE, "Payable"),
-        (PAYEE, "Payée"),
-        (ANNULEE, "Annulée"),
-        (REPRISE, "Reprise sur gains futurs"),
+        (ATTENDUE, _l("Attendue")),
+        (ACQUISE, _l("Acquise")),
+        (PAYABLE, _l("Payable")),
+        (PAYEE, _l("Payée")),
+        (ANNULEE, _l("Annulée")),
+        (REPRISE, _l("Reprise sur gains futurs")),
     ]
 
     beneficiaire = models.ForeignKey(
@@ -219,7 +221,7 @@ class Commission(BaseModel):
         "orders.SousCommande", on_delete=models.PROTECT, related_name="commissions"
     )
     assiette = models.DecimalField(
-        max_digits=14, decimal_places=2, help_text="Commission plateforme sur laquelle est prélevée la part."
+        max_digits=14, decimal_places=2, help_text=_l("Commission plateforme sur laquelle est prélevée la part.")
     )
     taux = models.DecimalField(max_digits=5, decimal_places=4)
     montant = models.DecimalField(max_digits=14, decimal_places=2)
@@ -247,11 +249,11 @@ class SignalFraude(BaseModel):
     RETOURS_SYSTEMATIQUES = "retours_systematiques"
     VOL_ATTRIBUTION = "vol_attribution"
     TYPES = [
-        (AUTO_PARRAINAGE, "Auto-parrainage"),
-        (COMPTES_MULTIPLES, "Comptes multiples"),
-        (COMMANDES_FICTIVES, "Commandes fictives"),
-        (RETOURS_SYSTEMATIQUES, "Retours systématiques"),
-        (VOL_ATTRIBUTION, "Vol d'attribution"),
+        (AUTO_PARRAINAGE, _l("Auto-parrainage")),
+        (COMPTES_MULTIPLES, _l("Comptes multiples")),
+        (COMMANDES_FICTIVES, _l("Commandes fictives")),
+        (RETOURS_SYSTEMATIQUES, _l("Retours systématiques")),
+        (VOL_ATTRIBUTION, _l("Vol d'attribution")),
     ]
 
     apporteur = models.ForeignKey(Apporteur, on_delete=models.CASCADE, related_name="signaux_fraude")

@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Une pièce du dossier. Le numéro n'existe plus en clair nulle part — seulement son empreinte à clé
 et ses quatre derniers caractères. Les décisions postent vers `verification_piece`.
 Paramètre : `ligne` = {dossier, alertes, refus_moi}.
@@ -11,20 +11,20 @@ Paramètre : `ligne` = {dossier, alertes, refus_moi}.
     </span>
     <span class="pile-sm" style="gap:1px;min-width:0">
       <span class="v-element__titre">{{ d.get_type_piece_display }}</span>
-      <span class="t-legende">{% if d.utilisateur %}{{ d.utilisateur.nom_complet }}{% else %}La boutique{% endif %} · <span class="v-numero">{{ d.numero_masque }}</span></span>
+      <span class="t-legende">{% if d.utilisateur %}{{ d.utilisateur.nom_complet }}{% else %}{% translate "La boutique" %}{% endif %} · <span class="v-numero">{{ d.numero_masque }}</span></span>
     </span>
     {% include "plateforme/partials/v_etat.html" with etat=d.etat libelle=d.get_etat_display %}
   </div>
   <dl class="cles">
-    {% if d.nom_lu and d.type_piece != 'TELEPHONE' %}<dt>Nom lu</dt><dd>{{ d.nom_lu }}</dd>{% endif %}
-    <dt>Pays émetteur</dt><dd>{{ d.pays }}</dd>
-    {% if d.expire_le %}<dt>Expire le</dt><dd>{{ d.expire_le|date:"d/m/Y" }}</dd>{% endif %}
-    <dt>Vu</dt><dd>{{ d.get_mode_verification_display }}</dd>
-    {% if d.empreinte %}<dt>Empreinte</dt><dd><span class="v-empreinte-courte" title="{{ d.empreinte }}">{{ d.empreinte|slice:":16" }}…</span></dd>{% endif %}
-    {% if d.copie %}<dt>Copie</dt><dd><a class="t-lien" href="?copie={{ d.pk }}">Télécharger la copie conservée</a> <span class="t-legende">(inscrit au journal)</span></dd>{% endif %}
-    <dt>{% if d.type_piece == 'TELEPHONE' %}Appelé par{% else %}Attestée par{% endif %}</dt><dd>{% if d.declare_par %}{{ d.declare_par.nom_complet }}{% else %}{{ d.verifie_par.nom_complet|default:"—" }}{% endif %}, le {{ d.cree_le|date:"d/m/Y à H:i" }}</dd>
-    {% if d.etat == 'valide' and d.declare_par %}<dt>Validée par</dt><dd>{{ d.verifie_par.nom_complet|default:"—" }}, le {{ d.verifie_le|date:"d/m/Y" }}</dd>{% endif %}
-    {% if d.etat == 'rejete' %}<dt>Motif du rejet</dt><dd>{{ d.motif_rejet }}</dd>{% endif %}
+    {% if d.nom_lu and d.type_piece != 'TELEPHONE' %}<dt>{% translate "Nom lu" %}</dt><dd>{{ d.nom_lu }}</dd>{% endif %}
+    <dt>{% translate "Pays émetteur" %}</dt><dd>{{ d.pays }}</dd>
+    {% if d.expire_le %}<dt>{% translate "Expire le" %}</dt><dd>{{ d.expire_le|date:"d/m/Y" }}</dd>{% endif %}
+    <dt>{% translate "Vu" %}</dt><dd>{{ d.get_mode_verification_display }}</dd>
+    {% if d.empreinte %}<dt>{% translate "Empreinte" %}</dt><dd><span class="v-empreinte-courte" title="{{ d.empreinte }}">{{ d.empreinte|slice:":16" }}…</span></dd>{% endif %}
+    {% if d.copie %}<dt>{% translate "Copie" %}</dt><dd><a class="t-lien" href="?copie={{ d.pk }}">{% translate "Télécharger la copie conservée" %}</a> <span class="t-legende">{% translate "(inscrit au journal)" %}</span></dd>{% endif %}
+    <dt>{% if d.type_piece == 'TELEPHONE' %}{% translate "Appelé par" %}{% else %}{% translate "Attestée par" %}{% endif %}</dt><dd>{% if d.declare_par %}{{ d.declare_par.nom_complet }}{% else %}{{ d.verifie_par.nom_complet|default:"—" }}{% endif %}{% blocktranslate with cree_le=d.cree_le|date:"d/m/Y à H:i" trimmed %}, le {{ cree_le }}{% endblocktranslate %}</dd>
+    {% if d.etat == 'valide' and d.declare_par %}<dt>{% translate "Validée par" %}</dt><dd>{% blocktranslate with nom_complet=d.verifie_par.nom_complet|default:"—" verifie_le=d.verifie_le|date:"d/m/Y" trimmed %}{{ nom_complet }}, le {{ verifie_le }}{% endblocktranslate %}</dd>{% endif %}
+    {% if d.etat == 'rejete' %}<dt>{% translate "Motif du rejet" %}</dt><dd>{{ d.motif_rejet }}</dd>{% endif %}
   </dl>
   {% for alerte in ligne.alertes %}
     <div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ alerte }}</span></div>
@@ -36,14 +36,14 @@ Paramètre : `ligne` = {dossier, alertes, refus_moi}.
         <p class="v-refus-moi"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg><span>{{ ligne.refus_moi }}</span></p>
       {% else %}
         <button class="btn btn--primaire" type="submit" name="decision" value="valider">
-          <svg aria-hidden="true"><use href="#ic-check"></use></svg>Valider
+          <svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Valider" %}
         </button>
       {% endif %}
       <details>
-        <summary class="btn">Rejeter…</summary>
-        <label class="lecteur-seul" for="motif-{{ d.pk }}">Motif du rejet</label>
-        <textarea class="champ" id="motif-{{ d.pk }}" name="motif" rows="2" maxlength="300" placeholder="Ce que le commerçant doit corriger"></textarea>
-        <button class="btn btn--danger" type="submit" name="decision" value="rejeter" style="margin-top:8px">Rejeter avec ce motif</button>
+        <summary class="btn">{% translate "Rejeter…" %}</summary>
+        <label class="lecteur-seul" for="motif-{{ d.pk }}">{% translate "Motif du rejet" %}</label>
+        <textarea class="champ" id="motif-{{ d.pk }}" name="motif" rows="2" maxlength="300" placeholder="{% translate 'Ce que le commerçant doit corriger' %}"></textarea>
+        <button class="btn btn--danger" type="submit" name="decision" value="rejeter" style="margin-top:8px">{% translate "Rejeter avec ce motif" %}</button>
       </details>
     </form>
   {% endif %}

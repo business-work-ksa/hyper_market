@@ -1,10 +1,10 @@
-{% load static hm %}<!doctype html>
-<html lang="fr">
+{% load i18n static hm %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Ticket {{ ticket.numero }} — {{ boutique.enseigne }}</title>
+<title>{% blocktranslate with numero=ticket.numero enseigne=boutique.enseigne trimmed %}Ticket {{ numero }} — {{ enseigne }}{% endblocktranslate %}</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 {% include "partials/icones_marque.html" %}
 <style>
@@ -64,11 +64,11 @@
 
   <hr class="sep">
 
-  <div class="lgn"><span>Ticket</span><span>{{ ticket.numero }}</span></div>
-  <div class="lgn"><span>Date</span><span>{{ ticket.cloture_le|date:"d/m/Y H:i" }}</span></div>
-  <div class="lgn"><span>Caissier</span><span>{{ ticket.session.caissier.nom_complet|truncatechars:20 }}</span></div>
+  <div class="lgn"><span>{% translate "Ticket" %}</span><span>{{ ticket.numero }}</span></div>
+  <div class="lgn"><span>{% translate "Date" %}</span><span>{{ ticket.cloture_le|date:"d/m/Y H:i" }}</span></div>
+  <div class="lgn"><span>{% translate "Caissier" %}</span><span>{{ ticket.session.caissier.nom_complet|truncatechars:20 }}</span></div>
   {% if ticket.client_nom %}
-    <div class="lgn"><span>Client</span><span>{{ ticket.client_nom|truncatechars:20 }}</span></div>
+    <div class="lgn"><span>{% translate "Client" %}</span><span>{{ ticket.client_nom|truncatechars:20 }}</span></div>
   {% endif %}
 
   <hr class="sep">
@@ -81,7 +81,7 @@
         <span>{{ ligne.total_ttc|fcfa }}</span>
       </span>
       {% if ligne.remise %}
-        <span class="detail"><span>Remise</span><span>-{{ ligne.remise|fcfa }}</span></span>
+        <span class="detail"><span>{% translate "Remise" %}</span><span>-{{ ligne.remise|fcfa }}</span></span>
       {% endif %}
     </div>
   {% endfor %}
@@ -89,7 +89,7 @@
   <hr class="sep">
 
   {% if assujetti_tva %}
-    <div class="lgn"><span>Total hors taxes</span><span>{{ ticket.total_ht|fcfa }}</span></div>
+    <div class="lgn"><span>{% translate "Total hors taxes" %}</span><span>{{ ticket.total_ht|fcfa }}</span></div>
     <div class="lgn"><span>TVA 19,25 %</span><span>{{ ticket.total_tva|fcfa }}</span></div>
   {% endif %}
   <div class="lgn total"><span>TOTAL</span><span>{{ ticket.total_ttc|fcfa }} FCFA</span></div>
@@ -105,25 +105,25 @@
 
   <p class="pied">
     {% if not assujetti_tva %}
-      TVA non applicable — régime de l'impôt général synthétique.<br>
+      {% translate "TVA non applicable — régime de l'impôt général synthétique." %}<br>
     {% endif %}
-    Merci de votre visite.<br>
-    Conservez ce ticket pour tout échange.
+    {% translate "Merci de votre visite." %}<br>
+    {% translate "Conservez ce ticket pour tout échange." %}
   </p>
 </article>
 
 <div class="actions">
-  <button class="btn btn--primaire" type="button" id="bobine" hidden>Imprimer sur la bobine</button>
-  <button class="btn" type="button" onclick="window.print()">Imprimer (navigateur)</button>
-  <button class="btn" type="button" id="partager" hidden>Partager</button>
-  <a class="btn" href="{% url 'ventes' %}">Retour aux ventes</a>
+  <button class="btn btn--primaire" type="button" id="bobine" hidden>{% translate "Imprimer sur la bobine" %}</button>
+  <button class="btn" type="button" onclick="window.print()">{% translate "Imprimer (navigateur)" %}</button>
+  <button class="btn" type="button" id="partager" hidden>{% translate "Partager" %}</button>
+  <a class="btn" href="{% url 'ventes' %}">{% translate "Retour aux ventes" %}</a>
 </div>
 
 <div class="reglage" id="reglage-bobine" hidden>
-  <label class="t-legende" for="largeur-bobine">Largeur de bobine</label>
+  <label class="t-legende" for="largeur-bobine">{% translate "Largeur de bobine" %}</label>
   <select class="champ champ--compact" id="largeur-bobine">
-    <option value="32">58 mm — 32 colonnes</option>
-    <option value="48">80 mm — 48 colonnes</option>
+    <option value="32">{% translate "58 mm — 32 colonnes" %}</option>
+    <option value="48">{% translate "80 mm — 48 colonnes" %}</option>
   </select>
 </div>
 

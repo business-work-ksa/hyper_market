@@ -1,16 +1,15 @@
-"""La langue du marché : français ou anglais, au choix de l'acheteur.
+"""La langue de l'application : français ou anglais, au choix de la personne.
 
-Le Cameroun est bilingue, et le marché s'adresse aussi à Buea, Bamenda et Limbé. La vitrine se lit
-donc en français ou en anglais. Le back-office, lui, reste en français : ses écrans, ses messages
-d'erreur et sa documentation n'existent que dans cette langue, et un écran à moitié traduit est
-pire qu'un écran d'une seule langue.
+Le Cameroun est bilingue, et HyperMarché s'adresse aussi à Buea, Bamenda et Limbé : le marché, le
+back-office des commerçants et la console de la plateforme se lisent en français ou en anglais.
 
-D'où un intergiciel et non `LocaleMiddleware` tel quel : celui-ci appliquerait la langue du
-navigateur partout, et un commerçant au téléphone réglé en anglais verrait les messages de
-validation de Django en anglais au milieu d'un formulaire français.
+D'où un intergiciel et non `LocaleMiddleware` tel quel : celui-ci appliquerait la langue partout,
+y compris aux adresses techniques — l'API des applications mobiles, les notifications des
+opérateurs Mobile Money, la tâche quotidienne — dont les messages sont journalisés, comparés et
+relus en français. Ces adresses restent en français, quoi qu'envoie l'appelant.
 
-Ordre de décision, sur les pages du marché seulement :
-  1. le choix explicite de l'acheteur (cookie posé par la vue `set_language` de Django) ;
+Ordre de décision, partout ailleurs :
+  1. le choix explicite de la personne (cookie `hm_langue`, posé par la vue `set_language`) ;
   2. la langue préférée de son navigateur, si c'est le français ou l'anglais ;
   3. le français.
 """
@@ -18,7 +17,11 @@ Ordre de décision, sur les pages du marché seulement :
 from django.conf import settings
 from django.utils import translation
 
-PREFIXES = ("/marche/",)
+TECHNIQUES = ("/api/", "/paiements/notifications/", "/taches/")
+
+
+def _langue_choisie(request) -> bool:
+    return not request.path.startswith(TECHNIQUES)
 
 
 class LangueDuMarcheMiddleware:
@@ -26,7 +29,8 @@ class LangueDuMarcheMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path.startswith(PREFIXES):
+        choisie = _langue_choisie(request)
+        if choisie:
             langue = translation.get_language_from_request(request, check_path=False)
         else:
             langue = settings.LANGUAGE_CODE
@@ -34,7 +38,7 @@ class LangueDuMarcheMiddleware:
         request.LANGUAGE_CODE = translation.get_language()
         try:
             response = self.get_response(request)
-            if request.path.startswith(PREFIXES):
+            if choisie:
                 response.headers.setdefault("Content-Language", request.LANGUAGE_CODE)
                 vary = response.headers.get("Vary", "")
                 if "Accept-Language" not in vary:

@@ -1,4 +1,4 @@
-{% load hm %}{% comment %}
+{% load i18n hm %}{% comment %}
 Quelques lignes du journal des accès, en liste compacte. `lignes` : des dictionnaires de
 `vues_tableau.lignes_de_journal`, ou des `AccesPlateforme` (fiche boutique : `sans_boutique`).
 {% endcomment %}
@@ -10,7 +10,7 @@ Quelques lignes du journal des accès, en liste compacte. `lignes` : des diction
         <span class="t-acces__titre">
           <strong>{{ a.utilisateur.nom_complet }}</strong>
           {% if not sans_boutique %}
-            · {% if a.boutique %}<a href="{% url 'plateforme:boutique' a.boutique_id %}">{{ a.boutique }}</a>{% elif a.boutique_disparue %}<span class="t-muet">boutique retirée</span>{% else %}<span class="t-muet">vue d'ensemble</span>{% endif %}
+            · {% if a.boutique %}<a href="{% url 'plateforme:boutique' a.boutique_id %}">{{ a.boutique }}</a>{% elif a.boutique_disparue %}<span class="t-muet">{% translate "boutique retirée" %}</span>{% else %}<span class="t-muet">{% translate "vue d'ensemble" %}</span>{% endif %}
           {% endif %}
         </span>
         <span class="t-acces__motif">{{ a.motif }}</span>

@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Rapport de la semaine — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Rapport de la semaine{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Rapport de la semaine — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Rapport de la semaine" %}{% endblock %}
 
 {% block actions_entete %}
   {% if precedente %}
-    <a class="btn" href="{% url 'rapport_semaine' %}">Semaine écoulée</a>
+    <a class="btn" href="{% url 'rapport_semaine' %}">{% translate "Semaine écoulée" %}</a>
   {% else %}
-    <a class="btn" href="{% url 'rapport_semaine' %}?precedente=1">Semaine d'avant</a>
+    <a class="btn" href="{% url 'rapport_semaine' %}?precedente=1">{% translate "Semaine d'avant" %}</a>
   {% endif %}
 {% endblock %}
 
@@ -16,7 +17,7 @@
 <div class="colonne">
   <section class="tuiles" aria-label="La semaine du {{ rapport.debut|date:'d/m' }} au {{ rapport.fin|date:'d/m' }}">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Ventes de la semaine</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Ventes de la semaine" %}</span></div>
       <p class="tuile__valeur">{{ rapport.chiffre_affaires|fcfa }}<span class="unite">FCFA</span></p>
       <p class="tuile__note">
         {% if rapport.evolution is not None %}
@@ -25,29 +26,29 @@
           {% else %}
             <span class="ecart ecart--baisse"><svg><use href="#ic-baisse"></use></svg>{{ rapport.evolution }} %</span>
           {% endif %}
-          <span class="t-muet">sur la semaine d'avant ({{ rapport.precedent|fcfa }} FCFA)</span>
+          <span class="t-muet">{% blocktranslate with precedent=rapport.precedent|fcfa trimmed %}sur la semaine d'avant ({{ precedent }} FCFA){% endblocktranslate %}</span>
         {% else %}
-          <span class="t-muet">Pas de ventes la semaine d'avant pour comparer</span>
+          <span class="t-muet">{% translate "Pas de ventes la semaine d'avant pour comparer" %}</span>
         {% endif %}
       </p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">Tickets</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">{% translate "Tickets" %}</span></div>
       <p class="tuile__valeur">{{ rapport.tickets }}</p>
-      <p class="tuile__note"><span class="t-muet">Du lundi {{ rapport.debut|date:"d/m" }} au dimanche {{ rapport.fin|date:"d/m" }}</span></p>
+      <p class="tuile__note"><span class="t-muet">{% blocktranslate with debut=rapport.debut|date:"d/m" fin=rapport.fin|date:"d/m" trimmed %}Du lundi {{ debut }} au dimanche {{ fin }}{% endblocktranslate %}</span></p>
     </article>
     {% if rapport.stock_visible %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-rupture"></use></svg><span class="t-sur-titre">En rupture</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-rupture"></use></svg><span class="t-sur-titre">{% translate "En rupture" %}</span></div>
         <p class="tuile__valeur">{{ rapport.ruptures_total }}</p>
-        <p class="tuile__note"><span class="t-muet">{% if rapport.ruptures_total %}Articles à zéro, aujourd'hui{% else %}Rien ne manque{% endif %}</span></p>
+        <p class="tuile__note"><span class="t-muet">{% if rapport.ruptures_total %}{% translate "Articles à zéro, aujourd'hui" %}{% else %}{% translate "Rien ne manque" %}{% endif %}</span></p>
       </article>
     {% endif %}
     {% if rapport.cahier is not None %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">Cahier de crédit</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">{% translate "Cahier de crédit" %}</span></div>
         <p class="tuile__valeur">{{ rapport.cahier|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">À recevoir de vos clients</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "À recevoir de vos clients" %}</span></p>
       </article>
     {% endif %}
   </section>
@@ -55,34 +56,34 @@
   <div class="duo">
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Le message</h2>
-        <span class="puce"><svg><use href="#ic-info"></use></svg>Sans la marge</span>
+        <h2 class="t-section">{% translate "Le message" %}</h2>
+        <span class="puce"><svg><use href="#ic-info"></use></svg>{% translate "Sans la marge" %}</span>
       </header>
       <div class="carte__corps colonne" style="gap:14px">
         <pre class="rapport-message" id="rapport-message">{{ message }}</pre>
         <div class="rangee" style="gap:10px;flex-wrap:wrap">
           <a class="btn btn--primaire" href="{{ lien_whatsapp }}" target="_blank" rel="noopener">
-            <svg><use href="#ic-momo"></use></svg> Envoyer sur WhatsApp
+            <svg><use href="#ic-momo"></use></svg> {% translate "Envoyer sur WhatsApp" %}
           </a>
           {% if lien_moi %}
-            <a class="btn" href="{{ lien_moi }}" target="_blank" rel="noopener">M'envoyer le rapport</a>
+            <a class="btn" href="{{ lien_moi }}" target="_blank" rel="noopener">{% translate "M'envoyer le rapport" %}</a>
           {% endif %}
-          <button class="btn btn--discret" type="button" id="copier-rapport">Copier le texte</button>
+          <button class="btn btn--discret" type="button" id="copier-rapport">{% translate "Copier le texte" %}</button>
         </div>
         <p class="t-legende">
-          WhatsApp s'ouvre avec le message déjà écrit : vous choisissez à qui l'envoyer. Rien ne part
-          sans vous. La marge n'y figure jamais — un message se transfère et se lit par-dessus l'épaule.
+          {% blocktranslate trimmed %}WhatsApp s'ouvre avec le message déjà écrit : vous choisissez à qui l'envoyer. Rien ne part
+          sans vous. La marge n'y figure jamais — un message se transfère et se lit par-dessus l'épaule.{% endblocktranslate %}
         </p>
       </div>
     </section>
 
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Ce qui part</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Ce qui part" %}</h2></header>
       {% if rapport.articles %}
         <div class="carte__corps--serre">
           <div class="tableau-boite">
             <table class="tableau">
-              <thead><tr><th scope="col">Article</th><th scope="col" class="num">Quantité</th></tr></thead>
+              <thead><tr><th scope="col">{% translate "Article" %}</th><th scope="col" class="num">{% translate "Quantité" %}</th></tr></thead>
               <tbody>
                 {% for libelle, quantite in rapport.articles %}
                   <tr><td class="principal">{{ libelle }}</td><td class="num chiffre">{{ quantite|floatformat:"-2" }}</td></tr>
@@ -92,7 +93,7 @@
           </div>
         </div>
       {% else %}
-        <div class="carte__corps"><div class="vide"><svg><use href="#ic-ventes"></use></svg><p class="t-2">Aucune vente enregistrée cette semaine.</p></div></div>
+        <div class="carte__corps"><div class="vide"><svg><use href="#ic-ventes"></use></svg><p class="t-2">{% translate "Aucune vente enregistrée cette semaine." %}</p></div></div>
       {% endif %}
     </section>
   </div>

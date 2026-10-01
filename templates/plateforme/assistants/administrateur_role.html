@@ -1,7 +1,8 @@
 {% extends "plateforme/assistants/cadre.html" %}
-{% block fil_parent %}Administrateurs{% endblock %}
-{% block question %}Quel rôle, et pourquoi ?{% endblock %}
-{% block phrase %}Chaque rôle ouvre une liste fermée de droits d'exploitation. Aucun n'ouvre les chiffres d'une boutique.{% endblock %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Administrateurs" %}{% endblock %}
+{% block question %}{% translate "Quel rôle, et pourquoi ?" %}{% endblock %}
+{% block phrase %}{% translate "Chaque rôle ouvre une liste fermée de droits d'exploitation. Aucun n'ouvre les chiffres d'une boutique." %}{% endblock %}
 {% block etape %}
   {% include "plateforme/partials/a_cartes.html" with champ=form.role cartes=cartes_roles classe="a-cartes--deux a-cartes--roles" %}
   {% include "plateforme/partials/a_champ.html" with champ=form.motif %}

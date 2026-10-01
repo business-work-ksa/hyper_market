@@ -30,6 +30,7 @@ from apps.backoffice.filtres import FiltresOrdonnancierForm
 from apps.marketplace import metiers
 from apps.pos.models import Ticket
 from apps.pos.services import TicketInvalide, consigner_ordonnance, delivrances_sur_ordonnance
+from django.utils.translation import gettext as _
 
 # Un registre se tient sur la durée, mais un écran qui déroule trois ans de
 # délivrances n'est plus consultable. Les incomplètes remontent quel que soit
@@ -94,5 +95,5 @@ def ordonnancier_consigner(request, ticket_id):
         messages.error(request, str(erreur))
         return redirect("ordonnancier")
 
-    messages.success(request, f"Ordonnance consignée pour le ticket {ticket.numero}.")
+    messages.success(request, _('Ordonnance consignée pour le ticket %(numero)s.') % {"numero": ticket.numero})
     return redirect("ordonnancier")

@@ -36,6 +36,7 @@ from django.utils import timezone
 from apps.core.tenancy import contexte_boutique
 from apps.payments.models import CENTIME, MouvementPortefeuille, PortefeuilleMarchand, Versement
 from apps.payments.services import mouvementer_portefeuille
+from django.utils.translation import gettext as _
 
 journal = logging.getLogger(__name__)
 
@@ -112,11 +113,11 @@ def demander_versement(boutique, *, par, maintenant=None) -> Versement:
     maintenant = maintenant or timezone.now()
     boutique_id = getattr(boutique, "pk", boutique)
     if not getattr(par, "is_authenticated", False):
-        raise VersementRefuse("Un versement se demande par une personne identifiée.")
+        raise VersementRefuse(_("Un versement se demande par une personne identifiée."))
     # Par un membre de la boutique, jamais par la plateforme : c'est l'argent du marchand, et un
     # administrateur qui pourrait le faire partir à sa place n'aurait plus besoin de complice.
     if not par.appartenances.filter(boutique_id=boutique_id, actif=True).exists():
-        raise VersementRefuse("Seul un membre de la boutique demande son versement.")
+        raise VersementRefuse(_("Seul un membre de la boutique demande son versement."))
 
     compte, refus = compte_de_destination(boutique_id, maintenant=maintenant)
     if compte is None:
@@ -129,16 +130,16 @@ def demander_versement(boutique, *, par, maintenant=None) -> Versement:
             disponible = Decimal(disponible).quantize(CENTIME)
             if disponible < 0:
                 raise VersementRefuse(
-                    "Rien à verser : les commissions de vos ventes payées à la livraison dépassent "
+                    _("Rien à verser : les commissions de vos ventes payées à la livraison dépassent "
                     "votre disponible. La différence se règle d'elle-même sur vos prochains "
-                    "paiements en ligne."
+                    "paiements en ligne.")
                 )
             if disponible == 0:
-                raise VersementRefuse("Rien à verser : votre solde disponible est nul.")
+                raise VersementRefuse(_("Rien à verser : votre solde disponible est nul."))
             if Versement.objects.filter(boutique_id=boutique_id, etat=Versement.DEMANDE).exists():
                 raise VersementRefuse(
-                    "Un versement est déjà en attente d'exécution. Le suivant pourra être "
-                    "demandé dès qu'il sera parti."
+                    _("Un versement est déjà en attente d'exécution. Le suivant pourra être "
+                    "demandé dès qu'il sera parti.")
                 )
             versement = Versement.objects.create(
                 boutique_id=boutique_id,
@@ -165,19 +166,19 @@ def demander_versement(boutique, *, par, maintenant=None) -> Versement:
 def _controler_l_executant(versement, par) -> None:
     """Quatre yeux au moins entre la déclaration d'un compte et l'argent qui y part."""
     if not getattr(par, "is_authenticated", False):
-        raise VersementRefuse("Un versement s'exécute par une personne identifiée.")
+        raise VersementRefuse(_("Un versement s'exécute par une personne identifiée."))
     if par.appartenances.filter(boutique_id=versement.boutique_id, actif=True).exists():
         raise VersementRefuse(
-            "Vous êtes membre de cette boutique : son versement doit être exécuté par un autre "
-            "administrateur."
+            _("Vous êtes membre de cette boutique : son versement doit être exécuté par un autre "
+            "administrateur.")
         )
     if versement.compte.verifie_par_id == par.pk:
         raise VersementRefuse(
-            "Vous avez vérifié le compte de destination : le versement doit être exécuté par un "
-            "autre administrateur."
+            _("Vous avez vérifié le compte de destination : le versement doit être exécuté par un "
+            "autre administrateur.")
         )
     if versement.demande_par_id == par.pk:
-        raise VersementRefuse("On n'exécute pas un versement qu'on a soi-même demandé.")
+        raise VersementRefuse(_("On n'exécute pas un versement qu'on a soi-même demandé."))
 
 
 def executer_versement(versement, *, reference: str, par, maintenant=None) -> Versement:
@@ -193,7 +194,7 @@ def executer_versement(versement, *, reference: str, par, maintenant=None) -> Ve
     reference = (reference or "").strip()
     if len(reference) < 4:
         raise VersementRefuse(
-            "Saisissez la référence de l'opération donnée par l'opérateur ou l'agrégateur."
+            _("Saisissez la référence de l'opération donnée par l'opérateur ou l'agrégateur.")
         )
     _controler_l_executant(versement, par)
 
@@ -207,13 +208,11 @@ def executer_versement(versement, *, reference: str, par, maintenant=None) -> Ve
                 )
                 if verrouille.etat != Versement.DEMANDE:
                     raise VersementRefuse(
-                        f"Ce versement est déjà {verrouille.get_etat_display().lower()}."
+                        _('Ce versement est déjà %(lower)s.') % {"lower": verrouille.get_etat_display().lower()}
                     )
                 if verrouille.compte.etat != CompteVersement.VERIFIE:
                     raise VersementRefuse(
-                        "Le compte de destination n'est plus vérifié "
-                        f"({verrouille.compte.get_etat_display().lower()}) : annulez ce "
-                        "versement, l'argent reviendra au disponible."
+                        _("Le compte de destination n'est plus vérifié (%(lower)s) : annulez ce versement, l'argent reviendra au disponible.") % {"lower": verrouille.compte.get_etat_display().lower()}
                     )
                 verrouille.etat = Versement.EXECUTE
                 verrouille.reference_operateur = reference[:120]
@@ -241,8 +240,8 @@ def executer_versement(versement, *, reference: str, par, maintenant=None) -> Ve
                     )
     except IntegrityError:
         raise VersementRefuse(
-            "Cette référence d'opérateur justifie déjà un autre versement : une même opération "
-            "ne paie pas deux fois."
+            _("Cette référence d'opérateur justifie déjà un autre versement : une même opération "
+            "ne paie pas deux fois.")
         ) from None
     return verrouille
 
@@ -252,17 +251,16 @@ def annuler_versement(versement, *, motif: str, par, maintenant=None) -> Verseme
     maintenant = maintenant or timezone.now()
     motif = (motif or "").strip()
     if len(motif) < LONGUEUR_MIN_MOTIF:
-        raise VersementRefuse("Une annulation se motive, en une phrase.")
+        raise VersementRefuse(_("Une annulation se motive, en une phrase."))
     if not getattr(par, "is_authenticated", False):
-        raise VersementRefuse("Une annulation a un auteur identifié.")
+        raise VersementRefuse(_("Une annulation a un auteur identifié."))
 
     with contexte_boutique(versement.boutique_id):
         with transaction.atomic():
             verrouille = Versement.objects.select_for_update().get(pk=versement.pk)
             if verrouille.etat != Versement.DEMANDE:
                 raise VersementRefuse(
-                    f"Ce versement est {verrouille.get_etat_display().lower()} : "
-                    "il ne s'annule plus."
+                    _("Ce versement est %(lower)s : il ne s'annule plus.") % {"lower": verrouille.get_etat_display().lower()}
                 )
             verrouille.etat = Versement.ANNULE
             verrouille.annule_par = par
@@ -331,8 +329,8 @@ def envoyer_par_api(versement, *, par):
     _controler_l_executant(versement, par)
     if not envoi_par_api_possible(versement):
         raise VersementRefuse(
-            "L'envoi automatique n'est possible que vers un compte MTN MoMo, avec les clés de "
-            "versement configurées. Exécutez ce versement à la main."
+            _("L'envoi automatique n'est possible que vers un compte MTN MoMo, avec les clés de "
+            "versement configurées. Exécutez ce versement à la main.")
         )
     en_cours = envoi_en_cours(versement)
     if en_cours is not None:
@@ -349,7 +347,7 @@ def envoyer_par_api(versement, *, par):
             charge_utile_psp={"versement_id": str(versement.pk), "execute_par": str(par.pk)},
         )
     except IntegrityError:
-        raise VersementRefuse("Un envoi de ce versement vient d'être lancé : relisez la page.") from None
+        raise VersementRefuse(_("Un envoi de ce versement vient d'être lancé : relisez la page.")) from None
 
     try:
         reponse = adaptateur_pour(versement.operateur).verser(
@@ -360,7 +358,7 @@ def envoyer_par_api(versement, *, par):
         operation.etat = Transaction.ECHOUEE
         operation.charge_utile_psp = {**operation.charge_utile_psp, "erreur": str(erreur)}
         operation.save(update_fields=["etat", "charge_utile_psp", "modifie_le"])
-        raise VersementRefuse(f"L'opérateur n'a pas pris le versement : {erreur}") from erreur
+        raise VersementRefuse(_("L'opérateur n'a pas pris le versement : %(erreur)s") % {"erreur": erreur}) from erreur
 
     disjoncteur.succes(versement.operateur)
     operation.reference_externe = reponse.reference_externe

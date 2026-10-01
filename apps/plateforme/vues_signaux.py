@@ -31,6 +31,7 @@ from apps.confiance.templatetags.confiance import CLE_PASTILLE
 from apps.marketplace.confiance import palier
 from apps.marketplace.models import Boutique
 from apps.plateforme.acces import contexte_console, exige_console
+from django.utils.translation import gettext as _
 
 PAR_PAGE = 25
 
@@ -143,7 +144,7 @@ def signal(request, signal_id):
                 # compte tout de suite la décision qu'on vient de prendre.
                 request.session.pop(CLE_PASTILLE, None)
                 verbe = "écarté" if formulaire.cleaned_data["decision"] == detecteurs.ECARTER else "confirmé"
-                messages.success(request, f"Signal {verbe} — décision inscrite au journal des accès.")
+                messages.success(request, _('Signal %(verbe)s — décision inscrite au journal des accès.') % {"verbe": verbe})
                 return redirect("plateforme:signal", signal_id=s.pk)
 
     b = s.boutique

@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Barre latérale des étapes d'un assistant : faite (lien pour revenir), courante (aria-current),
 à venir (inerte). On revient en arrière d'un clic ; on ne saute pas en avant.
 {% endcomment %}
@@ -11,11 +11,11 @@ Barre latérale des étapes d'un assistant : faite (lien pour revenir), courante
       <span class="etape__texte">
         {% if p.url %}
           <a class="etape__lien etape__titre" href="{{ p.url }}">
-            <span class="visuellement-cache">Étape {{ p.numero }}, faite : </span>{{ p.titre }}<span class="visuellement-cache"> — modifier</span>
+            <span class="visuellement-cache">{% blocktranslate with numero=p.numero trimmed %}Étape {{ numero }}, faite :{% endblocktranslate %} </span>{{ p.titre }}<span class="visuellement-cache"> {% translate "— modifier" %}</span>
           </a>
         {% else %}
           <span class="etape__titre">
-            <span class="visuellement-cache">Étape {{ p.numero }}{% if p.statut == 'courante' %}, en cours{% elif p.statut == 'faite' %}, faite{% else %}, à venir{% endif %} : </span>{{ p.titre }}
+            <span class="visuellement-cache">{% blocktranslate with numero=p.numero trimmed %}Étape {{ numero }}{% endblocktranslate %}{% if p.statut == 'courante' %}{% translate ", en cours" %}{% elif p.statut == 'faite' %}{% translate ", faite" %}{% else %}{% translate ", à venir" %}{% endif %} : </span>{{ p.titre }}
           </span>
         {% endif %}
         <span class="etape__aide">{{ p.aide }}</span>

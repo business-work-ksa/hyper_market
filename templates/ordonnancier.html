@@ -1,40 +1,41 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Ordonnancier — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Ordonnancier{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Ordonnancier — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Ordonnancier" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'ventes' %}">Toutes les ventes</a>
+  <a class="btn" href="{% url 'ventes' %}">{% translate "Toutes les ventes" %}</a>
 {% endblock %}
 
 {% block contenu %}
 <div class="colonne">
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">Consignées</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">{% translate "Consignées" %}</span></div>
       <p class="tuile__valeur">{{ consignees|length }}</p>
-      <p class="tuile__note"><span class="t-muet">Délivrances avec leur prescripteur</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Délivrances avec leur prescripteur" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">À compléter</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">{% translate "À compléter" %}</span></div>
       <p class="tuile__valeur">{{ incompletes|length }}</p>
-      <p class="tuile__note"><span class="t-muet">Délivrées, pas encore consignées</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Délivrées, pas encore consignées" %}</span></p>
     </article>
   </section>
 
   {% if incompletes %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">À compléter</h2>
+        <h2 class="t-section">{% translate "À compléter" %}</h2>
         <span class="puce puce--alerte"><svg><use href="#ic-alerte"></use></svg>{{ incompletes|length }}</span>
       </header>
       <div class="carte__corps colonne" style="gap:16px">
         <p class="t-legende">
-          Ces ventes portent un {{ metier.article }} délivré sur ordonnance et
+          {% blocktranslate with article=metier.article trimmed %}Ces ventes portent un {{ article }} délivré sur ordonnance et
           n'ont pas encore de prescripteur. La vente n'a pas été refusée — la
           boîte est partie avec le client, et la refuser n'aurait effacé que la
-          trace.
+          trace.{% endblocktranslate %}
         </p>
 
         {% for t in incompletes %}
@@ -53,17 +54,17 @@
                 {% endif %}
               {% endfor %}
             </p>
-            {% if t.client_nom %}<p class="t-legende">Client : {{ t.client_nom }}</p>{% endif %}
+            {% if t.client_nom %}<p class="t-legende">{% blocktranslate with client_nom=t.client_nom trimmed %}Client : {{ client_nom }}{% endblocktranslate %}</p>{% endif %}
             {% if peut_consigner %}
               <form method="post" action="{% url 'ordonnancier_consigner' ticket_id=t.pk %}"
                     class="rangee" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
                 {% csrf_token %}
                 <div class="groupe-champ" style="flex:1;min-width:240px">
-                  <label for="mention-{{ t.pk }}">Prescripteur et date de l'ordonnance</label>
+                  <label for="mention-{{ t.pk }}">{% translate "Prescripteur et date de l'ordonnance" %}</label>
                   <input class="champ" id="mention-{{ t.pk }}" name="mention"
-                         placeholder="Dr Manga, 11/09/2026" required>
+                         placeholder="{% translate 'Dr Manga, 11/09/2026' %}" required>
                 </div>
-                <button class="btn btn--primaire" type="submit">Consigner</button>
+                <button class="btn btn--primaire" type="submit">{% translate "Consigner" %}</button>
               </form>
             {% endif %}
           </div>
@@ -81,11 +82,11 @@
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Ticket</th>
+                <th scope="col">{% translate "Date" %}</th>
+                <th scope="col">{% translate "Ticket" %}</th>
                 <th scope="col">{{ metier.articles|capfirst }}</th>
-                <th scope="col">Client</th>
-                <th scope="col">Ordonnance</th>
+                <th scope="col">{% translate "Client" %}</th>
+                <th scope="col">{% translate "Ordonnance" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -108,14 +109,14 @@
         <div class="carte__corps">
           <div class="vide">
             <svg><use href="#ic-ventes"></use></svg>
-            <p class="t-2">Aucune délivrance consignée.</p>
+            <p class="t-2">{% translate "Aucune délivrance consignée." %}</p>
             {% if filtres.actifs %}
-              <a class="btn" href="{% url 'ordonnancier' %}">Retirer les filtres</a>
+              <a class="btn" href="{% url 'ordonnancier' %}">{% translate "Retirer les filtres" %}</a>
             {% endif %}
             <p class="t-legende">
-              Un {{ metier.article }} n'apparaît ici que s'il est marqué
+              {% blocktranslate with article=metier.article trimmed %}Un {{ article }} n'apparaît ici que s'il est marqué
               « délivré sur ordonnance » dans sa fiche. Sans cette marque, la
-              caisse ne demande rien et le registre reste vide.
+              caisse ne demande rien et le registre reste vide.{% endblocktranslate %}
             </p>
           </div>
         </div>

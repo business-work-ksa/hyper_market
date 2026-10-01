@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
 {% block titre %}{{ part.commande.numero }} — {{ boutique.enseigne }}{% endblock %}
 {% block entete %}{{ part.commande.numero }}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'commandes' %}">Toutes les commandes</a>
+  <a class="btn" href="{% url 'commandes' %}">{% translate "Toutes les commandes" %}</a>
   {% if part.action_suivante %}
     <form method="post" action="{% url 'commande_avancer' part.pk %}" style="display:inline">
       {% csrf_token %}
@@ -21,34 +22,34 @@
 <div class="colonne">
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-commandes"></use></svg><span class="t-sur-titre">État</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-commandes"></use></svg><span class="t-sur-titre">{% translate "État" %}</span></div>
       <p class="tuile__valeur" style="font-size:1.2rem">{{ part.get_etat_display }}</p>
-      <p class="tuile__note"><span class="t-muet">Reçue le {{ part.cree_le|date:"d/m/Y à H:i" }}</span></p>
+      <p class="tuile__note"><span class="t-muet">{% blocktranslate with cree_le=part.cree_le|date:"d/m/Y à H:i" trimmed %}Reçue le {{ cree_le }}{% endblocktranslate %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Total de votre part</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Total de votre part" %}</span></div>
       <p class="tuile__valeur">{{ part.total_ttc|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">dont {{ part.total_tva|fcfa }} FCFA de TVA</span></p>
+      <p class="tuile__note"><span class="t-muet">{% blocktranslate with total_tva=part.total_tva|fcfa trimmed %}dont {{ total_tva }} FCFA de TVA{% endblocktranslate %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">Commission de place</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">{% translate "Commission de place" %}</span></div>
       <p class="tuile__valeur">{{ part.commission_plateforme|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">Taux figé à la commande, il ne bougera plus</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Taux figé à la commande, il ne bougera plus" %}</span></p>
     </article>
   </section>
 
   <div class="duo">
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Articles à servir</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Articles à servir" %}</h2></header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Article</th>
-                <th scope="col" class="num">Quantité</th>
-                <th scope="col" class="num">Prix unitaire</th>
-                <th scope="col" class="num">Total</th>
+                <th scope="col">{% translate "Article" %}</th>
+                <th scope="col" class="num">{% translate "Quantité" %}</th>
+                <th scope="col" class="num">{% translate "Prix unitaire" %}</th>
+                <th scope="col" class="num">{% translate "Total" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -67,18 +68,18 @@
     </section>
 
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Acheteur</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Acheteur" %}</h2></header>
       <div class="carte__corps colonne" style="gap:12px">
-        <div class="rangee rangee--espace"><span class="t-2">Nom</span><span>{{ part.commande.acheteur.nom_complet }}</span></div>
-        <div class="rangee rangee--espace"><span class="t-2">Téléphone</span><span class="chiffre">{{ part.commande.acheteur.telephone }}</span></div>
-        <div class="rangee rangee--espace"><span class="t-2">Commande</span><span class="chiffre">{{ part.commande.numero }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Nom" %}</span><span>{{ part.commande.acheteur.nom_complet }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Téléphone" %}</span><span class="chiffre">{{ part.commande.acheteur.telephone }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Commande" %}</span><span class="chiffre">{{ part.commande.numero }}</span></div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Paiement</span>
-          <span class="puce">{% if part.prepayee %}<svg><use href="#ic-verrou"></use></svg>D'avance, en séquestre{% else %}<svg><use href="#ic-camion"></use></svg>À la livraison{% endif %}</span>
+          <span class="t-2">{% translate "Paiement" %}</span>
+          <span class="puce">{% if part.prepayee %}<svg><use href="#ic-verrou"></use></svg>{% translate "D'avance, en séquestre" %}{% else %}<svg><use href="#ic-camion"></use></svg>{% translate "À la livraison" %}{% endif %}</span>
         </div>
         <p class="t-legende">
-          Vous ne voyez que votre part. Ce que l'acheteur a commandé chez d'autres
-          marchands du marché ne vous est pas montré.
+          {% blocktranslate trimmed %}Vous ne voyez que votre part. Ce que l'acheteur a commandé chez d'autres
+          marchands du marché ne vous est pas montré.{% endblocktranslate %}
         </p>
       </div>
     </section>
@@ -92,7 +93,7 @@
   {% endcomment %}
   <section class="carte">
     <header class="carte__entete">
-      <h2 class="t-section">Argent de la commande</h2>
+      <h2 class="t-section">{% translate "Argent de la commande" %}</h2>
       <span class="puce{% if part.argent.ton %} puce--{{ part.argent.ton }}{% endif %}">
         <svg><use href="#{% if part.argent.code == 'gele' %}ic-verrou{% elif part.argent.ton == 'bon' %}ic-check{% elif part.argent.code == 'attendu' %}ic-horloge{% else %}ic-argent{% endif %}"></use></svg>
         {{ part.argent.libelle }}{% if part.argent.date %} · {{ part.argent.date|date:"d/m/Y" }}{% endif %}
@@ -100,34 +101,38 @@
     </header>
     <div class="carte__corps colonne" style="gap:12px">
       {% if sequestre %}
-        <div class="rangee rangee--espace"><span class="t-2">Payé par l'acheteur</span><span class="chiffre">{{ sequestre.montant_encaisse|fcfa }} FCFA</span></div>
-        <div class="rangee rangee--espace"><span class="t-2">Commission de place retenue (TTC)</span><span class="chiffre">− {{ sequestre.commission|fcfa }} FCFA</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Payé par l'acheteur" %}</span><span class="chiffre">{{ sequestre.montant_encaisse|fcfa }} FCFA</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Commission de place retenue (TTC)" %}</span><span class="chiffre">− {{ sequestre.commission|fcfa }} FCFA</span></div>
         <div class="rangee rangee--espace" style="border-top:1px solid var(--filet);padding-top:10px">
-          <span style="font-weight:620">Votre part</span>
+          <span style="font-weight:620">{% translate "Votre part" %}</span>
           <span class="chiffre" style="font-weight:660">{{ sequestre.montant|fcfa }} FCFA</span>
         </div>
         {% if sequestre.montant_rembourse %}
-          <div class="rangee rangee--espace"><span class="t-2">Remboursé à l'acheteur sur votre part</span><span class="chiffre">{{ sequestre.montant_rembourse|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Remboursé à l'acheteur sur votre part" %}</span><span class="chiffre">{{ sequestre.montant_rembourse|fcfa }} FCFA</span></div>
         {% endif %}
         {% if sequestre.montant_libere %}
-          <div class="rangee rangee--espace"><span class="t-2">Libéré à votre disponible</span><span class="chiffre">{{ sequestre.montant_libere|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Libéré à votre disponible" %}</span><span class="chiffre">{{ sequestre.montant_libere|fcfa }} FCFA</span></div>
         {% endif %}
 
         {% if part.argent.code == 'gele' %}
-          <p class="t-2">Cette part ne peut être ni libérée ni remboursée pour le moment. Aucune action n'est attendue de votre part.</p>
+          <p class="t-2">{% translate "Cette part ne peut être ni libérée ni remboursée pour le moment. Aucune action n'est attendue de votre part." %}</p>
         {% elif part.livraison_confirmee_le and sequestre.etat == 'bloque' %}
           <p class="t-legende">
-            Livraison confirmée le {{ part.livraison_confirmee_le|date:"d/m/Y" }}
-            ({{ sequestre.get_confirmation_display|lower }}). Votre palier — {{ palier.libelle }} —
-            libère les fonds {{ palier.delai_liberation_jours }} jour{{ palier.delai_liberation_jours|pluralize }} après la confirmation.
+            {% blocktranslate count delai_liberation_jours=palier.delai_liberation_jours with livraison_confirmee_le=part.livraison_confirmee_le|date:"d/m/Y" get_confirmation_display=sequestre.get_confirmation_display|lower libelle=palier.libelle trimmed %}Livraison confirmée le {{ livraison_confirmee_le }}
+            ({{ get_confirmation_display }}). Votre palier — {{ libelle }} —
+            libère les fonds {{ delai_liberation_jours }} jour après la confirmation.{% plural %}Livraison confirmée le {{ livraison_confirmee_le }}
+            ({{ get_confirmation_display }}). Votre palier — {{ libelle }} —
+            libère les fonds {{ delai_liberation_jours }} jours après la confirmation.{% endblocktranslate %}
           </p>
         {% elif sequestre.etat == 'bloque' %}
           <p class="t-legende">
-            L'argent est en séquestre chez le partenaire de paiement de la plateforme. Il se libère
-            {{ palier.delai_liberation_jours }} jour{{ palier.delai_liberation_jours|pluralize }} après la
-            livraison <strong>confirmée</strong> : par le code de remise ci-dessous, par l'acheteur
+            {% blocktranslate count delai_liberation_jours=palier.delai_liberation_jours trimmed %}L'argent est en séquestre chez le partenaire de paiement de la plateforme. Il se libère
+            {{ delai_liberation_jours }} jour après la
+            livraison{% plural %}L'argent est en séquestre chez le partenaire de paiement de la plateforme. Il se libère
+            {{ delai_liberation_jours }} jours après la
+            livraison{% endblocktranslate %} <strong>{% translate "confirmée" %}</strong> {% blocktranslate trimmed %}: par le code de remise ci-dessous, par l'acheteur
             lui-même, ou d'office sept jours après l'expédition sans réclamation. Marquer la
-            commande « livrée » ne suffit pas.
+            commande « livrée » ne suffit pas.{% endblocktranslate %}
           </p>
         {% endif %}
 
@@ -135,36 +140,36 @@
           {% if code_verrouille %}
             <div class="bandeau-info bandeau-info--alerte" role="status">
               <svg><use href="#ic-verrou"></use></svg>
-              <span>Code verrouillé après trop d'essais. L'acheteur peut confirmer la réception
+              <span>{% blocktranslate trimmed %}Code verrouillé après trop d'essais. L'acheteur peut confirmer la réception
                 depuis sa page de commande ; sans réclamation, elle sera réputée confirmée sept
-                jours après l'expédition.</span>
+                jours après l'expédition.{% endblocktranslate %}</span>
             </div>
           {% else %}
             <form method="post" class="colonne" style="gap:10px;border-top:1px solid var(--filet);padding-top:12px">
               {% csrf_token %}
               <div class="groupe-champ">
-                <label for="code-remise">Code de remise donné par l'acheteur</label>
+                <label for="code-remise">{% translate "Code de remise donné par l'acheteur" %}</label>
                 <input class="champ champ--grand chiffre" id="code-remise" name="code_remise"
                        inputmode="numeric" autocomplete="off" maxlength="9" pattern="[0-9 ]*"
-                       placeholder="6 chiffres" required style="letter-spacing:0.18em;max-width:220px">
+                       placeholder="{% translate '6 chiffres' %}" required style="letter-spacing:0.18em;max-width:220px">
                 <span class="t-legende">
-                  L'acheteur le remet au livreur quand il a la marchandise en main.
-                  {% if sequestre.essais_code_echoues %}Encore {{ essais_restants }} essai{{ essais_restants|pluralize }} avant verrouillage.{% endif %}
+                  {% translate "L'acheteur le remet au livreur quand il a la marchandise en main." %}
+                  {% if sequestre.essais_code_echoues %}{% blocktranslate count essais_restants=essais_restants trimmed %}Encore {{ essais_restants }} essai avant verrouillage.{% plural %}Encore {{ essais_restants }} essais avant verrouillage.{% endblocktranslate %}{% endif %}
                 </span>
               </div>
               <button class="btn btn--primaire" type="submit" style="align-self:flex-start">
-                <svg><use href="#ic-check"></use></svg> Confirmer la remise
+                <svg><use href="#ic-check"></use></svg> {% translate "Confirmer la remise" %}
               </button>
             </form>
           {% endif %}
         {% endif %}
       {% else %}
         <p class="t-2">
-          L'acheteur a choisi de payer d'avance ; le paiement n'a pas encore été constaté. Tant
-          qu'il ne l'est pas, rien n'est en séquestre pour cette commande.
+          {% blocktranslate trimmed %}L'acheteur a choisi de payer d'avance ; le paiement n'a pas encore été constaté. Tant
+          qu'il ne l'est pas, rien n'est en séquestre pour cette commande.{% endblocktranslate %}
         </p>
       {% endif %}
-      <a class="t-petit lien" href="{% url 'versements_marchand' %}">Voir vos soldes et vos versements</a>
+      <a class="t-petit lien" href="{% url 'versements_marchand' %}">{% translate "Voir vos soldes et vos versements" %}</a>
     </div>
   </section>
   {% endif %}
@@ -172,8 +177,8 @@
   {% if prevenir or avis_envoyes %}
   <section class="carte">
     <header class="carte__entete">
-      <h2 class="t-section">Prévenir l'équipe sur WhatsApp</h2>
-      {% if avis_automatiques %}<span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Envoi automatique actif</span>{% endif %}
+      <h2 class="t-section">{% translate "Prévenir l'équipe sur WhatsApp" %}</h2>
+      {% if avis_automatiques %}<span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Envoi automatique actif" %}</span>{% endif %}
     </header>
     <div class="carte__corps colonne" style="gap:12px">
       {% if avis_envoyes %}
@@ -198,12 +203,12 @@
           {% endfor %}
         </div>
       {% elif not avis_envoyes %}
-        <p class="t-2">Personne dans l'équipe n'est désigné pour recevoir les commandes sur WhatsApp.</p>
+        <p class="t-2">{% translate "Personne dans l'équipe n'est désigné pour recevoir les commandes sur WhatsApp." %}</p>
       {% endif %}
       <p class="t-legende">
-        Le message donne le numéro, les articles, le total et le lien vers cette page — jamais le
-        nom, le téléphone ni l'adresse de l'acheteur. Qui le reçoit se règle dans
-        {% if 'boutique.administrer' in droits %}<a class="lien" href="{% url 'equipe' %}">l'équipe</a>{% else %}l'équipe{% endif %}.
+        {% blocktranslate trimmed %}Le message donne le numéro, les articles, le total et le lien vers cette page — jamais le
+        nom, le téléphone ni l'adresse de l'acheteur. Qui le reçoit se règle dans{% endblocktranslate %}
+        {% if 'boutique.administrer' in droits %}<a class="lien" href="{% url 'equipe' %}">{% translate "l'équipe" %}</a>{% else %}{% translate "l'équipe" %}{% endif %}.
       </p>
     </div>
   </section>
@@ -213,40 +218,40 @@
   <div class="duo{% if duo_plein %} duo--plein{% endif %}">
     {% if peut_refuser %}
       <section class="carte">
-        <header class="carte__entete"><h2 class="t-section">Refuser la commande</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Refuser la commande" %}</h2></header>
         <form method="post" action="{% url 'commande_annuler' part.pk %}" class="carte__corps colonne" style="gap:14px">
           {% csrf_token %}
           <p class="t-2">
-            Rien n'est encore sorti du dépôt — la marchandise ne part qu'à
+            {% blocktranslate trimmed %}Rien n'est encore sorti du dépôt — la marchandise ne part qu'à
             l'expédition. Un refus n'a donc rien à réintégrer&nbsp;; il annule les
-            commissions d'affiliation attachées à cette part.
+            commissions d'affiliation attachées à cette part.{% endblocktranslate %}
           </p>
           <div class="groupe-champ">
-            <label for="motif-refus">Motif</label>
+            <label for="motif-refus">{% translate "Motif" %}</label>
             <input class="champ" id="motif-refus" type="text" name="motif" maxlength="200"
-                   placeholder="Rupture de stock, article cassé…">
+                   placeholder="{% translate 'Rupture de stock, article cassé…' %}">
           </div>
-          <button class="btn btn--bloc" type="submit">Refuser cette commande</button>
+          <button class="btn btn--bloc" type="submit">{% translate "Refuser cette commande" %}</button>
         </form>
       </section>
     {% endif %}
 
     {% if peut_retourner %}
       <section class="carte">
-        <header class="carte__entete"><h2 class="t-section">Retour</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Retour" %}</h2></header>
         <form method="post" action="{% url 'commande_retour' part.pk %}" class="carte__corps colonne" style="gap:14px">
           {% csrf_token %}
           <p class="t-2">
-            La marchandise revient <strong>au coût auquel elle est sortie</strong>, pas au coût
-            moyen d'aujourd'hui : rien n'a produit de plus-value entre les deux.
+            {% translate "La marchandise revient" %} <strong>{% translate "au coût auquel elle est sortie" %}</strong>{% blocktranslate trimmed %}, pas au coût
+            moyen d'aujourd'hui : rien n'a produit de plus-value entre les deux.{% endblocktranslate %}
           </p>
           <div class="groupe-champ">
-            <label for="motif-retour">Motif du retour</label>
+            <label for="motif-retour">{% translate "Motif du retour" %}</label>
             <input class="champ" id="motif-retour" type="text" name="motif" maxlength="200" required
-                   placeholder="Article non conforme…">
+                   placeholder="{% translate 'Article non conforme…' %}">
           </div>
           <button class="btn btn--bloc" type="submit">
-            <svg><use href="#ic-retour"></use></svg> Accepter le retour
+            <svg><use href="#ic-retour"></use></svg> {% translate "Accepter le retour" %}
           </button>
         </form>
       </section>
@@ -256,16 +261,16 @@
 
   {% if retours %}
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Retours enregistrés</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Retours enregistrés" %}</h2></header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Motif</th>
-                <th scope="col">État</th>
-                <th scope="col" class="num">Remboursé</th>
+                <th scope="col">{% translate "Date" %}</th>
+                <th scope="col">{% translate "Motif" %}</th>
+                <th scope="col">{% translate "État" %}</th>
+                <th scope="col" class="num">{% translate "Remboursé" %}</th>
               </tr>
             </thead>
             <tbody>

@@ -1,27 +1,28 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Péremptions — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Péremptions{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Péremptions — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Péremptions" %}{% endblock %}
 
 {% block contenu %}
 <div class="colonne">
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">Déjà périmés</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">{% translate "Déjà périmés" %}</span></div>
       <p class="tuile__valeur">{{ perimes|length }}</p>
-      <p class="tuile__note"><span class="t-muet">À retirer du rayon aujourd'hui</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "À retirer du rayon aujourd'hui" %}</span></p>
     </article>
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-horloge"></use></svg><span class="t-sur-titre">Sous {{ horizon }} jours</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-horloge"></use></svg><span class="t-sur-titre">{% blocktranslate with horizon=horizon trimmed %}Sous {{ horizon }} jours{% endblocktranslate %}</span></div>
       <p class="tuile__valeur">{{ bientot|length }}</p>
-      <p class="tuile__note"><span class="t-muet">Encore vendables — c'est maintenant qu'on agit</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Encore vendables — c'est maintenant qu'on agit" %}</span></p>
     </article>
     {% if valeur_perimee is not None %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Perte estimée</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Perte estimée" %}</span></div>
         <p class="tuile__valeur">{{ valeur_perimee|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">Estimation au coût moyen courant, pas un chiffre comptable</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Estimation au coût moyen courant, pas un chiffre comptable" %}</span></p>
       </article>
     {% endif %}
   </section>
@@ -39,7 +40,7 @@
   {% if perimes %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Périmés</h2>
+        <h2 class="t-section">{% translate "Périmés" %}</h2>
         <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>{{ perimes|length }}</span>
       </header>
       <div class="carte__corps--serre">
@@ -48,10 +49,10 @@
             <thead>
               <tr>
                 <th scope="col">{{ metier.article|capfirst }}</th>
-                <th scope="col">Lot</th>
-                <th scope="col">Dépôt</th>
-                <th scope="col">Périmé le</th>
-                <th scope="col" class="num">Quantité</th>
+                <th scope="col">{% translate "Lot" %}</th>
+                <th scope="col">{% translate "Dépôt" %}</th>
+                <th scope="col">{% translate "Périmé le" %}</th>
+                <th scope="col" class="num">{% translate "Quantité" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -62,7 +63,7 @@
                   <td class="t-2">{{ lot.depot.libelle }}</td>
                   <td class="t-2 chiffre">
                     {{ lot.date_peremption|date:"d/m/Y" }}
-                    <span class="t-muet">— il y a {{ lot.jours|cut:"-" }} j</span>
+                    <span class="t-muet">{% blocktranslate with jours=lot.jours|cut:"-" trimmed %}— il y a {{ jours }} j{% endblocktranslate %}</span>
                   </td>
                   <td class="num" style="font-weight:620">{{ lot.quantite|quantite }}</td>
                 </tr>
@@ -77,7 +78,7 @@
   {% if bientot %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">À écouler sous {{ horizon }} jours</h2>
+        <h2 class="t-section">{% blocktranslate with horizon=horizon trimmed %}À écouler sous {{ horizon }} jours{% endblocktranslate %}</h2>
         <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>{{ bientot|length }}</span>
       </header>
       <div class="carte__corps--serre">
@@ -86,10 +87,10 @@
             <thead>
               <tr>
                 <th scope="col">{{ metier.article|capfirst }}</th>
-                <th scope="col">Lot</th>
-                <th scope="col">Dépôt</th>
-                <th scope="col">Périme le</th>
-                <th scope="col" class="num">Quantité</th>
+                <th scope="col">{% translate "Lot" %}</th>
+                <th scope="col">{% translate "Dépôt" %}</th>
+                <th scope="col">{% translate "Périme le" %}</th>
+                <th scope="col" class="num">{% translate "Quantité" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -100,7 +101,7 @@
                   <td class="t-2">{{ lot.depot.libelle }}</td>
                   <td class="t-2 chiffre">
                     {{ lot.date_peremption|date:"d/m/Y" }}
-                    <span class="t-muet">— dans {{ lot.jours }} j</span>
+                    <span class="t-muet">{% blocktranslate with jours=lot.jours trimmed %}— dans {{ jours }} j{% endblocktranslate %}</span>
                   </td>
                   <td class="num" style="font-weight:620">{{ lot.quantite|quantite }}</td>
                 </tr>
@@ -117,13 +118,13 @@
       <div class="carte__corps">
         <div class="vide">
           <svg><use href="#ic-check"></use></svg>
-          <p class="t-2">Rien ne périme dans les {{ horizon }} prochains jours.</p>
+          <p class="t-2">{% blocktranslate with horizon=horizon trimmed %}Rien ne périme dans les {{ horizon }} prochains jours.{% endblocktranslate %}</p>
           <p class="t-legende">
-            Les dates sont saisies à la réception. Un lot reçu sans date n'apparaît
-            pas ici — et ne déclenchera jamais d'alerte.
+            {% blocktranslate trimmed %}Les dates sont saisies à la réception. Un lot reçu sans date n'apparaît
+            pas ici — et ne déclenchera jamais d'alerte.{% endblocktranslate %}
           </p>
           {% if filtres.actifs %}
-            <a class="btn" href="{% url 'peremptions' %}">Retirer les filtres</a>
+            <a class="btn" href="{% url 'peremptions' %}">{% translate "Retirer les filtres" %}</a>
           {% endif %}
         </div>
       </div>

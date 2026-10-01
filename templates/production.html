@@ -1,33 +1,34 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Production — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Production du jour{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Production — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Production du jour" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'fiches' %}">Fiches techniques</a>
+  <a class="btn" href="{% url 'fiches' %}">{% translate "Fiches techniques" %}</a>
 {% endblock %}
 
 {% block contenu %}
 <div class="colonne">
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">Fabrications</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">{% translate "Fabrications" %}</span></div>
       <p class="tuile__valeur">{{ mouvements|length }}</p>
-      <p class="tuile__note"><span class="t-muet">Depuis ce matin, dans {{ depot_courant.libelle|default:"ce dépôt" }}</span></p>
+      <p class="tuile__note"><span class="t-muet">{% blocktranslate with libelle=depot_courant.libelle|default:"ce dépôt" trimmed %}Depuis ce matin, dans {{ libelle }}{% endblocktranslate %}</span></p>
     </article>
     {% if valeur_produite is not None %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Coût de production</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Coût de production" %}</span></div>
         <p class="tuile__valeur">{{ valeur_produite|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">Ce que les ingrédients consommés ont coûté</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Ce que les ingrédients consommés ont coûté" %}</span></p>
       </article>
     {% endif %}
     {% if pertes is not None %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">Invendus déclarés</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">{% translate "Invendus déclarés" %}</span></div>
         <p class="tuile__valeur">{{ pertes|length }}</p>
-        <p class="tuile__note"><span class="t-muet">Déclarés aujourd'hui — à comparer à ce qui est sorti du four</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Déclarés aujourd'hui — à comparer à ce qui est sorti du four" %}</span></p>
       </article>
     {% endif %}
   </section>
@@ -35,8 +36,8 @@
   {% if peut_produire %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Lancer une fabrication</h2>
-        <span class="t-legende">La quantité demandée est celle du produit fini</span>
+        <h2 class="t-section">{% translate "Lancer une fabrication" %}</h2>
+        <span class="t-legende">{% translate "La quantité demandée est celle du produit fini" %}</span>
       </header>
       <div class="carte__corps--serre">
         {% if fiches %}
@@ -45,9 +46,9 @@
               <thead>
                 <tr>
                   <th scope="col">{{ metier.article|capfirst }}</th>
-                  <th scope="col" class="num">Rendement</th>
-                  <th scope="col">Conservation</th>
-                  <th scope="col" class="num">Quantité à produire</th>
+                  <th scope="col" class="num">{% translate "Rendement" %}</th>
+                  <th scope="col">{% translate "Conservation" %}</th>
+                  <th scope="col" class="num">{% translate "Quantité à produire" %}</th>
                   <th scope="col"></th>
                 </tr>
               </thead>
@@ -69,7 +70,7 @@
                                inputmode="decimal" step="1" min="0.0001" style="max-width:120px"
                                value="{{ f.rendement|quantite }}"
                                aria-label="Quantité à produire de {{ f.variante }}">
-                        <button class="btn btn--primaire" type="submit">Produire</button>
+                        <button class="btn btn--primaire" type="submit">{% translate "Produire" %}</button>
                       </form>
                     </td>
                   </tr>
@@ -81,13 +82,13 @@
           <div class="carte__corps">
             <div class="vide">
               <svg><use href="#ic-production"></use></svg>
-              <p class="t-2">Aucune fiche technique active.</p>
+              <p class="t-2">{% translate "Aucune fiche technique active." %}</p>
               <p class="t-legende">
-                Une fiche dit ce qu'il faut pour fabriquer un produit et combien
+                {% blocktranslate trimmed %}Une fiche dit ce qu'il faut pour fabriquer un produit et combien
                 cela produit. Sans elle, la production ne peut ni sortir les
-                ingrédients ni calculer un coût de revient.
+                ingrédients ni calculer un coût de revient.{% endblocktranslate %}
               </p>
-              <a class="btn btn--primaire" href="{% url 'fiches' %}">Composer une fiche</a>
+              <a class="btn btn--primaire" href="{% url 'fiches' %}">{% translate "Composer une fiche" %}</a>
             </div>
           </div>
         {% endif %}
@@ -108,11 +109,11 @@
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Heure</th>
+                <th scope="col">{% translate "Heure" %}</th>
                 <th scope="col">{{ metier.article|capfirst }}</th>
-                <th scope="col" class="num">Quantité</th>
-                {% if 'cout.voir' in droits %}<th scope="col" class="num">Revient à</th>{% endif %}
-                <th scope="col">Commentaire</th>
+                <th scope="col" class="num">{% translate "Quantité" %}</th>
+                {% if 'cout.voir' in droits %}<th scope="col" class="num">{% translate "Revient à" %}</th>{% endif %}
+                <th scope="col">{% translate "Commentaire" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -134,7 +135,7 @@
         <div class="carte__corps">
           <div class="vide">
             <svg><use href="#ic-horloge"></use></svg>
-            <p class="t-2">Rien n'a encore été fabriqué aujourd'hui.</p>
+            <p class="t-2">{% translate "Rien n'a encore été fabriqué aujourd'hui." %}</p>
           </div>
         </div>
       {% endif %}
@@ -144,8 +145,8 @@
   {% if peut_produire and fiches %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Invendus</h2>
-        <span class="t-legende">Une perte, pas un écart de comptage</span>
+        <h2 class="t-section">{% translate "Invendus" %}</h2>
+        <span class="t-legende">{% translate "Une perte, pas un écart de comptage" %}</span>
       </header>
       <div class="carte__corps colonne" style="gap:14px">
         <form method="post" action="{% url 'production_invendus' %}" class="rangee"
@@ -163,13 +164,13 @@
             <label for="{{ formulaire_invendu.motif.id_for_label }}">{{ formulaire_invendu.motif.label }}</label>
             {{ formulaire_invendu.motif }}
           </div>
-          <button class="btn" type="submit">Déclarer</button>
+          <button class="btn" type="submit">{% translate "Déclarer" %}</button>
         </form>
         <p class="t-legende">
-          Ce qui est déclaré ici sort du stock en <strong>perte</strong>, à son
+          {% translate "Ce qui est déclaré ici sort du stock en" %} <strong>{% translate "perte" %}</strong>{% blocktranslate trimmed %}, à son
           coût de production. C'est ce qui permet de savoir en fin de mois combien
           la fabrication a jeté — un ajustement d'inventaire effacerait cette
-          information.
+          information.{% endblocktranslate %}
         </p>
 
         {% if pertes %}
@@ -177,10 +178,10 @@
             <table class="tableau">
               <thead>
                 <tr>
-                  <th scope="col">Heure</th>
+                  <th scope="col">{% translate "Heure" %}</th>
                   <th scope="col">{{ metier.article|capfirst }}</th>
-                  <th scope="col" class="num">Quantité</th>
-                  <th scope="col">Motif</th>
+                  <th scope="col" class="num">{% translate "Quantité" %}</th>
+                  <th scope="col">{% translate "Motif" %}</th>
                 </tr>
               </thead>
               <tbody>

@@ -36,6 +36,7 @@ from django.utils import timezone
 
 from apps.core.tenancy import contexte_boutique
 from apps.inventory.models import NiveauStock, NumeroSerie, PassageAtelier
+from django.utils.translation import gettext as _
 
 __all__ = [
     "NumeroInvalide",
@@ -108,11 +109,10 @@ def _declarer(*, depot, variante, numeros, recu_le, cree_par, commentaire):
         # stock nominatif qu'aucun écran ne lit et qu'aucune vente ne consomme :
         # une trace qui vieillit sans jamais servir.
         raise NumeroInvalide(
-            f"« {variante} » n'est pas suivi à l'unité : activez le suivi sur "
-            "l'article avant d'y déclarer des numéros."
+            _("« %(variante)s » n'est pas suivi à l'unité : activez le suivi sur l'article avant d'y déclarer des numéros.") % {"variante": variante}
         )
     if depot.boutique_id != variante.boutique_id:
-        raise NumeroInvalide("Le dépôt et l'article appartiennent à des boutiques différentes.")
+        raise NumeroInvalide(_("Le dépôt et l'article appartiennent à des boutiques différentes."))
 
     recu_le = recu_le or timezone.localdate()
     declares = []
@@ -139,7 +139,7 @@ def _declarer(*, depot, variante, numeros, recu_le, cree_par, commentaire):
             # Un numéro nomme un objet. Le déplacer d'un article à un autre ne
             # corrige pas une erreur de saisie, il efface une histoire.
             raise NumeroInvalide(
-                f"Le numéro {numero} est déjà porté par « {existant.variante} »."
+                _('Le numéro %(numero)s est déjà porté par « %(variante)s ».') % {"numero": numero, "variante": existant.variante}
             )
 
         if existant.etat == NumeroSerie.EN_STOCK:
@@ -353,7 +353,7 @@ def entrer_a_l_atelier(exemplaire, *, motif: str, cree_par=None) -> PassageAteli
     """Dépose un appareil en réparation, et fige sa couverture."""
     motif = (motif or "").strip()[:255]
     if not motif:
-        raise NumeroInvalide("Un passage à l'atelier sans motif ne se retrouve pas.")
+        raise NumeroInvalide(_("Un passage à l'atelier sans motif ne se retrouve pas."))
 
     with contexte_boutique(exemplaire.boutique_id):
         return _entrer_a_l_atelier(exemplaire, motif=motif, cree_par=cree_par)

@@ -13,6 +13,7 @@ from django.db import models
 
 from apps.core.models import BaseModel, TenantScopedModel
 from apps.core.uuid7 import uuid7
+from django.utils.translation import gettext_lazy as _l
 
 
 class Categorie(models.Model):
@@ -63,15 +64,15 @@ class Produit(TenantScopedModel):
     KILOGRAMME = "KG"
     LITRE = "L"
     METRE = "M"
-    UNITES = [(UNITE, "Unité"), (KILOGRAMME, "Kilogramme"), (LITRE, "Litre"), (METRE, "Mètre")]
+    UNITES = [(UNITE, _l("Unité")), (KILOGRAMME, _l("Kilogramme")), (LITRE, _l("Litre")), (METRE, _l("Mètre"))]
 
     NORMAL = "normal"
     EXONERE = "exonere"
     HORS_CHAMP = "hors_champ"
     REGIMES_TVA = [
-        (NORMAL, "Taux normal (19,25 %)"),
-        (EXONERE, "Exonéré"),
-        (HORS_CHAMP, "Hors champ"),
+        (NORMAL, _l("Taux normal (19,25 %)")),
+        (EXONERE, _l("Exonéré")),
+        (HORS_CHAMP, _l("Hors champ")),
     ]
 
     reference = models.ForeignKey(
@@ -88,16 +89,16 @@ class Produit(TenantScopedModel):
     actif = models.BooleanField(default=True)
     sur_ordonnance = models.BooleanField(
         default=False,
-        help_text="Ne se délivre que sur ordonnance, et ne se vend pas en ligne.",
+        help_text=_l("Ne se délivre que sur ordonnance, et ne se vend pas en ligne."),
     )
     revente_autorisee = models.BooleanField(
-        default=False, help_text="Le produit peut être poussé par les revendeurs affiliés."
+        default=False, help_text=_l("Le produit peut être poussé par les revendeurs affiliés.")
     )
     marge_revendeur = models.DecimalField(
         max_digits=5,
         decimal_places=4,
         default=Decimal("0"),
-        help_text="Part du HT laissée au revendeur (0.10 = 10 %). Prise sur la marge du marchand.",
+        help_text=_l("Part du HT laissée au revendeur (0.10 = 10 %). Prise sur la marge du marchand."),
     )
 
     class Meta:
@@ -129,7 +130,7 @@ class Variante(TenantScopedModel):
     sku = models.CharField(max_length=64)
     code_barres = models.CharField(max_length=32, blank=True)
     attributs = models.JSONField(
-        default=dict, blank=True, help_text='Ex. {"taille": "42", "couleur": "noir"}'
+        default=dict, blank=True, help_text=_l('Ex. {"taille": "42", "couleur": "noir"}')
     )
     prix_vente = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
@@ -140,7 +141,7 @@ class Variante(TenantScopedModel):
         max_length=64,
         blank=True,
         db_index=True,
-        help_text="Référence d'origine du fabricant. Ex. 90915-YZZD4.",
+        help_text=_l("Référence d'origine du fabricant. Ex. 90915-YZZD4."),
     )
     # Porté par la variante et non par le produit, parce que c'est la variante
     # qui porte le stock : un exemplaire est une unité d'une variante, pas d'un
@@ -148,11 +149,11 @@ class Variante(TenantScopedModel):
     # des stocks distincts — c'est le même objet de gestion.
     suivi_unitaire = models.BooleanField(
         default=False,
-        help_text="Chaque exemplaire porte un numéro de série ou un IMEI, suivi individuellement.",
+        help_text=_l("Chaque exemplaire porte un numéro de série ou un IMEI, suivi individuellement."),
     )
     garantie_mois = models.PositiveSmallIntegerField(
         default=0,
-        help_text="Durée de garantie offerte à l'acheteur, en mois. Zéro : aucune garantie.",
+        help_text=_l("Durée de garantie offerte à l'acheteur, en mois. Zéro : aucune garantie."),
     )
 
     class Meta:
@@ -210,10 +211,10 @@ class CompatibiliteVehicule(TenantScopedModel):
     )
     marque = models.CharField(max_length=60, db_index=True)
     modele = models.CharField(
-        max_length=80, blank=True, help_text="Vide si la pièce va sur toute la marque."
+        max_length=80, blank=True, help_text=_l("Vide si la pièce va sur toute la marque.")
     )
     motorisation = models.CharField(
-        max_length=60, blank=True, help_text="Ex. 1.4 D-4D. Vide si indifférent."
+        max_length=60, blank=True, help_text=_l("Ex. 1.4 D-4D. Vide si indifférent.")
     )
     annee_debut = models.PositiveSmallIntegerField(null=True, blank=True)
     annee_fin = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -300,9 +301,9 @@ class Designation(TenantScopedModel):
     REFERENCE = "reference"
     COMMERCIAL = "commercial"
     TYPES = [
-        (DCI, "Dénomination commune internationale"),
-        (REFERENCE, "Référence d'un autre fabricant"),
-        (COMMERCIAL, "Autre nom commercial"),
+        (DCI, _l("Dénomination commune internationale")),
+        (REFERENCE, _l("Référence d'un autre fabricant")),
+        (COMMERCIAL, _l("Autre nom commercial")),
     ]
 
     variante = models.ForeignKey(
@@ -312,12 +313,12 @@ class Designation(TenantScopedModel):
     valeur = models.CharField(
         max_length=120,
         db_index=True,
-        help_text="La désignation telle qu'elle est écrite sur la boîte ou la pièce.",
+        help_text=_l("La désignation telle qu'elle est écrite sur la boîte ou la pièce."),
     )
     source = models.CharField(
         max_length=120,
         blank=True,
-        help_text="Qui l'emploie : un laboratoire, un équipementier. Ex. Mann, Bosch.",
+        help_text=_l("Qui l'emploie : un laboratoire, un équipementier. Ex. Mann, Bosch."),
     )
 
     class Meta:
@@ -381,21 +382,21 @@ class Recette(TenantScopedModel):
         Variante,
         on_delete=models.CASCADE,
         related_name="recette",
-        help_text="Le produit fini que cette fiche fabrique.",
+        help_text=_l("Le produit fini que cette fiche fabrique."),
     )
     rendement = models.DecimalField(
         max_digits=14,
         decimal_places=4,
         default=Decimal("1"),
         validators=[MinValueValidator(Decimal("0.0001"))],
-        help_text="Combien d'unités une exécution de la fiche produit. Ex. 40 baguettes.",
+        help_text=_l("Combien d'unités une exécution de la fiche produit. Ex. 40 baguettes."),
     )
     duree_conservation_jours = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        help_text="Nombre de jours de conservation. Vide si le produit ne périme pas.",
+        help_text=_l("Nombre de jours de conservation. Vide si le produit ne périme pas."),
     )
-    note = models.TextField(blank=True, help_text="Mode opératoire, tour de main, température.")
+    note = models.TextField(blank=True, help_text=_l("Mode opératoire, tour de main, température."))
     actif = models.BooleanField(default=True)
 
     class Meta:
@@ -424,7 +425,7 @@ class LigneRecette(TenantScopedModel):
         max_digits=14,
         decimal_places=4,
         validators=[MinValueValidator(Decimal("0.0001"))],
-        help_text="Quantité pour le rendement complet de la fiche, dans l'unité de l'ingrédient.",
+        help_text=_l("Quantité pour le rendement complet de la fiche, dans l'unité de l'ingrédient."),
     )
 
     class Meta:

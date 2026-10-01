@@ -5,6 +5,7 @@ from django.db import models
 
 from apps.core.tenancy import TenantManager
 from apps.core.uuid7 import uuid7
+from django.utils.translation import gettext_lazy as _l
 
 
 class BaseModel(models.Model):
@@ -60,11 +61,11 @@ class EntreeAudit(models.Model):
     ACCES_TRANSVERSE = "acces_transverse"
 
     ACTIONS = [
-        (CREATION, "Création"),
-        (MODIFICATION, "Modification"),
-        (SUPPRESSION, "Suppression"),
-        (LECTURE_SENSIBLE, "Lecture de données sensibles"),
-        (ACCES_TRANSVERSE, "Accès transverse plateforme"),
+        (CREATION, _l("Création")),
+        (MODIFICATION, _l("Modification")),
+        (SUPPRESSION, _l("Suppression")),
+        (LECTURE_SENSIBLE, _l("Lecture de données sensibles")),
+        (ACCES_TRANSVERSE, _l("Accès transverse plateforme")),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
@@ -110,7 +111,7 @@ class OperationSync(models.Model):
     APPLIQUEE = "appliquee"
     REJETEE = "rejetee"
 
-    ETATS = [(RECUE, "Reçue"), (APPLIQUEE, "Appliquée"), (REJETEE, "Rejetée")]
+    ETATS = [(RECUE, _l("Reçue")), (APPLIQUEE, _l("Appliquée")), (REJETEE, _l("Rejetée"))]
 
     operation_id = models.UUIDField(primary_key=True, editable=False)
     type = models.CharField(max_length=64, db_index=True)
@@ -146,11 +147,11 @@ class Consentement(models.Model):
     SCORING_CREDIT = "scoring_credit"
 
     FINALITES = [
-        (MARKETING_SMS, "Sollicitations commerciales par SMS"),
-        (MARKETING_WHATSAPP, "Sollicitations commerciales par WhatsApp"),
-        (MARKETING_EMAIL, "Sollicitations commerciales par courriel"),
-        (PARTAGE_CABINET, "Partage des données comptables avec le cabinet partenaire"),
-        (SCORING_CREDIT, "Analyse des données de vente à des fins d'octroi de financement"),
+        (MARKETING_SMS, _l("Sollicitations commerciales par SMS")),
+        (MARKETING_WHATSAPP, _l("Sollicitations commerciales par WhatsApp")),
+        (MARKETING_EMAIL, _l("Sollicitations commerciales par courriel")),
+        (PARTAGE_CABINET, _l("Partage des données comptables avec le cabinet partenaire")),
+        (SCORING_CREDIT, _l("Analyse des données de vente à des fins d'octroi de financement")),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
@@ -208,16 +209,16 @@ class AccesPlateforme(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="acces_plateforme",
-        help_text="PROTECT : on ne supprime pas quelqu'un dont on garde les accès en mémoire.",
+        help_text=_l("PROTECT : on ne supprime pas quelqu'un dont on garde les accès en mémoire."),
     )
     boutique_id = models.UUIDField(
         null=True,
         blank=True,
         db_index=True,
-        help_text="Boutique consultée, si l'accès en visait une. Vide pour une vue d'ensemble.",
+        help_text=_l("Boutique consultée, si l'accès en visait une. Vide pour une vue d'ensemble."),
     )
-    ecran = models.CharField(max_length=120, help_text="Chemin ou nom de vue, pour retrouver quoi.")
-    motif = models.CharField(max_length=300, help_text="Pourquoi. Sans défaut : on doit le dire.")
+    ecran = models.CharField(max_length=120, help_text=_l("Chemin ou nom de vue, pour retrouver quoi."))
+    motif = models.CharField(max_length=300, help_text=_l("Pourquoi. Sans défaut : on doit le dire."))
 
     class Meta:
         verbose_name = "accès plateforme"

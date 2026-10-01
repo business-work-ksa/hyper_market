@@ -19,6 +19,7 @@ filtre posé et la pastille annoncerait un filtrage qui n'a pas lieu.
 """
 
 from django import forms
+from django.utils.translation import gettext_lazy as _l
 
 CHAMP = {"class": "champ"}
 
@@ -140,13 +141,13 @@ class FiltresStockForm(FiltreForm):
     """Liste du stock : ce qu'on cherche, dans quel état, dans quel dépôt."""
 
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(
             attrs={**CHAMP, "type": "search", "placeholder": "Nom, référence, référence constructeur"}
         ),
     )
     etat = ChoixTolerant(
-        label="État du stock",
+        label=_l("État du stock"),
         choices=[
             ("", "Tous"),
             ("alerte", "Sous le seuil d'alerte"),
@@ -155,11 +156,11 @@ class FiltresStockForm(FiltreForm):
         ],
         widget=forms.Select(attrs=CHAMP),
     )
-    depot = ChoixTolerant(label="Dépôt", choices=[], widget=forms.Select(attrs=CHAMP))
+    depot = ChoixTolerant(label=_l("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
     sans_mouvement = ChoixTolerant(
-        label="Activité",
+        label=_l("Activité"),
         choices=[("", "Peu importe"), ("dormant", "Aucun mouvement depuis 30 jours")],
-        help_text="Ce qui dort en rayon immobilise de la trésorerie.",
+        help_text=_l("Ce qui dort en rayon immobilise de la trésorerie."),
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -170,12 +171,12 @@ class FiltresStockForm(FiltreForm):
 
 class FiltresEquipeForm(FiltreForm):
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Nom ou téléphone"}),
     )
-    role = ChoixTolerant(label="Rôle", choices=[], widget=forms.Select(attrs=CHAMP))
+    role = ChoixTolerant(label=_l("Rôle"), choices=[], widget=forms.Select(attrs=CHAMP))
     etat = ChoixTolerant(
-        label="Accès",
+        label=_l("Accès"),
         choices=[("", "Tous"), ("actif", "Actif"), ("retire", "Retiré")],
         widget=forms.Select(attrs=CHAMP),
     )
@@ -189,16 +190,16 @@ class FiltresEquipeForm(FiltreForm):
 
 class FiltresLiensForm(FiltreForm):
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Usage ou code"}),
     )
     etat = ChoixTolerant(
-        label="État",
+        label=_l("État"),
         choices=[("", "Tous"), ("actif", "Actifs"), ("retire", "Retirés")],
         widget=forms.Select(attrs=CHAMP),
     )
     portee = ChoixTolerant(
-        label="Destination",
+        label=_l("Destination"),
         choices=[("", "Peu importe"), ("vitrine", "Ma vitrine"), ("article", "Un article")],
         widget=forms.Select(attrs=CHAMP),
     )
@@ -206,14 +207,14 @@ class FiltresLiensForm(FiltreForm):
 
 class FiltresVentesForm(FiltreForm):
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Numéro de ticket ou client"}),
     )
-    depuis = DateTolerante(label="Du", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    jusqua = DateTolerante(label="Au", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    moyen = ChoixTolerant(label="Règlement", choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=_l("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    jusqua = DateTolerante(label=_l("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    moyen = ChoixTolerant(label=_l("Règlement"), choices=[], widget=forms.Select(attrs=CHAMP))
     etat = ChoixTolerant(
-        label="État",
+        label=_l("État"),
         choices=[("", "Tous"), ("cloture", "Clôturés"), ("annule", "Annulés")],
         widget=forms.Select(attrs=CHAMP),
     )
@@ -235,10 +236,10 @@ class FiltresVentesForm(FiltreForm):
 
 
 class FiltresMouvementsForm(FiltreForm):
-    type = ChoixTolerant(label="Type de mouvement", choices=[], widget=forms.Select(attrs=CHAMP))
-    depuis = DateTolerante(label="Du", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    jusqua = DateTolerante(label="Au", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    depot = ChoixTolerant(label="Dépôt", choices=[], widget=forms.Select(attrs=CHAMP))
+    type = ChoixTolerant(label=_l("Type de mouvement"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=_l("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    jusqua = DateTolerante(label=_l("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    depot = ChoixTolerant(label=_l("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
 
     def __init__(self, donnees=None, *, depots=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -250,12 +251,12 @@ class FiltresMouvementsForm(FiltreForm):
 
 class FiltresExemplairesForm(FiltreForm):
     q = forms.CharField(
-        label="Numéro de série",
+        label=_l("Numéro de série"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "IMEI ou numéro"}),
     )
-    etat = ChoixTolerant(label="État", choices=[], widget=forms.Select(attrs=CHAMP))
+    etat = ChoixTolerant(label=_l("État"), choices=[], widget=forms.Select(attrs=CHAMP))
     garantie = ChoixTolerant(
-        label="Garantie",
+        label=_l("Garantie"),
         choices=[("", "Peu importe"), ("en_cours", "En cours"), ("expiree", "Expirée"), ("aucune", "Aucune")],
         widget=forms.Select(attrs=CHAMP),
     )
@@ -269,22 +270,22 @@ class FiltresExemplairesForm(FiltreForm):
 
 class FiltresPeremptionsForm(FiltreForm):
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Article ou numéro de lot"}),
     )
     etat = ChoixTolerant(
-        label="Échéance",
+        label=_l("Échéance"),
         choices=[("", "Tous"), ("perime", "Déjà périmés"), ("bientot", "Périment bientôt")],
         widget=forms.Select(attrs=CHAMP),
     )
     jours = forms.IntegerField(
-        label="Horizon (jours)",
+        label=_l("Horizon (jours)"),
         min_value=1,
         max_value=365,
-        help_text="Trente jours : le délai à partir duquel on peut encore agir.",
+        help_text=_l("Trente jours : le délai à partir duquel on peut encore agir."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "30"}),
     )
-    depot = ChoixTolerant(label="Dépôt", choices=[], widget=forms.Select(attrs=CHAMP))
+    depot = ChoixTolerant(label=_l("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
 
     def __init__(self, donnees=None, *, depots=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -293,11 +294,11 @@ class FiltresPeremptionsForm(FiltreForm):
 
 class FiltresCommandesForm(FiltreForm):
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Numéro ou client"}),
     )
-    etat = ChoixTolerant(label="État", choices=[], widget=forms.Select(attrs=CHAMP))
-    depuis = DateTolerante(label="Passées depuis le", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    etat = ChoixTolerant(label=_l("État"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=_l("Passées depuis le"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
 
     def __init__(self, donnees=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -308,12 +309,12 @@ class FiltresCommandesForm(FiltreForm):
 
 class FiltresEcrituresForm(FiltreForm):
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Libellé ou pièce"}),
     )
-    journal = ChoixTolerant(label="Journal", choices=[], widget=forms.Select(attrs=CHAMP))
-    depuis = DateTolerante(label="Du", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    jusqua = DateTolerante(label="Au", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    journal = ChoixTolerant(label=_l("Journal"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=_l("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    jusqua = DateTolerante(label=_l("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
 
     def __init__(self, donnees=None, *, journaux=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -331,17 +332,17 @@ class FiltresOrdonnancierForm(FiltreForm):
     """
 
     q = forms.CharField(
-        label="Rechercher",
+        label=_l("Rechercher"),
         widget=forms.TextInput(
             attrs={**CHAMP, "type": "search", "placeholder": "Ticket, client ou prescripteur"}
         ),
     )
     etat = ChoixTolerant(
-        label="Consignation",
+        label=_l("Consignation"),
         choices=[("", "Toutes"), ("incomplete", "À compléter"), ("consignee", "Consignées")],
         widget=forms.Select(attrs=CHAMP),
     )
-    depuis = DateTolerante(label="Depuis le", widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    depuis = DateTolerante(label=_l("Depuis le"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
 
 
 class FiltresProductionForm(FiltreForm):
@@ -352,7 +353,7 @@ class FiltresProductionForm(FiltreForm):
     """
 
     jour = DateTolerante(
-        label="Journée",
-        help_text="Vide : aujourd'hui.",
+        label=_l("Journée"),
+        help_text=_l("Vide : aujourd'hui."),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}),
     )

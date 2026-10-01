@@ -59,6 +59,8 @@ from apps.plateforme.formulaires import (
     TypeEmplacementForm,
     pourcent,
 )
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 STYLES = "css/plateforme-assistants.css"
 
@@ -112,12 +114,13 @@ class AssistantBoutique(Assistant):
                         "valeur": o.code,
                         "titre": o.libelle,
                         "prix": _montant(o.loyer_mensuel),
-                        "suffixe": "HT / mois",
+                        "suffixe": _("HT / mois"),
                         "lignes": [
-                            f"Commission {pourcent(o.taux_commission_defaut)}",
-                            f"{o.quota_utilisateurs} compte{'s' if o.quota_utilisateurs > 1 else ''} "
-                            f"· {o.quota_depots} dépôt{'s' if o.quota_depots > 1 else ''}",
-                            "Modules : " + (", ".join(o.modules_inclus or []) or "—"),
+                            _("Commission %(taux)s") % {"taux": pourcent(o.taux_commission_defaut)},
+                            ngettext("%(n)s compte", "%(n)s comptes", o.quota_utilisateurs) % {"n": o.quota_utilisateurs}
+                            + " · "
+                            + ngettext("%(n)s dépôt", "%(n)s dépôts", o.quota_depots) % {"n": o.quota_depots},
+                            _("Modules : %(modules)s") % {"modules": ", ".join(o.modules_inclus or []) or "—"},
                         ],
                         "donnees": {
                             "loyer": f"{o.loyer_mensuel:.0f}",
@@ -207,15 +210,12 @@ class AssistantBoutique(Assistant):
         if boutique.etat == Boutique.ACTIVE:
             messages.success(
                 self.request,
-                f"« {boutique.enseigne} » est ouverte : bail actif, gérant rattaché, plan comptable "
-                "et magasin principal prêts. Elle paraît en vitrine dès maintenant.",
+                _('« %(enseigne)s » est ouverte : bail actif, gérant rattaché, plan comptable et magasin principal prêts. Elle paraît en vitrine dès maintenant.') % {"enseigne": boutique.enseigne},
             )
         else:
             messages.success(
                 self.request,
-                f"« {boutique.enseigne} » est enregistrée en candidature, avec son bail en brouillon. "
-                "Complétez sa vérification (pièce du gérant, appel, RCCM, identifiant fiscal, compte "
-                "de versement) dans « Vérifications », puis validez-la depuis sa fiche.",
+                _('« %(enseigne)s » est enregistrée en candidature, avec son bail en brouillon. Complétez sa vérification (pièce du gérant, appel, RCCM, identifiant fiscal, compte de versement) dans « Vérifications », puis validez-la depuis sa fiche.') % {"enseigne": boutique.enseigne},
             )
         return redirect("plateforme:boutique", boutique_id=boutique.pk)
 
@@ -356,8 +356,7 @@ class AssistantEmplacement(Assistant):
         )
         messages.success(
             self.request,
-            f"Emplacement vendu : {emplacement.get_type_display().lower()} pour "
-            f"« {emplacement.boutique_occupante.enseigne} », {_montant(emplacement.tarif)} HT.",
+            _('Emplacement vendu : %(lower)s pour « %(enseigne)s », %(montant)s HT.') % {"lower": emplacement.get_type_display().lower(), "enseigne": emplacement.boutique_occupante.enseigne, "montant": _montant(emplacement.tarif)},
         )
         return redirect("plateforme:emplacements")
 
@@ -442,8 +441,7 @@ class AssistantAdministrateur(Assistant):
         )
         messages.success(
             self.request,
-            f"{role.utilisateur.nom_complet} est nommé : {role.role.libelle.lower()}. "
-            "Accès à la console et groupe de permissions posés — jamais le superutilisateur.",
+            _('%(nom_complet)s est nommé : %(lower)s. Accès à la console et groupe de permissions posés — jamais le superutilisateur.') % {"nom_complet": role.utilisateur.nom_complet, "lower": role.role.libelle.lower()},
         )
         return redirect(f"{reverse('plateforme:administrateurs')}#role-{role.pk}")
 
@@ -528,7 +526,7 @@ def retirer_administrateur(request, role_id):
                 if acces_retire
                 else " Il garde l'accès que lui ouvrent ses autres rôles."
             )
-            messages.success(request, f"Rôle retiré à {role.utilisateur.nom_complet} ({role.role.libelle}).{suite}")
+            messages.success(request, _('Rôle retiré à %(nom_complet)s (%(libelle)s).%(suite)s') % {"nom_complet": role.utilisateur.nom_complet, "libelle": role.role.libelle, "suite": suite})
             return redirect("plateforme:administrateurs")
     return _page_administrateurs(request, retrait=role.pk, formulaire_retrait=formulaire, status=400)
 
@@ -639,7 +637,7 @@ def changer_etat_boutique(request, boutique_id):
             for message in erreur.messages:
                 formulaire.add_error("motif", message)
         else:
-            messages.success(request, f"« {boutique.enseigne} » : {ACTIONS[action]['titre'].lower()} — fait, et inscrit au journal.")
+            messages.success(request, _('« %(enseigne)s » : %(lower)s — fait, et inscrit au journal.') % {"enseigne": boutique.enseigne, "lower": ACTIONS[action]['titre'].lower()})
             return redirect("plateforme:boutique", boutique_id=boutique.pk)
     formulaire.preparer_affichage()
     return render(
@@ -684,8 +682,7 @@ def encaisser_loyer(request, facture_id):
         else:
             messages.success(
                 request,
-                f"Loyer {facture.periode:%m/%Y} de « {facture.bail.boutique.enseigne} » encaissé : "
-                f"{_montant(facture.montant_ttc)} TTC.",
+                _('Loyer %(periode)s de « %(enseigne)s » encaissé : %(montant)s TTC.') % {"periode": format(facture.periode, "%m/%Y"), "enseigne": facture.bail.boutique.enseigne, "montant": _montant(facture.montant_ttc)},
             )
             return redirect(suite)
     if request.method == "POST" and refus:
@@ -744,7 +741,7 @@ def fixer_taux(request, rayon_id):
     elif request.method == "POST" and formulaire.is_valid():
         nouveau = (formulaire.cleaned_data["pourcent"] / Decimal("100")).quantize(Decimal("0.0001"))
         if nouveau == ancien:
-            formulaire.add_error("pourcent", f"C'est déjà le taux du rayon ({pourcent(ancien)}).")
+            formulaire.add_error("pourcent", _("C'est déjà le taux du rayon (%(pourcent)s).") % {"pourcent": pourcent(ancien)})
         elif "confirmer" in request.POST and request.POST.get("apercu_de") == str(formulaire.cleaned_data["pourcent"]):
             try:
                 services.fixer_taux_rayon(rayon, formulaire.cleaned_data["pourcent"], par=request.user, motif=formulaire.cleaned_data["motif"])
@@ -755,7 +752,7 @@ def fixer_taux(request, rayon_id):
             else:
                 messages.success(
                     request,
-                    f"Rayon « {rayon} » : commission {pourcent(ancien)} → {pourcent(nouveau)}. Inscrit au journal.",
+                    _('Rayon « %(rayon)s » : commission %(pourcent)s → %(pourcent2)s. Inscrit au journal.') % {"rayon": rayon, "pourcent": pourcent(ancien), "pourcent2": pourcent(nouveau)},
                 )
                 return redirect("plateforme:rayons")
         else:

@@ -1,11 +1,11 @@
-{% load static %}<!doctype html>
-<html lang="fr">
+{% load i18n static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#00806A">
-<title>Connexion — HyperMarché</title>
+<title>{% translate "Connexion — HyperMarché" %}</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 {% include "partials/icones_marque.html" %}
 <script>(function(){try{var t=localStorage.getItem("hm-theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
@@ -33,14 +33,14 @@
       <div class="portail__apercu" aria-hidden="true">
         <div class="portail__ticket">
           <div class="rangee rangee--espace">
-            <span class="portail__ticket-num">Ticket T-00000142</span>
-            <span class="portail__ticket-etat"><svg><use href="#ic-check"></use></svg>Encaissé</span>
+            <span class="portail__ticket-num">{% translate "Ticket T-00000142" %}</span>
+            <span class="portail__ticket-etat"><svg><use href="#ic-check"></use></svg>{% translate "Encaissé" %}</span>
           </div>
           <p class="portail__ticket-montant">34&#8239;500<span>FCFA</span></p>
           <ul class="portail__ticket-effets">
-            <li><svg><use href="#ic-stock"></use></svg>Stock mis à jour<b>−1</b></li>
-            <li><svg><use href="#ic-marge"></use></svg>Marge de la vente<b>8&#8239;500</b></li>
-            <li><svg><use href="#ic-compta"></use></svg>Écriture 571 / 701<b>passée</b></li>
+            <li><svg><use href="#ic-stock"></use></svg>{% translate "Stock mis à jour" %}<b>−1</b></li>
+            <li><svg><use href="#ic-marge"></use></svg>{% translate "Marge de la vente" %}<b>8&#8239;500</b></li>
+            <li><svg><use href="#ic-compta"></use></svg>{% translate "Écriture 571 / 701" %}<b>{% translate "passée" %}</b></li>
           </ul>
         </div>
         <div class="portail__barres">
@@ -49,30 +49,31 @@
           <span class="portail__barre-jour" style="height:100%"></span>
         </div>
       </div>
-      <p class="portail__accroche">Votre boutique sait enfin ce qu'elle gagne.</p>
+      <p class="portail__accroche">{% translate "Votre boutique sait enfin ce qu'elle gagne." %}</p>
       <div class="portail__preuves">
         <div class="portail__preuve">
           <svg><use href="#ic-stock"></use></svg>
-          <span>Votre stock à jour en temps réel, même sans réseau.</span>
+          <span>{% translate "Votre stock à jour en temps réel, même sans réseau." %}</span>
         </div>
         <div class="portail__preuve">
           <svg><use href="#ic-marge"></use></svg>
-          <span>Votre marge réelle, article par article, calculée au coût moyen.</span>
+          <span>{% translate "Votre marge réelle, article par article, calculée au coût moyen." %}</span>
         </div>
         <div class="portail__preuve">
           <svg><use href="#ic-compta"></use></svg>
-          <span>Vos écritures SYSCOHADA générées à chaque vente, sans double saisie.</span>
+          <span>{% translate "Vos écritures SYSCOHADA générées à chaque vente, sans double saisie." %}</span>
         </div>
       </div>
     </div>
 
     <p style="font-size:12px;opacity:0.72;max-width:44ch;line-height:1.55">
-      La plateforme prépare votre comptabilité. Votre expert-comptable la révise et l'atteste.
+      {% translate "La plateforme prépare votre comptabilité. Votre expert-comptable la révise et l'atteste." %}
     </p>
   </aside>
 
   <main class="portail__formulaire">
     <div class="portail__boite">
+      <div class="portail__langue">{% include "partials/choix_langue.html" %}</div>
       {% comment %}
       Sous 1 080 px le panneau de la marque disparaît : sans ce rappel, un
       téléphone affichait un formulaire anonyme, sans rien qui dise où l'on est.
@@ -82,8 +83,8 @@
         <span>HyperMarché</span>
       </div>
       <div class="pile-sm">
-        <h1 class="t-titre">Se connecter</h1>
-        <p class="t-2">Entrez le numéro de téléphone associé à votre boutique.</p>
+        <h1 class="t-titre">{% translate "Se connecter" %}</h1>
+        <p class="t-2">{% translate "Entrez le numéro de téléphone associé à votre boutique." %}</p>
       </div>
 
       {% if erreur %}
@@ -96,14 +97,14 @@
       <form method="post" class="colonne" style="gap:14px" novalidate id="formulaire-connexion">
         {% csrf_token %}
         <div class="groupe-champ">
-          <label for="telephone">Numéro de téléphone</label>
+          <label for="telephone">{% translate "Numéro de téléphone" %}</label>
           <input class="champ champ--grand" type="tel" id="telephone" name="telephone"
                  value="{{ telephone|default:'' }}" placeholder="+237 6 99 11 00 11"
                  autocomplete="username" inputmode="tel" required autofocus>
         </div>
 
         <div class="groupe-champ">
-          <label for="mot_de_passe">Mot de passe</label>
+          <label for="mot_de_passe">{% translate "Mot de passe" %}</label>
           <div class="champ-mdp">
             <input class="champ champ--grand" type="password" id="mot_de_passe" name="mot_de_passe"
                    autocomplete="current-password" required>
@@ -113,14 +114,14 @@
             qu'avec JavaScript (attribut `hidden` levé par le script).
             {% endcomment %}
             <button class="champ-mdp__bouton" type="button" id="voir-mdp" hidden
-                    aria-label="Afficher le mot de passe" aria-pressed="false" aria-controls="mot_de_passe">
+                    aria-label="{% translate 'Afficher le mot de passe' %}" aria-pressed="false" aria-controls="mot_de_passe">
               <svg aria-hidden="true"><use href="#ic-oeil"></use></svg>
             </button>
           </div>
         </div>
 
         <button class="btn btn--primaire btn--grand btn--bloc" type="submit" id="bouton-connexion">
-          Ouvrir ma boutique
+          {% translate "Ouvrir ma boutique" %}
         </button>
       </form>
 
@@ -143,19 +144,19 @@
         <div class="bandeau-info portail__demo">
           <svg><use href="#ic-info"></use></svg>
           <div class="pile-sm" style="min-width:0;flex:1">
-            <span style="font-weight:580">Démonstration</span>
+            <span style="font-weight:580">{% translate "Démonstration" %}</span>
             <span class="t-legende chiffre">{{ demo.telephone }} · {{ demo.mot_de_passe }} — {{ demo.boutique }}, {{ demo.ville }}</span>
           </div>
           <button class="btn btn--discret" type="button" id="remplir-demo" hidden
                   data-telephone="{{ demo.telephone }}" data-mot-de-passe="{{ demo.mot_de_passe }}">
-            Remplir
+            {% translate "Remplir" %}
           </button>
         </div>
       {% endif %}
 
       <p class="t-legende" style="display:flex;align-items:center;gap:6px">
         <svg style="width:13px;height:13px"><use href="#ic-verrou"></use></svg>
-        Vos données restent les vôtres. Export intégral et gratuit à tout moment.
+        {% translate "Vos données restent les vôtres. Export intégral et gratuit à tout moment." %}
       </p>
     </div>
   </main>

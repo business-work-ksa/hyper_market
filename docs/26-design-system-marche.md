@@ -98,26 +98,35 @@ Points de rupture : < 640 (mobile) · `sm` 640 (tablette) · `md` 768 · `lg` 10
 
 ## 6. Langues
 
-Le marché se lit en **français** et en **anglais** ; le back-office reste en français
-(`apps/vitrine/langue.py` : un écran à moitié traduit est pire qu'un écran d'une seule langue).
+Toute l'application se lit en **français** et en **anglais** : le marché, le back-office des
+commerçants, la page de connexion et la console de la plateforme. Chacun porte un sélecteur FR/EN
+dans son en-tête (`templates/partials/choix_langue.html` hors du marché). Seules les adresses
+techniques restent en français, quoi qu'envoie l'appelant : l'API (`/api/`), les notifications des
+opérateurs (`/paiements/notifications/`) et la tâche quotidienne (`/taches/`) — leurs messages sont
+journalisés et relus en français (`apps/vitrine/langue.py`).
 
-Ordre de décision sur `/marche/` : choix de l'acheteur (cookie `hm_langue`, posé par
-`/i18n/setlang/` depuis le sélecteur FR/EN de l'en-tête), puis langue du navigateur, puis français.
-Réponses marquées `Content-Language` et `Vary: Accept-Language`.
+Ordre de décision : choix de la personne (cookie `hm_langue`, posé par `/i18n/setlang/`), puis
+langue du navigateur, puis français. Réponses marquées `Content-Language` et `Vary: Accept-Language`.
 
-Catalogue : `apps/vitrine/locale/en/LC_MESSAGES/django.po`, compilé en `.mo` **versionné** (la
-construction sans serveur n'a pas gettext). Les libellés définis hors des gabarits (paliers, états
-de commande, motifs de réclamation) sont marqués dans `apps/vitrine/chaines.py`.
+Un seul catalogue : `config/locale/en/LC_MESSAGES/django.po`, compilé en `.mo` **versionné** (la
+construction sans serveur n'a pas gettext ; `config/` est embarqué par `vercel.json`). Les libellés
+définis hors des gabarits (paliers, états de commande, motifs de réclamation) sont marqués dans
+`apps/vitrine/chaines.py` ; les messages des vues et services passent par `gettext`, les libellés
+de modèles et de formulaires par `gettext_lazy`.
+
+Les pluriels s'écrivent avec `{% blocktranslate count n=… %}…{% plural %}…{% endblocktranslate %}`
+(ou `ngettext` en Python), jamais avec `|pluralize` dans une phrase traduite : l'anglais n'accorde
+pas les adjectifs, et une variable d'accord ne peut pas disparaître de la traduction.
+`outils/i18n/pluriels.py` convertit les anciens accords ; `outils/i18n/envelopper.py` et
+`envelopper_py.py` ont enveloppé les textes existants (outils de migration, à relire après usage).
 
 Régénérer après modification d'un texte :
 
 ```bash
-# depuis la racine ; ignore tout sauf apps/vitrine, templates/vitrine, templates/marche
-ARGS=(); for d in apps/*/; do n=$(basename "$d"); [ "$n" != vitrine ] && ARGS+=(-i "apps/$n"); done
-for d in templates/*; do n=$(basename "$d"); case $n in vitrine|marche) ;; *) ARGS+=(-i "templates/$n");; esac; done
-for d in .venv node_modules static staticfiles docs tests config scripts outils infrastructure api captures media sortie_vide; do ARGS+=(-i "$d"); done
-python manage.py makemessages -l en "${ARGS[@]}" --no-obsolete
-# traduire les nouvelles entrées, puis :
+python manage.py makemessages -l en --no-obsolete \
+  -i .venv -i node_modules -i static -i staticfiles -i docs -i tests -i scripts -i outils \
+  -i infrastructure -i captures -i media -i sortie_vide -i "*/migrations/*" -i apps/api -i config
+# traduire les nouvelles entrées (et retirer la marque « fuzzy » des rapprochements), puis :
 python manage.py compilemessages -l en --ignore=.venv --ignore=node_modules
 ```
 

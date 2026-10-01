@@ -1,22 +1,23 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm l10n %}
 
-{% block titre %}Tableau de bord — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Tableau de bord{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Tableau de bord — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Tableau de bord" %}{% endblock %}
 
 {% block actions_entete %}
   {% if 'ventes.voir' in droits %}
     <a class="btn" href="{% url 'rapport_semaine' %}">
-      <svg><use href="#ic-ventes"></use></svg> Rapport de la semaine
+      <svg><use href="#ic-ventes"></use></svg> {% translate "Rapport de la semaine" %}
     </a>
   {% endif %}
   {% if 'caisse.encaisser' in droits %}
     <a class="btn btn--primaire" href="{% url 'caisse' %}">
-      <svg><use href="#ic-caisse"></use></svg> Encaisser
+      <svg><use href="#ic-caisse"></use></svg> {% translate "Encaisser" %}
     </a>
   {% elif 'stock.mouvementer' in droits %}
     <a class="btn btn--primaire" href="{% url 'nouvel_article' %}">
-      <svg><use href="#ic-plus"></use></svg> Nouvel article
+      <svg><use href="#ic-plus"></use></svg> {% translate "Nouvel article" %}
     </a>
   {% endif %}
 {% endblock %}
@@ -33,12 +34,12 @@
   qui n'a pas à la connaître est un problème de données avant d'être une
   question d'écran (apps/accounts/permissions.py).
   {% endcomment %}
-  <section class="tuiles" aria-label="Indicateurs du jour">
+  <section class="tuiles" aria-label="{% translate 'Indicateurs du jour' %}">
     {% if 'ventes.voir' in droits %}
       <article class="tuile">
         <div class="tuile__libelle">
           <svg><use href="#ic-argent"></use></svg>
-          <span class="t-sur-titre">Ventes du jour</span>
+          <span class="t-sur-titre">{% translate "Ventes du jour" %}</span>
         </div>
         <p class="tuile__valeur">{{ ca_jour|fcfa }}<span class="unite">FCFA</span></p>
         <p class="tuile__note">
@@ -48,9 +49,9 @@
             {% else %}
               <span class="ecart ecart--baisse"><svg><use href="#ic-baisse"></use></svg>{{ evolution|pourcent }}</span>
             {% endif %}
-            <span class="t-muet">vs hier</span>
+            <span class="t-muet">{% translate "vs hier" %}</span>
           {% else %}
-            <span class="t-muet">Première journée de vente</span>
+            <span class="t-muet">{% translate "Première journée de vente" %}</span>
           {% endif %}
         </p>
       </article>
@@ -58,10 +59,10 @@
       <article class="tuile">
         <div class="tuile__libelle">
           <svg><use href="#ic-stock"></use></svg>
-          <span class="t-sur-titre">Mouvements du jour</span>
+          <span class="t-sur-titre">{% translate "Mouvements du jour" %}</span>
         </div>
-        <p class="tuile__valeur">{{ mouvements_jour }}<span class="unite">écritures</span></p>
-        <p class="tuile__note"><span class="t-muet">Entrées, sorties et ajustements</span></p>
+        <p class="tuile__valeur">{{ mouvements_jour }}<span class="unite">{% translate "écritures" %}</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Entrées, sorties et ajustements" %}</span></p>
       </article>
     {% endif %}
 
@@ -69,10 +70,10 @@
       <article class="tuile">
         <div class="tuile__libelle">
           <svg><use href="#ic-marge"></use></svg>
-          <span class="t-sur-titre">Marge du jour</span>
+          <span class="t-sur-titre">{% translate "Marge du jour" %}</span>
         </div>
         <p class="tuile__valeur">{{ marge_jour|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">{{ taux_marge|pourcent }} du chiffre d'affaires</span></p>
+        <p class="tuile__note"><span class="t-muet">{% blocktranslate with taux_marge=taux_marge|pourcent trimmed %}{{ taux_marge }} du chiffre d'affaires{% endblocktranslate %}</span></p>
       </article>
     {% endif %}
 
@@ -80,10 +81,10 @@
       <article class="tuile">
         <div class="tuile__libelle">
           <svg><use href="#ic-stock"></use></svg>
-          <span class="t-sur-titre">Valeur du stock</span>
+          <span class="t-sur-titre">{% translate "Valeur du stock" %}</span>
         </div>
         <p class="tuile__valeur">{{ valeur_stock|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">{{ nb_references }} références, au coût moyen pondéré</span></p>
+        <p class="tuile__note"><span class="t-muet">{% blocktranslate with nb_references=nb_references trimmed %}{{ nb_references }} références, au coût moyen pondéré{% endblocktranslate %}</span></p>
       </article>
     {% endif %}
 
@@ -91,14 +92,14 @@
       <article class="tuile">
         <div class="tuile__libelle">
           <svg><use href="#ic-alerte"></use></svg>
-          <span class="t-sur-titre">À réapprovisionner</span>
+          <span class="t-sur-titre">{% translate "À réapprovisionner" %}</span>
         </div>
-        <p class="tuile__valeur">{{ nb_ruptures|add:nb_sous_seuil }}<span class="unite">articles</span></p>
+        <p class="tuile__valeur">{{ nb_ruptures|add:nb_sous_seuil }}<span class="unite">{% translate "articles" %}</span></p>
         <p class="tuile__note">
           {% if nb_ruptures %}
-            <span class="puce puce--critique"><svg><use href="#ic-rupture"></use></svg>{{ nb_ruptures }} en rupture</span>
+            <span class="puce puce--critique"><svg><use href="#ic-rupture"></use></svg>{% blocktranslate with nb_ruptures=nb_ruptures trimmed %}{{ nb_ruptures }} en rupture{% endblocktranslate %}</span>
           {% else %}
-            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Aucune rupture</span>
+            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Aucune rupture" %}</span>
           {% endif %}
         </p>
       </article>
@@ -106,10 +107,10 @@
       <article class="tuile">
         <div class="tuile__libelle">
           <svg><use href="#ic-argent"></use></svg>
-          <span class="t-sur-titre">Trésorerie</span>
+          <span class="t-sur-titre">{% translate "Trésorerie" %}</span>
         </div>
         <p class="tuile__valeur">{{ tresorerie|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">Caisse et Mobile Money, solde comptable</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Caisse et Mobile Money, solde comptable" %}</span></p>
       </article>
     {% endif %}
   </section>
@@ -120,8 +121,8 @@
     {% if 'ventes.voir' in droits %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Chiffre d'affaires, 14 derniers jours</h2>
-        <span class="puce"><svg><use href="#ic-horloge"></use></svg>Ventes clôturées</span>
+        <h2 class="t-section">{% translate "Chiffre d'affaires, 14 derniers jours" %}</h2>
+        <span class="puce"><svg><use href="#ic-horloge"></use></svg>{% translate "Ventes clôturées" %}</span>
       </header>
       <div class="carte__corps" style="position:relative" id="boite-graphe">
         {% include "partials/graphe_ventes.html" %}
@@ -133,7 +134,7 @@
     {% if 'stock.voir' in droits %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Santé du stock</h2>
+        <h2 class="t-section">{% translate "Santé du stock" %}</h2>
       </header>
       <div class="carte__corps colonne" style="gap:16px">
         <div class="colonne" style="gap:10px">
@@ -151,22 +152,22 @@
           {% endlocalize %}
           <div class="legende">
             <span class="legende__item"><span class="legende__pastille" style="background:var(--bon)"></span>
-              En stock <strong class="chiffre">{{ nb_sains }}</strong></span>
+              {% translate "En stock" %} <strong class="chiffre">{{ nb_sains }}</strong></span>
             <span class="legende__item"><span class="legende__pastille" style="background:var(--alerte)"></span>
-              Sous le seuil <strong class="chiffre">{{ nb_sous_seuil }}</strong></span>
+              {% translate "Sous le seuil" %} <strong class="chiffre">{{ nb_sous_seuil }}</strong></span>
             <span class="legende__item"><span class="legende__pastille" style="background:var(--critique)"></span>
-              Rupture <strong class="chiffre">{{ nb_ruptures }}</strong></span>
+              {% translate "Rupture" %} <strong class="chiffre">{{ nb_ruptures }}</strong></span>
           </div>
         </div>
 
         <div class="colonne" style="gap:0">
-          <p class="t-sur-titre" style="margin-bottom:9px">À commander en priorité</p>
+          <p class="t-sur-titre" style="margin-bottom:9px">{% translate "À commander en priorité" %}</p>
           {% for niveau in alertes_stock %}
             <a class="rangee rangee--espace" href="{% url 'article' niveau.variante_id %}"
                style="padding:9px 0;border-bottom:1px solid var(--filet)">
               <span class="pile-sm" style="min-width:0">
                 <span class="t-corps" style="font-weight:550">{{ niveau.variante.produit.libelle|truncatechars:34 }}</span>
-                <span class="t-legende">Seuil : {{ niveau.seuil_alerte|quantite }}</span>
+                <span class="t-legende">{% blocktranslate with seuil_alerte=niveau.seuil_alerte|quantite trimmed %}Seuil : {{ seuil_alerte }}{% endblocktranslate %}</span>
               </span>
               <span class="rangee" style="gap:9px">
                 <span class="chiffre" style="font-weight:620">{{ niveau.quantite|quantite }}</span>
@@ -176,7 +177,7 @@
           {% empty %}
             <div class="vide" style="padding:22px">
               <svg><use href="#ic-check"></use></svg>
-              <p class="t-2">Aucun article sous son seuil.</p>
+              <p class="t-2">{% translate "Aucun article sous son seuil." %}</p>
             </div>
           {% endfor %}
         </div>
@@ -191,16 +192,16 @@
   <div class="duo">
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Meilleures ventes sur 14 jours</h2>
+        <h2 class="t-section">{% translate "Meilleures ventes sur 14 jours" %}</h2>
       </header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Article</th>
-                <th scope="col" class="num">Quantité</th>
-                <th scope="col" class="num">Chiffre d'affaires</th>
+                <th scope="col">{% translate "Article" %}</th>
+                <th scope="col" class="num">{% translate "Quantité" %}</th>
+                <th scope="col" class="num">{% translate "Chiffre d'affaires" %}</th>
                 <th scope="col" class="col-rang" style="width:110px"></th>
               </tr>
             </thead>
@@ -219,7 +220,7 @@
                 </tr>
               {% empty %}
                 <tr><td colspan="4"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
-                  <p class="t-2">Aucune vente sur la période.</p></div></td></tr>
+                  <p class="t-2">{% translate "Aucune vente sur la période." %}</p></div></td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -229,8 +230,8 @@
 
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Derniers tickets</h2>
-        <a class="btn btn--discret" href="{% url 'ventes' %}">Tout voir</a>
+        <h2 class="t-section">{% translate "Derniers tickets" %}</h2>
+        <a class="btn btn--discret" href="{% url 'ventes' %}">{% translate "Tout voir" %}</a>
       </header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
@@ -248,7 +249,7 @@
                 </tr>
               {% empty %}
                 <tr><td><div class="vide"><svg><use href="#ic-ventes"></use></svg>
-                  <p class="t-2">Aucun ticket clôturé.</p></div></td></tr>
+                  <p class="t-2">{% translate "Aucun ticket clôturé." %}</p></div></td></tr>
               {% endfor %}
             </tbody>
           </table>

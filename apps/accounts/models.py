@@ -12,6 +12,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.uuid7 import uuid7
+from django.utils.translation import gettext_lazy as _l
 
 # Alphabet sans caractères ambigus : ni O/0, ni I/1. Le code est dicté oralement ou saisi à la
 # main par un filleul, la lisibilité prime sur l'entropie.
@@ -58,7 +59,7 @@ class Utilisateur(AbstractBaseUser, PermissionsMixin):
         unique=True,
         default=generer_code_apporteur,
         editable=False,
-        help_text="Code de parrainage, immuable pour la vie du compte.",
+        help_text=_l("Code de parrainage, immuable pour la vie du compte."),
     )
     telephone_verifie = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -96,7 +97,7 @@ class Role(models.Model):
 
     BOUTIQUE = "boutique"
     PLATEFORME = "plateforme"
-    PORTEES = [(BOUTIQUE, "Boutique"), (PLATEFORME, "Plateforme")]
+    PORTEES = [(BOUTIQUE, _l("Boutique")), (PLATEFORME, _l("Plateforme"))]
 
     # Rôles de boutique
     GERANT = "GERANT"
@@ -190,7 +191,7 @@ class RolePlateforme(models.Model):
     motif = models.CharField(
         max_length=300,
         blank=True,
-        help_text="Pourquoi cette personne exploite le marché. Utile le jour où on se le demande.",
+        help_text=_l("Pourquoi cette personne exploite le marché. Utile le jour où on se le demande."),
     )
 
     class Meta:
@@ -277,14 +278,14 @@ class DossierKyc(models.Model):
     # Attestation d'un appel de vérification du téléphone du gérant
     TELEPHONE = "TELEPHONE"
     TYPES_PIECE = [
-        (CNI, "Carte nationale d'identité"),
-        (PASSEPORT, "Passeport"),
-        (CARTE_CONSULAIRE, "Carte consulaire"),
-        (TITRE_SEJOUR, "Titre de séjour"),
-        (RCCM, "RCCM — immatriculation ou déclaration d'entreprenant"),
-        (NIU, "Numéro d'identifiant unique (NIU)"),
-        (NIF, "Numéro d'identification fiscale (NIF)"),
-        (TELEPHONE, "Appel de vérification du téléphone"),
+        (CNI, _l("Carte nationale d'identité")),
+        (PASSEPORT, _l("Passeport")),
+        (CARTE_CONSULAIRE, _l("Carte consulaire")),
+        (TITRE_SEJOUR, _l("Titre de séjour")),
+        (RCCM, _l("RCCM — immatriculation ou déclaration d'entreprenant")),
+        (NIU, _l("Numéro d'identifiant unique (NIU)")),
+        (NIF, _l("Numéro d'identification fiscale (NIF)")),
+        (TELEPHONE, _l("Appel de vérification du téléphone")),
     ]
     PIECES_IDENTITE = frozenset({CNI, PASSEPORT, CARTE_CONSULAIRE, TITRE_SEJOUR})
     PIECES_BOUTIQUE = frozenset({RCCM, NIU, NIF})
@@ -294,16 +295,16 @@ class DossierKyc(models.Model):
     DOCUMENT_RECU = "document_recu"
     APPEL = "appel"
     MODES = [
-        (PRESENTIEL, "Original vu en présentiel"),
-        (VISIO, "Original vu en visio"),
-        (DOCUMENT_RECU, "Document reçu, puis supprimé"),
-        (APPEL, "Appel de vérification"),
+        (PRESENTIEL, _l("Original vu en présentiel")),
+        (VISIO, _l("Original vu en visio")),
+        (DOCUMENT_RECU, _l("Document reçu, puis supprimé")),
+        (APPEL, _l("Appel de vérification")),
     ]
 
     EN_ATTENTE = "en_attente"
     VALIDE = "valide"
     REJETE = "rejete"
-    ETATS = [(EN_ATTENTE, "En attente"), (VALIDE, "Validé"), (REJETE, "Rejeté")]
+    ETATS = [(EN_ATTENTE, _l("En attente")), (VALIDE, _l("Validé")), (REJETE, _l("Rejeté"))]
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     utilisateur = models.ForeignKey(
@@ -312,7 +313,7 @@ class DossierKyc(models.Model):
         blank=True,
         on_delete=models.CASCADE,
         related_name="dossiers_kyc",
-        help_text="La personne dont c'est la pièce (le gérant). Vide pour une pièce de boutique.",
+        help_text=_l("La personne dont c'est la pièce (le gérant). Vide pour une pièce de boutique."),
     )
     boutique = models.ForeignKey(
         "marketplace.Boutique",
@@ -320,29 +321,29 @@ class DossierKyc(models.Model):
         blank=True,
         on_delete=models.CASCADE,
         related_name="dossiers_kyc",
-        help_text="La boutique pour laquelle la pièce a été présentée.",
+        help_text=_l("La boutique pour laquelle la pièce a été présentée."),
     )
     type_piece = models.CharField(max_length=16, choices=TYPES_PIECE)
     numero_empreinte = models.CharField(
         max_length=64,
         db_index=True,
         verbose_name="empreinte du numéro",
-        help_text="HMAC-SHA256 du numéro normalisé : compare sans révéler. Le numéro lui-même n'est pas gardé.",
+        help_text=_l("HMAC-SHA256 du numéro normalisé : compare sans révéler. Le numéro lui-même n'est pas gardé."),
     )
     numero_fin = models.CharField(
-        max_length=4, blank=True, verbose_name="fin du numéro", help_text="Les quatre derniers caractères, pour l'affichage masqué."
+        max_length=4, blank=True, verbose_name="fin du numéro", help_text=_l("Les quatre derniers caractères, pour l'affichage masqué.")
     )
     pays = models.CharField(
-        max_length=2, default="CM", verbose_name="pays émetteur", help_text="Code ISO à deux lettres."
+        max_length=2, default="CM", verbose_name="pays émetteur", help_text=_l("Code ISO à deux lettres.")
     )
     expire_le = models.DateField(
-        null=True, blank=True, verbose_name="date d'expiration", help_text="Vide : pièce sans échéance (RCCM, NIU)."
+        null=True, blank=True, verbose_name="date d'expiration", help_text=_l("Vide : pièce sans échéance (RCCM, NIU).")
     )
     nom_lu = models.CharField(
         max_length=160,
         blank=True,
         verbose_name="nom tel qu'il figure",
-        help_text="Recopié de la pièce, pas du compte : c'est à lui qu'on compare le titulaire du compte de versement.",
+        help_text=_l("Recopié de la pièce, pas du compte : c'est à lui qu'on compare le titulaire du compte de versement."),
     )
     mode_verification = models.CharField(
         max_length=16, choices=MODES, default=PRESENTIEL, verbose_name="mode de vérification"
@@ -351,12 +352,12 @@ class DossierKyc(models.Model):
         max_length=64,
         blank=True,
         verbose_name="empreinte SHA-256",
-        help_text="Du document reçu, s'il y en a eu un : la preuve qu'on a vu celui-là, sans le garder.",
+        help_text=_l("Du document reçu, s'il y en a eu un : la preuve qu'on a vu celui-là, sans le garder."),
     )
     copie = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Chemin de la copie dans le stockage persistant désigné. Vide par défaut, et c'est voulu.",
+        help_text=_l("Chemin de la copie dans le stockage persistant désigné. Vide par défaut, et c'est voulu."),
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=EN_ATTENTE, db_index=True)
     declare_par = models.ForeignKey(

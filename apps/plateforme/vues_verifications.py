@@ -37,6 +37,7 @@ from apps.core.models import AccesPlateforme
 from apps.marketplace import cemac
 from apps.marketplace.models import Boutique, CompteVersement
 from apps.plateforme.acces import contexte_console, exige_console
+from django.utils.translation import gettext as _
 
 STYLES = "css/plateforme-verifications.css"
 PAGE = "plateforme:verifications"
@@ -207,18 +208,17 @@ def dossier(request, boutique_id):
                 return _page_dossier(request, boutique, status=400, formulaires={"attester": formulaire})
             messages.success(
                 request,
-                f"{d.get_type_piece_display()} {d.numero_masque} attestée. Elle attend maintenant le "
-                "regard d'un autre administrateur.",
+                _("%(get_type_piece_display)s %(numero_masque)s attestée. Elle attend maintenant le regard d'un autre administrateur.") % {"get_type_piece_display": d.get_type_piece_display(), "numero_masque": d.numero_masque},
             )
         elif geste == "appel":
             formulaire = AppelForm(request.POST, boutique=boutique)
             if not formulaire.is_valid() or formulaire.cleaned_data.get("gerant") is None:
                 if formulaire.is_valid():
-                    formulaire.add_error("gerant", "Choisissez le gérant appelé.")
+                    formulaire.add_error("gerant", _("Choisissez le gérant appelé."))
                 return _page_dossier(request, boutique, status=400, formulaires={"appel": formulaire})
             gerant = formulaire.cleaned_data["gerant"]
             verification.attester_appel(boutique, gerant, par=request.user, note=formulaire.cleaned_data.get("note", ""))
-            messages.success(request, f"Téléphone de {gerant.nom_complet} vérifié par appel, et inscrit au journal.")
+            messages.success(request, _('Téléphone de %(nom_complet)s vérifié par appel, et inscrit au journal.') % {"nom_complet": gerant.nom_complet})
         elif geste == "compte":
             formulaire = CompteForm(request.POST, boutique=boutique)
             if not formulaire.is_valid():
@@ -234,8 +234,7 @@ def dossier(request, boutique_id):
                 return _page_dossier(request, boutique, status=400, formulaires={"compte": formulaire})
             messages.success(
                 request,
-                f"Compte {compte.get_operateur_display()} {verification.masquer(compte.numero)} déclaré. "
-                "Un autre administrateur doit le vérifier.",
+                _('Compte %(get_operateur_display)s %(masquer)s déclaré. Un autre administrateur doit le vérifier.') % {"get_operateur_display": compte.get_operateur_display(), "masquer": verification.masquer(compte.numero)},
             )
         else:
             return _page_dossier(request, boutique, status=400, refus=["Geste inconnu."])
@@ -257,10 +256,10 @@ def _decider(request, *, boutique, cible, valider, rejeter, libelle):
     try:
         if formulaire.cleaned_data["decision"] == DecisionForm.VALIDER:
             valider(cible, par=request.user)
-            messages.success(request, f"{libelle} : validé, et inscrit au journal.")
+            messages.success(request, _('%(libelle)s : validé, et inscrit au journal.') % {"libelle": libelle})
         else:
             rejeter(cible, par=request.user, motif=formulaire.cleaned_data.get("motif", ""))
-            messages.success(request, f"{libelle} : rejeté. Le commerçant verra le motif.")
+            messages.success(request, _('%(libelle)s : rejeté. Le commerçant verra le motif.') % {"libelle": libelle})
     except PermissionDenied as erreur:
         return _page_dossier(request, boutique, status=403, cible=cible.pk, refus=[str(erreur)])
     except ValidationError as erreur:

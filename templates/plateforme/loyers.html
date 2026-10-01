@@ -1,67 +1,68 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm l10n %}
-{% block titre %}Loyers{% endblock %}
-{% block entete %}Loyers{% endblock %}
+{% block titre %}{% translate "Loyers" %}{% endblock %}
+{% block entete %}{% translate "Loyers" %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
 
 {% block contenu %}
 <div class="entete-page">
   <div class="entete-page__texte">
-    <p class="t-sur-titre">Marché</p>
-    <h2 class="entete-page__titre">Loyers</h2>
-    <p class="entete-page__phrase">Les factures de loyer par mois facturé, montants TTC. Un loyer échu non payé ouvre la voie à la suspension — pas à la coupure du back-office.</p>
+    <p class="t-sur-titre">{% translate "Marché" %}</p>
+    <h2 class="entete-page__titre">{% translate "Loyers" %}</h2>
+    <p class="entete-page__phrase">{% translate "Les factures de loyer par mois facturé, montants TTC. Un loyer échu non payé ouvre la voie à la suspension — pas à la coupure du back-office." %}</p>
   </div>
-  <form class="t-mois" method="get" data-filtres aria-label="Mois facturé">
+  <form class="t-mois" method="get" data-filtres aria-label="{% translate 'Mois facturé' %}">
     <input type="hidden" name="etat" value="{{ etat }}">
     {% if boutique_filtree %}<input type="hidden" name="boutique" value="{{ boutique_filtree.pk }}">{% endif %}
-    {% if precedent %}<a class="btn btn--icone" href="?mois={{ precedent }}&amp;etat={{ etat }}{% if boutique_filtree %}&amp;boutique={{ boutique_filtree.pk }}{% endif %}" aria-label="Mois précédent"><svg aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg></a>{% endif %}
-    <label class="lecteur-seul" for="choix-mois">Mois</label>
+    {% if precedent %}<a class="btn btn--icone" href="?mois={{ precedent }}&amp;etat={{ etat }}{% if boutique_filtree %}&amp;boutique={{ boutique_filtree.pk }}{% endif %}" aria-label="{% translate 'Mois précédent' %}"><svg aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg></a>{% endif %}
+    <label class="lecteur-seul" for="choix-mois">{% translate "Mois" %}</label>
     <select class="champ champ--compact t-mois__choix" id="choix-mois" name="mois" data-auto>
-      <option value="tous" {% if tous %}selected{% endif %}>Tous les mois</option>
+      <option value="tous" {% if tous %}selected{% endif %}>{% translate "Tous les mois" %}</option>
       {% for m in choix_mois %}<option value="{{ m.valeur }}" {% if m.valeur == mois_valeur %}selected{% endif %}>{{ m.libelle }}</option>{% endfor %}
     </select>
-    {% if suivant %}<a class="btn btn--icone" href="?mois={{ suivant }}&amp;etat={{ etat }}{% if boutique_filtree %}&amp;boutique={{ boutique_filtree.pk }}{% endif %}" aria-label="Mois suivant"><svg aria-hidden="true"><use href="#ic-fleche-droite"></use></svg></a>{% endif %}
-    <button class="btn" type="submit" data-appliquer>Afficher</button>
+    {% if suivant %}<a class="btn btn--icone" href="?mois={{ suivant }}&amp;etat={{ etat }}{% if boutique_filtree %}&amp;boutique={{ boutique_filtree.pk }}{% endif %}" aria-label="{% translate 'Mois suivant' %}"><svg aria-hidden="true"><use href="#ic-fleche-droite"></use></svg></a>{% endif %}
+    <button class="btn" type="submit" data-appliquer>{% translate "Afficher" %}</button>
   </form>
 </div>
 
 {% if boutique_filtree %}
   <div class="bandeau-info t-bloc-bas">
     <svg aria-hidden="true"><use href="#ic-filtre"></use></svg>
-    <span>Factures de <a class="t-lien" href="{% url 'plateforme:boutique' boutique_filtree.pk %}"><strong>{{ boutique_filtree.enseigne }}</strong></a> seulement.
-      <a class="t-lien" href="?mois={{ mois_valeur }}&amp;etat={{ etat }}">Voir tout le marché</a></span>
+    <span>{% translate "Factures de" %} <a class="t-lien" href="{% url 'plateforme:boutique' boutique_filtree.pk %}"><strong>{{ boutique_filtree.enseigne }}</strong></a> {% translate "seulement." %}
+      <a class="t-lien" href="?mois={{ mois_valeur }}&amp;etat={{ etat }}">{% translate "Voir tout le marché" %}</a></span>
   </div>
 {% endif %}
 
 <section class="kpis t-kpis t-bloc-bas" aria-label="Synthèse de {{ libelle_periode }}">
   <div class="kpi">
-    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-document"></use></svg></span>Émis · {{ libelle_periode|lower }}</span>
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-document"></use></svg></span>{% blocktranslate with libelle_periode=libelle_periode|lower trimmed %}Émis · {{ libelle_periode }}{% endblocktranslate %}</span>
     <span class="kpi__valeur">{{ synthese.emis|fcfa }}<span class="unite">FCFA</span></span>
-    <span class="kpi__pied">{{ synthese.nb }} facture{{ synthese.nb|pluralize }}, hors annulées</span>
+    <span class="kpi__pied">{% blocktranslate count nb=synthese.nb trimmed %}{{ nb }} facture, hors annulées{% plural %}{{ nb }} factures, hors annulées{% endblocktranslate %}</span>
   </div>
   <div class="kpi">
-    <span class="kpi__tete"><span class="kpi__icone kpi__icone--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg></span>Encaissé</span>
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg></span>{% translate "Encaissé" %}</span>
     <span class="kpi__valeur">{{ synthese.encaisse|fcfa }}<span class="unite">FCFA</span></span>
     <span class="kpi__pied t-kpi-pied--colonne">
       {% if synthese.taux is not None %}
         {% localize off %}<span class="t-jauge" role="img" aria-label="{{ synthese.taux }} % recouvré"><span style="width:{{ synthese.taux }}%"></span></span>{% endlocalize %}
-        <span>{{ synthese.taux|pourcent }} recouvré</span>
-      {% else %}<span class="t-muet">Rien à recouvrer</span>{% endif %}
+        <span>{% blocktranslate with taux=synthese.taux|pourcent trimmed %}{{ taux }} recouvré{% endblocktranslate %}</span>
+      {% else %}<span class="t-muet">{% translate "Rien à recouvrer" %}</span>{% endif %}
     </span>
   </div>
   <div class="kpi">
-    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg></span>Reste dû</span>
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg></span>{% translate "Reste dû" %}</span>
     <span class="kpi__valeur">{{ synthese.reste|fcfa }}<span class="unite">FCFA</span></span>
-    <span class="kpi__pied">{% if synthese.nb_restantes %}{{ synthese.nb_restantes }} facture{{ synthese.nb_restantes|pluralize }} à encaisser{% else %}<span class="t-muet">Tout est encaissé</span>{% endif %}</span>
+    <span class="kpi__pied">{% if synthese.nb_restantes %}{% blocktranslate count nb_restantes=synthese.nb_restantes trimmed %}{{ nb_restantes }} facture à encaisser{% plural %}{{ nb_restantes }} factures à encaisser{% endblocktranslate %}{% else %}<span class="t-muet">{% translate "Tout est encaissé" %}</span>{% endif %}</span>
   </div>
   <a class="kpi" href="?mois={{ mois_valeur }}&amp;etat=echues{% if boutique_filtree %}&amp;boutique={{ boutique_filtree.pk }}{% endif %}">
-    <span class="kpi__tete"><span class="kpi__icone {% if echues.nb %}kpi__icone--critique{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#{% if echues.nb %}ic-alerte{% else %}ic-check{% endif %}"></use></svg></span>Échu, non payé</span>
+    <span class="kpi__tete"><span class="kpi__icone {% if echues.nb %}kpi__icone--critique{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#{% if echues.nb %}ic-alerte{% else %}ic-check{% endif %}"></use></svg></span>{% translate "Échu, non payé" %}</span>
     <span class="kpi__valeur">{{ echues.emis|fcfa }}<span class="unite">FCFA</span></span>
-    <span class="kpi__pied">{% if echues.nb %}{{ echues.nb }} facture{{ echues.nb|pluralize }} en retard{% else %}<span class="t-muet">Aucun retard</span>{% endif %}</span>
+    <span class="kpi__pied">{% if echues.nb %}{% blocktranslate count nb=echues.nb trimmed %}{{ nb }} facture en retard{% plural %}{{ nb }} factures en retard{% endblocktranslate %}{% else %}<span class="t-muet">{% translate "Aucun retard" %}</span>{% endif %}</span>
   </a>
 </section>
 
-<nav class="onglets" aria-label="État des factures">
+<nav class="onglets" aria-label="{% translate 'État des factures' %}">
   {% for o in onglets %}
     <a class="onglet" href="?{% if parametres_onglet %}{{ parametres_onglet }}&amp;{% endif %}etat={{ o.code }}" {% if o.code == etat %}aria-current="page"{% endif %}>
       {{ o.libelle }}<span class="onglet__compte">{{ o.nombre }}</span>
@@ -75,14 +76,14 @@
     <table class="tableau">
       <thead>
         <tr>
-          <th scope="col">Boutique</th>
-          <th scope="col" class="t-cache-moyen">Période</th>
+          <th scope="col">{% translate "Boutique" %}</th>
+          <th scope="col" class="t-cache-moyen">{% translate "Période" %}</th>
           <th scope="col" class="num t-cache-moyen">HT</th>
           <th scope="col" class="num t-cache-moyen">TVA</th>
           <th scope="col" class="num">TTC</th>
-          <th scope="col" class="t-cache-etroit">Échéance</th>
-          <th scope="col" class="t-cache-etroit">État</th>
-          <th scope="col" class="t-cache-etroit" aria-label="Action"></th>
+          <th scope="col" class="t-cache-etroit">{% translate "Échéance" %}</th>
+          <th scope="col" class="t-cache-etroit">{% translate "État" %}</th>
+          <th scope="col" class="t-cache-etroit" aria-label="{% translate 'Action' %}"></th>
         </tr>
       </thead>
       <tbody>
@@ -104,17 +105,17 @@
             <td class="num principal">
               {{ f.montant_ttc|fcfa }}
               {% if 'plateforme.boutiques' in droits and f.statut != 'payee' and f.statut != 'annulee' %}
-                <a class="btn t-btn-ligne t-statut-mobile" href="{% url 'plateforme:loyer_encaisser' f.pk %}">Encaisser</a>
+                <a class="btn t-btn-ligne t-statut-mobile" href="{% url 'plateforme:loyer_encaisser' f.pk %}">{% translate "Encaisser" %}</a>
               {% endif %}
             </td>
-            <td class="t-cache-etroit chiffre">{{ f.echeance|date:"d/m/Y" }}{% if f.retard %}<span class="t-retard">{{ f.retard }} j de retard</span>{% endif %}</td>
+            <td class="t-cache-etroit chiffre">{{ f.echeance|date:"d/m/Y" }}{% if f.retard %}<span class="t-retard">{% blocktranslate with retard=f.retard trimmed %}{{ retard }} j de retard{% endblocktranslate %}</span>{% endif %}</td>
             <td class="t-cache-etroit">
               <span class="statut statut--{{ f.statut }}">{{ f.statut_libelle }}</span>
-              {% if f.paye_le %}<span class="t-legende t-sous-statut">le {{ f.paye_le|date:"d/m/Y" }}</span>{% endif %}
+              {% if f.paye_le %}<span class="t-legende t-sous-statut">{% blocktranslate with paye_le=f.paye_le|date:"d/m/Y" trimmed %}le {{ paye_le }}{% endblocktranslate %}</span>{% endif %}
             </td>
             <td class="num t-cache-etroit">
               {% if 'plateforme.boutiques' in droits and f.statut != 'payee' and f.statut != 'annulee' %}
-                <a class="btn t-btn-ligne" href="{% url 'plateforme:loyer_encaisser' f.pk %}">Encaisser</a>
+                <a class="btn t-btn-ligne" href="{% url 'plateforme:loyer_encaisser' f.pk %}">{% translate "Encaisser" %}</a>
               {% endif %}
             </td>
           </tr>
@@ -123,21 +124,21 @@
     </table>
   </div>
   <footer class="tableau-pied">
-    <span>{{ page_obj.paginator.count }} facture{{ page_obj.paginator.count|pluralize }}</span>
+    <span>{% blocktranslate count nb=page_obj.paginator.count trimmed %}{{ nb }} facture{% plural %}{{ nb }} factures{% endblocktranslate %}</span>
     {% include "plateforme/partials/t_pagination.html" with parametres=parametres_page %}
   </footer>
   {% else %}
     <div class="vide">
       <svg aria-hidden="true"><use href="#{% if etat == 'echues' or etat == 'impayees' %}ic-check{% else %}ic-argent{% endif %}"></use></svg>
       {% if etat == 'echues' %}
-        <p class="t-section">Aucun loyer échu</p>
-        <p class="t-legende">Toutes les échéances passées de {{ libelle_periode|lower }} sont réglées.</p>
+        <p class="t-section">{% translate "Aucun loyer échu" %}</p>
+        <p class="t-legende">{% blocktranslate with libelle_periode=libelle_periode|lower trimmed %}Toutes les échéances passées de {{ libelle_periode }} sont réglées.{% endblocktranslate %}</p>
       {% elif etat %}
-        <p class="t-section">Aucune facture dans cet onglet</p>
-        <p class="t-legende">{{ libelle_periode }} — essayez un autre onglet ou un autre mois.</p>
+        <p class="t-section">{% translate "Aucune facture dans cet onglet" %}</p>
+        <p class="t-legende">{% blocktranslate with libelle_periode=libelle_periode trimmed %}{{ libelle_periode }} — essayez un autre onglet ou un autre mois.{% endblocktranslate %}</p>
       {% else %}
-        <p class="t-section">Aucune facture pour {{ libelle_periode|lower }}</p>
-        <p class="t-legende">Les factures de loyer sont émises en début de mois pour chaque bail actif.</p>
+        <p class="t-section">{% blocktranslate with libelle_periode=libelle_periode|lower trimmed %}Aucune facture pour {{ libelle_periode }}{% endblocktranslate %}</p>
+        <p class="t-legende">{% translate "Les factures de loyer sont émises en début de mois pour chaque bail actif." %}</p>
       {% endif %}
     </div>
   {% endif %}

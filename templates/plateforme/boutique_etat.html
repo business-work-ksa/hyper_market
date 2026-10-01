@@ -1,14 +1,15 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm %}
-{% block titre %}{% if geste %}{{ geste.titre }}{% else %}Changement d'état refusé{% endif %} · {{ boutique.enseigne }}{% endblock %}
+{% block titre %}{% if geste %}{{ geste.titre }}{% else %}{% translate "Changement d'état refusé" %}{% endif %} · {{ boutique.enseigne }}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
 {% block fil %}
   <nav class="fil" aria-label="Fil d'Ariane">
-    <a href="{% url 'plateforme:boutiques' %}">Boutiques</a><span class="fil__sep" aria-hidden="true">/</span>
+    <a href="{% url 'plateforme:boutiques' %}">{% translate "Boutiques" %}</a><span class="fil__sep" aria-hidden="true">/</span>
     <a href="{% url 'plateforme:boutique' boutique.pk %}">{{ boutique.enseigne }}</a>
   </nav>
 {% endblock %}
-{% block entete %}{% if geste %}{{ geste.titre }}{% else %}Changement d'état{% endif %}{% endblock %}
+{% block entete %}{% if geste %}{{ geste.titre }}{% else %}{% translate "Changement d'état" %}{% endif %}{% endblock %}
 
 {% block contenu %}
 <div class="a-page">
@@ -22,7 +23,7 @@
       <span class="statut statut--{{ boutique.etat }}">{{ boutique.get_etat_display }}</span>
       {% if arrivee %}
         <svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
-        <span class="visuellement-cache">devient</span>
+        <span class="visuellement-cache">{% translate "devient" %}</span>
         <span class="statut statut--{{ arrivee_code }}">{{ arrivee }}</span>
       {% endif %}
     </div>
@@ -34,20 +35,20 @@
       <div class="carte__corps colonne">
         <div class="bandeau-info bandeau-info--alerte" role="alert">
           <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
-          <span><strong>Ce changement n'est pas possible.</strong> {{ refus }}</span>
+          <span><strong>{% translate "Ce changement n'est pas possible." %}</strong> {{ refus }}</span>
         </div>
         <div class="pile-sm">
-          <p class="t-sur-titre">Le cycle de vie d'une boutique</p>
+          <p class="t-sur-titre">{% translate "Le cycle de vie d'une boutique" %}</p>
           <ul class="a-cycle">
-            <li><span class="statut statut--candidature">Candidature</span> → <span class="statut statut--active">Active</span> <span class="t-legende">valider</span></li>
-            <li><span class="statut statut--active">Active</span> ⇄ <span class="statut statut--suspendue">Suspendue</span> <span class="t-legende">suspendre, réactiver</span></li>
-            <li><span class="t-legende">Candidature, active ou suspendue</span> → <span class="statut statut--resiliee">Résiliée</span> <span class="t-legende">résilier, sans retour</span></li>
+            <li><span class="statut statut--candidature">{% translate "Candidature" %}</span> → <span class="statut statut--active">{% translate "Active" %}</span> <span class="t-legende">{% translate "valider" %}</span></li>
+            <li><span class="statut statut--active">{% translate "Active" %}</span> ⇄ <span class="statut statut--suspendue">{% translate "Suspendue" %}</span> <span class="t-legende">{% translate "suspendre, réactiver" %}</span></li>
+            <li><span class="t-legende">{% translate "Candidature, active ou suspendue" %}</span> → <span class="statut statut--resiliee">{% translate "Résiliée" %}</span> <span class="t-legende">{% translate "résilier, sans retour" %}</span></li>
           </ul>
         </div>
       </div>
       <footer class="carte__pied">
         <a class="btn" href="{% url 'plateforme:boutique' boutique.pk %}">
-          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg>Revenir à la fiche
+          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg>{% translate "Revenir à la fiche" %}
         </a>
       </footer>
     </section>
@@ -57,7 +58,7 @@
       <input type="hidden" name="action" value="{{ action }}">
       <div class="carte__corps colonne">
         <section class="pile-sm" aria-labelledby="a-consequences">
-          <h3 class="t-section" id="a-consequences">Ce que ce geste change</h3>
+          <h3 class="t-section" id="a-consequences">{% translate "Ce que ce geste change" %}</h3>
           <ul class="a-consequences">
             {% for consequence in geste.consequences %}<li>{{ consequence }}</li>{% endfor %}
           </ul>
@@ -68,39 +69,39 @@
           <div class="bandeau-info bandeau-info--alerte" role="alert">
             <svg aria-hidden="true"><use href="#ic-verrou"></use></svg>
             <div class="pile-sm">
-              <strong>Vérification incomplète : cette boutique ne peut pas devenir active.</strong>
+              <strong>{% translate "Vérification incomplète : cette boutique ne peut pas devenir active." %}</strong>
               <ul class="a-consequences">
                 {% for manque in manques %}<li>{{ manque }}</li>{% endfor %}
               </ul>
-              <a class="t-lien" href="{% url 'plateforme:verification_dossier' boutique.pk %}">Compléter le dossier de vérification</a>
+              <a class="t-lien" href="{% url 'plateforme:verification_dossier' boutique.pk %}">{% translate "Compléter le dossier de vérification" %}</a>
             </div>
           </div>
         {% endif %}
         {% if sans_bail_actif %}
           <div class="bandeau-info bandeau-info--alerte">
             <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
-            <span>Cette boutique n'a <strong>aucun bail actif</strong> : réactivée, elle restera hors vitrine tant qu'un bail ne sera pas actif.</span>
+            <span>{% translate "Cette boutique n'a" %} <strong>{% translate "aucun bail actif" %}</strong> {% translate ": réactivée, elle restera hors vitrine tant qu'un bail ne sera pas actif." %}</span>
           </div>
         {% endif %}
         {% if impayees and action == 'resilier' or impayees and action == 'suspendre' %}
           <div class="bandeau-info">
             <svg aria-hidden="true"><use href="#ic-argent"></use></svg>
-            <span>{{ impayees }} facture{{ impayees|pluralize }} de loyer échue{{ impayees|pluralize }} et non payée{{ impayees|pluralize }}. {% if action == 'resilier' %}La résiliation ne les annule pas.{% endif %}</span>
+            <span>{% blocktranslate count impayees=impayees trimmed %}{{ impayees }} facture de loyer échue et non payée.{% plural %}{{ impayees }} factures de loyer échues et non payées.{% endblocktranslate %} {% if action == 'resilier' %}{% translate "La résiliation ne les annule pas." %}{% endif %}</span>
           </div>
         {% endif %}
 
         {% if bail %}
           <dl class="cles a-cles-bail">
-            <dt>Bail</dt><dd>{{ bail.type_emplacement.libelle }} · {{ bail.get_etat_display|lower }} depuis le {{ bail.debut|date:"d/m/Y" }}</dd>
-            <dt>Loyer</dt><dd>{{ bail.loyer_mensuel|fcfa }}&#8239;FCFA HT / mois</dd>
-            <dt>Commission</dt><dd>{{ commission_bail }}</dd>
+            <dt>{% translate "Bail" %}</dt><dd>{% blocktranslate with libelle=bail.type_emplacement.libelle get_etat_display=bail.get_etat_display|lower debut=bail.debut|date:"d/m/Y" trimmed %}{{ libelle }} · {{ get_etat_display }} depuis le {{ debut }}{% endblocktranslate %}</dd>
+            <dt>{% translate "Loyer" %}</dt><dd>{% blocktranslate with loyer_mensuel=bail.loyer_mensuel|fcfa trimmed %}{{ loyer_mensuel }}&#8239;FCFA HT / mois{% endblocktranslate %}</dd>
+            <dt>{% translate "Commission" %}</dt><dd>{{ commission_bail }}</dd>
           </dl>
         {% endif %}
 
         {% include "plateforme/partials/a_champ.html" with champ=form.motif %}
       </div>
       <footer class="carte__pied assistant__pied">
-        <a class="btn" href="{% url 'plateforme:boutique' boutique.pk %}">Annuler</a>
+        <a class="btn" href="{% url 'plateforme:boutique' boutique.pk %}">{% translate "Annuler" %}</a>
         <button class="btn {% if geste.ton == 'danger' %}btn--danger-plein{% else %}btn--primaire{% endif %}" type="submit"{% if manques %} disabled aria-disabled="true"{% endif %}>
           <svg class="icone-ligne" aria-hidden="true"><use href="#{{ geste.icone }}"></use></svg>{{ geste.bouton }}
         </button>

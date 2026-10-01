@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Garantie — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Garantie et atelier{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Garantie — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Garantie et atelier" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'ventes' %}">Toutes les ventes</a>
+  <a class="btn" href="{% url 'ventes' %}">{% translate "Toutes les ventes" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -25,18 +26,18 @@
           <input class="champ" type="search" name="numero" id="numero-recherche"
                  value="{{ recherche }}" autocomplete="off" spellcheck="false"
                  placeholder="Numéro de série ou IMEI — scannez l'appareil"
-                 aria-label="Rechercher un appareil par son numéro">
+                 aria-label="{% translate 'Rechercher un appareil par son numéro' %}">
         </div>
-        <button class="btn btn--primaire" type="submit">Rechercher</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Rechercher" %}</button>
       </form>
 
       {% if introuvable %}
         <p class="bandeau-info bandeau-info--alerte" role="status">
           <svg><use href="#ic-alerte"></use></svg>
           <span>
-            Aucun appareil ne porte le numéro « {{ recherche }} » dans cette
+            {% blocktranslate with recherche=recherche trimmed %}Aucun appareil ne porte le numéro « {{ recherche }} » dans cette
             boutique. Il peut venir d'ailleurs, ou avoir été vendu avant que le
-            suivi à l'unité ne soit activé.
+            suivi à l'unité ne soit activé.{% endblocktranslate %}
           </span>
         </p>
       {% endif %}
@@ -54,31 +55,31 @@
 
         <div class="tuiles">
           <article class="tuile">
-            <div class="tuile__libelle"><svg><use href="#ic-stock"></use></svg><span class="t-sur-titre">État</span></div>
+            <div class="tuile__libelle"><svg><use href="#ic-stock"></use></svg><span class="t-sur-titre">{% translate "État" %}</span></div>
             <p class="tuile__valeur" style="font-size:22px">{{ trouve.get_etat_display }}</p>
-            <p class="tuile__note"><span class="t-muet">Reçu le {{ trouve.recu_le|date:"d/m/Y" }} · {{ trouve.depot.libelle }}</span></p>
+            <p class="tuile__note"><span class="t-muet">{% blocktranslate with recu_le=trouve.recu_le|date:"d/m/Y" libelle=trouve.depot.libelle trimmed %}Reçu le {{ recu_le }} · {{ libelle }}{% endblocktranslate %}</span></p>
           </article>
 
           {% if suit_la_garantie %}
             <article class="tuile">
-              <div class="tuile__libelle"><svg><use href="#ic-garantie"></use></svg><span class="t-sur-titre">Garantie</span></div>
+              <div class="tuile__libelle"><svg><use href="#ic-garantie"></use></svg><span class="t-sur-titre">{% translate "Garantie" %}</span></div>
               {% if trouve.garantie_fin %}
                 <p class="tuile__valeur" style="font-size:22px;color:{% if trouve.sous_garantie %}var(--bon){% else %}var(--critique){% endif %}">
-                  {% if trouve.sous_garantie %}Sous garantie{% else %}Expirée{% endif %}
+                  {% if trouve.sous_garantie %}{% translate "Sous garantie" %}{% else %}{% translate "Expirée" %}{% endif %}
                 </p>
                 <p class="tuile__note">
                   <span class="t-muet">
-                    Jusqu'au {{ trouve.garantie_fin|date:"d/m/Y" }}
+                    {% blocktranslate with garantie_fin=trouve.garantie_fin|date:"d/m/Y" trimmed %}Jusqu'au {{ garantie_fin }}{% endblocktranslate %}
                     {% with jours=trouve.jours_de_garantie %}
-                      {% if jours >= 0 %}· encore {{ jours }} jour{{ jours|pluralize }}
-                      {% else %}· depuis {{ jours|slice:"1:" }} jour{{ jours|pluralize }}{% endif %}
+                      {% if jours >= 0 %}{% blocktranslate count jours=jours trimmed %}· encore {{ jours }} jour{% plural %}· encore {{ jours }} jours{% endblocktranslate %}
+                      {% else %}{% widthratio jours -1 1 as ecoules %}{% blocktranslate count jours=ecoules|add:0 trimmed %}· depuis {{ jours }} jour{% plural %}· depuis {{ jours }} jours{% endblocktranslate %}{% endif %}
                     {% endwith %}
                   </span>
                 </p>
               {% else %}
                 <p class="tuile__valeur" style="font-size:22px">—</p>
                 <p class="tuile__note"><span class="t-muet">
-                  {% if trouve.vendu_le %}Vendu sans garantie{% else %}Pas encore vendu{% endif %}
+                  {% if trouve.vendu_le %}{% translate "Vendu sans garantie" %}{% else %}{% translate "Pas encore vendu" %}{% endif %}
                 </span></p>
               {% endif %}
             </article>
@@ -86,12 +87,12 @@
 
           {% if trouve.vendu_le %}
             <article class="tuile">
-              <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">Vendu</span></div>
+              <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">{% translate "Vendu" %}</span></div>
               <p class="tuile__valeur" style="font-size:22px">{{ trouve.vendu_le|date:"d/m/Y" }}</p>
               <p class="tuile__note"><span class="t-muet">
                 {% if trouve.ticket_id %}
-                  <a href="{% url 'ticket' ticket_id=trouve.ticket_id %}">Ticket {{ trouve.ticket_numero }}</a>
-                {% else %}Ticket inconnu{% endif %}
+                  <a href="{% url 'ticket' ticket_id=trouve.ticket_id %}">{% blocktranslate with ticket_numero=trouve.ticket_numero trimmed %}Ticket {{ ticket_numero }}{% endblocktranslate %}</a>
+                {% else %}{% translate "Ticket inconnu" %}{% endif %}
                 {% if trouve.client %} · {{ trouve.client }}{% endif %}
               </span></p>
             </article>
@@ -112,7 +113,7 @@
                 <label for="{{ formulaire_sortie.resultat.id_for_label }}">{{ formulaire_sortie.resultat.label }}</label>
                 {{ formulaire_sortie.resultat }}
               </div>
-              <button class="btn btn--primaire" type="submit">Rendre l'appareil</button>
+              <button class="btn btn--primaire" type="submit">{% translate "Rendre l'appareil" %}</button>
             </form>
           {% else %}
             <form method="post" action="{% url 'atelier_entrer' exemplaire_id=trouve.pk %}"
@@ -123,7 +124,7 @@
                 {{ formulaire_atelier.motif }}
               </div>
               <button class="btn" type="submit">
-                <svg><use href="#ic-atelier"></use></svg> Déposer à l'atelier
+                <svg><use href="#ic-atelier"></use></svg> {% translate "Déposer à l'atelier" %}
               </button>
             </form>
             {% comment %}
@@ -133,10 +134,10 @@
             {% endcomment %}
             <p class="t-legende">
               {% if trouve.sous_garantie %}
-                La réparation sera enregistrée sous garantie — elle l'est au jour
-                du dépôt, même si l'atelier rend l'appareil après l'échéance.
+                {% blocktranslate trimmed %}La réparation sera enregistrée sous garantie — elle l'est au jour
+                du dépôt, même si l'atelier rend l'appareil après l'échéance.{% endblocktranslate %}
               {% else %}
-                La réparation sera enregistrée hors garantie.
+                {% translate "La réparation sera enregistrée hors garantie." %}
               {% endif %}
             </p>
           {% endif %}
@@ -145,7 +146,7 @@
         {# ---- Historique des passages -------------------------------------- #}
         {% if passages %}
           <div class="colonne" style="gap:8px">
-            <p class="t-sur-titre">Passages à l'atelier</p>
+            <p class="t-sur-titre">{% translate "Passages à l'atelier" %}</p>
             {% for p in passages %}
               <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
                 <span class="t-2">
@@ -154,14 +155,14 @@
                 </span>
                 <span class="rangee" style="gap:6px">
                   {% if p.sous_garantie %}
-                    <span class="puce puce--bon">Sous garantie</span>
+                    <span class="puce puce--bon">{% translate "Sous garantie" %}</span>
                   {% else %}
-                    <span class="puce">Hors garantie</span>
+                    <span class="puce">{% translate "Hors garantie" %}</span>
                   {% endif %}
                   {% if p.en_cours %}
-                    <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>En cours</span>
+                    <span class="puce puce--alerte"><svg><use href="#ic-horloge"></use></svg>{% translate "En cours" %}</span>
                   {% else %}
-                    <span class="puce">Rendu le {{ p.sorti_le|date:"d/m/Y" }}</span>
+                    <span class="puce">{% blocktranslate with sorti_le=p.sorti_le|date:"d/m/Y" trimmed %}Rendu le {{ sorti_le }}{% endblocktranslate %}</span>
                   {% endif %}
                 </span>
               </div>
@@ -178,7 +179,7 @@
       {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre="À l'atelier" aide="Chacun de ces appareils appartient à quelqu'un qui attend. Ouvrez-en un pour le rendre : la couverture a été figée au jour du dépôt." %}
       <div class="carte__corps colonne" style="gap:10px">
         <p class="t-legende">
-          Le plus ancien dépôt est en tête — c'est celui dont le client rappelle.
+          {% translate "Le plus ancien dépôt est en tête — c'est celui dont le client rappelle." %}
         </p>
         {% for e in en_atelier %}
           <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
@@ -197,26 +198,26 @@
   {% if ecarts %}
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">En stock sans numéro</h2>
+        <h2 class="t-section">{% translate "En stock sans numéro" %}</h2>
         <span class="puce"><svg><use href="#ic-info"></use></svg>{{ ecarts|length }}</span>
       </header>
       <div class="carte__corps colonne" style="gap:10px">
         <p class="t-legende">
-          Ces appareils sont comptés dans le stock mais ne sont nommés par aucun
+          {% blocktranslate trimmed %}Ces appareils sont comptés dans le stock mais ne sont nommés par aucun
           numéro : ils sortiront sans qu'on puisse dire lequel est parti, et leur
           garantie ne sera opposable à rien. Ce n'est pas une erreur de comptage —
           c'est une réception passée sans les numéros, et elle se rattrape depuis
-          la fiche de l'article.
+          la fiche de l'article.{% endblocktranslate %}
         </p>
         <div class="tableau-boite">
           <table class="tableau">
             <thead>
               <tr>
                 <th scope="col">{{ metier.article|capfirst }}</th>
-                <th scope="col">Dépôt</th>
-                <th scope="col" class="num">En stock</th>
-                <th scope="col" class="num">Nommés</th>
-                <th scope="col" class="num">Sans numéro</th>
+                <th scope="col">{% translate "Dépôt" %}</th>
+                <th scope="col" class="num">{% translate "En stock" %}</th>
+                <th scope="col" class="num">{% translate "Nommés" %}</th>
+                <th scope="col" class="num">{% translate "Sans numéro" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -248,11 +249,11 @@
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Vendu le</th>
-                <th scope="col">Numéro</th>
+                <th scope="col">{% translate "Vendu le" %}</th>
+                <th scope="col">{% translate "Numéro" %}</th>
                 <th scope="col">{{ metier.article|capfirst }}</th>
-                <th scope="col">Client</th>
-                {% if suit_la_garantie %}<th scope="col">Garantie</th>{% endif %}
+                <th scope="col">{% translate "Client" %}</th>
+                {% if suit_la_garantie %}<th scope="col">{% translate "Garantie" %}</th>{% endif %}
               </tr>
             </thead>
             <tbody>
@@ -269,9 +270,9 @@
                     <td class="t-2">
                       {% if e.garantie_fin %}
                         {% if e.sous_garantie %}
-                          <span class="puce puce--bon">Jusqu'au {{ e.garantie_fin|date:"d/m/Y" }}</span>
+                          <span class="puce puce--bon">{% blocktranslate with garantie_fin=e.garantie_fin|date:"d/m/Y" trimmed %}Jusqu'au {{ garantie_fin }}{% endblocktranslate %}</span>
                         {% else %}
-                          <span class="puce">Expirée le {{ e.garantie_fin|date:"d/m/Y" }}</span>
+                          <span class="puce">{% blocktranslate with garantie_fin=e.garantie_fin|date:"d/m/Y" trimmed %}Expirée le {{ garantie_fin }}{% endblocktranslate %}</span>
                         {% endif %}
                       {% else %}—{% endif %}
                     </td>
@@ -285,14 +286,14 @@
         <div class="carte__corps">
           <div class="vide">
             <svg><use href="#ic-garantie"></use></svg>
-            <p class="t-2">Aucun appareil ne correspond.</p>
+            <p class="t-2">{% translate "Aucun appareil ne correspond." %}</p>
             {% if filtres.actifs %}
-              <a class="btn" href="{% url 'garantie' %}">Retirer les filtres</a>
+              <a class="btn" href="{% url 'garantie' %}">{% translate "Retirer les filtres" %}</a>
             {% endif %}
             <p class="t-legende">
-              Un {{ metier.article }} n'apparaît ici que s'il est marqué « suivi à
+              {% blocktranslate with article=metier.article trimmed %}Un {{ article }} n'apparaît ici que s'il est marqué « suivi à
               l'unité » dans sa fiche. Sans cette marque, la caisse ne demande pas
-              de numéro et il n'y a rien à retrouver.
+              de numéro et il n'y a rien à retrouver.{% endblocktranslate %}
             </p>
           </div>
         </div>

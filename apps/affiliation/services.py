@@ -24,6 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.affiliation.models import Apporteur, Attribution, Commission, Revendeur
+from django.utils.translation import gettext as _
 
 __all__ = [
     "CommissionInvalide",
@@ -156,7 +157,7 @@ def _commissions_apporteurs(sous_commande, commande) -> list[Commission]:
 
     if cumul > plafond:  # pragma: no cover — garde-fou : ne doit jamais se produire
         raise CommissionInvalide(
-            f"Cumul de commissions apporteurs {cumul} supérieur au plafond ({plafond})."
+            _('Cumul de commissions apporteurs %(cumul)s supérieur au plafond (%(plafond)s).') % {"cumul": cumul, "plafond": plafond}
         )
 
     return commissions
@@ -216,7 +217,7 @@ def acquerir_commissions(sous_commande, *, maintenant=None) -> int:
     """
     maintenant = maintenant or timezone.now()
     if sous_commande.livree_le is None:
-        raise CommissionInvalide("La sous-commande n'est pas livrée.")
+        raise CommissionInvalide(_("La sous-commande n'est pas livrée."))
 
     delai = timedelta(days=int(settings.AFFILIATION["DELAI_RETOUR_JOURS"]))
     if maintenant < sous_commande.livree_le + delai:

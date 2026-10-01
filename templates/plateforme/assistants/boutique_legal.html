@@ -1,7 +1,8 @@
 {% extends "plateforme/assistants/cadre.html" %}
-{% block fil_parent %}Boutiques{% endblock %}
-{% block question %}Son existence légale{% endblock %}
-{% block phrase %}Les identifiants du registre et de l'administration fiscale, et le régime qui décide de ses obligations comptables — donc des fonctions qui s'activent.{% endblock %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Boutiques" %}{% endblock %}
+{% block question %}{% translate "Son existence légale" %}{% endblock %}
+{% block phrase %}{% translate "Les identifiants du registre et de l'administration fiscale, et le régime qui décide de ses obligations comptables — donc des fonctions qui s'activent." %}{% endblock %}
 {% block etape %}
   <div class="a-grille-2">
     {% include "plateforme/partials/a_champ.html" with champ=form.rccm %}
@@ -10,8 +11,8 @@
   {% include "plateforme/partials/a_cartes.html" with champ=form.regime_fiscal cartes=cartes_regimes aide="Le seuil de chiffre d'affaires est rappelé dans chaque libellé. Une boutique qui le franchit change de régime." %}
   <div class="bandeau-info">
     <svg aria-hidden="true"><use href="#ic-info"></use></svg>
-    <span>Un assujetti à l'IGS <strong>ne facture pas de TVA</strong> et ne la récupère pas ; les
+    <span>{% translate "Un assujetti à l'IGS" %} <strong>{% translate "ne facture pas de TVA" %}</strong> {% blocktranslate trimmed %}et ne la récupère pas ; les
       deux régimes réels la collectent (docs/07, §5). En cas de doute, vérifiez le chiffre
-      d'affaires déclaré avant de choisir.</span>
+      d'affaires déclaré avant de choisir.{% endblocktranslate %}</span>
   </div>
 {% endblock %}

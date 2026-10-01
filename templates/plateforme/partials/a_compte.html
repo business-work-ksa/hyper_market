@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Les champs d'un compte existant ou nouveau (`CompteForm`). Sans JavaScript, tout est visible et
 le serveur ne lit que ce que le mode demande ; avec, le bloc « nouveau compte » se replie.
 {% endcomment %}
@@ -6,7 +6,7 @@ le serveur ne lit que ce que le mode demande ; avec, le bloc « nouveau compte �
   {% include "plateforme/partials/a_champ.html" with champ=form.telephone %}
 </div>
 <fieldset class="a-groupe a-nouveau-compte" data-nouveau-compte>
-  <legend class="a-legende">Pour un nouveau compte seulement</legend>
+  <legend class="a-legende">{% translate "Pour un nouveau compte seulement" %}</legend>
   <div class="a-grille-2">
     {% include "plateforme/partials/a_champ.html" with champ=form.nom %}
   </div>
@@ -14,7 +14,7 @@ le serveur ne lit que ce que le mode demande ; avec, le bloc « nouveau compte �
     {% include "plateforme/partials/a_champ.html" with champ=form.mot_de_passe %}
     {% include "plateforme/partials/a_champ.html" with champ=form.mot_de_passe_confirmation %}
   </div>
-  <p class="t-legende">Au moins 8 caractères, pas uniquement des chiffres, ni trop proche du nom ou du
+  <p class="t-legende">{% blocktranslate trimmed %}Au moins 8 caractères, pas uniquement des chiffres, ni trop proche du nom ou du
     numéro. Le mot de passe n'est conservé que haché : notez-le pour le transmettre de vive voix,
-    il ne sera plus affiché.</p>
+    il ne sera plus affiché.{% endblocktranslate %}</p>
 </fieldset>

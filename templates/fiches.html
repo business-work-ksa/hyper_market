@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Fiches techniques — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Fiches techniques{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Fiches techniques — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Fiches techniques" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'production' %}">Production du jour</a>
+  <a class="btn" href="{% url 'production' %}">{% translate "Production du jour" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -20,10 +21,10 @@
           <thead>
             <tr>
               <th scope="col">{{ metier.article|capfirst }}</th>
-              <th scope="col" class="num">Rendement</th>
-              <th scope="col" class="num">Ingrédients</th>
-              <th scope="col">Conservation</th>
-              <th scope="col">État</th>
+              <th scope="col" class="num">{% translate "Rendement" %}</th>
+              <th scope="col" class="num">{% translate "Ingrédients" %}</th>
+              <th scope="col">{% translate "Conservation" %}</th>
+              <th scope="col">{% translate "État" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -43,9 +44,9 @@
                 </td>
                 <td>
                   {% if f.actif %}
-                    <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>En service</span>
+                    <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>{% translate "En service" %}</span>
                   {% else %}
-                    <span class="puce"><svg><use href="#ic-verrou"></use></svg>Retirée</span>
+                    <span class="puce"><svg><use href="#ic-verrou"></use></svg>{% translate "Retirée" %}</span>
                   {% endif %}
                 </td>
               </tr>
@@ -56,12 +57,12 @@
     {% else %}
       <div class="vide">
         <svg><use href="#ic-production"></use></svg>
-        <p class="t-2">Aucune fiche technique.</p>
+        <p class="t-2">{% translate "Aucune fiche technique." %}</p>
         <p class="t-legende">
-          Une fiche dit ce qu'il faut pour fabriquer un produit, et combien une
+          {% blocktranslate trimmed %}Une fiche dit ce qu'il faut pour fabriquer un produit, et combien une
           exécution en produit. C'est elle qui permet à une production de sortir
           réellement les ingrédients du stock et de calculer ce que le produit
-          fini a coûté.
+          fini a coûté.{% endblocktranslate %}
         </p>
       </div>
     {% endif %}
@@ -73,7 +74,7 @@
   <dialog class="modale" id="modale-nouvelle-fiche">
     <form method="post" action="{% url 'fiche_creer' %}" novalidate>
       {% csrf_token %}
-      <header class="modale__entete"><h2 class="t-section">Ouvrir une fiche</h2></header>
+      <header class="modale__entete"><h2 class="t-section">{% translate "Ouvrir une fiche" %}</h2></header>
       <div class="modale__corps colonne" style="gap:16px">
         {% include "partials/champ.html" with champ=formulaire.variante %}
         <div class="duo">
@@ -82,14 +83,14 @@
         </div>
         {% include "partials/champ.html" with champ=formulaire.note %}
         <p class="t-legende">
-          Le produit fabriqué n'est pas créé ici : c'est un article ordinaire de
+          {% blocktranslate trimmed %}Le produit fabriqué n'est pas créé ici : c'est un article ordinaire de
           votre stock, avec son prix et son coût moyen. La fiche explique
-          seulement <strong>d'où il vient</strong>.
+          seulement{% endblocktranslate %} <strong>{% translate "d'où il vient" %}</strong>.
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Ouvrir la fiche</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Ouvrir la fiche" %}</button>
       </footer>
     </form>
   </dialog>
@@ -104,33 +105,33 @@
     <form method="post" data-action-modele="{% url 'fiche_modifier' '00000000-0000-0000-0000-000000000000' %}">
       {% csrf_token %}
       <header class="modale__entete">
-        <h2 class="t-section">Fiche de « <span data-cible-libelle></span> »</h2>
+        <h2 class="t-section">{% translate "Fiche de «" %} <span data-cible-libelle></span> »</h2>
       </header>
       <div class="modale__corps colonne" style="gap:14px">
         <div class="duo" style="gap:14px">
           <div class="groupe-champ">
-            <label for="rendement-fiche">Rendement</label>
+            <label for="rendement-fiche">{% translate "Rendement" %}</label>
             <input class="champ" id="rendement-fiche" name="rendement" inputmode="decimal">
-            <span class="t-legende">Une fournée, pas une pièce.</span>
+            <span class="t-legende">{% translate "Une fournée, pas une pièce." %}</span>
           </div>
           <div class="groupe-champ">
-            <label for="conservation-fiche">Conservation (jours)</label>
+            <label for="conservation-fiche">{% translate "Conservation (jours)" %}</label>
             <input class="champ" id="conservation-fiche" name="duree_conservation_jours" inputmode="numeric">
-            <span class="t-legende">Vide si le produit ne périme pas.</span>
+            <span class="t-legende">{% translate "Vide si le produit ne périme pas." %}</span>
           </div>
         </div>
         <div class="groupe-champ">
-          <label for="note-fiche">Mode opératoire</label>
+          <label for="note-fiche">{% translate "Mode opératoire" %}</label>
           <textarea class="champ" id="note-fiche" name="note" rows="3"></textarea>
         </div>
         <p class="t-legende">
-          Les ingrédients se modifient sur la fiche elle-même : ouvrez-la depuis
-          la liste.
+          {% blocktranslate trimmed %}Les ingrédients se modifient sur la fiche elle-même : ouvrez-la depuis
+          la liste.{% endblocktranslate %}
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
       </footer>
     </form>
   </dialog>

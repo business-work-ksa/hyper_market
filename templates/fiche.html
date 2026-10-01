@@ -1,16 +1,17 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}{{ recette.variante }} — fiche technique{% endblock %}
+{% block titre %}{% blocktranslate with variante=recette.variante trimmed %}{{ variante }} — fiche technique{% endblocktranslate %}{% endblock %}
 {% block entete %}{{ recette.variante }}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'fiches' %}">Toutes les fiches</a>
+  <a class="btn" href="{% url 'fiches' %}">{% translate "Toutes les fiches" %}</a>
   {% if 'stock.mouvementer' in droits %}
     <form method="post" action="{% url 'fiche_basculer' recette_id=recette.pk %}" style="display:inline">
       {% csrf_token %}
       <button class="btn" type="submit">
-        {% if recette.actif %}Retirer de la production{% else %}Remettre en service{% endif %}
+        {% if recette.actif %}{% translate "Retirer de la production" %}{% else %}{% translate "Remettre en service" %}{% endif %}
       </button>
     </form>
   {% endif %}
@@ -22,32 +23,32 @@
     <div class="bandeau-info bandeau-info--alerte" role="status">
       <svg><use href="#ic-info"></use></svg>
       <span>
-        Cette fiche est retirée de la production. Elle reste lisible : elle
-        explique les fabrications déjà enregistrées dans le journal du stock.
+        {% blocktranslate trimmed %}Cette fiche est retirée de la production. Elle reste lisible : elle
+        explique les fabrications déjà enregistrées dans le journal du stock.{% endblocktranslate %}
       </span>
     </div>
   {% endif %}
 
   <section class="tuiles">
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">Rendement</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">{% translate "Rendement" %}</span></div>
       <p class="tuile__valeur">{{ recette.rendement|quantite }}</p>
-      <p class="tuile__note"><span class="t-muet">Unités par exécution complète</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Unités par exécution complète" %}</span></p>
     </article>
     {% if revient %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Coût de revient</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Coût de revient" %}</span></div>
         <p class="tuile__valeur">{{ revient.unitaire|fcfa }}<span class="unite">FCFA</span></p>
-        <p class="tuile__note"><span class="t-muet">Par unité, aux coûts moyens du jour</span></p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Par unité, aux coûts moyens du jour" %}</span></p>
       </article>
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Prix de vente</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">{% translate "Prix de vente" %}</span></div>
         <p class="tuile__valeur">{{ recette.variante.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
         <p class="tuile__note">
           {% if revient.unitaire >= recette.variante.prix_vente %}
-            <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>Vendu à perte</span>
+            <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>{% translate "Vendu à perte" %}</span>
           {% else %}
-            <span class="t-muet">Marge sur coût de production : {{ marge_production|fcfa }} FCFA</span>
+            <span class="t-muet">{% blocktranslate with marge_production=marge_production|fcfa trimmed %}Marge sur coût de production : {{ marge_production }} FCFA{% endblocktranslate %}</span>
           {% endif %}
         </p>
       </article>
@@ -63,12 +64,12 @@
         <table class="tableau">
           <thead>
             <tr>
-              <th scope="col">Ingrédient</th>
-              <th scope="col" class="num">Quantité</th>
+              <th scope="col">{% translate "Ingrédient" %}</th>
+              <th scope="col" class="num">{% translate "Quantité" %}</th>
               {% if revient %}
-                <th scope="col" class="num">Coût moyen</th>
-                <th scope="col" class="num">Montant</th>
-                <th scope="col" class="num">En stock</th>
+                <th scope="col" class="num">{% translate "Coût moyen" %}</th>
+                <th scope="col" class="num">{% translate "Montant" %}</th>
+                <th scope="col" class="num">{% translate "En stock" %}</th>
               {% endif %}
             </tr>
           </thead>
@@ -85,7 +86,7 @@
                     {% if d.connu %}
                       {{ d.cmp|fcfa }}<span class="unite">FCFA</span>
                     {% else %}
-                      <span class="puce puce--alerte" title="Cet ingrédient n'est jamais entré en stock : son coût est inconnu et compté pour zéro."><svg><use href="#ic-alerte"></use></svg>Inconnu</span>
+                      <span class="puce puce--alerte" title="Cet ingrédient n'est jamais entré en stock : son coût est inconnu et compté pour zéro."><svg><use href="#ic-alerte"></use></svg>{% translate "Inconnu" %}</span>
                     {% endif %}
                   </td>
                   <td class="num chiffre">{{ d.montant|fcfa }}<span class="unite">FCFA</span></td>
@@ -106,7 +107,7 @@
           {% if revient %}
             <tfoot>
               <tr>
-                <td class="principal">Total pour une exécution</td>
+                <td class="principal">{% translate "Total pour une exécution" %}</td>
                 <td></td>
                 <td></td>
                 <td class="num chiffre" style="font-weight:680">{{ revient.total|fcfa }}<span class="unite">FCFA</span></td>
@@ -119,10 +120,10 @@
     {% else %}
       <div class="vide">
         <svg><use href="#ic-stock"></use></svg>
-        <p class="t-2">Cette fiche n'a pas encore d'ingrédient.</p>
+        <p class="t-2">{% translate "Cette fiche n'a pas encore d'ingrédient." %}</p>
         <p class="t-legende">
-          Tant qu'elle est vide, elle ne peut rien produire : il n'y a rien à
-          consommer, donc rien à valoriser.
+          {% blocktranslate trimmed %}Tant qu'elle est vide, elle ne peut rien produire : il n'y a rien à
+          consommer, donc rien à valoriser.{% endblocktranslate %}
         </p>
       </div>
     {% endif %}
@@ -132,16 +133,16 @@
     <div class="bandeau-info bandeau-info--alerte" role="status">
       <svg><use href="#ic-alerte"></use></svg>
       <span>
-        Un ingrédient au moins n'est jamais entré en stock : son coût est compté
-        pour zéro. Le coût de revient affiché est donc <strong>plus bas que le
-        vrai</strong> — faites-y une réception avant de fixer un prix dessus.
+        {% blocktranslate trimmed %}Un ingrédient au moins n'est jamais entré en stock : son coût est compté
+        pour zéro. Le coût de revient affiché est donc{% endblocktranslate %} <strong>{% blocktranslate trimmed %}plus bas que le
+        vrai{% endblocktranslate %}</strong> {% translate "— faites-y une réception avant de fixer un prix dessus." %}
       </span>
     </div>
   {% endif %}
 
   {% if recette.note %}
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Mode opératoire</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Mode opératoire" %}</h2></header>
       <div class="carte__corps">
         <p class="t-2" style="white-space:pre-line">{{ recette.note }}</p>
       </div>
@@ -154,7 +155,7 @@
   <dialog class="modale" id="modale-nouvel-ingredient">
     <form method="post" action="{% url 'fiche_ingredient' recette_id=recette.pk %}" novalidate>
       {% csrf_token %}
-      <header class="modale__entete"><h2 class="t-section">Ajouter un ingrédient</h2></header>
+      <header class="modale__entete"><h2 class="t-section">{% translate "Ajouter un ingrédient" %}</h2></header>
       <div class="modale__corps colonne" style="gap:16px">
         <div class="groupe-champ">
           <label for="{{ formulaire_ingredient.ingredient.id_for_label }}">{{ formulaire_ingredient.ingredient.label }}</label>
@@ -166,13 +167,13 @@
           <span class="t-legende">{{ formulaire_ingredient.quantite.help_text }}</span>
         </div>
         <p class="t-legende">
-          L'ingrédient est un article du stock, pas un texte libre : c'est ce qui
-          permet au coût de revient d'être un vrai coût.
+          {% blocktranslate trimmed %}L'ingrédient est un article du stock, pas un texte libre : c'est ce qui
+          permet au coût de revient d'être un vrai coût.{% endblocktranslate %}
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Ajouter</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Ajouter" %}</button>
       </footer>
     </form>
   </dialog>
@@ -186,18 +187,18 @@
     <form method="post" data-action-modele="{% url 'fiche_ingredient_modifier' recette_id=recette.pk ligne_id='00000000-0000-0000-0000-000000000000' %}">
       {% csrf_token %}
       <header class="modale__entete">
-        <h2 class="t-section">Quantité de « <span data-cible-libelle></span> »</h2>
+        <h2 class="t-section">{% translate "Quantité de «" %} <span data-cible-libelle></span> »</h2>
       </header>
       <div class="modale__corps colonne" style="gap:14px">
         <div class="groupe-champ">
-          <label for="quantite-ingredient">Quantité pour une fiche complète</label>
+          <label for="quantite-ingredient">{% translate "Quantité pour une fiche complète" %}</label>
           <input class="champ" id="quantite-ingredient" name="quantite" inputmode="decimal">
-          <span class="t-legende">Dans l'unité de l'ingrédient, pour {{ recette.rendement|quantite }} {{ metier.articles }}.</span>
+          <span class="t-legende">{% blocktranslate with rendement=recette.rendement|quantite articles=metier.articles trimmed %}Dans l'unité de l'ingrédient, pour {{ rendement }} {{ articles }}.{% endblocktranslate %}</span>
         </div>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
       </footer>
     </form>
   </dialog>

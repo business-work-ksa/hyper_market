@@ -47,6 +47,7 @@ from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from apps.core.tenancy import contexte_plateforme
+from django.utils.translation import gettext as _
 
 journal = logging.getLogger(__name__)
 
@@ -958,7 +959,7 @@ def evaluer_signaux(*, maintenant: datetime | None = None, detecteurs=DETECTEURS
         )
         for detecteur in detecteurs:
             for constat in detecteur(ctx):
-                _, issue = enregistrer(constat, maintenant=maintenant)
+                _constat, issue = enregistrer(constat, maintenant=maintenant)
                 if issue == "cree":
                     bilan["crees"] += 1
                 elif issue == "maj":
@@ -987,7 +988,7 @@ def trancher(signal, *, decision: str, motif: str, par):
     from apps.core.models import AccesPlateforme
 
     if par is None or not getattr(par, "is_authenticated", False):
-        raise ValidationError("Une décision exige un utilisateur identifié.")
+        raise ValidationError(_("Une décision exige un utilisateur identifié."))
     if decision not in (ECARTER, CONFIRMER):
         raise ValidationError({"decision": "Choisissez : écarter ou confirmer."})
     motif = (motif or "").strip()
@@ -999,8 +1000,7 @@ def trancher(signal, *, decision: str, motif: str, par):
         signal = SignalRisque.objects.select_for_update().select_related("boutique").get(pk=signal.pk)
         if signal.etat != SignalRisque.OUVERT:
             raise ValidationError(
-                f"Ce signal a déjà été {signal.get_etat_display().lower()} "
-                f"le {date_lisible(signal.traite_le)} : une décision ne se rejoue pas."
+                _('Ce signal a déjà été %(lower)s le %(date_lisible)s : une décision ne se rejoue pas.') % {"lower": signal.get_etat_display().lower(), "date_lisible": date_lisible(signal.traite_le)}
             )
         signal.etat = SignalRisque.ECARTE if decision == ECARTER else SignalRisque.CONFIRME
         signal.traite_par = par

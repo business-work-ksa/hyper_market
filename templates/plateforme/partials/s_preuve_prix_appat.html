@@ -1,15 +1,16 @@
-{% load hm %}
+{% load i18n hm %}
 <p class="t-legende" style="margin:0">
-  {{ s.preuves.appats|length }} article{{ s.preuves.appats|length|pluralize }} sur {{ s.preuves.comparables }} comparable{{ s.preuves.comparables|pluralize }} ({{ s.preuves.part }}) à moins de la moitié du prix médian du marché —
-  boutique ouverte depuis {{ s.preuves.anciennete_jours }} jour{{ s.preuves.anciennete_jours|pluralize }}.
+  {% blocktranslate count appats=s.preuves.appats|length trimmed %}{{ appats }} article{% plural %}{{ appats }} articles{% endblocktranslate %}
+  {% blocktranslate count comparables=s.preuves.comparables with part=s.preuves.part trimmed %}sur {{ comparables }} comparable ({{ part }}) à moins de la moitié du prix médian du marché —{% plural %}sur {{ comparables }} comparables ({{ part }}) à moins de la moitié du prix médian du marché —{% endblocktranslate %}
+  {% blocktranslate count anciennete_jours=s.preuves.anciennete_jours trimmed %}boutique ouverte depuis {{ anciennete_jours }} jour.{% plural %}boutique ouverte depuis {{ anciennete_jours }} jours.{% endblocktranslate %}
 </p>
 <div class="tableau-boite">
   <table class="tableau">
-    <thead><tr><th scope="col">Article</th><th scope="col" class="num">Prix</th><th scope="col" class="num">Médiane du marché</th><th scope="col" class="num">Écart</th></tr></thead>
+    <thead><tr><th scope="col">{% translate "Article" %}</th><th scope="col" class="num">{% translate "Prix" %}</th><th scope="col" class="num">{% translate "Médiane du marché" %}</th><th scope="col" class="num">{% translate "Écart" %}</th></tr></thead>
     <tbody>
       {% for a in s.preuves.appats %}
         <tr>
-          <td class="principal">{{ a.article }}<span class="t-legende"> · {{ a.references }} prix de référence</span></td>
+          <td class="principal">{{ a.article }}<span class="t-legende"> {% blocktranslate with references=a.references trimmed %}· {{ references }} prix de référence{% endblocktranslate %}</span></td>
           <td class="num">{{ a.prix|fcfa }}</td>
           <td class="num">{{ a.mediane|fcfa }}</td>
           <td class="num"><span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-baisse"></use></svg>−{{ a.ecart }}</span></td>

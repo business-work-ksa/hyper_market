@@ -55,6 +55,7 @@ from apps.accounts.models import Appartenance, DossierKyc, Role
 from apps.core.models import AccesPlateforme
 from apps.marketplace import cemac
 from apps.marketplace.models import Boutique, CompteVersement
+from django.utils.translation import gettext as _
 
 # Un changement de compte la veille d'un gros versement ne doit rien emporter : entre la
 # vérification et le premier versement, deux jours pendant lesquels le gérant — prévenu — peut
@@ -339,7 +340,7 @@ def noms_de_reference(boutique, *, jour=None) -> list[str]:
     jour = jour or timezone.localdate()
     noms = []
     for g in gerants(boutique):
-        piece, _ = _piece_identite_valide(g, boutique.pays, jour)
+        piece, _jour = _piece_identite_valide(g, boutique.pays, jour)
         if piece and piece.nom_lu:
             noms.append(piece.nom_lu)
     if boutique.raison_sociale:
@@ -708,7 +709,7 @@ def valider_piece(dossier: DossierKyc, *, par) -> DossierKyc:
     _exiger_droit(par)
     dossier = DossierKyc.objects.select_for_update(of=("self",)).select_related("utilisateur", "boutique").get(pk=dossier.pk)
     if dossier.etat != DossierKyc.EN_ATTENTE:
-        raise ValidationError(f"Cette pièce est déjà {dossier.get_etat_display().lower()}e : rien à décider.")
+        raise ValidationError(_('Cette pièce est déjà %(lower)se : rien à décider.') % {"lower": dossier.get_etat_display().lower()})
     refus = refus_quatre_yeux(
         par,
         declare_par_id=dossier.declare_par_id,
@@ -720,13 +721,12 @@ def valider_piece(dossier: DossierKyc, *, par) -> DossierKyc:
         raise PermissionDenied(refus)
     if dossier.expire_avant(timezone.localdate()):
         raise ValidationError(
-            f"Cette pièce a expiré le {dossier.expire_le:%d/%m/%Y} depuis son attestation : rejetez-la, "
-            "et demandez-en une en cours de validité."
+            _('Cette pièce a expiré le %(expire_le)s depuis son attestation : rejetez-la, et demandez-en une en cours de validité.') % {"expire_le": format(dossier.expire_le, "%d/%m/%Y")}
         )
     if _usurpation(dossier):
         raise ValidationError(
-            "Ce numéro de pièce est déjà validé pour une autre personne : la validation est bloquée. "
-            "Rejetez l'attestation, ou retirez d'abord la pièce validée par erreur."
+            _("Ce numéro de pièce est déjà validé pour une autre personne : la validation est bloquée. "
+            "Rejetez l'attestation, ou retirez d'abord la pièce validée par erreur.")
         )
     dossier.etat = DossierKyc.VALIDE
     dossier.verifie_par = par
@@ -752,7 +752,7 @@ def rejeter_piece(dossier: DossierKyc, *, par, motif: str) -> DossierKyc:
     motif = _motif(motif, "Dites pourquoi : le commerçant lira ce motif pour corriger son dossier.")
     dossier = DossierKyc.objects.select_for_update().get(pk=dossier.pk)
     if dossier.etat != DossierKyc.EN_ATTENTE:
-        raise ValidationError(f"Cette pièce est déjà {dossier.get_etat_display().lower()}e : rien à décider.")
+        raise ValidationError(_('Cette pièce est déjà %(lower)se : rien à décider.') % {"lower": dossier.get_etat_display().lower()})
     dossier.etat = DossierKyc.REJETE
     dossier.motif_rejet = motif
     dossier.verifie_le = timezone.now()
@@ -900,7 +900,7 @@ def verifier_compte(compte: CompteVersement, *, par) -> CompteVersement:
     compte = CompteVersement.objects.select_for_update().select_related("boutique").get(pk=compte.pk)
     boutique = compte.boutique
     if compte.etat != CompteVersement.EN_ATTENTE:
-        raise ValidationError(f"Ce compte est déjà « {compte.get_etat_display().lower()} » : rien à décider.")
+        raise ValidationError(_('Ce compte est déjà « %(lower)s » : rien à décider.') % {"lower": compte.get_etat_display().lower()})
     refus = refus_quatre_yeux(par, declare_par_id=compte.declare_par_id, boutique_ids={boutique.pk}, quoi="ce compte")
     if refus:
         raise PermissionDenied(refus)
@@ -917,8 +917,7 @@ def verifier_compte(compte: CompteVersement, *, par) -> CompteVersement:
             else "la pièce du gérant — qui n'est pas encore validée : validez-la d'abord, c'est à elle qu'on compare"
         )
         raise ValidationError(
-            f"Le titulaire « {compte.titulaire} » ne correspond ni à {suite}, ni à la raison sociale "
-            f"(« {boutique.raison_sociale} »). Un compte au nom d'un tiers ne reçoit pas l'argent de la boutique."
+            _("Le titulaire « %(titulaire)s » ne correspond ni à %(suite)s, ni à la raison sociale (« %(raison_sociale)s »). Un compte au nom d'un tiers ne reçoit pas l'argent de la boutique.") % {"titulaire": compte.titulaire, "suite": suite, "raison_sociale": boutique.raison_sociale}
         )
 
     maintenant = timezone.now()
@@ -952,7 +951,7 @@ def rejeter_compte(compte: CompteVersement, *, par, motif: str) -> CompteVerseme
     motif = _motif(motif, "Dites pourquoi : le commerçant lira ce motif pour déclarer le bon compte.")
     compte = CompteVersement.objects.select_for_update().select_related("boutique").get(pk=compte.pk)
     if compte.etat != CompteVersement.EN_ATTENTE:
-        raise ValidationError(f"Ce compte est déjà « {compte.get_etat_display().lower()} » : rien à décider.")
+        raise ValidationError(_('Ce compte est déjà « %(lower)s » : rien à décider.') % {"lower": compte.get_etat_display().lower()})
     compte.etat = CompteVersement.REJETE
     compte.motif = motif[:300]
     compte.save(update_fields=["etat", "motif", "modifie_le"])

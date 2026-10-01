@@ -1,15 +1,16 @@
 {% extends "plateforme/assistants/cadre.html" %}
-{% block fil_parent %}Boutiques{% endblock %}
-{% block question %}Qui tiendra la boutique ?{% endblock %}
-{% block phrase %}Le gérant a tous les droits chez lui, et aucun ailleurs. Il se connecte avec son numéro de téléphone.{% endblock %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Boutiques" %}{% endblock %}
+{% block question %}{% translate "Qui tiendra la boutique ?" %}{% endblock %}
+{% block phrase %}{% translate "Le gérant a tous les droits chez lui, et aucun ailleurs. Il se connecte avec son numéro de téléphone." %}{% endblock %}
 {% block etape %}
   {% include "plateforme/partials/a_cartes.html" with champ=form.mode cartes=cartes_mode classe="a-cartes--deux" %}
   {% include "plateforme/partials/a_compte.html" %}
   <div class="bandeau-info">
     <svg aria-hidden="true"><use href="#ic-verrou"></use></svg>
-    <span><strong>Deux casquettes, deux comptes.</strong> Un compte qui administre le marché — le
+    <span><strong>{% translate "Deux casquettes, deux comptes." %}</strong> {% blocktranslate trimmed %}Un compte qui administre le marché — le
       vôtre, celui d'un administrateur ou du superadministrateur — ne peut pas tenir une boutique :
       chaque ligne du journal deviendrait ambiguë. L'exploitant qui vend aussi a un second compte,
-      ordinaire, avec un autre numéro (ADR-012).</span>
+      ordinaire, avec un autre numéro (ADR-012).{% endblocktranslate %}</span>
   </div>
 {% endblock %}

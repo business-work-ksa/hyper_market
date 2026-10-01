@@ -1786,3 +1786,14 @@ body.vitrine > .vitrine__zone { flex: 1 0 auto; width: 100%; }
   body { background: #fff; }
   .carte { box-shadow: none; border-color: #ccc; }
 }
+
+/* ---------------------------------------------------------------------------
+   Choix de la langue (FR / EN) — `partials/choix_langue.html`
+   --------------------------------------------------------------------------- */
+.choix-langue { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--filet-fort); border-radius: var(--r-pilule); background: var(--surface); }
+.choix-langue__option { min-width: 34px; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-pilule); background: transparent; color: var(--encre-muette); font: inherit; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; transition: background var(--t-rapide), color var(--t-rapide); }
+.choix-langue__option:hover { color: var(--encre); background: var(--survol); }
+.choix-langue__option[aria-pressed="true"] { background: var(--encre); color: var(--encre-inverse); }
+.choix-langue__option:focus-visible { outline: 2px solid var(--marque); outline-offset: 2px; }
+.portail__langue { display: flex; justify-content: flex-end; }
+@media (max-width: 520px) { .bandeau__actions .choix-langue__option { min-width: 30px; padding: 0 6px; } }

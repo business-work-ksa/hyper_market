@@ -14,6 +14,8 @@ from django import forms
 from apps.accounts.models import validateur_telephone
 from apps.catalog.models import Produit
 from apps.marketplace import metiers
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 CHAMP = {"class": "champ"}
 CHAMP_GRAND = {"class": "champ champ--grand"}
@@ -49,30 +51,30 @@ class SocleArticleForm(forms.Form):
     """
 
     libelle = forms.CharField(
-        label="Nom de l'article",
+        label=_l("Nom de l'article"),
         max_length=200,
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Ciment CIMENCAM 50 kg"}),
     )
     sku = forms.CharField(
-        label="Référence",
+        label=_l("Référence"),
         max_length=64,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "QUI-CIM-50"}),
     )
     code_barres = forms.CharField(
-        label="Code-barres", max_length=32, required=False,
+        label=_l("Code-barres"), max_length=32, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Scannez ou laissez vide"}),
     )
     prix_vente = forms.DecimalField(
-        label="Prix de vente TTC", min_value=Decimal("0"), decimal_places=2,
+        label=_l("Prix de vente TTC"), min_value=Decimal("0"), decimal_places=2,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     seuil_alerte = forms.DecimalField(
-        label="Seuil d'alerte", min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
-        help_text="En dessous de combien faut-il recommander ?",
+        label=_l("Seuil d'alerte"), min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
+        help_text=_l("En dessous de combien faut-il recommander ?"),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     regime_tva = forms.ChoiceField(
-        label="Régime de TVA", choices=Produit.REGIMES_TVA, initial=Produit.NORMAL,
+        label=_l("Régime de TVA"), choices=Produit.REGIMES_TVA, initial=Produit.NORMAL,
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -80,52 +82,52 @@ class SocleArticleForm(forms.Form):
     # déclarés ici et retirés dans `__init__` — la même mécanique que les droits
     # côté API : ce qui n'est pas ouvert n'est pas affiché, pas grisé.
     date_peremption = forms.DateField(
-        label="Date de péremption",
+        label=_l("Date de péremption"),
         required=False,
-        help_text="Laissez vide si cet article ne périme pas.",
+        help_text=_l("Laissez vide si cet article ne périme pas."),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}),
     )
     numero_lot = forms.CharField(
-        label="Numéro de lot",
+        label=_l("Numéro de lot"),
         max_length=64,
         required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Lot du fabricant"}),
     )
     unite = forms.ChoiceField(
-        label="Unité de vente",
+        label=_l("Unité de vente"),
         choices=Produit.UNITES,
         required=False,
         widget=forms.Select(attrs=CHAMP),
     )
     sur_ordonnance = forms.BooleanField(
-        label="Délivré sur ordonnance",
+        label=_l("Délivré sur ordonnance"),
         required=False,
-        help_text="Sera consigné à l'ordonnancier, et retiré de la vente en ligne.",
+        help_text=_l("Sera consigné à l'ordonnancier, et retiré de la vente en ligne."),
         widget=forms.CheckboxInput(attrs={"class": "case"}),
     )
     reference_constructeur = forms.CharField(
-        label="Référence constructeur",
+        label=_l("Référence constructeur"),
         max_length=64,
         required=False,
-        help_text="Celle qui est gravée sur la pièce d'origine.",
+        help_text=_l("Celle qui est gravée sur la pièce d'origine."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "90915-YZZD4"}),
     )
     suivi_unitaire = forms.BooleanField(
-        label="Suivre chaque exemplaire (numéro de série ou IMEI)",
+        label=_l("Suivre chaque exemplaire (numéro de série ou IMEI)"),
         required=False,
         help_text=(
-            "À réserver aux appareils qui en portent un. Un câble n'a pas d'IMEI, "
-            "et en réclamer un à chaque réception fait abandonner le suivi."
+            _l("À réserver aux appareils qui en portent un. Un câble n'a pas d'IMEI, "
+            "et en réclamer un à chaque réception fait abandonner le suivi.")
         ),
         widget=forms.CheckboxInput(attrs={"class": "case"}),
     )
     garantie_mois = forms.IntegerField(
-        label="Garantie (mois)",
+        label=_l("Garantie (mois)"),
         min_value=0,
         max_value=120,
         required=False,
         initial=0,
-        help_text="Zéro si l'article n'est pas garanti. L'échéance sera figée à la vente.",
+        help_text=_l("Zéro si l'article n'est pas garanti. L'échéance sera figée à la vente."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
 
@@ -220,7 +222,7 @@ class SocleArticleForm(forms.Form):
         if self.exclut is not None:
             deja = deja.exclude(pk=self.exclut)
         if deja.exists():
-            raise forms.ValidationError("Cette référence existe déjà dans votre boutique.")
+            raise forms.ValidationError(_("Cette référence existe déjà dans votre boutique."))
         return sku
 
     # Identifiant de la variante que la validation d'unicité doit ignorer.
@@ -236,12 +238,12 @@ class ArticleForm(SocleArticleForm):
     """
 
     cout_unitaire = forms.DecimalField(
-        label="Coût d'achat unitaire", min_value=Decimal("0"), decimal_places=2,
-        help_text="Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle.",
+        label=_l("Coût d'achat unitaire"), min_value=Decimal("0"), decimal_places=2,
+        help_text=_l("Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     quantite = forms.DecimalField(
-        label="Quantité comptée", min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
+        label=_l("Quantité comptée"), min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
 
@@ -258,8 +260,8 @@ class ArticleForm(SocleArticleForm):
             # perte annoncée : l'alerte ne pourra jamais se déclencher dessus.
             self.add_error(
                 "date_peremption",
-                "Ce métier suit les péremptions : indiquez la date, ou saisissez "
-                "une quantité nulle et faites une réception ensuite.",
+                _("Ce métier suit les péremptions : indiquez la date, ou saisissez "
+                "une quantité nulle et faites une réception ensuite."),
             )
 
         if prix is not None and cout is not None and cout > prix:
@@ -267,7 +269,7 @@ class ArticleForm(SocleArticleForm):
             # n'est pas interdite. Mais elle ne doit pas être une surprise.
             self.add_error(
                 "cout_unitaire",
-                "Le coût d'achat dépasse le prix de vente : vous vendriez à perte.",
+                _("Le coût d'achat dépasse le prix de vente : vous vendriez à perte."),
             )
         return donnees
 
@@ -285,10 +287,10 @@ class ArticleModifierForm(SocleArticleForm):
     """
 
     actif = forms.BooleanField(
-        label="En vente",
+        label=_l("En vente"),
         required=False,
         initial=True,
-        help_text="Décoché, l'article disparaît de la caisse et de la vitrine, et garde son stock.",
+        help_text=_l("Décoché, l'article disparaît de la caisse et de la vitrine, et garde son stock."),
         widget=forms.CheckboxInput(attrs={"class": "case"}),
     )
 
@@ -337,7 +339,7 @@ class ExemplairesForm(forms.Form):
     """
 
     numeros = forms.CharField(
-        label="Numéros de série",
+        label=_l("Numéros de série"),
         widget=forms.Textarea(
             attrs={
                 **CHAMP,
@@ -354,7 +356,7 @@ class ExemplairesForm(forms.Form):
 
         numeros = numeros_propres(self.cleaned_data["numeros"].splitlines())
         if not numeros:
-            raise forms.ValidationError("Aucun numéro lisible dans cette saisie.")
+            raise forms.ValidationError(_("Aucun numéro lisible dans cette saisie."))
         return numeros
 
 
@@ -362,22 +364,22 @@ class EntreeStockForm(forms.Form):
     """Réception fournisseur sur un article existant."""
 
     quantite = forms.DecimalField(
-        label="Quantité reçue", min_value=Decimal("0.0001"), decimal_places=4,
+        label=_l("Quantité reçue"), min_value=Decimal("0.0001"), decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
     )
     cout_unitaire = forms.DecimalField(
-        label="Coût d'achat unitaire", min_value=Decimal("0"), decimal_places=2,
-        help_text="Le coût moyen pondéré sera recalculé avec cette entrée.",
+        label=_l("Coût d'achat unitaire"), min_value=Decimal("0"), decimal_places=2,
+        help_text=_l("Le coût moyen pondéré sera recalculé avec cette entrée."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     commentaire = forms.CharField(
-        label="Commentaire", max_length=255, required=False,
+        label=_l("Commentaire"), max_length=255, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Bon de livraison n° …"}),
     )
     numeros_serie = forms.CharField(
-        label="Numéros de série reçus",
+        label=_l("Numéros de série reçus"),
         required=False,
-        help_text="Un par ligne. Facultatifs : ce qui n'est pas nommé reste du stock ordinaire.",
+        help_text=_l("Un par ligne. Facultatifs : ce qui n'est pas nommé reste du stock ordinaire."),
         widget=forms.Textarea(
             attrs={
                 **CHAMP,
@@ -412,8 +414,7 @@ class EntreeStockForm(forms.Form):
             # qui ne sont dans aucun carton.
             self.add_error(
                 "numeros_serie",
-                f"{len(numeros)} numéros pour {quantite:.0f} reçus : "
-                "corrigez la quantité ou retirez les numéros en trop.",
+                _('%(len)s numéros pour %(quantite)s reçus : corrigez la quantité ou retirez les numéros en trop.') % {"len": len(numeros), "quantite": format(quantite, ".0f")},
             )
         return donnees
 
@@ -422,7 +423,7 @@ class AtelierForm(forms.Form):
     """Dépôt d'un appareil en réparation."""
 
     motif = forms.CharField(
-        label="Panne constatée",
+        label=_l("Panne constatée"),
         max_length=255,
         widget=forms.TextInput(
             attrs={**CHAMP, "placeholder": "Écran cassé, ne charge plus, redémarre seul…"}
@@ -432,7 +433,7 @@ class AtelierForm(forms.Form):
 
 class SortieAtelierForm(forms.Form):
     resultat = forms.CharField(
-        label="Ce qui a été fait",
+        label=_l("Ce qui a été fait"),
         max_length=255,
         required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Nappe de charge remplacée"}),
@@ -448,13 +449,13 @@ class TransfertStockForm(forms.Form):
     l'on se trouve, pas d'un dépôt qu'on désigne de loin.
     """
 
-    cible = forms.ChoiceField(label="Vers le dépôt", widget=forms.Select(attrs=CHAMP))
+    cible = forms.ChoiceField(label=_l("Vers le dépôt"), widget=forms.Select(attrs=CHAMP))
     quantite = forms.DecimalField(
-        label="Quantité transférée", min_value=Decimal("0.0001"), decimal_places=4,
+        label=_l("Quantité transférée"), min_value=Decimal("0.0001"), decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
     )
     commentaire = forms.CharField(
-        label="Motif", max_length=255, required=False,
+        label=_l("Motif"), max_length=255, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Réassort du comptoir"}),
     )
 
@@ -466,7 +467,7 @@ class TransfertStockForm(forms.Form):
     def clean_cible(self):
         depot = self.depots.get(self.cleaned_data["cible"])
         if depot is None:
-            raise forms.ValidationError("Ce dépôt n'existe pas dans votre boutique.")
+            raise forms.ValidationError(_("Ce dépôt n'existe pas dans votre boutique."))
         return depot
 
 
@@ -474,12 +475,12 @@ class DepotForm(forms.Form):
     """Ouverture d'un dépôt supplémentaire (réserve, second point de vente)."""
 
     libelle = forms.CharField(
-        label="Nom du dépôt", max_length=120,
+        label=_l("Nom du dépôt"), max_length=120,
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Réserve Akwa"}),
     )
-    type = forms.ChoiceField(label="Type", widget=forms.Select(attrs=CHAMP))
+    type = forms.ChoiceField(label=_l("Type"), widget=forms.Select(attrs=CHAMP))
     adresse = forms.CharField(
-        label="Adresse", max_length=255, required=False,
+        label=_l("Adresse"), max_length=255, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Facultative"}),
     )
 
@@ -507,17 +508,17 @@ class MembreEquipeForm(forms.Form):
     """
 
     telephone = forms.CharField(
-        label="Numéro de téléphone",
+        label=_l("Numéro de téléphone"),
         max_length=16,
         validators=[validateur_telephone],
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "+237699000000"}),
     )
     nom_complet = forms.CharField(
-        label="Nom complet", max_length=150, required=False,
-        help_text="Ignoré si la personne a déjà un compte.",
+        label=_l("Nom complet"), max_length=150, required=False,
+        help_text=_l("Ignoré si la personne a déjà un compte."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Marie Ekedi"}),
     )
-    role = forms.ChoiceField(label="Rôle", widget=forms.Select(attrs=CHAMP))
+    role = forms.ChoiceField(label=_l("Rôle"), widget=forms.Select(attrs=CHAMP))
 
     def __init__(self, *args, roles=None, boutique=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -531,7 +532,7 @@ class MembreEquipeForm(forms.Form):
     def clean_role(self):
         role = self.roles.get(self.cleaned_data["role"])
         if role is None:
-            raise forms.ValidationError("Ce rôle ne peut pas être attribué dans une boutique.")
+            raise forms.ValidationError(_("Ce rôle ne peut pas être attribué dans une boutique."))
         return role
 
     def clean(self):
@@ -550,14 +551,14 @@ class MembreEquipeForm(forms.Form):
                 utilisateur=existant, boutique=self.boutique, actif=True
             ).exists()
             if deja:
-                self.add_error("telephone", "Cette personne fait déjà partie de votre équipe.")
+                self.add_error("telephone", _("Cette personne fait déjà partie de votre équipe."))
         elif existant is None and not donnees.get("nom_complet"):
-            self.add_error("nom_complet", "Le nom est obligatoire pour un nouveau compte.")
+            self.add_error("nom_complet", _("Le nom est obligatoire pour un nouveau compte."))
         return donnees
 
 
 class ChangementDeRoleForm(forms.Form):
-    role = forms.ChoiceField(label="Rôle")
+    role = forms.ChoiceField(label=_l("Rôle"))
 
     def __init__(self, *args, roles=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -567,23 +568,23 @@ class ChangementDeRoleForm(forms.Form):
     def clean_role(self):
         role = self.roles.get(self.cleaned_data["role"])
         if role is None:
-            raise forms.ValidationError("Rôle inconnu.")
+            raise forms.ValidationError(_("Rôle inconnu."))
         return role
 
 
 class OuvertureCaisseForm(forms.Form):
     fonds_ouverture = forms.DecimalField(
-        label="Fonds de caisse au démarrage", min_value=Decimal("0"),
+        label=_l("Fonds de caisse au démarrage"), min_value=Decimal("0"),
         initial=Decimal("0"), decimal_places=2,
-        help_text="Les espèces présentes dans le tiroir avant la première vente.",
+        help_text=_l("Les espèces présentes dans le tiroir avant la première vente."),
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "numeric", "step": "100"}),
     )
 
 
 class FermetureCaisseForm(forms.Form):
     fonds_compte = forms.DecimalField(
-        label="Espèces comptées dans le tiroir", min_value=Decimal("0"), decimal_places=2,
-        help_text="Comptez avant de regarder le montant théorique.",
+        label=_l("Espèces comptées dans le tiroir"), min_value=Decimal("0"), decimal_places=2,
+        help_text=_l("Comptez avant de regarder le montant théorique."),
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "numeric", "step": "100"}),
     )
 
@@ -625,7 +626,7 @@ class CharteForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
         self.fields["police"] = forms.ChoiceField(
-            label="Caractère",
+            label=_("Caractère"),
             choices=CHOIX_POLICES,
             initial=self.instance.police if self.instance else "systeme",
             help_text=self.Meta.help_texts["police"],
@@ -660,8 +661,7 @@ class CharteForm(forms.ModelForm):
 
         if logo.size > self.LOGO_OCTETS_MAX:
             raise forms.ValidationError(
-                f"Ce fichier pèse {logo.size // (1024 * 1024)} Mo. Un logo doit rester "
-                "sous 3 Mo — au-delà, il ralentit chaque page de votre boutique."
+                _('Ce fichier pèse %(valeur)s Mo. Un logo doit rester sous 3 Mo — au-delà, il ralentit chaque page de votre boutique.') % {"valeur": logo.size // (1024 * 1024)}
             )
 
         # `logo.image` est posé par le champ `ImageField` de Django, qui ouvre le
@@ -672,8 +672,7 @@ class CharteForm(forms.ModelForm):
         largeur, hauteur = image.size if image is not None else (0, 0)
         if largeur * hauteur > self.LOGO_PIXELS_MAX:
             raise forms.ValidationError(
-                f"Cette image fait {largeur} × {hauteur} pixels. Un logo n'a pas besoin "
-                "de dépasser 5000 × 5000 ; réduisez-la avant de l'envoyer."
+                _("Cette image fait %(largeur)s × %(hauteur)s pixels. Un logo n'a pas besoin de dépasser 5000 × 5000 ; réduisez-la avant de l'envoyer.") % {"largeur": largeur, "hauteur": hauteur}
             )
         return logo
 
@@ -684,7 +683,7 @@ class CharteForm(forms.ModelForm):
         try:
             _vers_rvb(couleur)
         except ValueError:
-            raise forms.ValidationError("Couleur illisible : attendu un code de la forme #1E88E5.")
+            raise forms.ValidationError(_("Couleur illisible : attendu un code de la forme #1E88E5."))
         # Minuscules : `<input type="color">` n'accepte pas les majuscules et
         # repartirait du noir en rouvrant la page.
         return couleur.lower()
@@ -694,20 +693,20 @@ class LienMarketingForm(forms.Form):
     """Création d'un lien court."""
 
     libelle = forms.CharField(
-        label="À quoi sert ce lien",
+        label=_l("À quoi sert ce lien"),
         max_length=120,
         widget=forms.TextInput(
             attrs={**CHAMP, "placeholder": "Flyer marché central, statut WhatsApp…"}
         ),
     )
     article = forms.ChoiceField(
-        label="Vers", required=False, widget=forms.Select(attrs=CHAMP)
+        label=_l("Vers"), required=False, widget=forms.Select(attrs=CHAMP)
     )
     code_apporteur = forms.CharField(
-        label="Code apporteur (facultatif)",
+        label=_l("Code apporteur (facultatif)"),
         max_length=12,
         required=False,
-        help_text="Rattache les commandes venues de ce lien à un apporteur.",
+        help_text=_l("Rattache les commandes venues de ce lien à un apporteur."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "HM-XXXXXX"}),
     )
 
@@ -736,25 +735,25 @@ class FicheForm(forms.Form):
     une invendable.
     """
 
-    variante = forms.ChoiceField(label="Produit fabriqué", widget=forms.Select(attrs=CHAMP_GRAND))
+    variante = forms.ChoiceField(label=_l("Produit fabriqué"), widget=forms.Select(attrs=CHAMP_GRAND))
     rendement = forms.DecimalField(
-        label="Rendement",
+        label=_l("Rendement"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
         initial=Decimal("1"),
-        help_text="Combien d'unités une fiche complète produit. Une fournée, pas une pièce.",
+        help_text=_l("Combien d'unités une fiche complète produit. Une fournée, pas une pièce."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     duree_conservation_jours = forms.IntegerField(
-        label="Conservation (jours)",
+        label=_l("Conservation (jours)"),
         min_value=0,
         max_value=3650,
         required=False,
-        help_text="La date de péremption sera calculée à chaque production.",
+        help_text=_l("La date de péremption sera calculée à chaque production."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     note = forms.CharField(
-        label="Mode opératoire",
+        label=_l("Mode opératoire"),
         required=False,
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "placeholder": "Pétrissage 12 min, repos 1 h…"}),
     )
@@ -781,7 +780,7 @@ class FicheForm(forms.Form):
         variante = self.disponibles.get(self.cleaned_data["variante"])
         if variante is None:
             raise forms.ValidationError(
-                "Cet article n'existe pas dans votre boutique, ou il a déjà une fiche."
+                _("Cet article n'existe pas dans votre boutique, ou il a déjà une fiche.")
             )
         return variante
 
@@ -794,12 +793,12 @@ class IngredientForm(forms.Form):
     production de sortir réellement la marchandise du dépôt.
     """
 
-    ingredient = forms.ChoiceField(label="Ingrédient", widget=forms.Select(attrs=CHAMP_GRAND))
+    ingredient = forms.ChoiceField(label=_l("Ingrédient"), widget=forms.Select(attrs=CHAMP_GRAND))
     quantite = forms.DecimalField(
-        label="Quantité",
+        label=_l("Quantité"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
-        help_text="Pour une fiche complète, dans l'unité de l'ingrédient.",
+        help_text=_l("Pour une fiche complète, dans l'unité de l'ingrédient."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "0.01"}),
     )
 
@@ -831,8 +830,8 @@ class IngredientForm(forms.Form):
         variante = self.disponibles.get(self.cleaned_data["ingredient"])
         if variante is None:
             raise forms.ValidationError(
-                "Cet ingrédient n'est pas disponible : il est déjà dans la fiche, "
-                "c'est le produit fabriqué lui-même, ou il n'existe pas ici."
+                _("Cet ingrédient n'est pas disponible : il est déjà dans la fiche, "
+                "c'est le produit fabriqué lui-même, ou il n'existe pas ici.")
             )
         return variante
 
@@ -846,13 +845,13 @@ class ProductionForm(forms.Form):
     """
 
     quantite = forms.DecimalField(
-        label="Quantité produite",
+        label=_l("Quantité produite"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
     )
     commentaire = forms.CharField(
-        label="Commentaire", max_length=255, required=False,
+        label=_l("Commentaire"), max_length=255, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Fournée du matin"}),
     )
 
@@ -866,15 +865,15 @@ class InvenduForm(forms.Form):
     jeté, et sur quel produit.
     """
 
-    variante = forms.ChoiceField(label="Produit", widget=forms.Select(attrs=CHAMP_GRAND))
+    variante = forms.ChoiceField(label=_l("Produit"), widget=forms.Select(attrs=CHAMP_GRAND))
     quantite = forms.DecimalField(
-        label="Quantité jetée",
+        label=_l("Quantité jetée"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     motif = forms.CharField(
-        label="Motif", max_length=255, required=False,
+        label=_l("Motif"), max_length=255, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Invendus du soir"}),
     )
 
@@ -891,7 +890,7 @@ class InvenduForm(forms.Form):
     def clean_variante(self):
         variante = self.disponibles.get(self.cleaned_data["variante"])
         if variante is None:
-            raise forms.ValidationError("Ce produit n'est pas fabriqué dans votre boutique.")
+            raise forms.ValidationError(_("Ce produit n'est pas fabriqué dans votre boutique."))
         return variante
 
 
@@ -909,24 +908,24 @@ class CompatibiliteForm(forms.Form):
     """
 
     marque = forms.CharField(
-        label="Marque", max_length=60,
+        label=_l("Marque"), max_length=60,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Toyota", "list": "marques-connues"}),
     )
     modele = forms.CharField(
-        label="Modèle", max_length=80, required=False,
-        help_text="Vide si la pièce va sur toute la marque.",
+        label=_l("Modèle"), max_length=80, required=False,
+        help_text=_l("Vide si la pièce va sur toute la marque."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Corolla", "list": "modeles-connus"}),
     )
     motorisation = forms.CharField(
-        label="Motorisation", max_length=60, required=False,
+        label=_l("Motorisation"), max_length=60, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "1.4 D-4D"}),
     )
     annee_debut = forms.IntegerField(
-        label="De l'année", min_value=1950, max_value=2100, required=False,
+        label=_l("De l'année"), min_value=1950, max_value=2100, required=False,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "2012"}),
     )
     annee_fin = forms.IntegerField(
-        label="À l'année", min_value=1950, max_value=2100, required=False,
+        label=_l("À l'année"), min_value=1950, max_value=2100, required=False,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "2018"}),
     )
 
@@ -950,7 +949,7 @@ class CompatibiliteForm(forms.Form):
         if debut and fin and fin < debut:
             # Un intervalle vide rendrait la pièce compatible avec rien, sans que
             # personne ne s'en aperçoive avant qu'un client reparte bredouille.
-            self.add_error("annee_fin", "L'année de fin précède l'année de début.")
+            self.add_error("annee_fin", _("L'année de fin précède l'année de début."))
 
         if self.variante is not None and not self.errors:
             from apps.catalog.models import CompatibiliteVehicule
@@ -964,7 +963,7 @@ class CompatibiliteForm(forms.Form):
                 annee_fin=fin,
             ).exists()
             if doublon:
-                self.add_error("marque", "Cette compatibilité est déjà déclarée.")
+                self.add_error("marque", _("Cette compatibilité est déjà déclarée."))
         return donnees
 
 
@@ -982,14 +981,14 @@ class DesignationForm(forms.Form):
     pharmacien n'en voit qu'une.
     """
 
-    type = forms.ChoiceField(label="Nature", widget=forms.Select(attrs=CHAMP))
+    type = forms.ChoiceField(label=_l("Nature"), widget=forms.Select(attrs=CHAMP))
     valeur = forms.CharField(
-        label="Désignation", max_length=120,
+        label=_l("Désignation"), max_length=120,
         widget=forms.TextInput(attrs={**CHAMP, "list": "designations-connues"}),
     )
     source = forms.CharField(
-        label="Employée par", max_length=120, required=False,
-        help_text="Facultatif : le laboratoire ou l'équipementier qui emploie ce nom.",
+        label=_l("Employée par"), max_length=120, required=False,
+        help_text=_l("Facultatif : le laboratoire ou l'équipementier qui emploie ce nom."),
         widget=forms.TextInput(attrs=CHAMP),
     )
 
@@ -1019,7 +1018,7 @@ class DesignationForm(forms.Form):
 
         propre = Designation.normaliser(self.cleaned_data["valeur"])
         if not propre:
-            raise forms.ValidationError("Une désignation vide ne rapproche rien de rien.")
+            raise forms.ValidationError(_("Une désignation vide ne rapproche rien de rien."))
         return propre
 
     def clean(self):
@@ -1031,5 +1030,5 @@ class DesignationForm(forms.Form):
                 variante=self.variante, type=donnees.get("type"), valeur=donnees.get("valeur")
             ).exists()
             if doublon:
-                self.add_error("valeur", "Cet article porte déjà cette désignation.")
+                self.add_error("valeur", _("Cet article porte déjà cette désignation."))
         return donnees

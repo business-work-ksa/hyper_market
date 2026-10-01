@@ -1,19 +1,20 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Caisse — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Caisse{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Caisse — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Caisse" %}{% endblock %}
 {% block classe_zone %}zone--large{% endblock %}
 
 {% block actions_entete %}
   {% if session_caisse %}
     <span class="puce puce--bon">
       <svg><use href="#ic-check"></use></svg>
-      Caisse ouverte · {{ tickets_session }} ticket{{ tickets_session|pluralize }}
+      {% blocktranslate count tickets_session=tickets_session trimmed %}Caisse ouverte · {{ tickets_session }} ticket{% plural %}Caisse ouverte · {{ tickets_session }} tickets{% endblocktranslate %}
     </span>
-    <a class="btn" href="{% url 'session_caisse' %}">Fermer la caisse</a>
+    <a class="btn" href="{% url 'session_caisse' %}">{% translate "Fermer la caisse" %}</a>
   {% else %}
-    <a class="btn btn--primaire" href="{% url 'session_caisse' %}">Ouvrir la caisse</a>
+    <a class="btn btn--primaire" href="{% url 'session_caisse' %}">{% translate "Ouvrir la caisse" %}</a>
   {% endif %}
 {% endblock %}
 
@@ -25,14 +26,14 @@
   Cibles tactiles larges, prix en évidence : la contrainte de conception est
   une ligne saisie en moins de 4 secondes (docs/04, §3).
   {% endcomment %}
-  <section class="caisse__catalogue" aria-label="Articles">
+  <section class="caisse__catalogue" aria-label="{% translate 'Articles' %}">
     <div class="caisse__barre">
       <div class="recherche">
         <svg><use href="#ic-recherche"></use></svg>
         <input class="champ" type="search" id="recherche-article" autocomplete="off"
-               placeholder="Rechercher un article ou scanner un code-barres" aria-label="Rechercher un article">
+               placeholder="{% translate 'Rechercher un article ou scanner un code-barres' %}" aria-label="{% translate 'Rechercher un article' %}">
       </div>
-      <button class="btn" type="button" id="vider-recherche">Effacer</button>
+      <button class="btn" type="button" id="vider-recherche">{% translate "Effacer" %}</button>
     </div>
 
     {% comment %}
@@ -57,58 +58,58 @@
                 data-recherche="{{ a.libelle|lower }} {{ a.sku|lower }}">
           <span class="article-tuile__nom">{{ a.libelle }}</span>
           {% if a.sur_ordonnance %}
-            <span class="puce puce--alerte"><svg><use href="#ic-info"></use></svg>Ordonnance</span>
+            <span class="puce puce--alerte"><svg><use href="#ic-info"></use></svg>{% translate "Ordonnance" %}</span>
           {% endif %}
           {% if a.suivi_unitaire %}
-            <span class="puce"><svg><use href="#ic-verrou"></use></svg>Numéro de série</span>
+            <span class="puce"><svg><use href="#ic-verrou"></use></svg>{% translate "Numéro de série" %}</span>
           {% endif %}
           <span class="article-tuile__pied">
             <span class="article-tuile__prix">{{ a.prix|fcfa }}</span>
-            <span class="t-legende chiffre">{{ a.stock|quantite }} en stock</span>
+            <span class="t-legende chiffre">{% blocktranslate with stock=a.stock|quantite trimmed %}{{ stock }} en stock{% endblocktranslate %}</span>
           </span>
         </button>
       {% empty %}
         <div class="vide" style="grid-column:1/-1">
           <svg><use href="#ic-stock"></use></svg>
-          <p class="t-2">Aucun article au catalogue.</p>
+          <p class="t-2">{% translate "Aucun article au catalogue." %}</p>
         </div>
       {% endfor %}
     </div>
   </section>
 
   {# ---- Ticket ---------------------------------------------------------- #}
-  <aside class="ticket" aria-label="Ticket en cours">
+  <aside class="ticket" aria-label="{% translate 'Ticket en cours' %}">
     <header class="ticket__entete">
-      <h2 class="t-section">Ticket en cours</h2>
-      <button class="btn btn--discret pousse" type="button" id="vider-ticket">Annuler</button>
+      <h2 class="t-section">{% translate "Ticket en cours" %}</h2>
+      <button class="btn btn--discret pousse" type="button" id="vider-ticket">{% translate "Annuler" %}</button>
     </header>
 
     <div class="ticket__lignes" id="lignes-ticket">
       <div class="ticket__vide" id="ticket-vide">
         <svg><use href="#ic-panier"></use></svg>
-        <p class="t-2">Touchez un article pour l'ajouter.</p>
+        <p class="t-2">{% translate "Touchez un article pour l'ajouter." %}</p>
       </div>
     </div>
 
     <div class="ticket__totaux">
-      <div class="ligne-total"><span>Total hors taxes</span><span class="montant" id="total-ht">0</span></div>
+      <div class="ligne-total"><span>{% translate "Total hors taxes" %}</span><span class="montant" id="total-ht">0</span></div>
       <div class="ligne-total"><span>TVA 19,25 %</span><span class="montant" id="total-tva">0</span></div>
       <div class="ligne-total ligne-total--net">
-        <span>À payer</span>
+        <span>{% translate "À payer" %}</span>
         <span class="montant"><span id="total-ttc">0</span> <span class="t-2" style="font-size:14px;font-weight:520">FCFA</span></span>
       </div>
     </div>
 
     <div class="ticket__paiement">
-      <div class="moyens" role="group" aria-label="Moyen de paiement">
+      <div class="moyens" role="group" aria-label="{% translate 'Moyen de paiement' %}">
         <button class="moyen" type="button" data-moyen="especes" aria-pressed="true">
-          <svg><use href="#ic-especes"></use></svg> Espèces
+          <svg><use href="#ic-especes"></use></svg> {% translate "Espèces" %}
         </button>
         <button class="moyen" type="button" data-moyen="mobile_money" aria-pressed="false">
-          <svg><use href="#ic-momo"></use></svg> Mobile Money
+          <svg><use href="#ic-momo"></use></svg> {% translate "Mobile Money" %}
         </button>
         <button class="moyen" type="button" data-moyen="carte" aria-pressed="false">
-          <svg><use href="#ic-carte"></use></svg> Carte
+          <svg><use href="#ic-carte"></use></svg> {% translate "Carte" %}
         </button>
       </div>
 
@@ -118,21 +119,21 @@
       l'ordonnancier est le filet, pas le chemin normal.
       {% endcomment %}
       <div class="groupe-champ" id="bloc-ordonnance" hidden>
-        <label for="mention-ordonnance">Ordonnance — prescripteur et date</label>
+        <label for="mention-ordonnance">{% translate "Ordonnance — prescripteur et date" %}</label>
         <input class="champ" id="mention-ordonnance" autocomplete="off"
-               placeholder="Dr Manga, 11/09/2026">
+               placeholder="{% translate 'Dr Manga, 11/09/2026' %}">
         <span class="t-legende">
-          Ce ticket contient un médicament délivré sur ordonnance. La mention
-          part à l'ordonnancier.
+          {% blocktranslate trimmed %}Ce ticket contient un médicament délivré sur ordonnance. La mention
+          part à l'ordonnancier.{% endblocktranslate %}
         </span>
       </div>
 
       <button class="btn btn--primaire btn--grand btn--bloc" type="button" id="encaisser" disabled>
-        Encaisser
+        {% translate "Encaisser" %}
       </button>
 
       <p class="t-legende" style="text-align:center" id="message-caisse">
-        La vente sort le stock et génère les écritures comptables.
+        {% translate "La vente sort le stock et génère les écritures comptables." %}
       </p>
     </div>
   </aside>

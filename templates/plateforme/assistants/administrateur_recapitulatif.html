@@ -1,11 +1,12 @@
 {% extends "plateforme/assistants/cadre.html" %}
-{% block fil_parent %}Administrateurs{% endblock %}
-{% block question %}Relisez, puis nommez{% endblock %}
-{% block phrase %}Rien n'est encore posé. À la confirmation : accès à l'administration, groupe de permissions « Administration du marché » et rôle de plateforme — jamais le superutilisateur.{% endblock %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Administrateurs" %}{% endblock %}
+{% block question %}{% translate "Relisez, puis nommez" %}{% endblock %}
+{% block phrase %}{% translate "Rien n'est encore posé. À la confirmation : accès à l'administration, groupe de permissions « Administration du marché » et rôle de plateforme — jamais le superutilisateur." %}{% endblock %}
 {% block avant_formulaire %}{% include "plateforme/partials/a_recap.html" %}{% endblock %}
 {% block etape %}
   <p class="t-2 a-trace">
     <svg class="icone-ligne" aria-hidden="true"><use href="#ic-journal"></use></svg>
-    La nomination sera inscrite au journal des accès, à votre nom, avec ce motif.
+    {% translate "La nomination sera inscrite au journal des accès, à votre nom, avec ce motif." %}
   </p>
 {% endblock %}

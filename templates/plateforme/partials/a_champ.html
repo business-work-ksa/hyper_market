@@ -1,4 +1,4 @@
-{% comment %}
+{% load i18n %}{% comment %}
 Un champ, lié à son aide et à son erreur (`aria-describedby`, posé par
 `FormulaireEtape.preparer_affichage`). Paramètres : `champ`, et facultativement `classe`.
 Un champ peut porter `pastille` (« de l'offre ») ou `sans_pastille` : « facultatif » serait faux
@@ -6,7 +6,7 @@ pour un champ vide qui prend une valeur par défaut, ou exigé selon un autre ch
 {% endcomment %}
 <div class="groupe-champ a-champ{% if champ.errors %} a-champ--erreur{% endif %}{% if classe %} {{ classe }}{% endif %}">
   <label for="{{ champ.id_for_label }}">
-    {{ champ.label }}{% if champ.field.pastille %} <span class="a-facultatif">{{ champ.field.pastille }}</span>{% elif not champ.field.required and not champ.field.sans_pastille %} <span class="a-facultatif">facultatif</span>{% endif %}
+    {{ champ.label }}{% if champ.field.pastille %} <span class="a-facultatif">{{ champ.field.pastille }}</span>{% elif not champ.field.required and not champ.field.sans_pastille %} <span class="a-facultatif">{% translate "facultatif" %}</span>{% endif %}
   </label>
   {{ champ }}
   {% if champ.help_text %}<span class="t-legende" id="{{ champ.auto_id }}_aide">{{ champ.help_text }}</span>{% endif %}

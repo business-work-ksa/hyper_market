@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Inventaire — {{ boutique.enseigne }}{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Inventaire — {{ enseigne }}{% endblocktranslate %}{% endblock %}
 
 {% block scripts %}
 <script>
@@ -20,10 +21,10 @@
   })();
 </script>
 {% endblock %}
-{% block entete %}Inventaire physique{% endblock %}
+{% block entete %}{% translate "Inventaire physique" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'stock' %}">Annuler</a>
+  <a class="btn" href="{% url 'stock' %}">{% translate "Annuler" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -33,19 +34,19 @@
   <div class="bandeau-info">
     <svg><use href="#ic-info"></use></svg>
     <span>
-      <strong>Le stock théorique est masqué</strong> : un compteur qui connaît le chiffre attendu
-      ne compte plus, il confirme. <strong>Laissez vide ce que vous n'avez pas compté</strong> —
+      <strong>{% translate "Le stock théorique est masqué" %}</strong> {% blocktranslate trimmed %}: un compteur qui connaît le chiffre attendu
+      ne compte plus, il confirme.{% endblocktranslate %} <strong>{% translate "Laissez vide ce que vous n'avez pas compté" %}</strong> {% blocktranslate trimmed %}—
       un article non saisi n'est pas régularisé. Les écarts passeront par des mouvements
-      d'ajustement, jamais par une correction directe du compteur.
+      d'ajustement, jamais par une correction directe du compteur.{% endblocktranslate %}
     </span>
   </div>
 
   <section class="carte">
     <header class="carte__entete">
       <h2 class="t-section">{{ depot.libelle }}</h2>
-      <span class="puce"><svg><use href="#ic-stock"></use></svg>{{ niveaux|length }} référence{{ niveaux|length|pluralize }}</span>
+      <span class="puce"><svg><use href="#ic-stock"></use></svg>{% blocktranslate count niveaux=niveaux|length trimmed %}{{ niveaux }} référence{% plural %}{{ niveaux }} références{% endblocktranslate %}</span>
       <button class="btn btn--discret" type="button" id="bascule-theorique" aria-pressed="false">
-        Afficher le théorique
+        {% translate "Afficher le théorique" %}
       </button>
     </header>
 
@@ -54,11 +55,11 @@
         <table class="tableau">
           <thead>
             <tr>
-              <th scope="col">Article</th>
-              <th scope="col">Référence</th>
-              <th scope="col" class="num">Théorique</th>
-              <th scope="col" style="width:150px">Compté</th>
-              <th scope="col" style="width:230px">Motif de l'écart</th>
+              <th scope="col">{% translate "Article" %}</th>
+              <th scope="col">{% translate "Référence" %}</th>
+              <th scope="col" class="num">{% translate "Théorique" %}</th>
+              <th scope="col" style="width:150px">{% translate "Compté" %}</th>
+              <th scope="col" style="width:230px">{% translate "Motif de l'écart" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -83,12 +84,12 @@
                 </td>
                 <td>
                   <input class="champ" type="text" name="motif_{{ niveau.variante_id }}"
-                         aria-label="Motif de l'écart" placeholder="Casse, vol, erreur…">
+                         aria-label="Motif de l'écart" placeholder="{% translate 'Casse, vol, erreur…' %}">
                 </td>
               </tr>
             {% empty %}
               <tr><td colspan="5"><div class="vide"><svg><use href="#ic-stock"></use></svg>
-                <p class="t-2">Aucun article à compter.</p></div></td></tr>
+                <p class="t-2">{% translate "Aucun article à compter." %}</p></div></td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -97,15 +98,15 @@
 
     {% if niveaux %}
       <footer class="carte__pied rangee rangee--espace">
-        <span class="t-legende">Les lignes vides sont ignorées.</span>
-        <button class="btn btn--primaire" type="submit">Valider l'inventaire</button>
+        <span class="t-legende">{% translate "Les lignes vides sont ignorées." %}</span>
+        <button class="btn btn--primaire" type="submit">{% translate "Valider l'inventaire" %}</button>
       </footer>
     {% endif %}
   </section>
 
   {% if derniers %}
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Inventaires précédents</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Inventaires précédents" %}</h2></header>
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
@@ -115,7 +116,7 @@
                   <td class="principal chiffre">{{ inv.date|date:"d/m/Y" }}</td>
                   <td class="t-2">{{ inv.depot.libelle }}</td>
                   <td class="num">
-                    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>Validé</span>
+                    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Validé" %}</span>
                   </td>
                 </tr>
               {% endfor %}

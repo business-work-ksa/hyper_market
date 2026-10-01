@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Session de caisse — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Session de caisse{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Session de caisse — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Session de caisse" %}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'caisse' %}">Retour à la caisse</a>
+  <a class="btn" href="{% url 'caisse' %}">{% translate "Retour à la caisse" %}</a>
 {% endblock %}
 
 {% block contenu %}
@@ -13,7 +14,7 @@
   <section class="carte">
     <header class="carte__entete">
       <h2 class="t-section">
-        {% if session_caisse %}Fermer la caisse{% else %}Ouvrir la caisse{% endif %}
+        {% if session_caisse %}{% translate "Fermer la caisse" %}{% else %}{% translate "Ouvrir la caisse" %}{% endif %}
       </h2>
     </header>
 
@@ -26,7 +27,7 @@
       travailler sur la réserve.
       {% endcomment %}
       <div class="rangee rangee--espace">
-        <span class="t-2">Dépôt</span>
+        <span class="t-2">{% translate "Dépôt" %}</span>
         <span class="puce puce--marque"><svg><use href="#ic-stock"></use></svg>{{ depot.libelle }}</span>
       </div>
 
@@ -38,54 +39,54 @@
         <div class="bandeau-info bandeau-info--alerte">
           <svg><use href="#ic-alerte"></use></svg>
           <span>
-            Comptez le tiroir <strong>avant</strong> de consulter le montant théorique.
-            Un écart connu à l'avance n'est plus un contrôle.
+            {% translate "Comptez le tiroir" %} <strong>{% translate "avant" %}</strong> {% blocktranslate trimmed %}de consulter le montant théorique.
+            Un écart connu à l'avance n'est plus un contrôle.{% endblocktranslate %}
           </span>
         </div>
         <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
-          Fermer la caisse
+          {% translate "Fermer la caisse" %}
         </button>
       {% else %}
         <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
-          Ouvrir la caisse
+          {% translate "Ouvrir la caisse" %}
         </button>
       {% endif %}
     </form>
   </section>
 
   <section class="carte">
-    <header class="carte__entete"><h2 class="t-section">État de la session</h2></header>
+    <header class="carte__entete"><h2 class="t-section">{% translate "État de la session" %}</h2></header>
     <div class="carte__corps colonne" style="gap:14px">
       {% if session_caisse %}
         <div class="rangee rangee--espace">
-          <span class="t-2">Ouverte le</span>
+          <span class="t-2">{% translate "Ouverte le" %}</span>
           <span class="chiffre">{{ session_caisse.ouverte_le|date:"d/m/Y à H:i" }}</span>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Caissier</span>
+          <span class="t-2">{% translate "Caissier" %}</span>
           <span>{{ session_caisse.caissier.nom_complet }}</span>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Tickets encaissés</span>
+          <span class="t-2">{% translate "Tickets encaissés" %}</span>
           <strong class="chiffre">{{ tickets_session }}</strong>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Fonds d'ouverture</span>
+          <span class="t-2">{% translate "Fonds d'ouverture" %}</span>
           <span class="chiffre">{{ session_caisse.fonds_ouverture|fcfa }} FCFA</span>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Ventes en espèces</span>
+          <span class="t-2">{% translate "Ventes en espèces" %}</span>
           <span class="chiffre">{{ session_caisse.total_especes|fcfa }} FCFA</span>
         </div>
         <div class="rangee rangee--espace" style="padding-top:10px;border-top:1px solid var(--filet)">
-          <span class="t-2" style="font-weight:580">Théorique en caisse</span>
+          <span class="t-2" style="font-weight:580">{% translate "Théorique en caisse" %}</span>
           <strong class="chiffre" style="font-size:17px">{{ session_caisse.fonds_theorique|fcfa }} FCFA</strong>
         </div>
       {% else %}
         <div class="vide" style="padding:24px">
           <svg><use href="#ic-caisse"></use></svg>
-          <p class="t-2">Aucune session ouverte.</p>
-          <p class="t-legende">Le fonds d'ouverture est ce qui permettra de calculer l'écart à la fermeture.</p>
+          <p class="t-2">{% translate "Aucune session ouverte." %}</p>
+          <p class="t-legende">{% translate "Le fonds d'ouverture est ce qui permettra de calculer l'écart à la fermeture." %}</p>
         </div>
       {% endif %}
     </div>

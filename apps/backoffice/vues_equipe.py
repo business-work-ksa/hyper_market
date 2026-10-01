@@ -27,6 +27,7 @@ from apps.backoffice.acces import contexte_commun, exige
 from apps.backoffice.filtres import FiltresEquipeForm
 from apps.backoffice.forms import ChangementDeRoleForm, MembreEquipeForm
 from apps.orders.avis import roles_qui_traitent
+from django.utils.translation import gettext as _
 
 CLE_MOT_DE_PASSE = "mot_de_passe_provisoire"
 
@@ -97,8 +98,7 @@ def equipe(request):
         if actifs >= quota:
             formulaire.add_error(
                 None,
-                f"Votre emplacement autorise {quota} utilisateur(s). "
-                "Retirez un accès, ou passez à une offre supérieure.",
+                _('Votre emplacement autorise %(quota)s utilisateur(s). Retirez un accès, ou passez à une offre supérieure.') % {"quota": quota},
             )
         elif formulaire.is_valid():
             _rattacher(request, boutique, formulaire)
@@ -185,7 +185,7 @@ def equipe_retirer_lot(request):
         ).select_related("utilisateur", "role")
     )
     if not membres:
-        messages.error(request, "Aucun accès actif à retirer.")
+        messages.error(request, _("Aucun accès actif à retirer."))
         return redirect("equipe")
 
     retires, refuses = [], []
@@ -202,11 +202,10 @@ def equipe_retirer_lot(request):
     if retires:
         messages.success(
             request,
-            f"Accès retiré à {', '.join(retires)}. "
-            "Leur historique de ventes et de mouvements reste intact.",
+            _('Accès retiré à %(join)s. Leur historique de ventes et de mouvements reste intact.') % {"join": ', '.join(retires)},
         )
     for refus in refuses:
-        messages.error(request, f"Accès conservé pour {refus}.")
+        messages.error(request, _('Accès conservé pour %(refus)s.') % {"refus": refus})
     return redirect("equipe")
 
 
@@ -245,12 +244,11 @@ def _rattacher(request, boutique, formulaire) -> None:
             "telephone": utilisateur.telephone,
             "valeur": mot_de_passe,
         }
-        messages.success(request, f"Compte créé pour {utilisateur.nom_complet}.")
+        messages.success(request, _('Compte créé pour %(nom_complet)s.') % {"nom_complet": utilisateur.nom_complet})
     else:
         messages.success(
             request,
-            f"{utilisateur.nom_complet} avait déjà un compte HyperMarché : "
-            "il est rattaché à votre boutique, avec son mot de passe habituel.",
+            _('%(nom_complet)s avait déjà un compte HyperMarché : il est rattaché à votre boutique, avec son mot de passe habituel.') % {"nom_complet": utilisateur.nom_complet},
         )
 
     # Un ancien accès au même rôle est réactivé plutôt que dupliqué : l'employé
@@ -280,7 +278,7 @@ def equipe_role(request, appartenance_id):
 
     formulaire = ChangementDeRoleForm(request.POST, roles=roles_attribuables())
     if not formulaire.is_valid():
-        messages.error(request, "Rôle inconnu.")
+        messages.error(request, _("Rôle inconnu."))
         return redirect("equipe")
 
     nouveau = formulaire.cleaned_data["role"]
@@ -291,14 +289,14 @@ def equipe_role(request, appartenance_id):
     ):
         messages.error(
             request,
-            "C'est le dernier gérant de la boutique : nommez d'abord quelqu'un d'autre.",
+            _("C'est le dernier gérant de la boutique : nommez d'abord quelqu'un d'autre."),
         )
         return redirect("equipe")
 
     if Appartenance.objects.filter(
         utilisateur=membre.utilisateur, boutique=boutique, role=nouveau, actif=True
     ).exists():
-        messages.error(request, f"{membre.utilisateur.nom_complet} a déjà ce rôle.")
+        messages.error(request, _('%(nom_complet)s a déjà ce rôle.') % {"nom_complet": membre.utilisateur.nom_complet})
         return redirect("equipe")
 
     ancien = membre.role.libelle
@@ -306,7 +304,7 @@ def equipe_role(request, appartenance_id):
     membre.save(update_fields=["role"])
     messages.success(
         request,
-        f"{membre.utilisateur.nom_complet} passe de « {ancien} » à « {nouveau.libelle} ».",
+        _('%(nom_complet)s passe de « %(ancien)s » à « %(libelle)s ».') % {"nom_complet": membre.utilisateur.nom_complet, "ancien": ancien, "libelle": nouveau.libelle},
     )
     return redirect("equipe")
 
@@ -324,11 +322,11 @@ def equipe_retirer(request, appartenance_id):
     if membre.utilisateur_id == request.user.pk:
         # Se retirer soi-même fermerait la porte de l'intérieur, sans personne
         # dehors pour la rouvrir.
-        messages.error(request, "Vous ne pouvez pas retirer votre propre accès.")
+        messages.error(request, _("Vous ne pouvez pas retirer votre propre accès."))
         return redirect("equipe")
 
     if membre.role_id == Role.GERANT and not _gerants_actifs(boutique, sauf=membre).exists():
-        messages.error(request, "C'est le dernier gérant de la boutique.")
+        messages.error(request, _("C'est le dernier gérant de la boutique."))
         return redirect("equipe")
 
     membre.actif = False
@@ -336,8 +334,7 @@ def equipe_retirer(request, appartenance_id):
     membre.save(update_fields=["actif", "jusqu_a"])
     messages.success(
         request,
-        f"Accès retiré à {membre.utilisateur.nom_complet}. "
-        "Son historique de ventes et de mouvements reste intact.",
+        _('Accès retiré à %(nom_complet)s. Son historique de ventes et de mouvements reste intact.') % {"nom_complet": membre.utilisateur.nom_complet},
     )
     return redirect("equipe")
 
@@ -354,13 +351,13 @@ def equipe_reactiver(request, appartenance_id):
     bail = boutique.bail_actif
     quota = bail.type_emplacement.quota_utilisateurs if bail else 1
     if Appartenance.objects.filter(boutique=boutique, actif=True).count() >= quota:
-        messages.error(request, f"Votre emplacement autorise {quota} utilisateur(s).")
+        messages.error(request, _('Votre emplacement autorise %(quota)s utilisateur(s).') % {"quota": quota})
         return redirect("equipe")
 
     membre.actif = True
     membre.jusqu_a = None
     membre.save(update_fields=["actif", "jusqu_a"])
-    messages.success(request, f"{membre.utilisateur.nom_complet} retrouve son accès.")
+    messages.success(request, _('%(nom_complet)s retrouve son accès.') % {"nom_complet": membre.utilisateur.nom_complet})
     return redirect("equipe")
 
 
@@ -380,7 +377,7 @@ def equipe_mot_de_passe(request, appartenance_id):
 
     if membre.utilisateur_id == request.user.pk:
         messages.error(
-            request, "Changez votre propre mot de passe depuis votre compte, pas depuis ici."
+            request, _("Changez votre propre mot de passe depuis votre compte, pas depuis ici.")
         )
         return redirect("equipe")
 
@@ -404,7 +401,7 @@ def equipe_avis_commandes(request, appartenance_id):
         Appartenance, pk=appartenance_id, boutique=contexte["boutique"], actif=True
     )
     if membre.role.code not in roles_qui_traitent():
-        messages.error(request, "Son rôle ne traite pas les commandes : il n'y a rien à lui envoyer.")
+        messages.error(request, _("Son rôle ne traite pas les commandes : il n'y a rien à lui envoyer."))
         return redirect("equipe")
     membre.avis_commandes = not membre.avis_commandes
     membre.save(update_fields=["avis_commandes"])

@@ -27,6 +27,7 @@ import time
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Protocol, runtime_checkable
+from django.utils.translation import gettext as _
 
 __all__ = [
     "PaiementIndisponible",
@@ -294,7 +295,7 @@ def adaptateur_pour(code: str) -> PrestatairePaiement:
     import apps.payments.operateurs  # noqa: F401
 
     if code not in _registre:
-        raise PaiementIndisponible(f"Aucun adaptateur enregistré pour « {code} ».")
+        raise PaiementIndisponible(_('Aucun adaptateur enregistré pour « %(code)s ».') % {"code": code})
     return _registre[code]
 
 

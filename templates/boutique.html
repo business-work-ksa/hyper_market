@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
-{% block titre %}Ma boutique — {{ boutique.enseigne }}{% endblock %}
-{% block entete %}Ma boutique{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Ma boutique — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Ma boutique" %}{% endblock %}
 
 {% block contenu %}
 <div class="colonne">
@@ -15,48 +16,48 @@
     <div class="colonne">
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Identité</h2>
-        <a class="btn" href="{% url 'verification' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-bouclier"></use></svg>Vérification</a>
+        <h2 class="t-section">{% translate "Identité" %}</h2>
+        <a class="btn" href="{% url 'verification' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-bouclier"></use></svg>{% translate "Vérification" %}</a>
       </header>
       <div class="carte__corps colonne" style="gap:14px">
-        <div class="rangee rangee--espace"><span class="t-2">Enseigne</span><strong>{{ boutique.enseigne }}</strong></div>
-        <div class="rangee rangee--espace"><span class="t-2">Raison sociale</span><span>{{ boutique.raison_sociale }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Enseigne" %}</span><strong>{{ boutique.enseigne }}</strong></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Raison sociale" %}</span><span>{{ boutique.raison_sociale }}</span></div>
         <div class="rangee rangee--espace"><span class="t-2">RCCM</span><span class="chiffre">{{ boutique.rccm|default:"—" }}</span></div>
         <div class="rangee rangee--espace"><span class="t-2">NIU</span><span class="chiffre">{{ boutique.niu|default:"—" }}</span></div>
-        <div class="rangee rangee--espace"><span class="t-2">Ville</span><span>{{ boutique.ville }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Ville" %}</span><span>{{ boutique.ville }}</span></div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Métier</span>
+          <span class="t-2">{% translate "Métier" %}</span>
           <span class="puce puce--marque">{{ metier.libelle }}</span>
         </div>
         <div class="rangee rangee--espace">
-          <span class="t-2">Régime fiscal</span>
+          <span class="t-2">{% translate "Régime fiscal" %}</span>
           <span class="puce puce--marque">{{ boutique.get_regime_fiscal_display }}</span>
         </div>
       </div>
     </section>
 
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Emplacement loué</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Emplacement loué" %}</h2></header>
       <div class="carte__corps colonne" style="gap:14px">
         {% if bail %}
-          <div class="rangee rangee--espace"><span class="t-2">Offre</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
-          <div class="rangee rangee--espace"><span class="t-2">Loyer mensuel</span><span class="chiffre">{{ bail.loyer_mensuel|fcfa }} FCFA</span></div>
-          <div class="rangee rangee--espace"><span class="t-2">Dépôt de garantie</span><span class="chiffre">{{ bail.depot_garantie|fcfa }} FCFA</span></div>
-          <div class="rangee rangee--espace"><span class="t-2">Depuis le</span><span class="chiffre">{{ bail.debut|date:"d/m/Y" }}</span></div>
-          <div class="rangee rangee--espace"><span class="t-2">Préavis</span><span>{{ bail.preavis_jours }} jours</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Offre" %}</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Loyer mensuel" %}</span><span class="chiffre">{{ bail.loyer_mensuel|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Dépôt de garantie" %}</span><span class="chiffre">{{ bail.depot_garantie|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Depuis le" %}</span><span class="chiffre">{{ bail.debut|date:"d/m/Y" }}</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Préavis" %}</span><span>{% blocktranslate with preavis_jours=bail.preavis_jours trimmed %}{{ preavis_jours }} jours{% endblocktranslate %}</span></div>
           <div class="rangee rangee--espace">
-            <span class="t-2">État</span>
+            <span class="t-2">{% translate "État" %}</span>
             <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{{ bail.get_etat_display }}</span>
           </div>
         {% else %}
-          <div class="vide"><svg><use href="#ic-boutique"></use></svg><p class="t-2">Aucun bail actif.</p></div>
+          <div class="vide"><svg><use href="#ic-boutique"></use></svg><p class="t-2">{% translate "Aucun bail actif." %}</p></div>
         {% endif %}
       </div>
     </section>
     </div>
 
     <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Ce que votre métier change</h2></header>
+      <header class="carte__entete"><h2 class="t-section">{% translate "Ce que votre métier change" %}</h2></header>
       <div class="carte__corps colonne" style="gap:12px">
         <p class="t-2">{{ metier.resume }}</p>
         {% if metier.libelles_fonctions %}
@@ -70,8 +71,8 @@
           </ul>
         {% else %}
           <p class="t-legende">
-            Aucune fonction particulière : le commerce général est le socle, et
-            tous les autres métiers en sont des variantes.
+            {% blocktranslate trimmed %}Aucune fonction particulière : le commerce général est le socle, et
+            tous les autres métiers en sont des variantes.{% endblocktranslate %}
           </p>
         {% endif %}
         {% if metier.a_venir %}
@@ -84,7 +85,7 @@
           <div class="bandeau-info" role="note" style="margin-top:4px">
             <svg><use href="#ic-info"></use></svg>
             <span>
-              Prévu pour ce métier, <strong>pas encore disponible</strong> :
+              {% translate "Prévu pour ce métier," %} <strong>{% translate "pas encore disponible" %}</strong> :
               {% for a in metier.a_venir %}{{ a|lower }}{% if not forloop.last %} ; {% endif %}{% endfor %}.
             </span>
           </div>
@@ -96,10 +97,10 @@
   <div class="duo duo--libre">
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Équipe</h2>
+        <h2 class="t-section">{% translate "Équipe" %}</h2>
         {% if 'boutique.administrer' in droits %}
-          <a class="btn" href="{% url 'identite' %}">Mon identité</a>
-          <a class="btn" href="{% url 'equipe' %}">Gérer l'équipe</a>
+          <a class="btn" href="{% url 'identite' %}">{% translate "Mon identité" %}</a>
+          <a class="btn" href="{% url 'equipe' %}">{% translate "Gérer l'équipe" %}</a>
         {% endif %}
       </header>
       <div class="carte__corps--serre">
@@ -134,9 +135,9 @@
         <table class="tableau">
           <thead>
             <tr>
-              <th scope="col">Dépôt</th>
-              <th scope="col">Type</th>
-              <th scope="col">Adresse</th>
+              <th scope="col">{% translate "Dépôt" %}</th>
+              <th scope="col">{% translate "Type" %}</th>
+              <th scope="col">{% translate "Adresse" %}</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -150,8 +151,8 @@
                 <td class="t-2">{{ d.get_type_display }}</td>
                 <td class="t-2">{{ d.adresse|default:"—"|truncatechars:34 }}</td>
                 <td class="num">
-                  {% if d.principal %}<span class="puce puce--marque">Principal</span>{% endif %}
-                  {% if not d.actif %}<span class="puce">Fermé</span>{% endif %}
+                  {% if d.principal %}<span class="puce puce--marque">{% translate "Principal" %}</span>{% endif %}
+                  {% if not d.actif %}<span class="puce">{% translate "Fermé" %}</span>{% endif %}
                 </td>
               </tr>
             {% endfor %}
@@ -160,12 +161,12 @@
       </div>
 
       <footer class="tableau-pied">
-        <span>{{ depots|length }} / {{ quota_depots }} dépôts</span>
+        <span>{% blocktranslate with depots=depots|length quota_depots=quota_depots trimmed %}{{ depots }} / {{ quota_depots }} dépôts{% endblocktranslate %}</span>
         <span class="t-legende">
           {% if depots_restants %}
-            Votre emplacement autorise encore {{ depots_restants }} dépôt{{ depots_restants|pluralize }}.
+            {% blocktranslate count depots_restants=depots_restants trimmed %}Votre emplacement autorise encore {{ depots_restants }} dépôt.{% plural %}Votre emplacement autorise encore {{ depots_restants }} dépôts.{% endblocktranslate %}
           {% else %}
-            Votre emplacement n'autorise pas de dépôt supplémentaire.
+            {% translate "Votre emplacement n'autorise pas de dépôt supplémentaire." %}
           {% endif %}
         </span>
       </footer>
@@ -180,8 +181,8 @@
   <div class="duo duo--libre{% if not 'exporter' in droits %} duo--plein{% endif %}">
     <section class="carte">
       <header class="carte__entete">
-        <h2 class="t-section">Ce que chaque rôle peut faire</h2>
-        <span class="puce"><svg><use href="#ic-verrou"></use></svg>Droits appliqués</span>
+        <h2 class="t-section">{% translate "Ce que chaque rôle peut faire" %}</h2>
+        <span class="puce"><svg><use href="#ic-verrou"></use></svg>{% translate "Droits appliqués" %}</span>
       </header>
       <div class="carte__corps colonne" style="gap:16px">
         {% for role in droits_par_role %}
@@ -193,7 +194,7 @@
                 <span class="t-2">{{ libelle }}</span>
               </span>
             {% empty %}
-              <span class="t-legende">Aucun droit sur cette boutique.</span>
+              <span class="t-legende">{% translate "Aucun droit sur cette boutique." %}</span>
             {% endfor %}
           </div>
         {% endfor %}
@@ -202,21 +203,21 @@
 
     {% if 'exporter' in droits %}
       <section class="carte">
-        <header class="carte__entete"><h2 class="t-section">Vos données</h2></header>
+        <header class="carte__entete"><h2 class="t-section">{% translate "Vos données" %}</h2></header>
         <div class="carte__corps colonne" style="gap:12px">
           <p class="t-2">
-            Vos données vous appartiennent : <strong>export intégral et gratuit</strong> à tout
-            moment, y compris en cas de résiliation de votre emplacement.
+            {% translate "Vos données vous appartiennent :" %} <strong>{% translate "export intégral et gratuit" %}</strong> {% blocktranslate trimmed %}à tout
+            moment, y compris en cas de résiliation de votre emplacement.{% endblocktranslate %}
           </p>
           <p class="t-2">
-            L'archive contient votre catalogue, votre stock valorisé, chaque mouvement avec son
+            {% blocktranslate trimmed %}L'archive contient votre catalogue, votre stock valorisé, chaque mouvement avec son
             coût, vos ventes et votre journal comptable — en CSV, lisibles par n'importe quel
-            tableur.
+            tableur.{% endblocktranslate %}
           </p>
         </div>
         <footer class="carte__pied">
           <a class="btn btn--primaire btn--bloc" href="{% url 'export_donnees' %}">
-            Exporter mes données
+            {% translate "Exporter mes données" %}
           </a>
         </footer>
       </section>
@@ -233,27 +234,27 @@ ferait basculer les réceptions et les caisses sans que personne ne s'en aperço
   <form method="post" data-action-modele="{% url 'depot_modifier' '00000000-0000-0000-0000-000000000000' %}">
     {% csrf_token %}
     <header class="modale__entete">
-      <h2 class="t-section">Modifier « <span data-cible-libelle></span> »</h2>
+      <h2 class="t-section">{% translate "Modifier «" %} <span data-cible-libelle></span> »</h2>
     </header>
     <div class="modale__corps colonne" style="gap:14px">
       <div class="groupe-champ">
-        <label for="libelle-depot">Nom du dépôt</label>
-        <input class="champ" id="libelle-depot" name="libelle" maxlength="120" placeholder="Réserve Akwa">
+        <label for="libelle-depot">{% translate "Nom du dépôt" %}</label>
+        <input class="champ" id="libelle-depot" name="libelle" maxlength="120" placeholder="{% translate 'Réserve Akwa' %}">
       </div>
       <div class="groupe-champ">
-        <label for="type-depot">Type</label>
+        <label for="type-depot">{% translate "Type" %}</label>
         <select class="champ" id="type-depot" name="type">
           {% for code, libelle in types_depot %}<option value="{{ code }}">{{ libelle }}</option>{% endfor %}
         </select>
       </div>
       <div class="groupe-champ">
-        <label for="adresse-depot">Adresse</label>
-        <input class="champ" id="adresse-depot" name="adresse" maxlength="255" placeholder="Facultative">
+        <label for="adresse-depot">{% translate "Adresse" %}</label>
+        <input class="champ" id="adresse-depot" name="adresse" maxlength="255" placeholder="{% translate 'Facultative' %}">
       </div>
     </div>
     <footer class="modale__pied">
-      <button class="btn" type="button" data-ferme>Annuler</button>
-      <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+      <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
     </footer>
   </form>
 </dialog>

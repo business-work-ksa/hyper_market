@@ -1,30 +1,31 @@
 {% extends "plateforme/base.html" %}
+{% load i18n %}
 {% load static hm %}
-{% block titre %}Encaisser un loyer · {{ boutique.enseigne }}{% endblock %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Encaisser un loyer · {{ enseigne }}{% endblocktranslate %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
 {% block fil %}
   <nav class="fil" aria-label="Fil d'Ariane">
-    <a href="{% url 'plateforme:loyers' %}">Loyers</a><span class="fil__sep" aria-hidden="true">/</span>
+    <a href="{% url 'plateforme:loyers' %}">{% translate "Loyers" %}</a><span class="fil__sep" aria-hidden="true">/</span>
     <a href="{% url 'plateforme:boutique' boutique.pk %}">{{ boutique.enseigne }}</a>
   </nav>
 {% endblock %}
-{% block entete %}Encaisser un loyer{% endblock %}
+{% block entete %}{% translate "Encaisser un loyer" %}{% endblock %}
 
 {% block contenu %}
 <div class="a-page">
   <header class="a-fiche-tete">
     <span class="monogramme monogramme--grand" aria-hidden="true">{{ boutique.enseigne|initiales }}</span>
     <div class="pile-sm" style="gap:3px;min-width:0">
-      <h2 class="entete-page__titre">Loyer de {{ facture.periode|date:"F Y" }}</h2>
+      <h2 class="entete-page__titre">{% blocktranslate with periode=facture.periode|date:"F Y" trimmed %}Loyer de {{ periode }}{% endblocktranslate %}</h2>
       <p class="t-legende">{{ boutique.enseigne }} · {{ facture.bail.type_emplacement.libelle }}</p>
     </div>
     <div class="a-transition">
       {% if facture.etat == 'payee' %}
-        <span class="statut statut--active">Payée</span>
+        <span class="statut statut--active">{% translate "Payée" %}</span>
       {% elif facture.etat == 'annulee' %}
-        <span class="statut statut--resiliee">Annulée</span>
+        <span class="statut statut--resiliee">{% translate "Annulée" %}</span>
       {% elif retard %}
-        <span class="statut statut--impayee">En retard</span>
+        <span class="statut statut--impayee">{% translate "En retard" %}</span>
       {% else %}
         <span class="statut statut--candidature">{{ facture.get_etat_display }}</span>
       {% endif %}
@@ -42,34 +43,34 @@
       {% endif %}
 
       <div class="a-montants">
-        <div class="a-montant"><span class="t-legende">Montant HT</span><span class="a-montant__valeur">{{ facture.montant_ht|fcfa }}</span></div>
+        <div class="a-montant"><span class="t-legende">{% translate "Montant HT" %}</span><span class="a-montant__valeur">{{ facture.montant_ht|fcfa }}</span></div>
         <div class="a-montant"><span class="t-legende">TVA {{ taux_tva }}</span><span class="a-montant__valeur">{{ facture.montant_tva|fcfa }}</span></div>
-        <div class="a-montant a-montant--total"><span class="t-legende">À encaisser TTC</span><span class="a-montant__valeur">{{ facture.montant_ttc|fcfa }}<span class="a-montant__devise">FCFA</span></span></div>
+        <div class="a-montant a-montant--total"><span class="t-legende">{% translate "À encaisser TTC" %}</span><span class="a-montant__valeur">{{ facture.montant_ttc|fcfa }}<span class="a-montant__devise">FCFA</span></span></div>
       </div>
 
       <dl class="cles">
-        <dt>Période</dt><dd>{{ facture.periode|date:"F Y" }}</dd>
-        <dt>Échéance</dt>
+        <dt>{% translate "Période" %}</dt><dd>{{ facture.periode|date:"F Y" }}</dd>
+        <dt>{% translate "Échéance" %}</dt>
         <dd>{{ facture.echeance|date:"d/m/Y" }}
-          {% if retard and not refus %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{{ retard }} jour{{ retard|pluralize }} de retard</span>{% elif not refus %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>À l'heure</span>{% endif %}
+          {% if retard and not refus %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% blocktranslate count retard=retard trimmed %}{{ retard }} jour de retard{% plural %}{{ retard }} jours de retard{% endblocktranslate %}</span>{% elif not refus %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "À l'heure" %}</span>{% endif %}
         </dd>
-        {% if facture.paye_le %}<dt>Payée le</dt><dd>{{ facture.paye_le|date:"d/m/Y à H:i" }}</dd>{% endif %}
+        {% if facture.paye_le %}<dt>{% translate "Payée le" %}</dt><dd>{{ facture.paye_le|date:"d/m/Y à H:i" }}</dd>{% endif %}
       </dl>
 
       {% if not refus %}
         <div class="bandeau-info">
           <svg aria-hidden="true"><use href="#ic-info"></use></svg>
-          <span>Confirmez seulement après avoir reçu l'argent. La facture passe à « payée », avec la
+          <span>{% blocktranslate trimmed %}Confirmez seulement après avoir reçu l'argent. La facture passe à « payée », avec la
             date et l'heure de ce geste, et l'encaissement est inscrit au journal à votre nom. Aucune
-            écriture comptable n'est passée : le loyer n'en a pas encore dans le dépôt.</span>
+            écriture comptable n'est passée : le loyer n'en a pas encore dans le dépôt.{% endblocktranslate %}</span>
         </div>
       {% endif %}
     </div>
     <footer class="carte__pied assistant__pied">
-      <a class="btn" href="{{ suite }}">{% if refus %}Revenir{% else %}Annuler{% endif %}</a>
+      <a class="btn" href="{{ suite }}">{% if refus %}{% translate "Revenir" %}{% else %}{% translate "Annuler" %}{% endif %}</a>
       {% if not refus %}
         <button class="btn btn--primaire" type="submit">
-          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-argent"></use></svg>Encaisser {{ facture.montant_ttc|fcfa }}&#8239;FCFA
+          <svg class="icone-ligne" aria-hidden="true"><use href="#ic-argent"></use></svg>{% blocktranslate with montant_ttc=facture.montant_ttc|fcfa trimmed %}Encaisser {{ montant_ttc }}&#8239;FCFA{% endblocktranslate %}
         </button>
       {% endif %}
     </footer>

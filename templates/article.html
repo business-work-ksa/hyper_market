@@ -1,17 +1,18 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load hm %}
 
 {% block titre %}{{ variante.produit.libelle }} — {{ boutique.enseigne }}{% endblock %}
 {% block entete %}{{ variante.produit.libelle }}{% endblock %}
 
 {% block actions_entete %}
-  <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
+  <a class="btn" href="{% url 'stock' %}">{% translate "Retour au stock" %}</a>
   {% if 'stock.mouvementer' in droits %}
     {% if depots|length > 1 %}
-      <a class="btn" href="{% url 'transfert_stock' variante.pk %}">Transférer</a>
+      <a class="btn" href="{% url 'transfert_stock' variante.pk %}">{% translate "Transférer" %}</a>
     {% endif %}
     <a class="btn btn--primaire" href="{% url 'entree_stock' variante.pk %}">
-      <svg><use href="#ic-plus"></use></svg> Entrée de stock
+      <svg><use href="#ic-plus"></use></svg> {% translate "Entrée de stock" %}
     </a>
   {% endif %}
 {% endblock %}
@@ -25,23 +26,23 @@
           <svg><use href="#ic-stock"></use></svg>
           <span class="t-sur-titre">{{ niveau.depot.libelle }}</span>
         </div>
-        <p class="tuile__valeur">{{ niveau.quantite|quantite }}<span class="unite">en stock</span></p>
+        <p class="tuile__valeur">{{ niveau.quantite|quantite }}<span class="unite">{% translate "en stock" %}</span></p>
         <p class="tuile__note">{% puce_stock niveau %}</p>
       </article>
     {% endfor %}
 
     <article class="tuile">
-      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Prix de vente</span></div>
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Prix de vente" %}</span></div>
       <p class="tuile__valeur">{{ variante.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
-      <p class="tuile__note"><span class="t-muet">{{ variante.prix_ht|fcfa }} FCFA hors taxes</span></p>
+      <p class="tuile__note"><span class="t-muet">{% blocktranslate with prix_ht=variante.prix_ht|fcfa trimmed %}{{ prix_ht }} FCFA hors taxes{% endblocktranslate %}</span></p>
     </article>
 
     {% if 'cout.voir' in droits %}
       <article class="tuile">
-        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Coût moyen pondéré</span></div>
+        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">{% translate "Coût moyen pondéré" %}</span></div>
         {% for niveau in niveaux %}
           <p class="tuile__valeur">{{ niveau.cmp|fcfa }}<span class="unite">FCFA</span></p>
-          <p class="tuile__note"><span class="t-muet">{{ niveau.depot.libelle }} · valeur {{ niveau.valeur|fcfa }} FCFA</span></p>
+          <p class="tuile__note"><span class="t-muet">{% blocktranslate with libelle=niveau.depot.libelle valeur=niveau.valeur|fcfa trimmed %}{{ libelle }} · valeur {{ valeur }} FCFA{% endblocktranslate %}</span></p>
         {% endfor %}
       </article>
     {% endif %}
@@ -67,9 +68,9 @@
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Nature</th>
-                <th scope="col">Désignation</th>
-                <th scope="col">Employée par</th>
+                <th scope="col">{% translate "Nature" %}</th>
+                <th scope="col">{% translate "Désignation" %}</th>
+                <th scope="col">{% translate "Employée par" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -88,38 +89,38 @@
       {% else %}
         <div class="vide">
           <svg><use href="#ic-recherche"></use></svg>
-          <p class="t-2">Aucun autre nom déclaré.</p>
+          <p class="t-2">{% translate "Aucun autre nom déclaré." %}</p>
           <p class="t-legende">
-            Tant qu'il n'y en a pas, cet article n'existe que sous le nom que
+            {% blocktranslate trimmed %}Tant qu'il n'y en a pas, cet article n'existe que sous le nom que
             vous avez tapé — et le client qui en demande un autre repartira
-            sans, alors qu'il est en rayon.
+            sans, alors qu'il est en rayon.{% endblocktranslate %}
           </p>
         </div>
       {% endif %}
 
       {% if equivalents %}
         <footer class="tableau-pied tableau-pied--colonne">
-          <span class="t-sur-titre">Équivalents en rayon</span>
+          <span class="t-sur-titre">{% translate "Équivalents en rayon" %}</span>
           <ul class="liste-visee">
             {% for e in equivalents %}
               <li>
                 <a href="{% url 'article' e.variante.pk %}">{{ e.variante.produit.libelle }}</a>
                 <span class="t-legende">
-                  rapproché par {% for d in e.par %}{{ d.valeur }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                  {% translate "rapproché par" %} {% for d in e.par %}{{ d.valeur }}{% if not forloop.last %}, {% endif %}{% endfor %}
                 </span>
               </li>
             {% endfor %}
           </ul>
           <span class="t-legende">
-            Déduits, jamais saisis : ces articles partagent une désignation avec
-            celui-ci. Retirez la désignation et le rapprochement disparaît.
+            {% blocktranslate trimmed %}Déduits, jamais saisis : ces articles partagent une désignation avec
+            celui-ci. Retirez la désignation et le rapprochement disparaît.{% endblocktranslate %}
           </span>
         </footer>
       {% elif designations %}
         <footer class="tableau-pied">
           <span class="t-legende">
-            Aucun équivalent en rayon : aucun autre article ne porte ces
-            désignations.
+            {% blocktranslate trimmed %}Aucun équivalent en rayon : aucun autre article ne porte ces
+            désignations.{% endblocktranslate %}
           </span>
         </footer>
       {% endif %}
@@ -147,10 +148,10 @@
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Marque</th>
-                <th scope="col">Modèle</th>
-                <th scope="col">Motorisation</th>
-                <th scope="col">Années</th>
+                <th scope="col">{% translate "Marque" %}</th>
+                <th scope="col">{% translate "Modèle" %}</th>
+                <th scope="col">{% translate "Motorisation" %}</th>
+                <th scope="col">{% translate "Années" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -170,19 +171,19 @@
       {% else %}
         <div class="vide">
           <svg><use href="#ic-camion"></use></svg>
-          <p class="t-2">Aucune compatibilité déclarée.</p>
+          <p class="t-2">{% translate "Aucune compatibilité déclarée." %}</p>
           <p class="t-legende">
-            Tant qu'il n'y en a pas, cette pièce reste introuvable pour un client
+            {% blocktranslate trimmed %}Tant qu'il n'y en a pas, cette pièce reste introuvable pour un client
             qui cherche par son véhicule — et c'est ainsi que la plupart des
-            clients cherchent.
+            clients cherchent.{% endblocktranslate %}
           </p>
         </div>
       {% endif %}
 
       {% if variante.reference_constructeur %}
         <footer class="tableau-pied">
-          <span>Référence constructeur <strong class="chiffre">{{ variante.reference_constructeur }}</strong></span>
-          <span class="t-legende">Celle qui est gravée sur la pièce d'origine.</span>
+          <span>{% translate "Référence constructeur" %} <strong class="chiffre">{{ variante.reference_constructeur }}</strong></span>
+          <span class="t-legende">{% translate "Celle qui est gravée sur la pièce d'origine." %}</span>
         </footer>
       {% endif %}
     </section>
@@ -203,11 +204,11 @@
           <table class="tableau">
             <thead>
               <tr>
-                <th scope="col">Numéro</th>
-                <th scope="col">État</th>
-                <th scope="col">Dépôt</th>
-                <th scope="col">Reçu le</th>
-                <th scope="col">Vendu</th>
+                <th scope="col">{% translate "Numéro" %}</th>
+                <th scope="col">{% translate "État" %}</th>
+                <th scope="col">{% translate "Dépôt" %}</th>
+                <th scope="col">{% translate "Reçu le" %}</th>
+                <th scope="col">{% translate "Vendu" %}</th>
               </tr>
             </thead>
             <tbody>
@@ -238,19 +239,19 @@
       {% else %}
         <div class="vide">
           <svg><use href="#ic-verrou"></use></svg>
-          <p class="t-2">Aucun exemplaire nommé.</p>
+          <p class="t-2">{% translate "Aucun exemplaire nommé." %}</p>
           <p class="t-legende">
-            Tant qu'il n'y en a pas, ces appareils sortiront du stock sans qu'on
+            {% blocktranslate trimmed %}Tant qu'il n'y en a pas, ces appareils sortiront du stock sans qu'on
             puisse dire lequel est parti — et la garantie de celui-là ne sera
-            opposable à rien.
+            opposable à rien.{% endblocktranslate %}
           </p>
         </div>
       {% endif %}
 
       <footer class="tableau-pied">
-        <span>{{ exemplaires|length }} exemplaire{{ exemplaires|length|pluralize }} nommé{{ exemplaires|length|pluralize }}</span>
+        <span>{% blocktranslate count exemplaires=exemplaires|length trimmed %}{{ exemplaires }} exemplaire nommé{% plural %}{{ exemplaires }} exemplaires nommés{% endblocktranslate %}</span>
         {% if variante.garantie_mois %}
-          <span class="puce puce--bon"><svg><use href="#ic-garantie"></use></svg>Garantie {{ variante.garantie_mois }} mois</span>
+          <span class="puce puce--bon"><svg><use href="#ic-garantie"></use></svg>{% blocktranslate with garantie_mois=variante.garantie_mois trimmed %}Garantie {{ garantie_mois }} mois{% endblocktranslate %}</span>
         {% endif %}
       </footer>
     </section>
@@ -258,25 +259,25 @@
 
   <section class="carte">
     <header class="carte__entete">
-      <h2 class="t-section">Historique des mouvements</h2>
-      <span class="puce"><svg><use href="#ic-verrou"></use></svg>Journal en ajout seul</span>
+      <h2 class="t-section">{% translate "Historique des mouvements" %}</h2>
+      <span class="puce"><svg><use href="#ic-verrou"></use></svg>{% translate "Journal en ajout seul" %}</span>
     </header>
     <div class="carte__corps--serre">
       <div class="tableau-boite">
         <table class="tableau">
           <thead>
             <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Type</th>
-              <th scope="col">Origine</th>
-              <th scope="col">Dépôt</th>
-              <th scope="col" class="num">Quantité</th>
+              <th scope="col">{% translate "Date" %}</th>
+              <th scope="col">{% translate "Type" %}</th>
+              <th scope="col">{% translate "Origine" %}</th>
+              <th scope="col">{% translate "Dépôt" %}</th>
+              <th scope="col" class="num">{% translate "Quantité" %}</th>
               {% if 'cout.voir' in droits %}
-                <th scope="col" class="num">Coût unitaire</th>
+                <th scope="col" class="num">{% translate "Coût unitaire" %}</th>
               {% endif %}
-              <th scope="col" class="num">Stock après</th>
+              <th scope="col" class="num">{% translate "Stock après" %}</th>
               {% if 'cout.voir' in droits %}
-                <th scope="col" class="num">CMP après</th>
+                <th scope="col" class="num">{% translate "CMP après" %}</th>
               {% endif %}
             </tr>
           </thead>
@@ -300,7 +301,7 @@
               </tr>
             {% empty %}
               <tr><td colspan="8"><div class="vide"><svg><use href="#ic-stock"></use></svg>
-                <p class="t-2">Aucun mouvement enregistré.</p></div></td></tr>
+                <p class="t-2">{% translate "Aucun mouvement enregistré." %}</p></div></td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -314,17 +315,17 @@
   <dialog class="modale" id="modale-exemplaires">
     <form method="post" action="{% url 'exemplaires_declarer' variante_id=variante.pk %}" novalidate>
       {% csrf_token %}
-      <header class="modale__entete"><h2 class="t-section">Déclarer des numéros</h2></header>
+      <header class="modale__entete"><h2 class="t-section">{% translate "Déclarer des numéros" %}</h2></header>
       <div class="modale__corps colonne" style="gap:14px">
         {% include "partials/champ.html" with champ=formulaire_exemplaires.numeros %}
         <p class="t-legende">
-          Pour rattraper une réception saisie sans les numéros. Les exemplaires
-          seront rattachés à {{ depot_courant.libelle|default:"votre dépôt" }}.
+          {% blocktranslate with libelle=depot_courant.libelle|default:"votre dépôt" trimmed %}Pour rattraper une réception saisie sans les numéros. Les exemplaires
+          seront rattachés à {{ libelle }}.{% endblocktranslate %}
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Déclarer</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Déclarer" %}</button>
       </footer>
     </form>
   </dialog>
@@ -335,7 +336,7 @@
   <dialog class="modale" id="modale-nouvelle-designation">
     <form method="post" action="{% url 'designation_ajouter' variante_id=variante.pk %}" novalidate>
       {% csrf_token %}
-      <header class="modale__entete"><h2 class="t-section">Aussi appelé</h2></header>
+      <header class="modale__entete"><h2 class="t-section">{% translate "Aussi appelé" %}</h2></header>
       <div class="modale__corps colonne" style="gap:14px">
         <div class="grille-filtres">
           {% for champ in formulaire_designation %}
@@ -347,14 +348,14 @@
           {% endfor %}
         </div>
         <p class="t-legende">
-          Ce nom rapproche aussitôt cet article de tous ceux qui le portent
+          {% blocktranslate trimmed %}Ce nom rapproche aussitôt cet article de tous ceux qui le portent
           déjà, et de ceux qui arriveront ensuite. Inutile de déclarer les
-          paires une à une.
+          paires une à une.{% endblocktranslate %}
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Ajouter</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Ajouter" %}</button>
       </footer>
     </form>
   </dialog>
@@ -364,12 +365,12 @@
     <form method="post" data-action-modele="{% url 'designation_modifier' variante_id=variante.pk designation_id='00000000-0000-0000-0000-000000000000' %}">
       {% csrf_token %}
       <header class="modale__entete">
-        <h2 class="t-section">Corriger « <span data-cible-libelle></span> »</h2>
+        <h2 class="t-section">{% translate "Corriger «" %} <span data-cible-libelle></span> »</h2>
       </header>
       <div class="modale__corps colonne" style="gap:14px">
         <div class="grille-filtres">
           <div class="groupe-champ">
-            <label for="type-designation">Nature</label>
+            <label for="type-designation">{% translate "Nature" %}</label>
             <select class="champ" id="type-designation" name="type">
               {% for cle, libelle in formulaire_designation.fields.type.choices %}
                 <option value="{{ cle }}">{{ libelle }}</option>
@@ -377,22 +378,22 @@
             </select>
           </div>
           <div class="groupe-champ">
-            <label for="valeur-designation">Désignation</label>
+            <label for="valeur-designation">{% translate "Désignation" %}</label>
             <input class="champ" id="valeur-designation" name="valeur" list="designations-connues">
           </div>
           <div class="groupe-champ">
-            <label for="source-designation">Employée par</label>
+            <label for="source-designation">{% translate "Employée par" %}</label>
             <input class="champ" id="source-designation" name="source">
           </div>
         </div>
         <p class="t-legende">
-          Une référence recopiée de travers est pire qu'absente : elle ne
-          rapproche rien, et le vendeur croit pourtant avoir cherché.
+          {% blocktranslate trimmed %}Une référence recopiée de travers est pire qu'absente : elle ne
+          rapproche rien, et le vendeur croit pourtant avoir cherché.{% endblocktranslate %}
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
       </footer>
     </form>
   </dialog>
@@ -407,7 +408,7 @@
   <dialog class="modale" id="modale-nouvelle-compatibilite">
     <form method="post" action="{% url 'compatibilite_ajouter' variante_id=variante.pk %}" novalidate>
       {% csrf_token %}
-      <header class="modale__entete"><h2 class="t-section">Se monte aussi sur</h2></header>
+      <header class="modale__entete"><h2 class="t-section">{% translate "Se monte aussi sur" %}</h2></header>
       <div class="modale__corps colonne" style="gap:14px">
         <div class="grille-filtres">
           {% for champ in formulaire_compatibilite %}
@@ -419,14 +420,14 @@
           {% endfor %}
         </div>
         <p class="t-legende">
-          Modèle et années sont facultatifs. Laissez-les vides plutôt que de
+          {% blocktranslate trimmed %}Modèle et années sont facultatifs. Laissez-les vides plutôt que de
           deviner : une compatibilité large se vérifie au comptoir, une
-          compatibilité inventée fait repartir un client avec la mauvaise pièce.
+          compatibilité inventée fait repartir un client avec la mauvaise pièce.{% endblocktranslate %}
         </p>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Déclarer</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Déclarer" %}</button>
       </footer>
     </form>
   </dialog>
@@ -436,36 +437,36 @@
     <form method="post" data-action-modele="{% url 'compatibilite_modifier' variante_id=variante.pk compatibilite_id='00000000-0000-0000-0000-000000000000' %}">
       {% csrf_token %}
       <header class="modale__entete">
-        <h2 class="t-section">Corriger « <span data-cible-libelle></span> »</h2>
+        <h2 class="t-section">{% translate "Corriger «" %} <span data-cible-libelle></span> »</h2>
       </header>
       <div class="modale__corps colonne" style="gap:14px">
         <div class="grille-filtres">
           <div class="groupe-champ">
-            <label for="marque-compat">Marque</label>
-            <input class="champ" id="marque-compat" name="marque" list="marques-connues" placeholder="Toyota">
+            <label for="marque-compat">{% translate "Marque" %}</label>
+            <input class="champ" id="marque-compat" name="marque" list="marques-connues" placeholder="{% translate 'Toyota' %}">
           </div>
           <div class="groupe-champ">
-            <label for="modele-compat">Modèle</label>
-            <input class="champ" id="modele-compat" name="modele" list="modeles-connus" placeholder="Corolla">
-            <span class="t-legende">Vide si la pièce va sur toute la marque.</span>
+            <label for="modele-compat">{% translate "Modèle" %}</label>
+            <input class="champ" id="modele-compat" name="modele" list="modeles-connus" placeholder="{% translate 'Corolla' %}">
+            <span class="t-legende">{% translate "Vide si la pièce va sur toute la marque." %}</span>
           </div>
           <div class="groupe-champ">
-            <label for="motorisation-compat">Motorisation</label>
+            <label for="motorisation-compat">{% translate "Motorisation" %}</label>
             <input class="champ" id="motorisation-compat" name="motorisation" placeholder="1.4 D-4D">
           </div>
           <div class="groupe-champ">
-            <label for="debut-compat">De l'année</label>
+            <label for="debut-compat">{% translate "De l'année" %}</label>
             <input class="champ" id="debut-compat" name="annee_debut" inputmode="numeric" placeholder="2012">
           </div>
           <div class="groupe-champ">
-            <label for="fin-compat">À l'année</label>
+            <label for="fin-compat">{% translate "À l'année" %}</label>
             <input class="champ" id="fin-compat" name="annee_fin" inputmode="numeric" placeholder="2018">
           </div>
         </div>
       </div>
       <footer class="modale__pied">
-        <button class="btn" type="button" data-ferme>Annuler</button>
-        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
       </footer>
     </form>
   </dialog>

@@ -1,0 +1,32 @@
+{% load i18n %}{% comment %}
+Résultats du catalogue — rendus dans la page, ou seuls (en-tête `X-Fragment`) quand la grille se
+recharge sans quitter la page. `data-titre-resultats` donne au script le titre de l'onglet.
+{% endcomment %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3" data-titre-resultats="{% include 'vitrine/partials/titre_resultats.html' %}">
+  <div>
+    <p class="sur-titre">{% if recherche %}{% translate "Recherche" %}{% elif rayon_courant %}{% translate "Rayon" %}{% else %}{% translate "Catalogue" %}{% endif %}</p>
+    <h1 class="mt-1 text-2xl font-extrabold sm:text-3xl">
+      {% if recherche %}« {{ recherche }} »{% elif rayon_courant %}{{ rayon_courant.libelle }}{% else %}{% translate "Tout le marché" %}{% endif %}
+    </h1>
+  </div>
+  <p class="badge badge-neutre" data-nombre-resultats>{% blocktranslate count n=nombre %}{{ n }} article{% plural %}{{ n }} articles{% endblocktranslate %}</p>
+</div>
+
+{% if articles %}
+  <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+    {% for article in articles %}
+      {% include "marche/composants/carte_article.html" with rang=forloop.counter0 %}
+    {% endfor %}
+  </div>
+{% else %}
+  {% url 'vitrine_catalogue' as tout %}
+  {% if recherche %}
+    {% translate "Rien ne correspond à cette recherche." as vide_titre %}
+    {% translate "Essayez un autre mot, une orthographe plus courte, ou parcourez un rayon." as vide_texte %}
+  {% else %}
+    {% translate "Ce rayon est encore vide." as vide_titre %}
+    {% translate "Les commerçants de ce rayon n'ont rien mis en vitrine pour l'instant." as vide_texte %}
+  {% endif %}
+  {% translate "Voir tout le marché" as vide_action %}
+  {% include "marche/composants/etat_vide.html" with icone="recherche" titre=vide_titre texte=vide_texte action_href=tout action_libelle=vide_action niveau="p" %}
+{% endif %}

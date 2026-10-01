@@ -13,6 +13,7 @@ from apps.vitrine import views
 urlpatterns = [
     path("", views.accueil, name="vitrine_accueil"),
     path("catalogue/", views.catalogue, name="vitrine_catalogue"),
+    path("design-system/", views.design_system, name="vitrine_design_system"),
     path("article/<uuid:identifiant>/", views.article, name="vitrine_article"),
     path("boutique/<slug:slug>/", views.boutique, name="vitrine_boutique"),
 

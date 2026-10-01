@@ -80,6 +80,12 @@ def faits_confiance(boutique, identite=None):
         "identite_verifiee": bool(identite),
         "palier": p,
         "depuis": f"{MOIS[depuis.month - 1]} {depuis.year}" if depuis else "",
+        # Les mêmes faits, bruts, pour les gabarits qui les mettent en forme dans la langue de la
+        # page (le marché se lit aussi en anglais) : la date passe par le filtre `date`, le taux
+        # par une phrase traduite.
+        "depuis_date": depuis,
+        "litiges_aucun": bool(mesure and livraisons and mesure.litiges_perdus == 0),
+        "litiges_taux": _pourcent(p.taux_litiges_perdus_max) if niveau >= 1 else "",
         "livraisons": livraisons,
         "litiges": litiges,
         "evalue_le": mesure.mesuree_le if mesure else None,

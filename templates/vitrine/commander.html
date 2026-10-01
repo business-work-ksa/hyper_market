@@ -1,108 +1,117 @@
 {% extends "vitrine/base.html" %}
-{% load hm %}
+{% load i18n hm marche %}
 
-{% block titre %}Passer commande — HyperMarché{% endblock %}
+{% block titre %}{% translate "Passer commande" %} — HyperMarché{% endblock %}
 {% block rayons %}{% endblock %}
 
 {% block contenu %}
-<h1 class="t-section" style="font-size:1.4rem;margin-bottom:16px">Passer commande</h1>
+<ol class="mb-6 flex items-center gap-2 text-sm font-semibold" role="list" aria-label="{% translate 'Étapes de la commande' %}">
+  <li><a class="text-ink-muted hover:text-ink" href="{% url 'vitrine_panier' %}">1. {% translate "Panier" %}</a></li>
+  <li aria-hidden="true">{% icone "chevron" "size-4 text-ink-muted" %}</li>
+  <li class="text-brand" aria-current="step">2. {% translate "Livraison et paiement" %}</li>
+  <li aria-hidden="true">{% icone "chevron" "size-4 text-ink-muted" %}</li>
+  <li class="text-ink-muted">3. {% translate "Suivi" %}</li>
+</ol>
+<h1 class="mb-6 text-3xl font-extrabold" data-apparition>{% translate "Passer commande" %}</h1>
 
-<div class="duo">
-  <section class="carte">
-    <header class="carte__entete"><h2 class="t-section">Où vous livrer</h2></header>
-    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
-      {% csrf_token %}
-      {% include "partials/champ.html" with champ=formulaire.nom_complet %}
-      {% include "partials/champ.html" with champ=formulaire.telephone %}
-      {% include "partials/champ.html" with champ=formulaire.adresse_livraison %}
-      {% include "partials/champ.html" with champ=formulaire.note %}
-      <input type="hidden" name="a_la_livraison" value="{{ a_la_livraison }}">
+<div class="grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
+  <form method="post" class="carte" novalidate data-apparition>
+    {% csrf_token %}
+    <div class="carte-corps flex flex-col gap-8">
+      <fieldset class="flex flex-col gap-5">
+        <legend class="mb-4 text-lg font-bold">{% translate "Où vous livrer" %}</legend>
+        <div class="grid gap-5 sm:grid-cols-2">
+          {% include "marche/composants/champ.html" with champ=formulaire.nom_complet %}
+          {% include "marche/composants/champ.html" with champ=formulaire.telephone %}
+        </div>
+        {% include "marche/composants/champ.html" with champ=formulaire.adresse_livraison %}
+        {% include "marche/composants/champ.html" with champ=formulaire.note %}
+        <input type="hidden" name="a_la_livraison" value="{{ a_la_livraison }}">
+      </fieldset>
 
       {% comment %}
-      Le choix du paiement, et ce qu'il engage — dit avant l'envoi, jamais découvert après.
-      Une boutique dont le plafond de séquestre refuse le prépaiement est annoncée ici, avec la
-      raison : l'acheteur sait chez qui il paiera à la livraison avant de s'engager.
+      Le choix du paiement, et ce qu'il engage — dit avant l'envoi, jamais découvert après. Une
+      boutique dont le plafond de séquestre refuse le prépaiement est annoncée ici, avec la raison.
       {% endcomment %}
-      <fieldset class="groupe-champ" style="border:0;padding:0;margin:0">
-        <legend style="font-weight:560;margin-bottom:6px">{{ formulaire.mode_paiement.label }}</legend>
+      <fieldset class="flex flex-col gap-3" {% if formulaire.mode_paiement.errors %}aria-describedby="paiement-erreur"{% endif %}>
+        <legend class="mb-3 text-lg font-bold">{{ formulaire.mode_paiement.label }}</legend>
         {% for choix in formulaire.mode_paiement %}
-          <label class="case-ligne" for="{{ choix.id_for_label }}">
+          <label class="choix" for="{{ choix.id_for_label }}">
             {{ choix.tag }}
-            <span>{{ choix.choice_label }}{% if choix.data.value == "prepaye" and tout_refuse %} <span class="t-legende">— pas possible pour ce panier</span>{% endif %}</span>
+            <span class="flex flex-col gap-1">
+              <span class="flex items-center gap-2 font-semibold">
+                {% if choix.data.value == "prepaye" %}{% icone "verrou" "size-4 text-brand" %}{% else %}{% icone "camion" "size-4 text-ink-muted" %}{% endif %}
+                {{ choix.choice_label }}
+                {% if choix.data.value == "prepaye" %}<span class="badge badge-marque">{% translate "Recommandé" %}</span>{% endif %}
+              </span>
+              <span class="text-sm text-ink-muted">
+                {% if choix.data.value == "prepaye" %}
+                  {% if tout_refuse %}{% translate "Pas possible pour ce panier." %}{% else %}MTN MoMo · Orange Money — {% translate "l'argent reste en séquestre jusqu'à votre confirmation." %}{% endif %}
+                {% else %}
+                  {% translate "Vous payez en recevant la marchandise." %}
+                {% endif %}
+              </span>
+            </span>
           </label>
         {% endfor %}
-        {% for erreur in formulaire.mode_paiement.errors %}
-          <span class="t-petit" style="color:var(--critique-encre);font-weight:550">{{ erreur }}</span>
-        {% endfor %}
+        {% if formulaire.mode_paiement.errors %}<p class="champ-erreur" id="paiement-erreur">{% icone "alerte" "size-4" %}{{ formulaire.mode_paiement.errors|join:" " }}</p>{% endif %}
       </fieldset>
 
       {% if operateurs_ouverts %}
-      <div class="bandeau-info" role="note">
-        <svg><use href="#ic-verrou"></use></svg>
-        <span>
-          <strong>Payé d'avance, votre argent attend votre confirmation.</strong> Il est gardé en
-          séquestre chez notre partenaire de paiement agréé ; le commerçant ne le reçoit qu'après
-          que vous avez confirmé la réception — ou, sans nouvelle de vous ni réclamation, sept
-          jours après l'expédition. Un problème ? Vous ouvrez une réclamation depuis votre page de
-          commande, et l'argent reste bloqué le temps que la plateforme tranche.
-        </span>
-      </div>
-      {% endif %}
-
-      {% if refus and operateurs_ouverts %}
-        <div class="bandeau-info bandeau-info--alerte" role="status">
-          <svg><use href="#ic-info"></use></svg>
-          <span class="colonne" style="gap:6px">
-            {% for message in refus.values %}<span>{{ message }}</span>{% endfor %}
+        <div class="bandeau bandeau-info" role="note">
+          {% icone "verrou" %}
+          <span>
+            <strong>{% translate "Payé d'avance, votre argent attend votre confirmation." %}</strong>
+            {% translate "Il est gardé en séquestre chez notre partenaire de paiement agréé ; le commerçant ne le reçoit qu'après que vous avez confirmé la réception — ou, sans nouvelle de vous ni réclamation, sept jours après l'expédition. Un problème ? Vous ouvrez une réclamation depuis votre page de commande, et l'argent reste bloqué le temps que la plateforme tranche." %}
           </span>
         </div>
       {% endif %}
 
-      {% if operateurs_ouverts %}
-        <p class="t-legende">
-          Rien n'est débité à l'envoi. Pour un paiement d'avance, la page suivante vous propose de
-          payer avec {{ operateurs_ouverts|join:" ou " }}. À la livraison, vous payez en recevant
-          la marchandise. Chaque commerçant vous appelle pour convenir de la remise.
-        </p>
-      {% else %}
-        <p class="t-legende">
-          Le paiement en ligne n'est pas encore ouvert : vous payez en recevant la marchandise.
-          Chaque commerçant vous appelle pour convenir de la remise.
-        </p>
+      {% if refus and operateurs_ouverts %}
+        <div class="bandeau bandeau-alerte" role="status">
+          {% icone "info" %}
+          <span class="flex flex-col gap-1.5">{% for message in refus.values %}<span>{{ message }}</span>{% endfor %}</span>
+        </div>
       {% endif %}
 
-      <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
-        Envoyer la commande
-      </button>
-    </form>
-  </section>
+      {% if operateurs_ouverts %}
+        <p class="text-sm text-ink-muted">
+          {% blocktranslate with operateurs=operateurs_ouverts|join:" / " %}Rien n'est débité à l'envoi. Pour un paiement d'avance, la page suivante vous propose de payer avec {{ operateurs }}. À la livraison, vous payez en recevant la marchandise. Chaque commerçant vous appelle pour convenir de la remise.{% endblocktranslate %}
+        </p>
+      {% else %}
+        <p class="text-sm text-ink-muted">
+          {% translate "Le paiement en ligne n'est pas encore ouvert : vous payez en recevant la marchandise. Chaque commerçant vous appelle pour convenir de la remise." %}
+        </p>
+      {% endif %}
+    </div>
+    <div class="carte-pied">
+      <a class="btn btn-ghost btn-md" href="{% url 'vitrine_panier' %}">{% translate "Modifier le panier" %}</a>
+      <button class="btn btn-accent btn-lg" type="submit">{% translate "Envoyer la commande" %}{% icone "fleche" %}</button>
+    </div>
+  </form>
 
-  <section class="carte">
-    <header class="carte__entete"><h2 class="t-section">Votre commande</h2></header>
-    <div class="carte__corps colonne" style="gap:14px">
+  <aside class="carte lg:sticky lg:top-24" data-apparition style="--delai:100ms" aria-labelledby="recap-titre">
+    <header class="carte-entete"><h2 class="carte-titre" id="recap-titre">{% translate "Votre commande" %}</h2></header>
+    <div class="carte-corps flex flex-col gap-5">
       {% for groupe in groupes %}
-        <div class="colonne" style="gap:6px">
-          <span class="t-sur-titre">{{ groupe.boutique.enseigne }}</span>
-          {% if groupe.refus_prepaiement %}
-            <span class="puce puce--alerte" style="align-self:flex-start">
-              <svg><use href="#ic-camion"></use></svg>Paiement à la livraison
-            </span>
-          {% endif %}
+        <div class="flex flex-col gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="sur-titre">{{ groupe.boutique.enseigne }}</span>
+            {% if groupe.refus_prepaiement %}<span class="badge badge-alerte">{% icone "camion" %}{% translate "Paiement à la livraison" %}</span>{% endif %}
+          </div>
           {% for ligne in groupe.lignes %}
-            <div class="rangee rangee--espace">
-              <span class="t-2">{{ ligne.article.produit.libelle|truncatechars:30 }} × {{ ligne.quantite }}</span>
-              <span class="chiffre">{{ ligne.total|fcfa }} FCFA</span>
+            <div class="flex items-baseline justify-between gap-3 text-sm">
+              <span class="min-w-0 truncate">{{ ligne.article.produit.libelle }} <span class="text-ink-muted">× {{ ligne.quantite }}</span></span>
+              <span class="chiffre shrink-0 font-semibold">{{ ligne.total|fcfa }} FCFA</span>
             </div>
           {% endfor %}
         </div>
       {% endfor %}
-
-      <div class="rangee rangee--espace" style="border-top:1px solid var(--filet);padding-top:12px">
-        <span style="font-weight:620">Total</span>
-        <span class="article-fiche__prix" style="font-size:1.3rem">{{ total|fcfa }}<span class="unite">FCFA</span></span>
+      <div class="flex items-baseline justify-between border-t border-line pt-4">
+        <span class="font-bold">{% translate "Total" %}</span>
+        <span class="prix text-2xl">{{ total|fcfa }}<span class="devise">FCFA</span></span>
       </div>
-      <a class="btn btn--discret btn--bloc" href="{% url 'vitrine_panier' %}">Modifier le panier</a>
     </div>
-  </section>
+  </aside>
 </div>
 {% endblock %}

@@ -6,42 +6,50 @@ ici ne sert à la plateforme — tout sert au commerçant qui prépare le colis.
 """
 
 from django import forms
+from django.core.validators import RegexValidator
+from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.models import validateur_telephone
 
-CHAMP = {"class": "champ"}
-CHAMP_GRAND = {"class": "champ champ--grand"}
+# Même règle que celle du compte (`apps.accounts.models`), message dans la langue du marché.
+validateur_telephone_marche = RegexValidator(
+    validateur_telephone.regex,
+    _("Numéro de téléphone invalide. Format attendu : +237699000000."),
+)
+
+CHAMP = {"class": "input"}
+CHAMP_GRAND = {"class": "input input-lg"}
 
 
 class CommandeForm(forms.Form):
     nom_complet = forms.CharField(
-        label="Votre nom",
+        label=_("Votre nom"),
         max_length=150,
-        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Marie Ekedi"}),
+        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Marie Ekedi", "autocomplete": "name"}),
     )
     telephone = forms.CharField(
-        label="Votre téléphone",
+        label=_("Votre téléphone"),
         max_length=16,
-        validators=[validateur_telephone],
-        help_text="C'est par là que le marchand vous joindra pour la livraison.",
+        validators=[validateur_telephone_marche],
+        help_text=_("C'est par là que le marchand vous joindra pour la livraison."),
         widget=forms.TextInput(
-            attrs={**CHAMP_GRAND, "placeholder": "+237699000000", "inputmode": "tel"}
+            attrs={**CHAMP_GRAND, "placeholder": "+237699000000", "inputmode": "tel", "autocomplete": "tel"}
         ),
     )
     adresse_livraison = forms.CharField(
-        label="Où livrer",
+        label=_("Où livrer"),
         max_length=255,
         widget=forms.TextInput(
-            attrs={**CHAMP, "placeholder": "Quartier, rue, point de repère"}
+            attrs={**CHAMP, "placeholder": _("Quartier, rue, point de repère"), "autocomplete": "street-address"}
         ),
     )
     # Le mode de paiement vaut pour tout le panier ; la vitrine dit, boutique par boutique, où le
     # prépaiement n'est pas encore possible (plafond de séquestre d'une boutique nouvelle).
     mode_paiement = forms.ChoiceField(
-        label="Comment payer",
+        label=_("Comment payer"),
         choices=[
-            ("prepaye", "Payer d'avance par Mobile Money"),
-            ("livraison", "Payer à la livraison"),
+            ("prepaye", _("Payer d'avance par Mobile Money")),
+            ("livraison", _("Payer à la livraison")),
         ],
         initial="prepaye",
         widget=forms.RadioSelect,
@@ -51,10 +59,10 @@ class CommandeForm(forms.Form):
         required=False,
     )
     note = forms.CharField(
-        label="Précisions pour le marchand",
+        label=_("Précisions pour le marchand"),
         required=False,
         widget=forms.Textarea(
-            attrs={**CHAMP, "rows": 3, "placeholder": "Horaire, étage, autre numéro…"}
+            attrs={**CHAMP, "rows": 3, "placeholder": _("Horaire, étage, autre numéro…")}
         ),
     )
 
@@ -68,7 +76,7 @@ class CommandeForm(forms.Form):
         if not prepaiement_ouvert:
             # Aucun moyen de payer en ligne n'est ouvert : on ne propose pas ce qu'on ne peut pas
             # encaisser. Le choix reste affiché, seul, pour que l'acheteur sache comment il paiera.
-            self.fields["mode_paiement"].choices = [("livraison", "Payer à la livraison")]
+            self.fields["mode_paiement"].choices = [("livraison", _("Payer à la livraison"))]
             self.fields["mode_paiement"].initial = "livraison"
 
     def clean_mode_paiement(self):

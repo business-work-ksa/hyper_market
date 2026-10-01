@@ -15,6 +15,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("apps.api.urls")),
     path("marche/", include("apps.vitrine.urls")),
+    # Choix de la langue du marché (POST, protégé par CSRF) : pose le cookie `hm_langue`.
+    path("i18n/", include("django.conf.urls.i18n")),
     # La console du superadministrateur et de l'administrateur du marché (ADR-012).
     path("plateforme/", include("apps.plateforme.urls")),
     # Lien court d'une boutique : il est fait pour être dicté et imprimé, donc

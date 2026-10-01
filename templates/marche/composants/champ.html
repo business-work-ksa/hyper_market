@@ -1,0 +1,26 @@
+{% load i18n marche %}{% comment %}
+Composant — Champ de formulaire (docs/26, §4.2)
+
+Paramètre : champ (un BoundField Django). Le widget porte déjà la classe `input` (ou `input-lg`) :
+voir apps/vitrine/forms.py. Gère texte, téléphone, zone de texte ; les choix (radio) ont leur
+propre rendu (`.choix`, voir commander.html).
+
+Quand l'utiliser : toute saisie. Libellé au-dessus, toujours visible — jamais un placeholder seul,
+qui disparaît dès qu'on tape.
+Accessibilité : <label for> relié ; aide et erreur reliées par `aria-describedby` (identifiants
+`<id>_helptext` et `<id>_error`, ceux que Django 5 pose lui-même sur le widget) ; erreur
+signalée par `aria-invalid="true"`, une icône et un texte (jamais par la couleur seule) ; champ
+facultatif dit en toutes lettres.
+{% endcomment %}
+{% with aide_id=champ.auto_id|add:"_helptext" erreur_id=champ.auto_id|add:"_error" %}
+<div class="champ">
+  <label class="champ-libelle" for="{{ champ.id_for_label }}">
+    {{ champ.label }}{% if not champ.field.required %} <span class="facultatif">({% translate "facultatif" %})</span>{% endif %}
+  </label>
+  {{ champ.as_widget }}
+  {% if champ.help_text %}<p class="champ-aide" id="{{ aide_id }}">{{ champ.help_text }}</p>{% endif %}
+  {% if champ.errors %}
+    <p class="champ-erreur" id="{{ erreur_id }}">{% icone "alerte" "size-4 mt-px" %}<span>{{ champ.errors|join:" " }}</span></p>
+  {% endif %}
+</div>
+{% endwith %}

@@ -1,0 +1,19 @@
+{% load marche %}{% comment %}
+Composant — État vide (docs/26, §4.7)
+
+Paramètres : icone (défaut « panier »), titre, texte, action_href, action_libelle, niveau (h2 par
+défaut ; « h1 » quand l'état vide est toute la page ; « p » quand la page a déjà son titre).
+
+Quand l'utiliser : une liste qui pourrait contenir quelque chose et n'a rien — catalogue sans
+résultat, panier vide, boutique sans article. Il dit pourquoi c'est vide et propose la suite.
+Quand ne pas l'utiliser : pendant un chargement (c'est le rôle du squelette) ; pour une erreur
+(c'est un bandeau d'erreur, qui dit quoi faire).
+Accessibilité : le titre est un vrai titre de section ; l'icône est décorative ; l'action est un
+lien réel, joignable au clavier.
+{% endcomment %}
+<div class="vide" data-apparition>
+  <span class="vide-icone">{% icone icone|default:"panier" %}</span>
+  {% if niveau == "p" %}<p class="text-lg font-bold text-ink">{{ titre }}</p>{% elif niveau == "h1" %}<h1 class="text-xl font-bold">{{ titre }}</h1>{% else %}<h2 class="text-lg font-bold">{{ titre }}</h2>{% endif %}
+  {% if texte %}<p class="max-w-md text-sm text-ink-muted">{{ texte }}</p>{% endif %}
+  {% if action_href %}<a class="btn btn-primary btn-md mt-2" href="{{ action_href }}">{{ action_libelle }}{% icone "fleche" %}</a>{% endif %}
+</div>

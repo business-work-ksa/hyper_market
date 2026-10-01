@@ -36,9 +36,9 @@ registre d'audit.
 
 from decimal import Decimal
 
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 
-from apps.catalog.models import Categorie, Produit, Variante
+from apps.catalog.models import Categorie, MediaProduit, Produit, Variante
 from apps.confiance.paliers import expression_identite_verifiee
 from apps.core.tenancy import contexte_plateforme
 from apps.marketplace.models import Bail, Boutique, Rayon
@@ -98,6 +98,14 @@ def _requete_de_base(identifiants_boutiques):
             boutique_id__in=identifiants_boutiques,
         )
         .select_related("produit", "produit__categorie", "boutique", "boutique__mesure_confiance")
+        # La première photo de chaque produit, en une requête pour toute la page.
+        .prefetch_related(
+            Prefetch(
+                "produit__medias",
+                queryset=MediaProduit.objects_all_tenants.order_by("ordre"),
+                to_attr="medias_vues",
+            )
+        )
         # « Identité vérifiée » sur chaque carte, sans une requête par carte : c'est une colonne
         # de plus dans la requête qui lit déjà les articles.
         .annotate(vendeur_identite_verifiee=expression_identite_verifiee("boutique_id"))

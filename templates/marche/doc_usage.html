@@ -1,0 +1,11 @@
+{% load marche %}{% comment %}
+Bloc de documentation d'un composant dans la référence vivante : quand l'utiliser, quand ne pas
+l'utiliser, tests d'accessibilité à vérifier, comportement responsive. Paramètres : quand,
+pas_quand, a11y, responsive (texte).
+{% endcomment %}
+<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4" data-apparition>
+  <div class="rounded-xl border border-success-600/20 bg-success-soft/60 p-4"><p class="mb-1.5 flex items-center gap-1.5 text-sm font-bold text-success-ink">{% icone "check" "size-4" %}Quand l'utiliser</p><p class="text-sm text-ink">{{ quand }}</p></div>
+  <div class="rounded-xl border border-error-600/20 bg-error-soft/60 p-4"><p class="mb-1.5 flex items-center gap-1.5 text-sm font-bold text-error-ink">{% icone "fermer" "size-4" %}Quand ne pas l'utiliser</p><p class="text-sm text-ink">{{ pas_quand }}</p></div>
+  <div class="rounded-xl border border-brand/20 bg-brand-soft/60 p-4"><p class="mb-1.5 flex items-center gap-1.5 text-sm font-bold text-brand-ink">{% icone "oeil" "size-4" %}Accessibilité à vérifier</p><p class="text-sm text-ink">{{ a11y }}</p></div>
+  <div class="rounded-xl border border-line bg-surface p-4"><p class="mb-1.5 flex items-center gap-1.5 text-sm font-bold">{% icone "systeme" "size-4" %}Responsive</p><p class="text-sm text-ink">{{ responsive }}</p></div>
+</div>

@@ -1,47 +1,41 @@
 {% extends "vitrine/base.html" %}
-{% load hm %}
+{% load i18n hm marche %}
 
-{% block titre %}Confirmer la réception — {{ commande.numero }}{% endblock %}
+{% block titre %}{% translate "Confirmer la réception" %} — {{ commande.numero }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
 {% block rayons %}{% endblock %}
 
 {% block contenu %}
-<section class="carte" style="max-width:640px">
-  <header class="carte__entete">
-    <h1 class="t-section" style="font-size:1.3rem">Avez-vous reçu votre commande ?</h1>
+<section class="carte mx-auto max-w-2xl" data-apparition aria-labelledby="reception-titre">
+  <header class="carte-entete">
+    <h1 class="text-xl font-extrabold" id="reception-titre">{% translate "Avez-vous reçu votre commande ?" %}</h1>
   </header>
-  <div class="carte__corps colonne" style="gap:14px">
-    <p class="t-2">
-      Commande <span class="chiffre">{{ commande.numero }}</span> chez
-      <strong>{{ part.boutique.enseigne }}</strong> — {{ part.total_ttc|fcfa }} FCFA.
+  <div class="carte-corps flex flex-col gap-5">
+    <p class="text-ink-muted">
+      {% blocktranslate with numero=commande.numero boutique=part.boutique.enseigne montant=part.total_ttc|fcfa %}Commande <span class="chiffre font-semibold text-ink">{{ numero }}</span> chez <strong class="text-ink">{{ boutique }}</strong> — {{ montant }} FCFA.{% endblocktranslate %}
     </p>
-    <div class="colonne" style="gap:6px">
+    <ul class="flex flex-col gap-2 rounded-xl bg-surface-sunken p-4" role="list">
       {% for ligne in part.lignes.all %}
-        <div class="rangee rangee--espace">
-          <span class="t-2">{{ ligne.libelle }} × {{ ligne.quantite|quantite }}</span>
+        <li class="flex items-baseline justify-between gap-3 text-sm">
+          <span>{{ ligne.libelle }} <span class="text-ink-muted">× {{ ligne.quantite|quantite }}</span></span>
           <span class="chiffre">{{ ligne.total_ttc|fcfa }} FCFA</span>
-        </div>
+        </li>
       {% endfor %}
-    </div>
+    </ul>
 
     {% if part.sequestre_vu %}
-      <div class="bandeau-info" role="note">
-        <svg><use href="#ic-info"></use></svg>
-        <span>
-          En confirmant, vous dites que la marchandise vous a été remise et qu'elle est conforme.
-          L'argent en séquestre sera versé au commerçant dans {{ delai }} jour{{ delai|pluralize }}
-          ; d'ici là, vous pouvez encore signaler un problème.
-        </span>
+      <div class="bandeau bandeau-info" role="note">
+        {% icone "info" %}
+        <span>{% blocktranslate count jours=delai %}En confirmant, vous dites que la marchandise vous a été remise et qu'elle est conforme. L'argent en séquestre sera versé au commerçant dans {{ jours }} jour ; d'ici là, vous pouvez encore signaler un problème.{% plural %}En confirmant, vous dites que la marchandise vous a été remise et qu'elle est conforme. L'argent en séquestre sera versé au commerçant dans {{ jours }} jours ; d'ici là, vous pouvez encore signaler un problème.{% endblocktranslate %}</span>
       </div>
     {% endif %}
 
-    <p class="t-legende">Ne confirmez pas si vous n'avez pas la marchandise en main, même si on vous le demande.</p>
+    <p class="flex items-start gap-2 text-sm font-semibold text-warning-ink">{% icone "alerte" "mt-0.5 size-4" %}{% translate "Ne confirmez pas si vous n'avez pas la marchandise en main, même si on vous le demande." %}</p>
   </div>
-  <form method="post" class="carte__pied rangee" style="gap:10px;justify-content:flex-end">
+  <form method="post" class="carte-pied">
     {% csrf_token %}
-    <a class="btn" href="{% url 'vitrine_commande' commande.pk %}">Pas encore</a>
-    <button class="btn btn--primaire" type="submit">
-      <svg><use href="#ic-check"></use></svg> Oui, j'ai reçu ma commande
-    </button>
+    <a class="btn btn-ghost btn-md" href="{% url 'vitrine_commande' commande.pk %}">{% translate "Pas encore" %}</a>
+    <button class="btn btn-primary btn-md" type="submit">{% icone "check" %}{% translate "Oui, j'ai reçu ma commande" %}</button>
   </form>
 </section>
 {% endblock %}

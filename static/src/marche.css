@@ -1,0 +1,397 @@
+/* =====================================================================
+   HyperMarché — feuille du marché (source Tailwind)
+   Documentation : docs/26-design-system-marche.md · référence vivante : /marche/design-system/
+
+   Compilée par `npm run css` vers static/css/marche.css (minifiée, purgée des classes inutilisées).
+   Ne jamais modifier la sortie à la main.
+
+   Contraintes qui expliquent les choix :
+   — Android d'entrée de gamme, 3G intermittente, data payante : une police, un fichier, ~27 Ko ;
+     aucune image décorative ; des animations qui ne coûtent qu'une transformation ;
+   — plein soleil : contrastes AA vérifiés (docs/26, §3), jamais une information par la couleur seule ;
+   — une main, debout : cibles tactiles de 44 px minimum (`h-11`).
+   ===================================================================== */
+
+/* Police auto-hébergée : aucun appel à un tiers, et `swap` affiche le texte tout de suite dans la
+   police système, puis bascule quand le fichier arrive. Licence : static/fonts/plus-jakarta-sans-OFL.txt */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/plus-jakarta-sans-latin.woff2") format("woff2-variations"),
+       url("../fonts/plus-jakarta-sans-latin.woff2") format("woff2");
+  /* U+202F (espace fine insécable, séparateur des milliers du filtre `fcfa`) est exclue : la police
+     ne la dessine pas, et les montants s'affichaient collés (« 34000 »). La police système la rend. */
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+                 U+0308, U+0329, U+2000-202E, U+2030-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+                 U+FEFF, U+FFFD;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* 1. Rôles — mode clair                                               */
+/* ------------------------------------------------------------------ */
+@layer base {
+  :root {
+    color-scheme: light;
+    --hm-fond: 247 246 241;
+    --hm-surface: 255 255 255;
+    --hm-surface-haute: 255 255 255;
+    --hm-surface-creuse: 240 239 233;
+    --hm-encre: 28 28 24;          /* 16,2:1 sur le fond */
+    --hm-encre-muette: 96 93 84;   /* 6,1:1 sur le fond — AA texte courant */
+    --hm-encre-inverse: 250 250 247;
+    --hm-filet: 231 229 221;       /* séparateurs décoratifs */
+    --hm-filet-fort: 125 121 110;  /* bord de champ : 4,0:1 — AA composants (1.4.11) */
+    --hm-marque: 0 128 106;        /* blanc dessus : 4,9:1 */
+    --hm-marque-survol: 0 102 86;
+    --hm-marque-douce: 210 242 233;
+    --hm-marque-encre: 10 81 70;   /* sur la teinte douce : 7,6:1 */
+    --hm-sur-marque: 255 255 255;
+    --hm-accent: 227 167 46;       /* or du marché — texte sombre dessus : 9,4:1 */
+    --hm-accent-doux: 249 237 203;
+    --hm-accent-encre: 113 68 20;
+    --hm-sur-accent: 15 15 12;
+    --hm-succes-doux: 214 245 214;
+    --hm-succes-encre: 14 85 18;
+    --hm-alerte-doux: 254 239 199;
+    --hm-alerte-encre: 145 61 14;
+    --hm-erreur-doux: 251 228 228;
+    --hm-erreur-encre: 167 41 41;
+    --hm-focus: 0 128 106;
+    --hm-ombre: 28 24 15;
+  }
+
+  /* 2. Mode sombre — des valeurs choisies, pas une inversion. Deux entrées : la préférence du
+        système (sauf choix explicite du clair), et le choix explicite du sombre. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --hm-fond: 15 15 12;
+      --hm-surface: 26 26 22;
+      --hm-surface-haute: 36 36 31;
+      --hm-surface-creuse: 11 11 9;
+      --hm-encre: 244 243 238;
+      --hm-encre-muette: 168 164 152;
+      --hm-encre-inverse: 15 15 12;
+      --hm-filet: 47 46 41;
+      --hm-filet-fort: 125 121 110;
+      --hm-marque: 54 180 155;
+      --hm-marque-survol: 111 208 186;
+      --hm-marque-douce: 3 39 34;
+      --hm-marque-encre: 167 228 212;
+      --hm-sur-marque: 15 15 12;
+      --hm-accent: 235 192 90;
+      --hm-accent-doux: 54 29 7;
+      --hm-accent-encre: 242 217 147;
+      --hm-sur-accent: 15 15 12;
+      --hm-succes-doux: 3 39 6;
+      --hm-succes-encre: 175 233 175;
+      --hm-alerte-doux: 69 25 3;
+      --hm-alerte-encre: 253 221 138;
+      --hm-erreur-doux: 63 15 15;
+      --hm-erreur-encre: 242 168 168;
+      --hm-focus: 111 208 186;
+      --hm-ombre: 0 0 0;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --hm-fond: 15 15 12;
+    --hm-surface: 26 26 22;
+    --hm-surface-haute: 36 36 31;
+    --hm-surface-creuse: 11 11 9;
+    --hm-encre: 244 243 238;
+    --hm-encre-muette: 168 164 152;
+    --hm-encre-inverse: 15 15 12;
+    --hm-filet: 47 46 41;
+    --hm-filet-fort: 125 121 110;
+    --hm-marque: 54 180 155;
+    --hm-marque-survol: 111 208 186;
+    --hm-marque-douce: 3 39 34;
+    --hm-marque-encre: 167 228 212;
+    --hm-sur-marque: 15 15 12;
+    --hm-accent: 235 192 90;
+    --hm-accent-doux: 54 29 7;
+    --hm-accent-encre: 242 217 147;
+    --hm-sur-accent: 15 15 12;
+    --hm-succes-doux: 3 39 6;
+    --hm-succes-encre: 175 233 175;
+    --hm-alerte-doux: 69 25 3;
+    --hm-alerte-encre: 253 221 138;
+    --hm-erreur-doux: 63 15 15;
+    --hm-erreur-encre: 242 168 168;
+    --hm-focus: 111 208 186;
+    --hm-ombre: 0 0 0;
+  }
+
+  html {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body { @apply min-h-screen bg-bg text-base; }
+  ::selection { @apply bg-brand/20 text-ink; }
+
+  /* Le focus se voit toujours au clavier, jamais à la souris (WCAG 2.4.7). */
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid rgb(var(--hm-focus));
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+
+  h1, h2, h3, h4 { @apply font-bold tracking-tight text-ink; text-wrap: balance; }
+  p { text-wrap: pretty; }
+  a { @apply text-inherit; }
+  svg { @apply shrink-0; }
+  [hidden] { display: none !important; }
+  .chiffre { font-variant-numeric: tabular-nums; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Composants atomiques                                             */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* --- Lien d'évitement ------------------------------------------- */
+  .evitement {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50
+           focus:rounded-lg focus:bg-surface-raised focus:px-4 focus:py-3 focus:font-semibold
+           focus:shadow-lg;
+  }
+
+  /* --- Boutons : 4 variantes × 3 tailles -------------------------- */
+  .btn {
+    @apply relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap
+           rounded-lg border border-transparent font-semibold leading-none no-underline
+           transition-[background-color,border-color,color,box-shadow,transform] duration-150
+           ease-sortie active:translate-y-px
+           disabled:pointer-events-none disabled:opacity-50
+           aria-disabled:pointer-events-none aria-disabled:opacity-50;
+  }
+  .btn > svg { @apply size-[1.15em]; }
+  .btn-sm { @apply h-9 rounded-md px-3 text-sm; }
+  .btn-md { @apply h-11 px-4 text-sm sm:px-5 sm:text-base; }
+  .btn-lg { @apply h-14 rounded-xl px-6 text-base sm:px-7 sm:text-lg; }
+  .btn-icone { @apply aspect-square px-0; }
+  .btn-bloc { @apply w-full; }
+
+  .btn-primary {
+    @apply bg-brand text-brand-on shadow-sm hover:bg-brand-hover hover:shadow-md active:shadow-xs;
+  }
+  .btn-secondary {
+    @apply bg-brand-soft text-brand-ink hover:bg-brand/20 active:bg-brand/25;
+  }
+  .btn-outline {
+    @apply border-line-strong/60 bg-surface text-ink shadow-xs hover:border-ink-muted
+           hover:bg-surface-sunken active:bg-surface-sunken;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-ink hover:bg-ink/5 active:bg-ink/10;
+  }
+  /* Le CTA du marché : l'or, réservé à l'action qui fait avancer l'achat (une par écran). */
+  .btn-accent {
+    @apply bg-accent text-accent-on shadow-sm hover:brightness-95 hover:shadow-md;
+  }
+  .btn[aria-busy="true"] { @apply pointer-events-none text-transparent; }
+  .btn[aria-busy="true"]::after {
+    content: "";
+    @apply absolute inset-0 m-auto size-5 animate-tourner rounded-full border-2 border-current;
+    border-color: rgb(var(--hm-sur-marque)) transparent rgb(var(--hm-sur-marque)) transparent;
+  }
+
+  /* --- Champs ------------------------------------------------------ */
+  .champ { @apply flex flex-col gap-1.5; }
+  .champ-libelle { @apply text-sm font-semibold text-ink; }
+  .champ-libelle .facultatif { @apply font-normal text-ink-muted; }
+  .input {
+    @apply block h-11 w-full rounded-lg border border-line-strong bg-surface px-3.5 text-base
+           text-ink shadow-xs transition-[border-color,box-shadow] duration-150
+           placeholder:text-ink-muted/80 hover:border-ink-muted
+           focus:border-brand focus:shadow-[0_0_0_3px_rgb(var(--hm-focus)/0.25)] focus:outline-none
+           disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-muted
+           aria-[invalid=true]:border-error-600 aria-[invalid=true]:shadow-[0_0_0_3px_rgb(199_53_53/0.18)];
+  }
+  textarea.input { @apply h-auto min-h-[6.5rem] py-3 leading-relaxed; }
+  .input-sm { @apply h-9 rounded-md px-3 text-sm; }
+  .input-lg { @apply h-14 rounded-xl px-4 text-lg; }
+  .champ-aide { @apply text-xs text-ink-muted; }
+  .champ-erreur { @apply flex items-start gap-1.5 text-xs font-semibold text-error-ink; }
+  .choix {
+    @apply flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-4
+           transition-colors duration-150 hover:border-line-strong
+           has-[:checked]:border-brand has-[:checked]:bg-brand-soft/50
+           has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus
+           has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60;
+  }
+  .choix input { @apply mt-0.5 size-5 shrink-0 accent-[rgb(var(--hm-marque))] focus-visible:outline-none; }
+  .quantite {
+    @apply inline-flex h-11 self-start items-stretch overflow-hidden rounded-lg border border-line-strong
+           bg-surface shadow-xs focus-within:border-brand
+           focus-within:shadow-[0_0_0_3px_rgb(var(--hm-focus)/0.25)];
+  }
+  .quantite button { @apply grid w-11 place-items-center text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-40; }
+  .quantite input {
+    @apply w-12 border-x border-line bg-transparent text-center text-base font-semibold tabular-nums
+           text-ink focus:outline-none;
+    -moz-appearance: textfield;
+  }
+  .quantite input::-webkit-outer-spin-button,
+  .quantite input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* --- Badges ------------------------------------------------------ */
+  .badge {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs
+           font-semibold leading-none;
+  }
+  .badge > svg { @apply size-3.5; }
+  .badge-neutre { @apply bg-surface-sunken text-ink-muted ring-1 ring-inset ring-line; }
+  .badge-marque { @apply bg-brand-soft text-brand-ink; }
+  .badge-accent { @apply bg-accent-soft text-accent-ink; }
+  .badge-succes { @apply bg-success-soft text-success-ink; }
+  .badge-alerte { @apply bg-warning-soft text-warning-ink; }
+  .badge-erreur { @apply bg-error-soft text-error-ink; }
+
+  /* --- Cartes ------------------------------------------------------ */
+  .carte { @apply rounded-2xl border border-line bg-surface shadow-xs; }
+  .carte-entete { @apply flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6; }
+  .carte-titre { @apply text-lg font-bold; }
+  .carte-corps { @apply p-5 sm:p-6; }
+  .carte-pied { @apply flex flex-wrap items-center justify-end gap-3 border-t border-line px-5 py-4 sm:px-6; }
+  .carte-interactive {
+    @apply transition-[box-shadow,transform,border-color] duration-200 ease-sortie
+           hover:-translate-y-0.5 hover:border-line-strong/40 hover:shadow-lg
+           focus-within:border-brand/50;
+  }
+
+  /* --- Bandeaux d'information ------------------------------------- */
+  .bandeau { @apply flex items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed; }
+  .bandeau > svg { @apply mt-0.5 size-5; }
+  .bandeau-info { @apply border-brand/20 bg-brand-soft/60 text-brand-ink; }
+  .bandeau-succes { @apply border-success-600/20 bg-success-soft text-success-ink; }
+  .bandeau-alerte { @apply border-warning-600/25 bg-warning-soft text-warning-ink; }
+  .bandeau-erreur { @apply border-error-600/25 bg-error-soft text-error-ink; }
+
+  /* --- Modale (élément <dialog> natif : piège du focus et Échap fournis) */
+  .modale {
+    @apply m-auto w-[min(32rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] overflow-auto
+           rounded-2xl border border-line bg-surface-raised p-0 text-ink shadow-xl;
+  }
+  .modale[open] { @apply animate-apparaitre; }
+  .modale::backdrop { background: rgb(15 15 12 / 0.55); backdrop-filter: blur(3px); }
+  .modale-entete { @apply flex items-start justify-between gap-4 px-6 pb-2 pt-6; }
+  .modale-corps { @apply px-6 py-3 text-ink-muted; }
+  .modale-pied { @apply flex flex-col-reverse gap-2 px-6 pb-6 pt-4 sm:flex-row sm:justify-end; }
+
+  /* --- Squelettes -------------------------------------------------- */
+  .squelette { @apply relative isolate overflow-hidden rounded-md bg-surface-sunken; }
+  .squelette::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-miroiter;
+    background: linear-gradient(90deg, transparent, rgb(var(--hm-encre) / 0.06), transparent);
+  }
+
+  /* --- État vide --------------------------------------------------- */
+  .vide {
+    @apply mx-auto flex max-w-lecture flex-col items-center gap-3 rounded-2xl border border-dashed
+           border-line-strong/40 bg-surface/60 px-6 py-14 text-center;
+  }
+  .vide-icone { @apply mb-1 grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand-ink; }
+  .vide-icone > svg { @apply size-7; }
+
+  /* --- Vignette d'article (sans photo : monogramme sur la teinte du commerçant) */
+  .vignette {
+    @apply relative grid aspect-square w-full place-items-center overflow-hidden rounded-xl;
+    background:
+      radial-gradient(120% 90% at 20% 10%, hsl(var(--teinte, 160) 45% 88% / 0.9), transparent 60%),
+      linear-gradient(145deg, hsl(var(--teinte, 160) 38% 90%), hsl(var(--teinte, 160) 34% 80%));
+    color: hsl(var(--teinte, 160) 40% 26%);
+  }
+  :root[data-theme="dark"] .vignette {
+    background: linear-gradient(145deg, hsl(var(--teinte, 160) 28% 22%), hsl(var(--teinte, 160) 30% 14%));
+    color: hsl(var(--teinte, 160) 45% 78%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .vignette {
+      background: linear-gradient(145deg, hsl(var(--teinte, 160) 28% 22%), hsl(var(--teinte, 160) 30% 14%));
+      color: hsl(var(--teinte, 160) 45% 78%);
+    }
+  }
+  .vignette img { @apply absolute inset-0 size-full object-cover; }
+  .vignette-monogramme { @apply select-none text-3xl font-extrabold tracking-tight opacity-90; }
+
+  .jeton {
+    @apply grid size-11 shrink-0 place-items-center rounded-xl text-sm font-bold;
+    background: hsl(var(--teinte, 160) 40% 88%);
+    color: hsl(var(--teinte, 160) 45% 24%);
+  }
+  :root[data-theme="dark"] .jeton { background: hsl(var(--teinte, 160) 28% 20%); color: hsl(var(--teinte, 160) 45% 80%); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .jeton { background: hsl(var(--teinte, 160) 28% 20%); color: hsl(var(--teinte, 160) 45% 80%); }
+  }
+
+  /* --- Puces de navigation (rayons) -------------------------------- */
+  .puce-nav {
+    @apply inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border border-line bg-surface px-4
+           text-sm font-semibold text-ink-muted transition-colors duration-150 hover:border-line-strong/50
+           hover:text-ink aria-[current=page]:border-transparent aria-[current=page]:bg-ink
+           aria-[current=page]:text-ink-inverse;
+  }
+
+  /* --- Prix -------------------------------------------------------- */
+  .prix { @apply font-extrabold tabular-nums tracking-tight text-ink; }
+  .prix .devise { @apply ml-1 text-[0.6em] font-semibold text-ink-muted; }
+
+  .sur-titre { @apply text-2xs font-bold uppercase tracking-[0.08em] text-ink-muted; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Démonstration — référence vivante seulement (/marche/design-system/) */
+/* Montre figés les états qu'on ne peut pas forcer en CSS (survol, focus, appui). */
+/* ------------------------------------------------------------------ */
+@layer components {
+  .btn-primary.ds-survol { @apply bg-brand-hover shadow-md; }
+  .btn-secondary.ds-survol { @apply bg-brand/20; }
+  .btn-outline.ds-survol { @apply border-ink-muted bg-surface-sunken; }
+  .btn-ghost.ds-survol { @apply bg-ink/5; }
+  .btn-accent.ds-survol { @apply shadow-md brightness-95; }
+  .ds-focus { outline: 2px solid rgb(var(--hm-focus)); outline-offset: 2px; }
+  .btn.ds-actif { @apply translate-y-px shadow-xs; }
+  .btn-ghost.ds-actif { @apply bg-ink/10; }
+  .btn-secondary.ds-actif { @apply bg-brand/25; }
+  .input.ds-survol { @apply border-ink-muted; }
+  .input.ds-focus { @apply border-brand outline-none shadow-[0_0_0_3px_rgb(var(--hm-focus)/0.25)]; }
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. Entrées en scène (IntersectionObserver, static/js/marche.js)      */
+/* ------------------------------------------------------------------ */
+@layer utilities {
+  /* Sans JavaScript, rien n'est caché : la classe `js` n'est posée que si le script tourne. */
+  .js [data-apparition] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--delai, 0ms);
+  }
+  .js [data-apparition].est-visible { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .js [data-apparition] { opacity: 1; transform: none; }
+  }
+  .defilement-discret { scrollbar-width: none; }
+  .defilement-discret::-webkit-scrollbar { display: none; }
+}

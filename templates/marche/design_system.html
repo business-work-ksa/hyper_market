@@ -1,0 +1,300 @@
+{% extends "vitrine/base.html" %}
+{% load i18n hm marche %}
+
+{% block titre %}Design system — HyperMarché{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Référence vivante du système de design du marché (docs/26-design-system-marche.md).
+
+Chaque composant est rendu ici par la **même** feuille et, quand il existe, par le **même** partial
+que les pages : ce qui est montré est ce que l'acheteur voit. Les états qu'on ne peut pas forcer en
+CSS (survol, focus, appui) sont figés par les classes `ds-*`, réservées à cette page.
+
+Page de référence pour l'équipe, rédigée en français ; `lang="fr"` sur son contenu pour qu'un
+lecteur d'écran la prononce correctement même quand le marché est affiché en anglais.
+{% endcomment %}
+<div lang="fr" class="flex flex-col gap-16">
+
+<header class="flex flex-col gap-4" data-apparition>
+  <span class="badge badge-marque self-start">{% icone "etincelle" %}v1 · Tailwind CSS 3.4</span>
+  <h1 class="text-4xl font-extrabold sm:text-5xl">Design system du marché</h1>
+  <p class="max-w-3xl text-lg text-ink-muted">
+    Jetons, composants atomiques et règles d'usage de la vitrine HyperMarché. Contraintes de départ :
+    Android d'entrée de gamme, 3G payante, lecture en plein soleil, une main. Accessibilité visée :
+    <strong class="text-ink">WCAG 2.1 AA</strong>, vérifiée par <code class="rounded bg-surface-sunken px-1.5 py-0.5 text-sm">outils/contrastes_marche.py</code>.
+  </p>
+  <nav aria-label="Sommaire" class="flex flex-wrap gap-2">
+    <a class="puce-nav" href="#jetons">Jetons</a>
+    <a class="puce-nav" href="#couleurs">Couleurs</a>
+    <a class="puce-nav" href="#boutons">Boutons</a>
+    <a class="puce-nav" href="#champs">Champs</a>
+    <a class="puce-nav" href="#badges">Badges</a>
+    <a class="puce-nav" href="#cartes">Cartes</a>
+    <a class="puce-nav" href="#modale">Modale</a>
+    <a class="puce-nav" href="#etats">Chargement et vide</a>
+    <a class="puce-nav" href="#responsive">Responsive</a>
+  </nav>
+</header>
+
+{# =================================================================== JETONS #}
+<section id="jetons" class="flex flex-col gap-8 scroll-mt-28" aria-labelledby="t-jetons">
+  <h2 class="text-3xl font-extrabold" id="t-jetons">Jetons</h2>
+
+  <div class="carte" data-apparition>
+    <header class="carte-entete"><h3 class="carte-titre">Typographie — échelle modulaire 1,25</h3><span class="badge badge-neutre">Plus Jakarta Sans · font-display: swap</span></header>
+    <div class="carte-corps flex flex-col divide-y divide-line">
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-5xl</code><span class="w-20 text-xs text-ink-muted">61 px</span><span class="text-5xl font-extrabold">Le marché</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-4xl</code><span class="w-20 text-xs text-ink-muted">48,8 px</span><span class="text-4xl font-extrabold">Le marché, livré</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-3xl</code><span class="w-20 text-xs text-ink-muted">39 px</span><span class="text-3xl font-extrabold">Titre de page</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-2xl</code><span class="w-20 text-xs text-ink-muted">31,25 px</span><span class="text-2xl font-extrabold">Titre de section</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-xl</code><span class="w-20 text-xs text-ink-muted">25 px</span><span class="text-xl font-bold">Sous-titre</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-lg</code><span class="w-20 text-xs text-ink-muted">20 px</span><span class="text-lg font-bold">Titre de carte</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-base</code><span class="w-20 text-xs text-ink-muted">16 px</span><span class="text-base">Corps de texte : 16 px minimum, jamais moins pour lire.</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-sm</code><span class="w-20 text-xs text-ink-muted">14 px</span><span class="text-sm">Interface dense (hors échelle, documenté)</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-xs</code><span class="w-20 text-xs text-ink-muted">12,8 px</span><span class="text-xs">Légendes, aides de champ</span></div>
+      <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 py-3"><code class="w-24 text-xs text-ink-muted">text-2xs</code><span class="w-20 text-xs text-ink-muted">10,24 px</span><span class="sur-titre">Sur-titres en capitales</span></div>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <div class="carte" data-apparition>
+      <header class="carte-entete"><h3 class="carte-titre">Espacement — base 4 px</h3></header>
+      <div class="carte-corps flex flex-col gap-2.5">
+        {% for pas, px in espacements %}
+          <div class="flex items-center gap-4"><code class="w-10 text-xs text-ink-muted">{{ pas }}</code><span class="w-12 text-xs text-ink-muted">{{ px }} px</span><span class="h-3 rounded-sm bg-brand" style="width:{{ px }}px"></span></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="flex flex-col gap-6">
+      <div class="carte" data-apparition>
+        <header class="carte-entete"><h3 class="carte-titre">Rayons de bordure</h3></header>
+        <div class="carte-corps grid grid-cols-3 gap-4 sm:grid-cols-6">
+          {% for nom, valeur in rayons_bordure %}
+            <div class="flex flex-col items-center gap-2"><span class="size-14 border-2 border-brand bg-brand-soft {{ nom }}"></span><code class="text-2xs text-ink-muted">{{ nom }}</code><span class="text-2xs text-ink-muted">{{ valeur }}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="carte" data-apparition>
+        <header class="carte-entete"><h3 class="carte-titre">Ombres</h3></header>
+        <div class="carte-corps grid grid-cols-3 gap-5 sm:grid-cols-5">
+          {% for nom in ombres %}
+            <div class="flex flex-col items-center gap-2"><span class="size-16 rounded-xl border border-line bg-surface {{ nom }}"></span><code class="text-2xs text-ink-muted">{{ nom }}</code></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# =================================================================== COULEURS #}
+<section id="couleurs" class="flex flex-col gap-8 scroll-mt-28" aria-labelledby="t-couleurs">
+  <div>
+    <h2 class="text-3xl font-extrabold" id="t-couleurs">Couleurs</h2>
+    <p class="mt-2 max-w-3xl text-ink-muted">Deux étages. Les <strong class="text-ink">palettes</strong> (50 à 950) sont fixes. Les <strong class="text-ink">rôles</strong> (fond, surface, encre, marque…) sont des variables qui changent en mode sombre : les composants n'emploient que les rôles, c'est ce qui rend le mode sombre complet.</p>
+  </div>
+  <div class="carte" data-apparition>
+    <div class="carte-corps flex flex-col gap-6">
+      {% for nom, nuances in palettes %}
+        <div class="flex flex-col gap-2">
+          <h3 class="font-bold capitalize">{{ nom }}</h3>
+          <ul class="grid grid-cols-6 gap-1.5 sm:grid-cols-11" role="list">
+            {% for cran, hexa, encre in nuances %}
+              <li class="flex flex-col overflow-hidden rounded-lg border border-line">
+                <span class="h-12" style="background:{{ hexa }}"></span>
+                <span class="flex flex-col px-1.5 py-1"><span class="text-2xs font-bold">{{ cran }}</span><code class="text-[0.6rem] text-ink-muted">{{ hexa }}</code></span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="carte" data-apparition>
+    <header class="carte-entete"><h3 class="carte-titre">Rôles (suivent le thème)</h3><span class="badge badge-neutre">Basculez le thème en haut de page</span></header>
+    <div class="carte-corps grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {% for classe, nom, usage in roles %}
+        <div class="flex items-center gap-3 rounded-xl border border-line p-3">
+          <span class="size-10 shrink-0 rounded-lg border border-line {{ classe }}"></span>
+          <span class="flex min-w-0 flex-col"><code class="truncate text-xs font-semibold">{{ nom }}</code><span class="truncate text-xs text-ink-muted">{{ usage }}</span></span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# =================================================================== BOUTONS #}
+<section id="boutons" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-boutons">
+  <h2 class="text-3xl font-extrabold" id="t-boutons">Boutons <span class="text-lg font-semibold text-ink-muted">— 4 variantes × 3 tailles, + accent</span></h2>
+  <div class="carte" data-apparition>
+    <div class="carte-corps overflow-x-auto">
+      <table class="w-full min-w-[40rem] text-left text-sm">
+        <caption class="sr-only">Variantes et tailles de bouton</caption>
+        <thead><tr class="text-xs text-ink-muted"><th class="pb-3 font-semibold" scope="col">Variante</th><th class="pb-3 font-semibold" scope="col">sm · 36 px</th><th class="pb-3 font-semibold" scope="col">md · 44 px</th><th class="pb-3 font-semibold" scope="col">lg · 56 px</th></tr></thead>
+        <tbody class="divide-y divide-line">
+          {% for variante in variantes_boutons %}
+            <tr>
+              <th class="py-3 pr-4 font-semibold" scope="row"><code>btn-{{ variante }}</code></th>
+              <td class="py-3 pr-4"><button class="btn btn-{{ variante }} btn-sm" type="button">Commander</button></td>
+              <td class="py-3 pr-4"><button class="btn btn-{{ variante }} btn-md" type="button">{% icone "panier" %}Commander</button></td>
+              <td class="py-3"><button class="btn btn-{{ variante }} btn-lg" type="button">Commander{% icone "fleche" %}</button></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="carte" data-apparition>
+    <header class="carte-entete"><h3 class="carte-titre">États</h3><span class="text-xs text-ink-muted">survol, focus et appui figés pour l'illustration</span></header>
+    <div class="carte-corps overflow-x-auto">
+      <table class="w-full min-w-[46rem] text-left text-sm">
+        <caption class="sr-only">États des boutons</caption>
+        <thead><tr class="text-xs text-ink-muted">{% for e in etats_boutons %}<th class="pb-3 font-semibold" scope="col">{{ e }}</th>{% endfor %}</tr></thead>
+        <tbody class="divide-y divide-line">
+          {% for variante in variantes_boutons %}
+            <tr>
+              <th class="py-3 pr-3 font-semibold" scope="row"><code>{{ variante }}</code></th>
+              <td class="py-3 pr-3"><button class="btn btn-{{ variante }} btn-md" type="button">Payer</button></td>
+              <td class="py-3 pr-3"><button class="btn btn-{{ variante }} btn-md ds-survol" type="button" tabindex="-1">Payer</button></td>
+              <td class="py-3 pr-3"><button class="btn btn-{{ variante }} btn-md ds-focus" type="button" tabindex="-1">Payer</button></td>
+              <td class="py-3 pr-3"><button class="btn btn-{{ variante }} btn-md ds-actif" type="button" tabindex="-1">Payer</button></td>
+              <td class="py-3 pr-3"><button class="btn btn-{{ variante }} btn-md" type="button" disabled>Payer</button></td>
+              <td class="py-3"><button class="btn btn-{{ variante }} btn-md" type="button" aria-busy="true" tabindex="-1">Payer</button></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% include "marche/doc_usage.html" with quand="primary : l'action principale d'une zone, une seule. accent (or) : l'action d'achat — ajouter, commander, payer. secondary : alternative proche. outline : alternative neutre, retour. ghost : action tertiaire, barre d'outils." pas_quand="Deux primary côte à côte. Un bouton pour naviguer dans un paragraphe (un lien suffit). Un libellé vague (« OK », « Valider ») : dire ce qui se passe (« Payer 24 350 FCFA »)." a11y="Cible ≥ 44 × 44 px (md, lg) — sm réservé aux barres denses sur bureau. Focus visible (anneau 2 px, contraste ≥ 3:1). Bouton-icône : aria-label obligatoire. Désactivé : attribut disabled (lien : aria-disabled + tabindex=-1). Occupé : aria-busy=true, posé à l'envoi. Contraste du libellé ≥ 4,5:1 dans les deux thèmes." responsive="Hauteur fixe par taille ; md passe de 14 à 16 px de texte à partir de sm (640 px). btn-bloc pour la pleine largeur sur mobile." %}
+</section>
+
+{# =================================================================== CHAMPS #}
+<section id="champs" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-champs">
+  <h2 class="text-3xl font-extrabold" id="t-champs">Champs</h2>
+  <div class="grid gap-6 lg:grid-cols-2">
+    <div class="carte" data-apparition>
+      <header class="carte-entete"><h3 class="carte-titre">États</h3></header>
+      <div class="carte-corps grid gap-5 sm:grid-cols-2">
+        <div class="champ"><label class="champ-libelle" for="ds-c1">Par défaut</label><input class="input" id="ds-c1" placeholder="Marie Ekedi"></div>
+        <div class="champ"><label class="champ-libelle" for="ds-c2">Survol</label><input class="input ds-survol" id="ds-c2" placeholder="Marie Ekedi"></div>
+        <div class="champ"><label class="champ-libelle" for="ds-c3">Focus</label><input class="input ds-focus" id="ds-c3" value="+237 699 00"></div>
+        <div class="champ"><label class="champ-libelle" for="ds-c4">Rempli</label><input class="input" id="ds-c4" value="Akwa, rue Joss"></div>
+        <div class="champ"><label class="champ-libelle" for="ds-c5">Erreur</label><input class="input" id="ds-c5" value="6990" aria-invalid="true" aria-describedby="ds-c5-err"><p class="champ-erreur" id="ds-c5-err">{% icone "alerte" "size-4" %}Numéro invalide. Format attendu : +237699000000.</p></div>
+        <div class="champ"><label class="champ-libelle" for="ds-c6">Désactivé</label><input class="input" id="ds-c6" value="CMD-00000042" disabled></div>
+        <div class="champ sm:col-span-2"><label class="champ-libelle" for="ds-c7">Zone de texte <span class="facultatif">(facultatif)</span></label><textarea class="input" id="ds-c7" rows="3" aria-describedby="ds-c7-aide" placeholder="Horaire, étage, autre numéro…"></textarea><p class="champ-aide" id="ds-c7-aide">L'aide est reliée au champ par aria-describedby.</p></div>
+      </div>
+    </div>
+    <div class="carte" data-apparition>
+      <header class="carte-entete"><h3 class="carte-titre">Tailles, choix, quantité</h3></header>
+      <div class="carte-corps flex flex-col gap-5">
+        <div class="champ"><label class="champ-libelle" for="ds-t1">input-sm · 36 px</label><input class="input input-sm" id="ds-t1" placeholder="Filtre"></div>
+        <div class="champ"><label class="champ-libelle" for="ds-t2">input · 44 px</label><input class="input" id="ds-t2" placeholder="Adresse"></div>
+        <div class="champ"><label class="champ-libelle" for="ds-t3">input-lg · 56 px</label><input class="input input-lg" id="ds-t3" placeholder="Téléphone" inputmode="tel"></div>
+        <fieldset class="flex flex-col gap-2.5"><legend class="champ-libelle mb-2">Choix (radio en carte)</legend>
+          <label class="choix"><input type="radio" name="ds-r" checked><span class="flex flex-col"><span class="font-semibold">Payer d'avance par Mobile Money</span><span class="text-sm text-ink-muted">Sélectionné</span></span></label>
+          <label class="choix"><input type="radio" name="ds-r"><span class="flex flex-col"><span class="font-semibold">Payer à la livraison</span><span class="text-sm text-ink-muted">Par défaut</span></span></label>
+          <label class="choix"><input type="radio" name="ds-r" disabled><span class="flex flex-col"><span class="font-semibold">Carte bancaire</span><span class="text-sm text-ink-muted">Désactivé</span></span></label>
+        </fieldset>
+        <div class="champ"><label class="champ-libelle" for="ds-q">Quantité</label><div class="quantite"><button type="button" data-pas="-1" aria-label="Retirer un">{% icone "moins" "size-4" %}</button><input id="ds-q" type="number" value="2" min="1" max="99" inputmode="numeric"><button type="button" data-pas="1" aria-label="Ajouter un">{% icone "plus" "size-4" %}</button></div></div>
+      </div>
+    </div>
+  </div>
+  {% include "marche/doc_usage.html" with quand="Toute saisie. Libellé visible au-dessus, aide en dessous, erreur sous le champ. Partial : marche/composants/champ.html (BoundField Django). Radio en carte (.choix) pour un choix qui engage (paiement)." pas_quand="Un placeholder à la place du libellé (il disparaît dès qu'on tape). Un select pour 2 ou 3 options (des choix en carte se lisent d'un coup d'œil). Un champ en plus « au cas où » : chaque champ coûte des acheteurs." a11y="Libellé relié par label/for. aria-describedby vers aide et erreur (ids Django 5 : id_helptext, id_error). Erreur : aria-invalid=true + icône + texte, jamais la couleur seule. Bord de champ ≥ 3:1 (1.4.11). autocomplete et inputmode posés (name, tel, street-address). Texte ≥ 16 px : iOS ne zoome pas." responsive="Pleine largeur ; deux colonnes à partir de sm pour les paires courtes (nom, téléphone). input-lg pour la saisie clé sur mobile (téléphone de paiement)." %}
+</section>
+
+{# =================================================================== BADGES #}
+<section id="badges" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-badges">
+  <h2 class="text-3xl font-extrabold" id="t-badges">Badges</h2>
+  <div class="carte" data-apparition>
+    <div class="carte-corps flex flex-wrap gap-3">
+      <span class="badge badge-neutre">{% icone "horloge" %}Neutre</span>
+      <span class="badge badge-marque">{% icone "verrou" %}En séquestre</span>
+      <span class="badge badge-accent">{% icone "etincelle" %}Nouveau</span>
+      <span class="badge badge-succes">{% icone "check" %}Identité vérifiée</span>
+      <span class="badge badge-alerte">{% icone "horloge" %}Paiement attendu</span>
+      <span class="badge badge-erreur">{% icone "alerte" %}Annulée</span>
+    </div>
+  </div>
+  {% include "marche/doc_usage.html" with quand="Un état ou un fait court sur un objet : état d'une commande, fait de confiance, nombre de résultats." pas_quand="Comme bouton (un badge ne se clique pas). Pour une phrase entière (c'est un bandeau). Plus de trois badges sur une même carte." a11y="Le mot porte le sens, l'icône et la couleur le doublent (1.4.1). Contraste texte/fond ≥ 4,5:1 vérifié pour chaque ton, dans les deux thèmes. Icône décorative (aria-hidden)." responsive="Taille fixe ; les rangées de badges passent à la ligne (flex-wrap)." %}
+</section>
+
+{# =================================================================== CARTES #}
+<section id="cartes" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-cartes">
+  <h2 class="text-3xl font-extrabold" id="t-cartes">Cartes</h2>
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="carte" data-apparition>
+      <header class="carte-entete"><h3 class="carte-titre">Carte simple</h3><span class="badge badge-neutre">carte</span></header>
+      <div class="carte-corps text-sm text-ink-muted">En-tête, corps, pied. Le contenant par défaut d'une section.</div>
+      <footer class="carte-pied"><button class="btn btn-ghost btn-sm" type="button">Annuler</button><button class="btn btn-primary btn-sm" type="button">Valider</button></footer>
+    </div>
+    <a class="carte carte-interactive flex flex-col gap-3 p-5" href="#cartes" data-apparition>
+      <span class="jeton" style="--teinte:28" aria-hidden="true">QA</span>
+      <span class="font-bold">Carte interactive</span>
+      <span class="text-sm text-ink-muted">Toute la carte est un lien : élévation au survol, contour au focus.</span>
+    </a>
+    <div class="grid grid-cols-2 gap-3" data-apparition>
+      {% if exemples %}
+        {% for article in exemples|slice:":1" %}{% include "marche/composants/carte_article.html" with rang=0 %}{% endfor %}
+      {% endif %}
+      {% include "marche/composants/squelette_carte.html" %}
+    </div>
+  </div>
+  {% include "marche/doc_usage.html" with quand="Regrouper ce qui va ensemble (un commerçant dans le panier, un récapitulatif). Carte d'article : partial marche/composants/carte_article.html." pas_quand="Une carte dans une carte dans une carte. Une carte pour un seul paragraphe de texte (le fond de page suffit)." a11y="Carte cliquable : un seul lien (étiré sur le titre), pas trois liens vers la même page. Les actions internes (Ajouter) passent au-dessus du lien étiré. Titres hiérarchisés (h2/h3) pour la navigation au lecteur d'écran." responsive="Grille d'articles : 2 colonnes (mobile), 3 (md, 768 px), 4 (lg, 1024 px). Bouton d'ajout réduit à l'icône sous 640 px, avec aria-label complet." %}
+</section>
+
+{# =================================================================== MODALE #}
+<section id="modale" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-modale">
+  <h2 class="text-3xl font-extrabold" id="t-modale">Modale</h2>
+  <div class="carte" data-apparition>
+    <div class="carte-corps flex flex-wrap items-center gap-4">
+      <button class="btn btn-outline btn-md" type="button" data-modale-ouvrir="ds-modale">Ouvrir la modale de démonstration</button>
+      <span class="text-sm text-ink-muted">Échap ferme ; Tab reste dans la modale ; le focus revient au bouton.</span>
+    </div>
+  </div>
+  {% include "marche/composants/modale.html" with id="ds-modale" titre="Vider le panier ?" texte="Les 3 articles de votre panier seront retirés. Cette action ne peut pas être annulée." action="#modale" libelle_confirmer="Vider le panier" variante_confirmer="primary" %}
+  {% include "marche/doc_usage.html" with quand="Confirmer une action qu'on ne peut pas défaire." pas_quand="Pour informer (bandeau). Pour un long formulaire (page dédiée). À l'ouverture d'une page. Sans JavaScript elle ne s'ouvre pas : le bouton d'ouverture doit rester un vrai lien ou un vrai formulaire." a11y="Élément dialog natif + showModal() : page inerte, focus piégé, Échap. aria-labelledby / aria-describedby. Focus initial sur « Annuler », pas sur l'action destructrice. Bouton de fermeture nommé." responsive="Largeur min(32rem, 100vw − 2rem) ; boutons empilés pleine largeur sur mobile, alignés à droite à partir de sm." %}
+</section>
+
+{# =================================================================== ÉTATS #}
+<section id="etats" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-etats">
+  <h2 class="text-3xl font-extrabold" id="t-etats">Chargement, vide, messages</h2>
+  <div class="grid gap-6 lg:grid-cols-2">
+    <div class="carte" data-apparition>
+      <header class="carte-entete"><h3 class="carte-titre">Squelette</h3></header>
+      <div class="carte-corps grid grid-cols-2 gap-3">{% include "marche/composants/squelette_carte.html" %}{% include "marche/composants/squelette_carte.html" %}</div>
+    </div>
+    <div class="flex flex-col gap-4" data-apparition>
+      {% include "marche/composants/etat_vide.html" with icone="recherche" titre="Rien ne correspond à cette recherche." texte="Essayez un autre mot, ou parcourez un rayon." action_href="#etats" action_libelle="Voir tout le marché" niveau="p" %}
+    </div>
+  </div>
+  <div class="flex flex-col gap-3" data-apparition>
+    <div class="bandeau bandeau-info">{% icone "verrou" %}<span><strong>Information.</strong> Votre argent reste en séquestre jusqu'à votre confirmation.</span></div>
+    <div class="bandeau bandeau-succes">{% icone "check" %}<span><strong>Succès.</strong> Ajouté à votre panier.</span></div>
+    <div class="bandeau bandeau-alerte">{% icone "info" %}<span><strong>Alerte.</strong> Le prépaiement n'est pas possible chez une boutique de votre panier.</span></div>
+    <div class="bandeau bandeau-erreur">{% icone "alerte" %}<span><strong>Erreur.</strong> Le paiement n'a pas abouti : la demande a expiré.</span></div>
+  </div>
+  {% include "marche/doc_usage.html" with quand="Squelette : pendant qu'une grille se recharge (rayon, recherche), à la forme exacte du contenu attendu. État vide : une liste qui pourrait contenir quelque chose — dire pourquoi, proposer la suite. Bandeau : un message qui concerne la page." pas_quand="Un squelette pour un chargement de moins de 300 ms, ou à la place d'une erreur. Un état vide sans action. Un bandeau d'erreur sans dire quoi faire." a11y="Région en chargement : aria-busy=true + annonce aria-live polie (« Chargement des articles… », puis « 12 articles »). Squelettes aria-hidden. Animation coupée si prefers-reduced-motion. Messages flash : role=status." responsive="Le squelette reprend la grille réelle (2 → 3 → 4 colonnes) : rien ne saute à l'arrivée du contenu." %}
+</section>
+
+{# =================================================================== RESPONSIVE #}
+<section id="responsive" class="flex flex-col gap-6 scroll-mt-28" aria-labelledby="t-responsive">
+  <h2 class="text-3xl font-extrabold" id="t-responsive">Responsive et animations</h2>
+  <div class="carte overflow-x-auto" data-apparition>
+    <table class="w-full min-w-[36rem] text-left text-sm">
+      <caption class="sr-only">Points de rupture</caption>
+      <thead class="text-xs text-ink-muted"><tr><th class="px-5 py-3 font-semibold" scope="col">Point</th><th class="px-5 py-3 font-semibold" scope="col">Largeur</th><th class="px-5 py-3 font-semibold" scope="col">Ce qui change</th></tr></thead>
+      <tbody class="divide-y divide-line">
+        <tr><th class="px-5 py-3" scope="row">mobile</th><td class="px-5 py-3">&lt; 640 px</td><td class="px-5 py-3">Recherche sous l'en-tête, grille 2 colonnes, boutons pleine largeur, ajout en icône.</td></tr>
+        <tr><th class="px-5 py-3" scope="row">sm · tablette</th><td class="px-5 py-3">≥ 640 px</td><td class="px-5 py-3">Libellés de boutons complets, champs en paires.</td></tr>
+        <tr><th class="px-5 py-3" scope="row">md</th><td class="px-5 py-3">≥ 768 px</td><td class="px-5 py-3">Recherche dans l'en-tête, grille 3 colonnes, pied de page en 3 colonnes.</td></tr>
+        <tr><th class="px-5 py-3" scope="row">lg · bureau</th><td class="px-5 py-3">≥ 1024 px</td><td class="px-5 py-3">Grille 4 colonnes, récapitulatifs collants (sticky), visuel de l'accueil.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="max-w-3xl text-ink-muted" data-apparition>Les éléments <code class="rounded bg-surface-sunken px-1.5 py-0.5 text-sm">[data-apparition]</code> entrent en scène à leur arrivée dans la fenêtre (IntersectionObserver), en cascade via <code class="rounded bg-surface-sunken px-1.5 py-0.5 text-sm">--delai</code>. Sans JavaScript ou avec <code class="rounded bg-surface-sunken px-1.5 py-0.5 text-sm">prefers-reduced-motion</code>, tout est visible immédiatement.</p>
+</section>
+</div>
+{% endblock %}

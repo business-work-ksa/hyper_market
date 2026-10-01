@@ -1,67 +1,53 @@
 {% extends "vitrine/base.html" %}
-{% load hm confiance %}
+{% load i18n hm confiance marche %}
 
 {% block titre %}{{ boutique.enseigne }} — HyperMarché{% endblock %}
 
 {% block contenu %}
-<header class="vitrine__boutique">
-  {% if identite.logo %}
-    <img class="vitrine__logo" src="{{ identite.logo.url }}" alt="{{ boutique.enseigne }}">
-  {% else %}
-    <span class="jeton jeton--grand jeton--teinte" style="--teinte:{{ boutique.enseigne|teinte }}">{{ boutique.enseigne|initiales }}</span>
-  {% endif %}
-  <div class="pile-sm">
-    <h1 class="t-section" style="font-size:1.4rem">{{ boutique.enseigne }}</h1>
-    <p class="t-legende">
-      {{ boutique.ville }}{% if boutique.rayon_principal %} · {{ boutique.rayon_principal.libelle }}{% endif %}
-      · {{ nombre }} article{{ nombre|pluralize }} en vitrine
-    </p>
-  </div>
-</header>
-
 {% comment %}
-La confiance publique : des faits qu'on peut vérifier, pas des étoiles qu'on fabrique. Chaque
-ligne est une donnée de la plateforme — l'identité attestée à quatre yeux, les livraisons que les
-acheteurs eux-mêmes ont confirmées — et non une déclaration du commerçant. « Identité vérifiée »
-n'apparaît que si elle l'est : un badge qu'on afficherait par défaut ne protégerait personne.
-Aucune requête de plus : les faits voyagent avec la boutique (apps/vitrine/catalogue.py).
+Sur **sa** page, le commerçant est chez lui : sa couleur (`partials/charte.html`, `--marque`), son
+logo. La confiance publique vient juste après son nom : des faits vérifiables, pas des étoiles.
 {% endcomment %}
-{% faits_confiance boutique as confiance %}
-<section class="carte" style="margin-bottom:20px" aria-labelledby="confiance-titre">
-  <div class="carte__corps colonne" style="gap:12px">
-    <h2 class="t-sur-titre" id="confiance-titre">Ce que HyperMarché sait de ce commerçant</h2>
-    <ul class="rangee" style="flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0">
-      {% if confiance.identite_verifiee %}
-        <li class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Identité vérifiée</li>
-      {% endif %}
-      <li class="puce puce--marque"><svg aria-hidden="true"><use href="#ic-garantie"></use></svg>{{ confiance.palier.libelle }}</li>
-      {% if confiance.depuis %}
-        <li class="puce"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>Sur HyperMarché depuis {{ confiance.depuis }}</li>
-      {% endif %}
-      <li class="puce"><svg aria-hidden="true"><use href="#ic-camion"></use></svg>{% if confiance.livraisons %}{{ confiance.livraisons }} livraison{{ confiance.livraisons|pluralize }} confirmée{{ confiance.livraisons|pluralize }} par les acheteurs{% else %}Pas encore de livraison confirmée{% endif %}</li>
-      {% if confiance.litiges %}
-        <li class="puce"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{{ confiance.litiges }}</li>
-      {% endif %}
-    </ul>
-    <p class="bandeau-info" style="margin:0">
-      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-verrou"></use></svg>
-      <span><strong>Paiement protégé.</strong> Payé en ligne, votre argent reste en séquestre chez
-        HyperMarché jusqu'à ce que vous confirmiez la livraison. HyperMarché ne vous demandera
-        jamais de payer sur un numéro personnel.</span>
-    </p>
+<section class="relative isolate -mt-6 mb-8 pb-8 pt-10 sm:-mt-8" aria-labelledby="boutique-titre">
+  <div class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 border-b border-line opacity-70" aria-hidden="true"
+       style="background: radial-gradient(80% 120% at 0% 0%, hsl({{ boutique.enseigne|teinte }} 45% 70% / 0.25), transparent 60%), radial-gradient(60% 90% at 100% 0%, rgb(var(--hm-accent) / 0.15), transparent 60%);"></div>
+  <div class="flex flex-col gap-6 md:flex-row md:items-center">
+    {% if identite.logo %}
+      <img class="size-20 rounded-2xl border border-line bg-surface object-contain p-2 shadow-sm" src="{{ identite.logo.url }}" alt="{% blocktranslate with nom=boutique.enseigne %}Logo de {{ nom }}{% endblocktranslate %}" width="80" height="80" loading="lazy" decoding="async">
+    {% else %}
+      <span class="jeton size-20 rounded-2xl text-2xl shadow-sm" style="--teinte:{{ boutique.enseigne|teinte }}" aria-hidden="true">{{ boutique.enseigne|initiales }}</span>
+    {% endif %}
+    <div class="flex flex-1 flex-col gap-2" data-apparition>
+      <h1 class="text-3xl font-extrabold sm:text-4xl" id="boutique-titre">{{ boutique.enseigne }}</h1>
+      <p class="text-ink-muted">
+        {{ boutique.ville }}{% if boutique.rayon_principal %} · {{ boutique.rayon_principal.libelle }}{% endif %}
+        · {% blocktranslate count n=nombre %}{{ n }} article en vitrine{% plural %}{{ n }} articles en vitrine{% endblocktranslate %}
+      </p>
+    </div>
+  </div>
+
+  {% faits_confiance boutique as confiance %}
+  <div class="mt-6 flex flex-col gap-4" data-apparition style="--delai:80ms">
+    <h2 class="sur-titre" id="confiance-titre">{% translate "Ce que HyperMarché sait de ce commerçant" %}</h2>
+    {% include "marche/composants/confiance.html" with disposition="puces" %}
+    <div class="bandeau bandeau-info max-w-3xl">
+      {% icone "verrou" %}
+      <span><strong>{% translate "Paiement protégé." %}</strong> {% translate "Payé en ligne, votre argent reste en séquestre chez HyperMarché jusqu'à ce que vous confirmiez la livraison. HyperMarché ne vous demandera jamais de payer sur un numéro personnel." %}</span>
+    </div>
   </div>
 </section>
 
 {% if articles %}
-  <div class="grille-vitrine">
+  <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
     {% for article in articles %}
-      {% include "vitrine/partials/carte-article.html" %}
+      {% include "marche/composants/carte_article.html" with rang=forloop.counter0 %}
     {% endfor %}
   </div>
 {% else %}
-  <div class="vide">
-    <svg><use href="#ic-panier"></use></svg>
-    <p class="t-2">Ce commerçant n'a aucun article en vitrine pour l'instant.</p>
-  </div>
+  {% translate "Aucun article en vitrine pour l'instant." as vide_titre %}
+  {% translate "Ce commerçant prépare son étal. Parcourez le reste du marché en attendant." as vide_texte %}
+  {% translate "Voir tout le marché" as vide_action %}
+  {% url 'vitrine_catalogue' as tout %}
+  {% include "marche/composants/etat_vide.html" with icone="boutique" titre=vide_titre texte=vide_texte action_href=tout action_libelle=vide_action niveau="p" %}
 {% endif %}
 {% endblock %}

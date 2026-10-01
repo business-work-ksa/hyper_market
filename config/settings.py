@@ -137,6 +137,8 @@ MIDDLEWARE = [
     # payer à chaque image le prix d'une requête applicative complète.
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # Après les sessions, avant tout ce qui produit du texte : la langue du marché (fr/en).
+    "apps.vitrine.langue.LangueDuMarcheMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -157,6 +159,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
@@ -241,7 +244,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # --------------------------------------------------------------------------------------
 # Localisation — zone CEMAC
 # --------------------------------------------------------------------------------------
-LANGUAGE_CODE = "fr-fr"
+LANGUAGE_CODE = "fr"
+# Le marché se lit en français ou en anglais (`apps/vitrine/langue.py`) ; le back-office reste en
+# français. Les traductions vivent dans `apps/vitrine/locale/` : le répertoire est embarqué avec
+# l'application sur la plateforme sans serveur (`vercel.json`, `includeFiles`).
+LANGUAGES = [("fr", "Français"), ("en", "English")]
+LOCALE_PATHS = [BASE_DIR / "apps" / "vitrine" / "locale"]
+LANGUAGE_COOKIE_NAME = "hm_langue"
+LANGUAGE_COOKIE_AGE = 60 * 60 * 24 * 365
+LANGUAGE_COOKIE_SAMESITE = "Lax"
 TIME_ZONE = "Africa/Douala"
 USE_I18N = True
 USE_TZ = True

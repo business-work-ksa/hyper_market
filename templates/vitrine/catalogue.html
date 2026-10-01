@@ -1,29 +1,17 @@
 {% extends "vitrine/base.html" %}
-{% load hm %}
+{% load i18n %}
 
-{% block titre %}{% if rayon_courant %}{{ rayon_courant.libelle }}{% elif recherche %}« {{ recherche }} »{% else %}Catalogue{% endif %} — HyperMarché{% endblock %}
+{% block titre %}{% include "vitrine/partials/titre_resultats.html" %}{% endblock %}
 
 {% block contenu %}
-<header class="rangee rangee--espace" style="margin-bottom:16px">
-  <h1 class="t-section">
-    {% if recherche %}« {{ recherche }} »
-    {% elif rayon_courant %}{{ rayon_courant.libelle }}
-    {% else %}Tout le marché{% endif %}
-  </h1>
-  <span class="t-legende">{{ nombre }} article{{ nombre|pluralize }}</span>
-</header>
-
-{% if articles %}
-  <div class="grille-vitrine">
-    {% for article in articles %}
-      {% include "vitrine/partials/carte-article.html" %}
-    {% endfor %}
-  </div>
-{% else %}
-  <div class="vide">
-    <svg><use href="#ic-recherche"></use></svg>
-    <p class="t-2">Rien ne correspond à cette recherche.</p>
-    <p class="t-legende">Essayez un autre mot, ou parcourez un rayon.</p>
-  </div>
-{% endif %}
+{% comment %}
+La région `[data-catalogue]` se recharge seule quand on change de rayon ou de recherche
+(static/js/marche.js) : squelettes pendant l'attente, puis le fragment `partials/resultats.html` —
+le même que celui rendu ici, pour qu'il n'existe qu'une seule façon d'afficher des résultats.
+{% endcomment %}
+<p class="sr-only" aria-live="polite" data-catalogue-annonce data-chargement="{% translate 'Chargement des articles…' %}"></p>
+<div data-catalogue>
+  {% include "vitrine/partials/resultats.html" %}
+</div>
+{% include "marche/composants/squelette_grille.html" %}
 {% endblock %}

@@ -37,6 +37,8 @@ un code à usage unique pour cela, et il n'existe pas encore.
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.cache import patch_vary_headers
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Utilisateur
@@ -56,6 +58,7 @@ from apps.vitrine.catalogue import (
     compatibilites_de,
     rayons_ouverts,
 )
+from apps.vitrine.design_system import contexte as jetons_du_marche
 from apps.vitrine.forms import CommandeForm
 
 CLE_COMMANDES = "commandes_de_la_session"
@@ -112,17 +115,39 @@ def catalogue(request):
     rayon = next((r for r in rayons if r.code == code_rayon), None)
 
     articles = articles_en_vitrine(recherche=recherche, rayon=rayon, limite=120)
-    return render(
+    contexte = _contexte(
         request,
-        "vitrine/catalogue.html",
-        _contexte(
-            request,
-            "catalogue",
-            articles=articles,
-            rayon_courant=rayon,
-            nombre=len(articles),
-        ),
+        "catalogue",
+        articles=articles,
+        rayon_courant=rayon,
+        nombre=len(articles),
     )
+    # Rechargement de la seule grille (rayon, recherche) par static/js/marche.js : un fragment,
+    # pas la page. `Vary` empêche un cache de servir le fragment à qui demande la page.
+    fragment = request.headers.get("X-Fragment") == "1"
+    reponse = render(
+        request,
+        "vitrine/partials/resultats.html" if fragment else "vitrine/catalogue.html",
+        contexte,
+    )
+    patch_vary_headers(reponse, ["X-Fragment"])
+    return reponse
+
+
+def design_system(request):
+    """La référence vivante du système de design du marché (docs/26).
+
+    Chaque composant, dans tous ses états, rendu par la même feuille que les pages : ce qu'on y
+    voit est ce que l'acheteur verra. Hors index des moteurs de recherche.
+    """
+    exemples = articles_en_vitrine(limite=4)
+    reponse = render(
+        request,
+        "marche/design_system.html",
+        _contexte(request, "design_system", exemples=exemples, **jetons_du_marche()),
+    )
+    reponse.headers["X-Robots-Tag"] = "noindex"
+    return reponse
 
 
 def article(request, identifiant):
@@ -184,11 +209,11 @@ def identite_de_la_boutique(boutique):
 @require_POST
 def panier_ajouter(request, identifiant):
     if article_par_identifiant(identifiant) is None:
-        messages.error(request, "Cet article n'est plus disponible.")
+        messages.error(request, _("Cet article n'est plus disponible."))
         return redirect("vitrine_catalogue")
 
     panier_service.ajouter(request.session, identifiant, request.POST.get("quantite") or 1)
-    messages.success(request, "Ajouté à votre panier.")
+    messages.success(request, _("Ajouté à votre panier."))
     return redirect(_suite_sure(request.POST.get("suite")))
 
 
@@ -234,7 +259,7 @@ def panier(request):
 def commander(request):
     lignes = panier_service.lignes(request.session)
     if not lignes:
-        messages.error(request, "Votre panier est vide.")
+        messages.error(request, _("Votre panier est vide."))
         return redirect("vitrine_catalogue")
 
     groupes = panier_service.par_boutique(lignes)
@@ -249,8 +274,10 @@ def commander(request):
             refus.update(erreur.refus)
             messages.error(
                 request,
-                "Le prépaiement n'est plus possible chez une boutique de votre panier : "
-                "relisez la commande, puis envoyez-la à nouveau.",
+                _(
+                    "Le prépaiement n'est plus possible chez une boutique de votre panier : "
+                    "relisez la commande, puis envoyez-la à nouveau."
+                ),
             )
         except CommandeInvalide as erreur:
             messages.error(request, str(erreur))
@@ -471,7 +498,7 @@ def _paiement_de(commande_vue) -> dict | None:
 @require_POST
 def payer(request, identifiant):
     """Lance le paiement d'avance. Réservé à la session qui a passé la commande."""
-    commande_vue, _ = _lire_commande(identifiant)
+    commande_vue, _parts = _lire_commande(identifiant)
     if commande_vue is None or not _acheteur_reconnu(request, commande_vue):
         return render(request, "vitrine/introuvable.html", _contexte(request, "panier"), status=404)
 
@@ -490,7 +517,7 @@ def payer(request, identifiant):
         return redirect(adresse)
     paiement_en_ligne.constater(operation)
     if operation.etat == Transaction.ECHOUEE:
-        messages.error(request, f"Le paiement n'a pas abouti : {_message_de(operation)}")
+        messages.error(request, _("Le paiement n'a pas abouti : %(motif)s") % {"motif": _message_de(operation)})
     return redirect("vitrine_commande", identifiant=commande_vue.pk)
 
 
@@ -498,7 +525,7 @@ def paiement_etat(request, identifiant):
     """Où en est le paiement : relu auprès de l'opérateur. JSON pour la page qui attend, sinon retour."""
     from django.http import JsonResponse
 
-    commande_vue, _ = _lire_commande(identifiant)
+    commande_vue, _parts = _lire_commande(identifiant)
     if commande_vue is None or not _acheteur_reconnu(request, commande_vue):
         return JsonResponse({"etat": "inconnu"}, status=404)
     en_cours = paiement_en_ligne.tentative_en_cours(commande_vue)
@@ -547,8 +574,8 @@ def confirmer_reception(request, identifiant, part_id):
         else:
             messages.success(
                 request,
-                f"Merci : la réception de votre commande chez {part.boutique.enseigne} "
-                "est confirmée.",
+                _("Merci : la réception de votre commande chez %(boutique)s est confirmée.")
+                % {"boutique": part.boutique.enseigne},
             )
         return redirect("vitrine_commande", identifiant=commande_vue.pk)
 
@@ -586,8 +613,10 @@ def ouvrir_litige(request, identifiant, part_id):
         else:
             messages.success(
                 request,
-                "Votre réclamation est enregistrée. L'argent de cette commande reste en "
-                "séquestre, et la plateforme l'examine sous 72 heures.",
+                _(
+                    "Votre réclamation est enregistrée. L'argent de cette commande reste en "
+                    "séquestre, et la plateforme l'examine sous 72 heures."
+                ),
             )
             return redirect("vitrine_commande", identifiant=commande_vue.pk)
 

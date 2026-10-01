@@ -1,80 +1,86 @@
 {% extends "vitrine/base.html" %}
-{% load hm %}
+{% load i18n hm marche %}
 
-{% block titre %}Votre panier — HyperMarché{% endblock %}
+{% block titre %}{% translate "Votre panier" %} — HyperMarché{% endblock %}
 {% block rayons %}{% endblock %}
 
 {% block contenu %}
-<h1 class="t-section" style="font-size:1.4rem;margin-bottom:16px">Votre panier</h1>
+<h1 class="mb-6 text-3xl font-extrabold" data-apparition>{% translate "Votre panier" %}</h1>
 
 {% if not lignes %}
-  <div class="vide">
-    <svg><use href="#ic-panier"></use></svg>
-    <p class="t-2">Votre panier est vide.</p>
-    <p class="t-legende">Chaque article s'ajoute depuis sa tuile ou sa fiche ; le panier se garde pendant votre visite.</p>
-    <a class="btn btn--primaire btn--grand" href="{% url 'vitrine_catalogue' %}">Parcourir le marché</a>
-  </div>
+  {% translate "Votre panier est vide." as vide_titre %}
+  {% translate "Chaque article s'ajoute depuis sa carte ou sa fiche ; le panier se garde pendant votre visite." as vide_texte %}
+  {% translate "Parcourir le marché" as vide_action %}
+  {% url 'vitrine_catalogue' as tout %}
+  {% include "marche/composants/etat_vide.html" with icone="panier" titre=vide_titre texte=vide_texte action_href=tout action_libelle=vide_action niveau="p" %}
 {% else %}
-  <div class="duo">
-    <div class="colonne">
+  <div class="grid gap-6 lg:grid-cols-[1fr_22rem] lg:items-start">
+    <div class="flex flex-col gap-4">
       {% comment %}
-      Un groupe par commerçant, et c'est structurel : chacun accepte, prépare et
-      livre sa part séparément, et peut refuser sans que les autres soient
-      touchés. Présenter le panier d'un bloc promettrait une commande
-      indivisible qui n'existe pas.
+      Un groupe par commerçant, et c'est structurel : chacun accepte, prépare et livre sa part
+      séparément. Présenter le panier d'un bloc promettrait une commande indivisible qui n'existe pas.
       {% endcomment %}
       {% for groupe in groupes %}
-        <section class="carte">
-          <header class="carte__entete">
-            <h2 class="t-section">{{ groupe.boutique.enseigne }}</h2>
-            <span class="t-legende">{{ groupe.boutique.ville }}</span>
-          </header>
-          <div class="carte__corps colonne" style="gap:14px">
-            {% for ligne in groupe.lignes %}
-              <div class="panier-ligne">
-                <a class="pile-sm" href="{% url 'vitrine_article' ligne.article.pk %}" style="min-width:0">
-                  <span class="principal">{{ ligne.article.produit.libelle }}</span>
-                  <span class="t-legende">{{ ligne.article.prix_vente|fcfa }} FCFA l'unité</span>
-                </a>
-                <form method="post" action="{% url 'vitrine_panier_modifier' ligne.article.pk %}"
-                      class="rangee" style="gap:8px">
-                  {% csrf_token %}
-                  <input class="champ champ--compact" type="number" name="quantite"
-                         value="{{ ligne.quantite }}" min="0" max="99" inputmode="numeric"
-                         style="width:74px" aria-label="Quantité">
-                  <button class="btn btn--discret" type="submit">Mettre à jour</button>
-                </form>
-                <span class="chiffre" style="font-weight:620">{{ ligne.total|fcfa }} FCFA</span>
+        <section class="carte" data-apparition style="--delai:{{ forloop.counter0|delai }}" aria-labelledby="groupe-{{ forloop.counter }}">
+          <header class="carte-entete">
+            <div class="flex items-center gap-3">
+              <span class="jeton size-9 text-xs" style="--teinte:{{ groupe.boutique.enseigne|teinte }}" aria-hidden="true">{{ groupe.boutique.enseigne|initiales }}</span>
+              <div class="flex flex-col">
+                <h2 class="font-bold" id="groupe-{{ forloop.counter }}">{{ groupe.boutique.enseigne }}</h2>
+                <span class="text-xs text-ink-muted">{{ groupe.boutique.ville }} · {% translate "livre sa part lui-même" %}</span>
               </div>
-            {% endfor %}
-            <div class="rangee rangee--espace">
-              <span class="t-legende">Sous-total {{ groupe.boutique.enseigne }}</span>
-              <span class="chiffre">{{ groupe.total|fcfa }} FCFA</span>
             </div>
-          </div>
+          </header>
+          <ul class="divide-y divide-line" role="list">
+            {% for ligne in groupe.lignes %}
+              <li class="grid grid-cols-[3.5rem_1fr] gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-[4rem_1fr_auto_auto] sm:items-center sm:px-6">
+                <span class="vignette size-14 rounded-xl sm:size-16" style="--teinte:{{ groupe.boutique.enseigne|teinte }}" aria-hidden="true"><span class="text-lg font-extrabold">{{ ligne.article.produit.libelle|monogramme }}</span></span>
+                <div class="min-w-0">
+                  <a class="line-clamp-2 font-semibold hover:text-brand" href="{% url 'vitrine_article' ligne.article.pk %}">{{ ligne.article.produit.libelle }}</a>
+                  <p class="text-sm text-ink-muted">{% blocktranslate with prix=ligne.article.prix_vente|fcfa %}{{ prix }} FCFA l'unité{% endblocktranslate %}</p>
+                </div>
+                <form method="post" action="{% url 'vitrine_panier_modifier' ligne.article.pk %}" class="col-span-2 flex items-center gap-2 sm:col-span-1">
+                  {% csrf_token %}
+                  <div class="quantite">
+                    <button type="button" data-pas="-1" aria-label="{% translate 'Retirer un' %}">{% icone "moins" "size-4" %}</button>
+                    <input type="number" name="quantite" value="{{ ligne.quantite }}" min="0" max="99" inputmode="numeric"
+                           aria-label="{% blocktranslate with libelle=ligne.article.produit.libelle %}Quantité de {{ libelle }}{% endblocktranslate %}">
+                    <button type="button" data-pas="1" aria-label="{% translate 'Ajouter un' %}">{% icone "plus" "size-4" %}</button>
+                  </div>
+                  <button class="btn btn-outline btn-sm" type="submit">{% translate "Mettre à jour" %}</button>
+                </form>
+                <div class="col-span-2 flex items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
+                  <span class="prix">{{ ligne.total|fcfa }}<span class="devise">FCFA</span></span>
+                  <form method="post" action="{% url 'vitrine_panier_modifier' ligne.article.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantite" value="0">
+                    <button class="btn btn-ghost btn-sm text-error-ink" type="submit"
+                            aria-label="{% blocktranslate with libelle=ligne.article.produit.libelle %}Retirer {{ libelle }} du panier{% endblocktranslate %}">{% icone "corbeille" "size-4" %}<span class="sm:sr-only">{% translate "Retirer" %}</span></button>
+                  </form>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+          <footer class="flex items-center justify-between border-t border-line px-5 py-3 text-sm sm:px-6">
+            <span class="text-ink-muted">{% blocktranslate with nom=groupe.boutique.enseigne %}Sous-total {{ nom }}{% endblocktranslate %}</span>
+            <span class="chiffre font-bold">{{ groupe.total|fcfa }} FCFA</span>
+          </footer>
         </section>
       {% endfor %}
     </div>
 
-    <section class="carte">
-      <header class="carte__entete"><h2 class="t-section">Total</h2></header>
-      <div class="carte__corps colonne" style="gap:14px">
-        <div class="rangee rangee--espace">
-          <span class="t-2">{{ lignes|length }} référence{{ lignes|length|pluralize }}</span>
-          <span class="article-fiche__prix" style="font-size:1.5rem">{{ total|fcfa }}<span class="unite">FCFA</span></span>
+    <aside class="carte lg:sticky lg:top-28" data-apparition style="--delai:120ms" aria-labelledby="total-titre">
+      <div class="carte-corps flex flex-col gap-4">
+        <h2 class="carte-titre" id="total-titre">{% translate "Total" %}</h2>
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="text-sm text-ink-muted">{% blocktranslate count n=lignes|length %}{{ n }} référence{% plural %}{{ n }} références{% endblocktranslate %}</span>
+          <span class="prix text-3xl">{{ total|fcfa }}<span class="devise">FCFA</span></span>
         </div>
-        <p class="t-legende">
-          Livraison à convenir avec chaque commerçant. Le paiement se fait à la
-          remise de la marchandise.
-        </p>
-        <a class="btn btn--primaire btn--grand btn--bloc" href="{% url 'vitrine_commander' %}">
-          Commander
-        </a>
-        <a class="btn btn--discret btn--bloc" href="{% url 'vitrine_catalogue' %}">
-          Continuer mes achats
-        </a>
+        <p class="text-xs text-ink-muted">{% translate "Livraison à convenir avec chaque commerçant. Vous choisirez à l'étape suivante : payer d'avance, protégé par le séquestre, ou à la livraison." %}</p>
+        <a class="btn btn-accent btn-lg btn-bloc" href="{% url 'vitrine_commander' %}">{% translate "Commander" %}{% icone "fleche" %}</a>
+        <a class="btn btn-ghost btn-md btn-bloc" href="{% url 'vitrine_catalogue' %}">{% translate "Continuer mes achats" %}</a>
       </div>
-    </section>
+    </aside>
   </div>
 {% endif %}
 {% endblock %}

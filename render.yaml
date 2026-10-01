@@ -1,0 +1,147 @@
+# Déploiement d'une instance de **démonstration** sur l'offre gratuite de Render.
+#
+# Ce fichier n'est pas la configuration de production : celle-là est
+# `docker-compose.prod.yml`, et elle suppose une machine à soi (docs/20). Ici on
+# cherche autre chose — une adresse publique qu'on partage, sans carte bancaire
+# et sans serveur à tenir.
+#
+# Ce qu'il faut savoir avant de cliquer, parce que cela se découvre autrement au
+# mauvais moment :
+#
+#   * l'instance **s'endort** après un quart d'heure sans visite, et le réveil
+#     prend environ cinquante secondes. Le premier écran d'une démonstration
+#     partagée est donc souvent lent ;
+#   * la base gratuite de Render **expire au bout de trente jours**. Ce n'est pas
+#     une limite de taille, c'est une date : passé ce délai elle est supprimée,
+#     et la démonstration se recharge vide au redémarrage suivant ;
+#   * les identifiants de démonstration sont **publics et affichés à l'écran**
+#     (`AFFICHER_COMPTE_DEMO`). Quiconque a le lien peut entrer, vendre, modifier
+#     le stock. C'est voulu pour une démonstration, et disqualifiant pour toute
+#     donnée réelle : ne chargez jamais une vraie boutique ici.
+#
+# Le déploiement se fait sans terminal : Render lit ce fichier, crée la base et
+# le service, et fabrique lui-même les secrets marqués `generateValue`.
+
+databases:
+  # Le nom porte la région, et ce n'est pas de la coquetterie : l'hébergeur
+  # apparie les ressources d'un blueprint **par leur nom**, et il ne déplace
+  # jamais une base déjà provisionnée. Ajouter `region:` à une base existante ne
+  # fait donc rien du tout — le réglage est lu, accepté, et sans effet.
+  #
+  # C'est ce qui s'est produit ici : une première base créée sans région (donc
+  # ailleurs) pendant que le service partait à Francfort, puis trois
+  # déploiements à se demander pourquoi l'hôte ne résolvait pas. Changer le nom
+  # est la seule manière d'obtenir une base neuve au bon endroit.
+  #
+  # Si la région doit changer un jour, changez ce nom en même temps.
+  - name: hypermarche-base-fra
+    databaseName: hypermarche
+    user: hypermarche
+    plan: free
+    postgresMajorVersion: "16"
+    # **La même région que le service web, et ce n'est pas un détail de latence.**
+    # La chaîne fournie par `fromDatabase` est l'adresse *interne* de la base, et
+    # ce réseau interne ne franchit pas les régions : d'une région à l'autre, le
+    # nom d'hôte ne résout même pas.
+    region: frankfurt
+
+services:
+  - type: web
+    name: hypermarche
+    runtime: python
+    plan: free
+    region: frankfurt   # le plus proche de l'Afrique centrale chez cet hébergeur
+    branch: claude/online-marketplace-platform-97d5tr
+
+    # Pas d'image Docker : le constructeur natif de Render est plus rapide, et
+    # l'image de `Dockerfile` vise une machine à soi, pas cet hébergeur.
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+
+    # Migrations, vérification de l'isolation et garnissage sont **dans le
+    # démarrage**, et non dans un `preDeployCommand` : l'offre gratuite ne
+    # connaît pas ce champ et rejette le blueprint qui l'emploie.
+    #
+    # Ce n'est pas un pis-aller. `infrastructure/entree.sh` est l'entrée déjà
+    # écrite pour la production : elle attend la base, migre, puis lance
+    # `verifier_rls` et **s'arrête** si une table scopée n'a pas sa politique.
+    # La réutiliser ici évite d'écrire une seconde séquence qui divergerait de
+    # la première — et surtout, une suite de commandes posée à la main dans ce
+    # champ ne s'arrêterait pas à la première erreur : `verifier_rls` pourrait
+    # échouer et gunicorn démarrer quand même, servant des données que rien
+    # n'isole. Le script, lui, est en `set -e`.
+    #
+    # Ces gestes se rejouent à chaque réveil, et c'est sans effet : une
+    # migration qui n'a rien à faire coûte quelques requêtes, et `preparer_demo`
+    # ne charge rien dès qu'une boutique existe.
+    #
+    # **Un seul `worker`**, et ce n'est pas qu'une affaire de mémoire. Le
+    # compteur d'essais de mot de passe vit dans le cache, et sans Redis — absent
+    # de l'offre gratuite — ce cache est local au processus. Trois `workers`
+    # tiendraient trois compteurs séparés et laisseraient passer trente essais
+    # là où dix sont annoncés. Un seul processus, un seul compteur, la limite
+    # annoncée est la vraie.
+    startCommand: ./infrastructure/entree.sh gunicorn config.wsgi:application --workers 1 --threads 4 --timeout 60 --access-logfile - --error-logfile -
+
+    # Pas de `healthCheckPath`, et c'est délibéré. Render appelle cette adresse
+    # **en clair**, sans `X-Forwarded-Proto` ; avec `SECURE_SSL_REDIRECT` à vrai,
+    # l'application répond `301` et le contrôle de santé échoue. Le déploiement
+    # boucle alors sur un service qui fonctionne parfaitement par ailleurs — une
+    # panne qui ne se diagnostique qu'en connaissant ce détail. Sans ce champ,
+    # Render se contente de vérifier que le port écoute, ce qui est exactement
+    # ce qu'on veut savoir.
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hypermarche-base-fra
+          property: connectionString
+
+      # Fabriquée par Render, jamais vue par personne et jamais versionnée.
+      - key: SECRET_KEY
+        generateValue: true
+
+      # Le nom de domaine est tiré au sort au premier déploiement : personne ne
+      # peut l'écrire à l'avance. `config/settings.py` le lit sous ce nom neutre
+      # et le pose dans `ALLOWED_HOSTS` **et** `CSRF_TRUSTED_ORIGINS` — sans la
+      # seconde, toutes les pages s'affichent et aucun formulaire ne part.
+      - key: HOTE_EXTERNE
+        fromService:
+          type: web
+          name: hypermarche
+          property: host
+
+      - key: DEBUG
+        value: "False"
+
+      # Délibéré, et seulement ici : l'écran de connexion affiche un compte qui
+      # fonctionne. C'est le but d'une démonstration, et c'est exactement ce
+      # qu'il ne faut pas faire ailleurs.
+      - key: AFFICHER_COMPTE_DEMO
+        value: "True"
+
+      # Autorise `entree.sh` à charger les six boutiques au premier démarrage.
+      # Absente ailleurs — et `preparer_demo` refuse de toute façon de garnir une
+      # base qui contient déjà une boutique.
+      - key: GARNIR_DEMO
+        value: "True"
+
+      # Render termine le TLS et transmet `X-Forwarded-Proto` ; Django peut donc
+      # rediriger lui-même vers HTTPS sans boucler.
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+
+      # Une heure. Une démonstration n'a pas à enfermer un domaine en HTTPS dans
+      # le navigateur de ses visiteurs pour un an.
+      - key: SECURE_HSTS_SECONDS
+        value: "3600"
+
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+
+      # Les tâches différées attendraient un Redis que l'offre gratuite n'a pas.
+      # En mode « eager », elles s'exécutent dans la requête : plus lent, et
+      # surtout jamais perdu — ce qui est le bon compromis pour une vitrine.
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "True"

@@ -1,0 +1,4 @@
+{% comment %}La gravité d'un `signal` : icône et mot, jamais la couleur seule.{% endcomment %}
+<span class="s-gravite s-gravite--{% if signal.gravite == 3 %}critique{% elif signal.gravite == 2 %}alerte{% else %}modere{% endif %}">
+  <svg aria-hidden="true"><use href="#{% if signal.gravite == 1 %}ic-info{% else %}ic-alerte{% endif %}"></use></svg>{{ signal.get_gravite_display }}
+</span>

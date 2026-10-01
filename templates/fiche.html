@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}{{ recette.variante }} — fiche technique{% endblock %}
+{% block entete %}{{ recette.variante }}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'fiches' %}">Toutes les fiches</a>
+  {% if 'stock.mouvementer' in droits %}
+    <form method="post" action="{% url 'fiche_basculer' recette_id=recette.pk %}" style="display:inline">
+      {% csrf_token %}
+      <button class="btn" type="submit">
+        {% if recette.actif %}Retirer de la production{% else %}Remettre en service{% endif %}
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  {% if not recette.actif %}
+    <div class="bandeau-info bandeau-info--alerte" role="status">
+      <svg><use href="#ic-info"></use></svg>
+      <span>
+        Cette fiche est retirée de la production. Elle reste lisible : elle
+        explique les fabrications déjà enregistrées dans le journal du stock.
+      </span>
+    </div>
+  {% endif %}
+
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">Rendement</span></div>
+      <p class="tuile__valeur">{{ recette.rendement|quantite }}</p>
+      <p class="tuile__note"><span class="t-muet">Unités par exécution complète</span></p>
+    </article>
+    {% if revient %}
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Coût de revient</span></div>
+        <p class="tuile__valeur">{{ revient.unitaire|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note"><span class="t-muet">Par unité, aux coûts moyens du jour</span></p>
+      </article>
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Prix de vente</span></div>
+        <p class="tuile__valeur">{{ recette.variante.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
+        <p class="tuile__note">
+          {% if revient.unitaire >= recette.variante.prix_vente %}
+            <span class="puce puce--critique"><svg><use href="#ic-alerte"></use></svg>Vendu à perte</span>
+          {% else %}
+            <span class="t-muet">Marge sur coût de production : {{ marge_production|fcfa }} FCFA</span>
+          {% endif %}
+        </p>
+      </article>
+    {% endif %}
+  </section>
+
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="ingrédient" data-noms="ingrédients">
+    {% include "partials/tableau_barre.html" with nom="ingredient" noms="ingrédients" titre="Ingrédients" creer_url=url_creer creer_libelle="Ajouter un ingrédient" modifier_possible=peut_mouvementer modifier_libelle="Corriger la quantité" supprimer_url=url_retirer supprimer_libelle="Retirer" aide=aide_ingredients %}
+
+    {% if lignes %}
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Ingrédient</th>
+              <th scope="col" class="num">Quantité</th>
+              {% if revient %}
+                <th scope="col" class="num">Coût moyen</th>
+                <th scope="col" class="num">Montant</th>
+                <th scope="col" class="num">En stock</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% if revient %}
+              {% for d in revient.lignes %}
+                <tr data-id="{{ d.ligne.pk }}" data-libelle="{{ d.ligne.ingredient }}"
+                    {% if peut_mouvementer %}data-modifier="#modale-ingredient"{% endif %}
+                    data-champs='{"quantite": "{{ d.ligne.quantite|quantite }}"}'
+                    {% if not d.connu %}data-note="Jamais entré en stock : son coût est compté pour zéro."{% endif %}>
+                  <td class="principal">{{ d.ligne.ingredient }}</td>
+                  <td class="num" style="font-weight:620">{{ d.ligne.quantite|quantite }}</td>
+                  <td class="num chiffre">
+                    {% if d.connu %}
+                      {{ d.cmp|fcfa }}<span class="unite">FCFA</span>
+                    {% else %}
+                      <span class="puce puce--alerte" title="Cet ingrédient n'est jamais entré en stock : son coût est inconnu et compté pour zéro."><svg><use href="#ic-alerte"></use></svg>Inconnu</span>
+                    {% endif %}
+                  </td>
+                  <td class="num chiffre">{{ d.montant|fcfa }}<span class="unite">FCFA</span></td>
+                  <td class="num t-2">{{ d.disponible|quantite }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              {% for ligne in lignes %}
+                <tr data-id="{{ ligne.pk }}" data-libelle="{{ ligne.ingredient }}"
+                    {% if peut_mouvementer %}data-modifier="#modale-ingredient"{% endif %}
+                    data-champs='{"quantite": "{{ ligne.quantite|quantite }}"}'>
+                  <td class="principal">{{ ligne.ingredient }}</td>
+                  <td class="num" style="font-weight:620">{{ ligne.quantite|quantite }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+          {% if revient %}
+            <tfoot>
+              <tr>
+                <td class="principal">Total pour une exécution</td>
+                <td></td>
+                <td></td>
+                <td class="num chiffre" style="font-weight:680">{{ revient.total|fcfa }}<span class="unite">FCFA</span></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          {% endif %}
+        </table>
+      </div>
+    {% else %}
+      <div class="vide">
+        <svg><use href="#ic-stock"></use></svg>
+        <p class="t-2">Cette fiche n'a pas encore d'ingrédient.</p>
+        <p class="t-legende">
+          Tant qu'elle est vide, elle ne peut rien produire : il n'y a rien à
+          consommer, donc rien à valoriser.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if revient and not revient.complet %}
+    <div class="bandeau-info bandeau-info--alerte" role="status">
+      <svg><use href="#ic-alerte"></use></svg>
+      <span>
+        Un ingrédient au moins n'est jamais entré en stock : son coût est compté
+        pour zéro. Le coût de revient affiché est donc <strong>plus bas que le
+        vrai</strong> — faites-y une réception avant de fixer un prix dessus.
+      </span>
+    </div>
+  {% endif %}
+
+  {% if recette.note %}
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Mode opératoire</h2></header>
+      <div class="carte__corps">
+        <p class="t-2" style="white-space:pre-line">{{ recette.note }}</p>
+      </div>
+    </section>
+  {% endif %}
+</div>
+
+{% if peut_mouvementer %}
+  {# ---- Ajouter un ingrédient ------------------------------------------- #}
+  <dialog class="modale" id="modale-nouvel-ingredient">
+    <form method="post" action="{% url 'fiche_ingredient' recette_id=recette.pk %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">Ajouter un ingrédient</h2></header>
+      <div class="modale__corps colonne" style="gap:16px">
+        <div class="groupe-champ">
+          <label for="{{ formulaire_ingredient.ingredient.id_for_label }}">{{ formulaire_ingredient.ingredient.label }}</label>
+          {{ formulaire_ingredient.ingredient }}
+        </div>
+        <div class="groupe-champ">
+          <label for="{{ formulaire_ingredient.quantite.id_for_label }}">{{ formulaire_ingredient.quantite.label }}</label>
+          {{ formulaire_ingredient.quantite }}
+          <span class="t-legende">{{ formulaire_ingredient.quantite.help_text }}</span>
+        </div>
+        <p class="t-legende">
+          L'ingrédient est un article du stock, pas un texte libre : c'est ce qui
+          permet au coût de revient d'être un vrai coût.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Ajouter</button>
+      </footer>
+    </form>
+  </dialog>
+
+  {# ---- Corriger une quantité -------------------------------------------- #}
+  {% comment %}
+  L'ingrédient lui-même n'est pas modifiable : remplacer la farine par du sel
+  dans une ligne existante n'est pas une correction, c'est une autre recette.
+  {% endcomment %}
+  <dialog class="modale" id="modale-ingredient">
+    <form method="post" data-action-modele="{% url 'fiche_ingredient_modifier' recette_id=recette.pk ligne_id='00000000-0000-0000-0000-000000000000' %}">
+      {% csrf_token %}
+      <header class="modale__entete">
+        <h2 class="t-section">Quantité de « <span data-cible-libelle></span> »</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="groupe-champ">
+          <label for="quantite-ingredient">Quantité pour une fiche complète</label>
+          <input class="champ" id="quantite-ingredient" name="quantite" inputmode="decimal">
+          <span class="t-legende">Dans l'unité de l'ingrédient, pour {{ recette.rendement|quantite }} {{ metier.articles }}.</span>
+        </div>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+{% endif %}
+{% endblock %}

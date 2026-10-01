@@ -1,0 +1,22 @@
+{% comment %}
+Pagination côté serveur. `page_obj` : la page ; `parametres` : la requête courante sans `page`,
+pour que la recherche et les filtres survivent au changement de page.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="t-pages" aria-label="Pagination">
+  <span class="t-pages__compte">
+    {{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ page_obj.paginator.count }}
+  </span>
+  <span class="t-pages__liens">
+    {% if page_obj.has_previous %}
+      <a class="btn btn--discret" href="?{% if parametres %}{{ parametres }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev">
+        <svg aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg> Précédente</a>
+    {% endif %}
+    <span class="t-pages__numero">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="btn btn--discret" href="?{% if parametres %}{{ parametres }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next">
+        Suivante <svg aria-hidden="true"><use href="#ic-fleche-droite"></use></svg></a>
+    {% endif %}
+  </span>
+</nav>
+{% endif %}

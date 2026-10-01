@@ -1,0 +1,53 @@
+/* Console — litiges et versements.
+   Complète plateforme.css sans le modifier : mêmes pastilles `.statut`, mêmes files, mêmes clés. */
+
+/* ---- Statuts des litiges ---- */
+.statut--l-ouvert          { background: var(--alerte-teinte); color: #8A6408; }
+.statut--l-en_instruction  { background: var(--or-teinte); color: var(--or); }
+.statut--l-tranche_marchand{ background: var(--bon-teinte); color: #0A7A0A; }
+.statut--l-tranche_acheteur{ background: var(--critique-teinte); color: var(--critique); }
+.statut--l-partage         { background: var(--surface-creuse); color: var(--encre-2); }
+
+/* ---- Statuts des versements ---- */
+.statut--v-demande { background: var(--alerte-teinte); color: #8A6408; }
+.statut--v-execute { background: var(--bon-teinte); color: #0A7A0A; }
+.statut--v-annule  { background: var(--surface-creuse); color: var(--encre-muette); }
+
+/* ---- Âge d'un dossier face aux 72 heures ---- */
+.l-age {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--encre-2); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.l-age svg { width: 13px; height: 13px; }
+.l-age--proche  { color: #8A6408; }
+.l-age--depasse { color: var(--critique); }
+
+/* ---- File : colonne des montants ---- */
+.l-montant { font-weight: 640; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.l-ligne-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+
+/* ---- Chronologie d'une part ---- */
+.l-chrono { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.l-chrono li {
+  position: relative; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px;
+  padding: 9px 0 9px 16px; border-left: 2px solid var(--filet);
+}
+.l-chrono li::before {
+  content: ""; position: absolute; left: -5px; top: 15px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--marque);
+}
+.l-chrono__quand { font-size: 12px; color: var(--encre-muette); font-variant-numeric: tabular-nums; }
+
+/* ---- Citation de l'acheteur, décision ---- */
+.l-citation {
+  margin: 0; padding: 12px 14px; border-left: 3px solid var(--or);
+  background: var(--surface-creuse); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.l-decision { display: flex; flex-direction: column; gap: 14px; }
+.l-destination { font-size: 17px; font-weight: 640; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 680px) {
+  .l-chrono li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}

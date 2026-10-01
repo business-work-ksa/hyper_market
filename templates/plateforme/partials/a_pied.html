@@ -1,0 +1,26 @@
+{% comment %}
+Pied d'un assistant. L'ordre du DOM compte : la touche Entrée déclenche le premier bouton
+d'envoi du formulaire — d'où le bouton « Continuer » invisible posé en tête de formulaire
+(`cadre.html`), pour qu'Entrée n'abandonne ni ne recule jamais.
+{% endcomment %}
+<button class="btn btn--discret a-abandonner" type="submit" name="_abandonner" value="1" formnovalidate
+        data-confirmer="Abandonner cet assistant ? Les saisies seront effacées ; rien n'a été créé.">
+  Abandonner
+</button>
+<span class="a-pied__droite">
+  {% if precedente %}
+    <button class="btn" type="submit" name="_precedent" value="1" formnovalidate>
+      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg>Précédent
+    </button>
+  {% endif %}
+  {% if etape.recapitulatif %}
+    <button class="btn btn--primaire a-confirmer" type="submit" name="_confirmer" value="1">
+      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-check"></use></svg>{{ libelle_confirmer|default:"Confirmer" }}
+    </button>
+  {% else %}
+    <button class="btn btn--primaire" type="submit" name="_continuer" value="1">
+      {% if derniere_avant_recap %}Vers le récapitulatif{% else %}Continuer{% endif %}
+      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+    </button>
+  {% endif %}
+</span>

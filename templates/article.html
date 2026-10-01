@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}{{ variante.produit.libelle }} — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}{{ variante.produit.libelle }}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
+  {% if 'stock.mouvementer' in droits %}
+    {% if depots|length > 1 %}
+      <a class="btn" href="{% url 'transfert_stock' variante.pk %}">Transférer</a>
+    {% endif %}
+    <a class="btn btn--primaire" href="{% url 'entree_stock' variante.pk %}">
+      <svg><use href="#ic-plus"></use></svg> Entrée de stock
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    {% for niveau in niveaux %}
+      <article class="tuile">
+        <div class="tuile__libelle">
+          <svg><use href="#ic-stock"></use></svg>
+          <span class="t-sur-titre">{{ niveau.depot.libelle }}</span>
+        </div>
+        <p class="tuile__valeur">{{ niveau.quantite|quantite }}<span class="unite">en stock</span></p>
+        <p class="tuile__note">{% puce_stock niveau %}</p>
+      </article>
+    {% endfor %}
+
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Prix de vente</span></div>
+      <p class="tuile__valeur">{{ variante.prix_vente|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{{ variante.prix_ht|fcfa }} FCFA hors taxes</span></p>
+    </article>
+
+    {% if 'cout.voir' in droits %}
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-marge"></use></svg><span class="t-sur-titre">Coût moyen pondéré</span></div>
+        {% for niveau in niveaux %}
+          <p class="tuile__valeur">{{ niveau.cmp|fcfa }}<span class="unite">FCFA</span></p>
+          <p class="tuile__note"><span class="t-muet">{{ niveau.depot.libelle }} · valeur {{ niveau.valeur|fcfa }} FCFA</span></p>
+        {% endfor %}
+      </article>
+    {% endif %}
+  </section>
+
+  {% if designations is not None %}
+    {% comment %}
+    Une seule carte pour deux métiers qui croyaient avoir deux besoins : la DCI
+    d'un médicament et la référence d'un autre équipementier sont le même geste
+    — donner à l'article un nom de plus, sous lequel quelqu'un le cherchera.
+
+    Les équivalents, eux, ne se saisissent pas : ils se déduisent des
+    désignations partagées. C'est pourquoi ils sont en pied de carte et non dans
+    un second tableau à gestes — il n'y a rien à y corriger, et rien à y retirer
+    qui ne se retire depuis la désignation qui les rapproche.
+    {% endcomment %}
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="désignation" data-noms="désignations" data-accord="e">
+      {% include "partials/tableau_barre.html" with nom="designation" noms="désignations" titre="Aussi appelé" creer_url=url_designation_creer creer_libelle="Ajouter un nom" modifier_possible=peut_mouvementer modifier_libelle="Corriger" supprimer_url=url_designations_retirer supprimer_libelle="Retirer" aide="Une désignation est un nom de plus pour le même article. C'est elle qui le rend trouvable par quelqu'un qui ne connaît pas le nom que vous avez saisi." avertissement_suppression="Une désignation se supprime vraiment : elle n'a rien laissé dehors. Les équivalences qu'elle portait disparaissent avec elle." %}
+
+      {% if designations %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Nature</th>
+                <th scope="col">Désignation</th>
+                <th scope="col">Employée par</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in designations %}
+                <tr data-id="{{ d.pk }}" data-libelle="{{ d.valeur }}"
+                    {% if peut_mouvementer %}data-modifier="#modale-designation"{% endif %}
+                    data-champs='{"type": "{{ d.type|escapejs }}", "valeur": "{{ d.valeur|escapejs }}", "source": "{{ d.source|escapejs }}"}'>
+                  <td class="t-2">{{ d.get_type_display }}</td>
+                  <td class="principal chiffre">{{ d.valeur }}</td>
+                  <td class="t-2">{{ d.source|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="vide">
+          <svg><use href="#ic-recherche"></use></svg>
+          <p class="t-2">Aucun autre nom déclaré.</p>
+          <p class="t-legende">
+            Tant qu'il n'y en a pas, cet article n'existe que sous le nom que
+            vous avez tapé — et le client qui en demande un autre repartira
+            sans, alors qu'il est en rayon.
+          </p>
+        </div>
+      {% endif %}
+
+      {% if equivalents %}
+        <footer class="tableau-pied tableau-pied--colonne">
+          <span class="t-sur-titre">Équivalents en rayon</span>
+          <ul class="liste-visee">
+            {% for e in equivalents %}
+              <li>
+                <a href="{% url 'article' e.variante.pk %}">{{ e.variante.produit.libelle }}</a>
+                <span class="t-legende">
+                  rapproché par {% for d in e.par %}{{ d.valeur }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+          <span class="t-legende">
+            Déduits, jamais saisis : ces articles partagent une désignation avec
+            celui-ci. Retirez la désignation et le rapprochement disparaît.
+          </span>
+        </footer>
+      {% elif designations %}
+        <footer class="tableau-pied">
+          <span class="t-legende">
+            Aucun équivalent en rayon : aucun autre article ne porte ces
+            désignations.
+          </span>
+        </footer>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if compatibilites is not None %}
+    {% comment %}
+    Ces compatibilités s'affichaient en étiquettes, pour qu'elles se lisent d'un
+    coup d'œil. Elles passent en tableau maintenant qu'une barre d'outils sait
+    faire ce qu'une étiquette ne saura jamais : **corriger** une déclaration de
+    travers, et en retirer plusieurs d'un geste. Une compatibilité fausse fait
+    repartir un client avec la mauvaise pièce ; pouvoir la corriger vaut le
+    tableau.
+
+    Toute la carte reste absente là où le métier n'active pas la fonction : la
+    vue ne compose ni la liste ni le formulaire (`compatibilites` vaut `None`).
+    {% endcomment %}
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="compatibilité" data-noms="compatibilités" data-accord="e">
+      {% include "partials/tableau_barre.html" with nom="compatibilite" noms="compatibilités" titre="Se monte sur" creer_url=url_compatibilite_creer creer_libelle="Déclarer un véhicule" modifier_possible=peut_mouvementer modifier_libelle="Corriger" supprimer_url=url_compatibilites_retirer supprimer_libelle="Retirer" aide="Une compatibilité est une déclaration du vendeur, pas une donnée du constructeur : elle se corrige et se retire librement." avertissement_suppression="Une compatibilité se supprime vraiment : elle n'a rien laissé dehors, et une affirmation fausse ne se conserve pas « pour l'historique »." %}
+
+      {% if compatibilites %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Marque</th>
+                <th scope="col">Modèle</th>
+                <th scope="col">Motorisation</th>
+                <th scope="col">Années</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in compatibilites %}
+                <tr data-id="{{ c.pk }}" data-libelle="{{ c }}"
+                    {% if peut_mouvementer %}data-modifier="#modale-compatibilite"{% endif %}
+                    data-champs='{"marque": "{{ c.marque|escapejs }}", "modele": "{{ c.modele|escapejs }}", "motorisation": "{{ c.motorisation|escapejs }}", "annee_debut": "{{ c.annee_debut|default_if_none:"" }}", "annee_fin": "{{ c.annee_fin|default_if_none:"" }}"}'>
+                  <td class="principal">{{ c.marque }}</td>
+                  <td class="t-2">{{ c.modele|default:"Toute la marque" }}</td>
+                  <td class="t-2">{{ c.motorisation|default:"—" }}</td>
+                  <td class="t-2 chiffre">{{ c.annees|default:"Sans borne" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="vide">
+          <svg><use href="#ic-camion"></use></svg>
+          <p class="t-2">Aucune compatibilité déclarée.</p>
+          <p class="t-legende">
+            Tant qu'il n'y en a pas, cette pièce reste introuvable pour un client
+            qui cherche par son véhicule — et c'est ainsi que la plupart des
+            clients cherchent.
+          </p>
+        </div>
+      {% endif %}
+
+      {% if variante.reference_constructeur %}
+        <footer class="tableau-pied">
+          <span>Référence constructeur <strong class="chiffre">{{ variante.reference_constructeur }}</strong></span>
+          <span class="t-legende">Celle qui est gravée sur la pièce d'origine.</span>
+        </footer>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if exemplaires is not None %}
+    {% comment %}
+    La carte n'existe que pour un article réellement suivi à l'unité : la vue
+    laisse `exemplaires` à `None` partout ailleurs, jusque dans une boutique
+    d'électronique — un câble n'a pas d'IMEI et n'a pas à montrer une liste vide.
+    {% endcomment %}
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="exemplaire" data-noms="exemplaires">
+      {% include "partials/tableau_barre.html" with nom="exemplaire" noms="exemplaires" titre="Exemplaires suivis" creer_url=url_exemplaires_creer creer_libelle="Déclarer des numéros" supprimer_url=url_exemplaires_supprimer supprimer_libelle="Effacer" aide="Un numéro effacé doit n'avoir jamais servi : un exemplaire vendu porte une garantie due à quelqu'un, et un appareil à l'atelier appartient à un client qui attend." avertissement_suppression="Seuls les exemplaires encore en stock et jamais vendus sont effacés. Les autres sont refusés et nommés." %}
+
+      {% if exemplaires %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Numéro</th>
+                <th scope="col">État</th>
+                <th scope="col">Dépôt</th>
+                <th scope="col">Reçu le</th>
+                <th scope="col">Vendu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in exemplaires %}
+                <tr data-id="{{ e.pk }}" data-libelle="{{ e.numero }}"
+                    data-ouvrir="{% url 'garantie' %}?numero={{ e.numero|urlencode }}"
+                    {% if e.etat != etat_en_stock or e.vendu_le %}data-protege="{{ e.get_etat_display }} : cet exemplaire porte une histoire et ne s'efface pas."{% endif %}>
+                  <td class="principal chiffre">
+                    <a href="{% url 'garantie' %}?numero={{ e.numero|urlencode }}">{{ e.numero }}</a>
+                  </td>
+                  <td class="t-2">
+                    {% if e.etat == etat_en_stock %}
+                      <span class="puce puce--bon">{{ e.get_etat_display }}</span>
+                    {% else %}
+                      <span class="puce">{{ e.get_etat_display }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="t-2">{{ e.depot.libelle }}</td>
+                  <td class="t-2 chiffre">{{ e.recu_le|date:"d/m/Y" }}</td>
+                  <td class="t-2">
+                    {% if e.vendu_le %}{{ e.vendu_le|date:"d/m/Y" }}{% if e.client %} · {{ e.client }}{% endif %}{% else %}—{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="vide">
+          <svg><use href="#ic-verrou"></use></svg>
+          <p class="t-2">Aucun exemplaire nommé.</p>
+          <p class="t-legende">
+            Tant qu'il n'y en a pas, ces appareils sortiront du stock sans qu'on
+            puisse dire lequel est parti — et la garantie de celui-là ne sera
+            opposable à rien.
+          </p>
+        </div>
+      {% endif %}
+
+      <footer class="tableau-pied">
+        <span>{{ exemplaires|length }} exemplaire{{ exemplaires|length|pluralize }} nommé{{ exemplaires|length|pluralize }}</span>
+        {% if variante.garantie_mois %}
+          <span class="puce puce--bon"><svg><use href="#ic-garantie"></use></svg>Garantie {{ variante.garantie_mois }} mois</span>
+        {% endif %}
+      </footer>
+    </section>
+  {% endif %}
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Historique des mouvements</h2>
+      <span class="puce"><svg><use href="#ic-verrou"></use></svg>Journal en ajout seul</span>
+    </header>
+    <div class="carte__corps--serre">
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Type</th>
+              <th scope="col">Origine</th>
+              <th scope="col">Dépôt</th>
+              <th scope="col" class="num">Quantité</th>
+              {% if 'cout.voir' in droits %}
+                <th scope="col" class="num">Coût unitaire</th>
+              {% endif %}
+              <th scope="col" class="num">Stock après</th>
+              {% if 'cout.voir' in droits %}
+                <th scope="col" class="num">CMP après</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in mouvements %}
+              <tr>
+                <td class="t-2 chiffre">{{ m.cree_le|date:"d/m/Y H:i" }}</td>
+                <td class="principal">{{ m.get_type_display }}</td>
+                <td class="t-2">{{ m.commentaire|default:"—"|truncatechars:28 }}</td>
+                <td class="t-2">{{ m.depot.libelle }}</td>
+                <td class="num" style="font-weight:620;{% if m.quantite < 0 %}color:var(--critique-encre){% else %}color:var(--bon-encre){% endif %}">
+                  {% if m.quantite > 0 %}+{% endif %}{{ m.quantite|quantite }}
+                </td>
+                {% if 'cout.voir' in droits %}
+                  <td class="num t-2">{{ m.cout_unitaire|fcfa }}</td>
+                {% endif %}
+                <td class="num">{{ m.quantite_apres|quantite }}</td>
+                {% if 'cout.voir' in droits %}
+                  <td class="num t-2">{{ m.cmp_apres|fcfa }}</td>
+                {% endif %}
+              </tr>
+            {% empty %}
+              <tr><td colspan="8"><div class="vide"><svg><use href="#ic-stock"></use></svg>
+                <p class="t-2">Aucun mouvement enregistré.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% if formulaire_exemplaires %}
+  {# ---- Déclarer des numéros ------------------------------------------- #}
+  <dialog class="modale" id="modale-exemplaires">
+    <form method="post" action="{% url 'exemplaires_declarer' variante_id=variante.pk %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">Déclarer des numéros</h2></header>
+      <div class="modale__corps colonne" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire_exemplaires.numeros %}
+        <p class="t-legende">
+          Pour rattraper une réception saisie sans les numéros. Les exemplaires
+          seront rattachés à {{ depot_courant.libelle|default:"votre dépôt" }}.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Déclarer</button>
+      </footer>
+    </form>
+  </dialog>
+{% endif %}
+
+{% if formulaire_designation %}
+  {# ---- Ajouter un nom --------------------------------------------------- #}
+  <dialog class="modale" id="modale-nouvelle-designation">
+    <form method="post" action="{% url 'designation_ajouter' variante_id=variante.pk %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">Aussi appelé</h2></header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="grille-filtres">
+          {% for champ in formulaire_designation %}
+            <div class="groupe-champ">
+              <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+              {{ champ }}
+              {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <p class="t-legende">
+          Ce nom rapproche aussitôt cet article de tous ceux qui le portent
+          déjà, et de ceux qui arriveront ensuite. Inutile de déclarer les
+          paires une à une.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Ajouter</button>
+      </footer>
+    </form>
+  </dialog>
+
+  {# ---- Corriger une désignation ----------------------------------------- #}
+  <dialog class="modale" id="modale-designation">
+    <form method="post" data-action-modele="{% url 'designation_modifier' variante_id=variante.pk designation_id='00000000-0000-0000-0000-000000000000' %}">
+      {% csrf_token %}
+      <header class="modale__entete">
+        <h2 class="t-section">Corriger « <span data-cible-libelle></span> »</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="grille-filtres">
+          <div class="groupe-champ">
+            <label for="type-designation">Nature</label>
+            <select class="champ" id="type-designation" name="type">
+              {% for cle, libelle in formulaire_designation.fields.type.choices %}
+                <option value="{{ cle }}">{{ libelle }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="groupe-champ">
+            <label for="valeur-designation">Désignation</label>
+            <input class="champ" id="valeur-designation" name="valeur" list="designations-connues">
+          </div>
+          <div class="groupe-champ">
+            <label for="source-designation">Employée par</label>
+            <input class="champ" id="source-designation" name="source">
+          </div>
+        </div>
+        <p class="t-legende">
+          Une référence recopiée de travers est pire qu'absente : elle ne
+          rapproche rien, et le vendeur croit pourtant avoir cherché.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <datalist id="designations-connues">
+    {% for d in designations_connues %}<option value="{{ d }}"></option>{% endfor %}
+  </datalist>
+{% endif %}
+
+{% if formulaire_compatibilite %}
+  {# ---- Déclarer un véhicule -------------------------------------------- #}
+  <dialog class="modale" id="modale-nouvelle-compatibilite">
+    <form method="post" action="{% url 'compatibilite_ajouter' variante_id=variante.pk %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">Se monte aussi sur</h2></header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="grille-filtres">
+          {% for champ in formulaire_compatibilite %}
+            <div class="groupe-champ">
+              <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+              {{ champ }}
+              {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <p class="t-legende">
+          Modèle et années sont facultatifs. Laissez-les vides plutôt que de
+          deviner : une compatibilité large se vérifie au comptoir, une
+          compatibilité inventée fait repartir un client avec la mauvaise pièce.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Déclarer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  {# ---- Corriger une compatibilité --------------------------------------- #}
+  <dialog class="modale" id="modale-compatibilite">
+    <form method="post" data-action-modele="{% url 'compatibilite_modifier' variante_id=variante.pk compatibilite_id='00000000-0000-0000-0000-000000000000' %}">
+      {% csrf_token %}
+      <header class="modale__entete">
+        <h2 class="t-section">Corriger « <span data-cible-libelle></span> »</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="grille-filtres">
+          <div class="groupe-champ">
+            <label for="marque-compat">Marque</label>
+            <input class="champ" id="marque-compat" name="marque" list="marques-connues" placeholder="Toyota">
+          </div>
+          <div class="groupe-champ">
+            <label for="modele-compat">Modèle</label>
+            <input class="champ" id="modele-compat" name="modele" list="modeles-connus" placeholder="Corolla">
+            <span class="t-legende">Vide si la pièce va sur toute la marque.</span>
+          </div>
+          <div class="groupe-champ">
+            <label for="motorisation-compat">Motorisation</label>
+            <input class="champ" id="motorisation-compat" name="motorisation" placeholder="1.4 D-4D">
+          </div>
+          <div class="groupe-champ">
+            <label for="debut-compat">De l'année</label>
+            <input class="champ" id="debut-compat" name="annee_debut" inputmode="numeric" placeholder="2012">
+          </div>
+          <div class="groupe-champ">
+            <label for="fin-compat">À l'année</label>
+            <input class="champ" id="fin-compat" name="annee_fin" inputmode="numeric" placeholder="2018">
+          </div>
+        </div>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <datalist id="marques-connues">
+    {% for m in marques_connues %}<option value="{{ m }}"></option>{% endfor %}
+  </datalist>
+  <datalist id="modeles-connus">
+    {% for m in modeles_connus %}<option value="{{ m }}"></option>{% endfor %}
+  </datalist>
+{% endif %}
+{% endblock %}

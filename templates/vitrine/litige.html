@@ -1,0 +1,50 @@
+{% extends "vitrine/base.html" %}
+{% load i18n hm marche %}
+
+{% block titre %}{% translate "Signaler un problème" %} — {{ commande.numero }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<form method="post" class="carte mx-auto max-w-2xl" novalidate data-apparition aria-labelledby="litige-titre">
+  {% csrf_token %}
+  <header class="carte-entete">
+    <h1 class="text-xl font-extrabold" id="litige-titre">{% translate "Signaler un problème" %}</h1>
+  </header>
+  <div class="carte-corps flex flex-col gap-6">
+    <p class="text-ink-muted">
+      {% blocktranslate with numero=commande.numero boutique=part.boutique.enseigne montant=part.total_ttc|fcfa %}Commande <span class="chiffre font-semibold text-ink">{{ numero }}</span> chez <strong class="text-ink">{{ boutique }}</strong> — {{ montant }} FCFA.{% endblocktranslate %}
+    </p>
+
+    {% if erreur %}
+      <div class="bandeau bandeau-erreur" role="alert">{% icone "alerte" %}<span>{{ erreur }}</span></div>
+    {% endif %}
+
+    <fieldset class="flex flex-col gap-2.5">
+      <legend class="mb-3 font-bold">{% translate "Ce qui ne va pas" %}</legend>
+      {% for code, libelle in motifs %}
+        <label class="choix">
+          <input type="radio" name="motif" value="{{ code }}" required {% if motif == code %}checked{% endif %}>
+          <span class="font-semibold">{% translate libelle %}</span>
+        </label>
+      {% endfor %}
+    </fieldset>
+
+    <div class="champ">
+      <label class="champ-libelle" for="description">{% translate "Décrivez la situation" %}</label>
+      <textarea class="input" id="description" name="description" rows="5" maxlength="4000" required aria-describedby="description-aide"
+                placeholder="{% translate 'Ce que vous avez reçu, ou pas ; ce qui manque ; ce que le commerçant vous a répondu.' %}">{{ description }}</textarea>
+      <p class="champ-aide" id="description-aide">{% translate "C'est ce texte que la plateforme lira pour trancher." %}</p>
+    </div>
+
+    <div class="bandeau bandeau-info" role="note">
+      {% icone "verrou" %}
+      <span>{% blocktranslate %}Dès l'envoi, l'argent de cette commande est <strong>gelé</strong> : il reste en séquestre chez notre partenaire agréé, ni versé au commerçant ni remboursé, jusqu'à la décision de la plateforme — sous 72 heures. La décision est motivée : vous la lirez sur votre page de commande.{% endblocktranslate %}</span>
+    </div>
+  </div>
+  <footer class="carte-pied">
+    <a class="btn btn-ghost btn-md" href="{% url 'vitrine_commande' commande.pk %}">{% translate "Annuler" %}</a>
+    <button class="btn btn-primary btn-md" type="submit">{% translate "Envoyer la réclamation" %}</button>
+  </footer>
+</form>
+{% endblock %}

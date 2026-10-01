@@ -1,0 +1,326 @@
+{% load static hm %}<!doctype html>
+<html lang="fr" data-theme="{{ theme|default:'light' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#00806A">
+<title>{% block titre %}HyperMarché{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+{% include "partials/charte.html" %}
+<link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+{% include "partials/icones_marque.html" %}
+<script src="{% static 'js/hors-ligne.js' %}" defer></script>
+{% comment %}
+Chargé partout : les tableaux de données sont le mode d'affichage principal du
+back-office, et un script par écran finirait par diverger d'un écran à l'autre.
+`defer` : il attend le document, et n'entre en action que là où un panneau
+`data-tableau` existe.
+{% endcomment %}
+<script src="{% static 'js/tableau.js' %}" defer></script>
+<script>
+  // Restaure le thème avant le premier rendu : évite le flash de bascule.
+  (function () {
+    try {
+      var t = localStorage.getItem("hm-theme");
+      if (t) document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body class="back-office">
+{% include "partials/icones.html" %}
+
+<div class="coquille">
+  <nav class="rail rail--onglets" aria-label="Navigation principale">
+    {% comment %}
+    Le commerçant qui a mis son logo voit son logo. C'est lui qui loue
+    l'emplacement ; HyperMarché reste nommé en pied de page, là où le locataire
+    a besoin de savoir chez qui il est, pas dans son bandeau de travail.
+    {% endcomment %}
+    <div class="rail__marque">
+      {% if identite.logo %}
+        <img class="rail__logo" src="{{ identite.logo.url }}" alt="{{ boutique.enseigne }}">
+      {% else %}
+        <span class="sceau" aria-hidden="true">{{ boutique.enseigne|initiales|default:"HM" }}</span>
+      {% endif %}
+      <span class="rail__nom">{{ boutique.enseigne|default:"HyperMarché" }}</span>
+    </div>
+
+    {% comment %}
+    Le rail ne montre que les écrans réellement ouverts au rôle. Afficher un
+    onglet qui répond 403 apprend à l'utilisateur que le logiciel est cassé ;
+    l'omettre lui apprend simplement où est son travail.
+    {% endcomment %}
+    <div class="rail__nav">
+      <div class="rail__groupe">
+        <p class="t-sur-titre">Exploitation</p>
+        {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page court='Accueil' %}{% endif %}
+        {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' 'Caisse' page %}{% endif %}
+        {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' 'Stock' page alertes %}{% endif %}
+        {% comment %}
+        L'entrée n'apparaît que pour les métiers qui suivent les péremptions.
+        Ailleurs elle n'aurait rien à montrer, et une entrée de navigation qui
+        ouvre sur du vide use la confiance dans les autres.
+        {% endcomment %}
+        {% if metier and 'peremption' in metier.fonctions and 'stock.voir' in droits %}
+          {% nav 'peremptions' 'ic-horloge' 'Péremptions' page peremptions %}
+        {% endif %}
+        {% comment %}
+        Même règle pour la production : elle n'apparaît que là où la boutique
+        fabrique ce qu'elle vend. Un quincaillier n'a pas de fournée.
+        {% endcomment %}
+        {% if metier and 'recette' in metier.fonctions and 'stock.voir' in droits %}
+          {% nav 'production' 'ic-production' 'Production' page %}
+        {% endif %}
+        {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' 'Ventes' page %}{% endif %}
+        {% comment %}
+        L'ordonnancier n'existe que là où l'on délivre sur ordonnance. La
+        pastille compte ce qui reste à consigner : sans elle, un registre
+        incomplet le resterait sans que personne ne le sache.
+        {% endcomment %}
+        {% if metier and 'ordonnance' in metier.fonctions and 'ventes.voir' in droits %}
+          {% nav 'ordonnancier' 'ic-ordonnance' 'Ordonnancier' page ordonnances_a_consigner %}
+        {% endif %}
+        {% comment %}
+        Même règle pour la garantie : l'entrée n'existe que là où les appareils
+        sont suivis un par un. La pastille compte ce qui dort à l'atelier —
+        c'est-à-dire les clients qui attendent.
+        {% endcomment %}
+        {% if metier and 'serie' in metier.fonctions and 'ventes.voir' in droits %}
+          {% nav 'garantie' 'ic-garantie' 'Garantie' page appareils_a_l_atelier %}
+        {% endif %}
+        {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' 'Commandes' page commandes_a_traiter %}{% endif %}
+      </div>
+
+      {% if 'comptabilite.voir' in droits or 'boutique.voir' in droits %}
+        <div class="rail__groupe rail__groupe--secondaire">
+          <p class="t-sur-titre">Gestion</p>
+          {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page court='Compta' %}{% endif %}
+          {% comment %}
+          Les versements : l'argent qui revient à la boutique, bloqué puis disponible. Ouvert à
+          qui lit la comptabilité — seul le gérant peut en demander un, l'écran le dit.
+          {% endcomment %}
+          {% if 'comptabilite.voir' in droits %}{% nav 'versements_marchand' 'ic-argent' 'Versements' page %}{% endif %}
+          {% if 'boutique.voir' in droits %}{% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}{% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="rail__pied">
+      <div class="compte">
+        <span class="jeton" aria-hidden="true">{{ boutique.enseigne|initiales }}</span>
+        <div class="pile-sm" style="min-width:0">
+          <span class="t-petit" style="font-weight:580;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ boutique.enseigne }}</span>
+          <span class="t-legende">{{ boutique.ville }}</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div style="min-width:0">
+    {% comment %}
+    `bandeau--boutique` : sur téléphone, ce bandeau passe sur deux rangées (voir
+    hypermarche.css). Les actions propres à l'écran sont regroupées dans
+    `bandeau__page` pour descendre ensemble à la seconde ; le bloc tient sur une
+    ligne pour qu'un écran sans action laisse le conteneur réellement vide.
+    {% endcomment %}
+    <header class="bandeau bandeau--boutique">
+      <h1 class="bandeau__titre">{% block entete %}{% endblock %}</h1>
+      <div class="bandeau__actions">
+        <div class="bandeau__page">{% block actions_entete %}{% endblock %}</div>
+
+        {% comment %}
+        Le « ? » de l'écran courant, posé ici une fois plutôt que dans chaque
+        gabarit : un bouton d'aide qu'il faut penser à ajouter finit par manquer
+        précisément sur l'écran le moins évident.
+
+        Il emporte l'adresse d'où l'on vient, pour que « Retour » ramène au bon
+        endroit, et l'ancre de l'écran pour ouvrir directement la bonne fiche.
+        Il n'apparaît pas sur l'aide elle-même.
+        {% endcomment %}
+        {% if page and page != 'aide' %}
+          <a class="btn btn--icone btn--discret" aria-label="Aide sur cet écran"
+             title="Aide sur cet écran"
+             href="{% url 'aide' %}?de={{ request.get_full_path|urlencode }}#{{ page }}">
+            <svg><use href="#ic-info"></use></svg>
+          </a>
+        {% endif %}
+
+        {% comment %}
+        Le sélecteur n'apparaît qu'à partir de deux dépôts : un commerçant qui
+        n'en a qu'un n'a pas à choisir chaque matin entre une seule option. Ce
+        qu'il désigne ici, c'est le dépôt d'exploitation — celui où l'on encaisse,
+        où l'on reçoit, où l'on compte.
+        {% endcomment %}
+        {% if depots|length > 1 %}
+          <form class="choix-depot" method="post" action="{% url 'choisir_depot' %}">
+            {% csrf_token %}
+            <input type="hidden" name="suite" value="{{ request.get_full_path }}">
+            <label class="t-legende" for="choix-depot">Dépôt</label>
+            <select class="champ champ--compact" name="depot" id="choix-depot"
+                    onchange="this.form.submit()">
+              {% for d in depots %}
+                <option value="{{ d.pk }}" {% if depot_courant and d.pk == depot_courant.pk %}selected{% endif %}>
+                  {{ d.libelle }}
+                </option>
+              {% endfor %}
+            </select>
+            <noscript><button class="btn" type="submit">Changer</button></noscript>
+          </form>
+        {% endif %}
+
+        <span class="indic-reseau" id="indic-reseau" data-hors-ligne="false" title="État de la connexion">
+          <span class="indic-reseau__point" aria-hidden="true"></span>
+          <span id="indic-reseau-texte">En ligne</span>
+        </span>
+
+        <button class="btn btn--icone btn--discret" id="bascule-theme"
+                aria-label="Basculer le thème clair ou sombre" title="Thème clair ou sombre">
+          <svg id="icone-theme"><use href="#ic-sombre"></use></svg>
+        </button>
+
+        {% comment %}
+        Vers `deconnexion`, qui ferme la session. Le lien menait à `connexion` :
+        la page de connexion s'affichait, mais la session restait ouverte — sur la
+        tablette partagée d'une boutique, le suivant n'avait qu'à revenir en
+        arrière pour travailler sous le nom du précédent.
+        {% endcomment %}
+        <a class="btn btn--icone btn--discret" href="{% url 'deconnexion' %}" aria-label="Se déconnecter"
+           title="Se déconnecter">
+          <svg><use href="#ic-sortie"></use></svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="zone {% block classe_zone %}{% endblock %}">
+      {% comment %}
+      L'avis au gérant : un compte de versement a été déclaré pour sa boutique par quelqu'un
+      d'autre. Tout en haut, sur toutes les pages, tant qu'il n'a pas répondu — c'est pendant le
+      délai de carence qu'une réponse « ce n'est pas moi » empêche l'argent de partir.
+      {% endcomment %}
+      {% for compte in comptes_a_confirmer %}
+        <div class="bandeau-info bandeau-info--alerte" role="alert" style="margin-bottom:12px">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span class="colonne" style="gap:8px">
+            <span>
+              <strong>Un compte de versement a été déclaré pour votre boutique</strong> le
+              {{ compte.cree_le|date:"d/m/Y à H:i" }} : {{ compte.get_operateur_display }}
+              se terminant par <span class="chiffre">{{ compte.numero|slice:"-4:" }}</span>,
+              au nom de « {{ compte.titulaire }} ». Votre argent sera versé sur ce compte.
+              Est-ce bien vous ?
+            </span>
+            <span class="rangee" style="gap:8px;flex-wrap:wrap">
+              <form method="post" action="{% url 'compte_confirmer' compte.pk %}">{% csrf_token %}
+                <button class="btn" type="submit">C'est bien moi</button>
+              </form>
+              <form method="post" action="{% url 'compte_contester' compte.pk %}"
+                    onsubmit="return confirm('Ce compte sera retiré, les versements prévus annulés, et la plateforme prévenue. Continuer ?')">
+                {% csrf_token %}
+                <button class="btn btn--danger-plein" type="submit">Ce n'est pas moi</button>
+              </form>
+            </span>
+          </span>
+        </div>
+      {% endfor %}
+
+      {% if messages %}
+        <div class="colonne" style="gap:8px;margin-bottom:16px">
+          {% for message in messages %}
+            <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% elif message.tags == 'success' %}bandeau-info--succes{% endif %} bandeau-info--message"
+                 role="status">
+              <svg><use href="#{% if message.tags == 'error' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% block contenu %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script>
+  // --- Thème -------------------------------------------------------------
+  (function () {
+    var racine = document.documentElement;
+    var bouton = document.getElementById("bascule-theme");
+    var icone = document.getElementById("icone-theme");
+
+    function refletIcone() {
+      var sombre = racine.getAttribute("data-theme") === "dark";
+      icone.querySelector("use").setAttribute("href", sombre ? "#ic-clair" : "#ic-sombre");
+    }
+    refletIcone();
+
+    bouton.addEventListener("click", function () {
+      var suivant = racine.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      racine.setAttribute("data-theme", suivant);
+      try { localStorage.setItem("hm-theme", suivant); } catch (e) {}
+      refletIcone();
+    });
+  })();
+
+  // --- Indicateur de connexion et file d'attente -------------------------
+  // Le mode hors ligne est une contrainte d'architecture (ADR-004) : l'état du
+  // réseau et le nombre de ventes non transmises doivent être visibles en
+  // permanence, pas découverts au moment de l'échec.
+  (function () {
+    var indic = document.getElementById("indic-reseau");
+    var texte = document.getElementById("indic-reseau-texte");
+    var enAttente = 0;
+
+    function refleter() {
+      var horsLigne = !navigator.onLine;
+      indic.dataset.horsLigne = horsLigne || enAttente > 0 ? "true" : "false";
+
+      if (enAttente > 0) {
+        // « opération » et non « vente » : la file porte désormais aussi les
+        // réceptions de marchandise saisies pendant une coupure.
+        texte.textContent =
+          enAttente + " opération" + (enAttente > 1 ? "s" : "") + " en attente d'envoi";
+      } else if (horsLigne) {
+        texte.textContent = "Hors ligne — les saisies sont conservées";
+      } else {
+        texte.textContent = "En ligne";
+      }
+    }
+
+    window.addEventListener("online", refleter);
+    window.addEventListener("offline", refleter);
+
+    // `hors-ligne.js` est chargé en `defer` : il s'exécute après ce script en
+    // ligne, mais avant `DOMContentLoaded`. S'abonner tout de suite trouverait
+    // `window.HorsLigne` indéfini — et l'indicateur resterait muet sans que rien
+    // ne le signale.
+    document.addEventListener("DOMContentLoaded", function () {
+      if (!window.HorsLigne) {
+        // Une garde qui échoue en silence est un défaut permanent : ici, le
+        // compteur de ventes en attente disparaîtrait sans que personne l'apprenne.
+        console.error("File hors ligne absente : les opérations en attente ne seront pas comptées.");
+        return;
+      }
+      window.HorsLigne.surChangement(function (n) {
+        enAttente = n;
+        refleter();
+      });
+    });
+
+    refleter();
+  })();
+
+  // --- Installation de l'application -------------------------------------
+  // Le service worker est servi depuis la racine pour couvrir toute
+  // l'application ; il ne met jamais en cache un encaissement.
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(function (e) {
+        console.warn("Service worker non enregistré", e);
+      });
+    });
+  }
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

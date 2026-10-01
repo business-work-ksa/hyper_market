@@ -1,0 +1,23 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% block fil_parent %}Boutiques{% endblock %}
+{% block question %}L'emplacement loué, et ses conditions{% endblock %}
+{% block phrase %}On ne vend pas un abonnement : on loue un emplacement, avec un loyer, un dépôt de garantie et une commission sur les ventes en ligne.{% endblock %}
+{% block etape %}
+  {% include "plateforme/partials/a_cartes.html" with champ=form.offre cartes=cartes_offres classe="a-cartes--offres" %}
+  <div class="a-grille-2">
+    {% include "plateforme/partials/a_champ.html" with champ=form.rayon %}
+    {% include "plateforme/partials/a_champ.html" with champ=form.debut %}
+  </div>
+  <div class="a-grille-3">
+    {% include "plateforme/partials/a_champ.html" with champ=form.loyer_mensuel %}
+    {% include "plateforme/partials/a_champ.html" with champ=form.depot_garantie %}
+    {% include "plateforme/partials/a_champ.html" with champ=form.taux_commission %}
+  </div>
+  <div class="a-derogation" data-derogation>
+    <p class="a-derogation__signal" data-derogation-signal hidden>
+      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-alerte"></use></svg>
+      <span>Ce taux s'écarte de celui de l'offre (<strong data-taux-reference></strong>) : le motif devient obligatoire.</span>
+    </p>
+    {% include "plateforme/partials/a_champ.html" with champ=form.motif_derogation %}
+  </div>
+{% endblock %}

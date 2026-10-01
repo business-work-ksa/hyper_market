@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Caisse — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Caisse{% endblock %}
+{% block classe_zone %}zone--large{% endblock %}
+
+{% block actions_entete %}
+  {% if session_caisse %}
+    <span class="puce puce--bon">
+      <svg><use href="#ic-check"></use></svg>
+      Caisse ouverte · {{ tickets_session }} ticket{{ tickets_session|pluralize }}
+    </span>
+    <a class="btn" href="{% url 'session_caisse' %}">Fermer la caisse</a>
+  {% else %}
+    <a class="btn btn--primaire" href="{% url 'session_caisse' %}">Ouvrir la caisse</a>
+  {% endif %}
+{% endblock %}
+
+{% block contenu %}
+<div class="caisse">
+
+  {# ---- Catalogue ------------------------------------------------------- #}
+  {% comment %}
+  Cibles tactiles larges, prix en évidence : la contrainte de conception est
+  une ligne saisie en moins de 4 secondes (docs/04, §3).
+  {% endcomment %}
+  <section class="caisse__catalogue" aria-label="Articles">
+    <div class="caisse__barre">
+      <div class="recherche">
+        <svg><use href="#ic-recherche"></use></svg>
+        <input class="champ" type="search" id="recherche-article" autocomplete="off"
+               placeholder="Rechercher un article ou scanner un code-barres" aria-label="Rechercher un article">
+      </div>
+      <button class="btn" type="button" id="vider-recherche">Effacer</button>
+    </div>
+
+    {% comment %}
+    La grille est rendue par le serveur — la caisse reste utilisable sans
+    JavaScript — puis reconstruite au chargement à partir du catalogue rapporté
+    du serveur, ou du dernier catalogue rangé dans IndexedDB si le réseau manque.
+    Sans cela, une page servie depuis le cache du service worker figerait aussi
+    son catalogue : l'article créé ce matin resterait invisible cet après-midi.
+    {% endcomment %}
+    <p class="bandeau-info bandeau-info--alerte" id="etat-catalogue" hidden>
+      <svg><use href="#ic-alerte"></use></svg>
+      <span id="etat-catalogue-texte"></span>
+    </p>
+
+    <div class="grille-articles" id="grille-articles">
+      {% for a in articles %}
+        <button class="article-tuile" type="button"
+                data-id="{{ a.id }}" data-libelle="{{ a.libelle }}" data-prix="{{ a.prix }}"
+                data-sku="{{ a.sku }}" data-stock="{{ a.stock }}"
+                data-ordonnance="{% if a.sur_ordonnance %}1{% endif %}"
+                data-serie="{% if a.suivi_unitaire %}1{% endif %}"
+                data-recherche="{{ a.libelle|lower }} {{ a.sku|lower }}">
+          <span class="article-tuile__nom">{{ a.libelle }}</span>
+          {% if a.sur_ordonnance %}
+            <span class="puce puce--alerte"><svg><use href="#ic-info"></use></svg>Ordonnance</span>
+          {% endif %}
+          {% if a.suivi_unitaire %}
+            <span class="puce"><svg><use href="#ic-verrou"></use></svg>Numéro de série</span>
+          {% endif %}
+          <span class="article-tuile__pied">
+            <span class="article-tuile__prix">{{ a.prix|fcfa }}</span>
+            <span class="t-legende chiffre">{{ a.stock|quantite }} en stock</span>
+          </span>
+        </button>
+      {% empty %}
+        <div class="vide" style="grid-column:1/-1">
+          <svg><use href="#ic-stock"></use></svg>
+          <p class="t-2">Aucun article au catalogue.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# ---- Ticket ---------------------------------------------------------- #}
+  <aside class="ticket" aria-label="Ticket en cours">
+    <header class="ticket__entete">
+      <h2 class="t-section">Ticket en cours</h2>
+      <button class="btn btn--discret pousse" type="button" id="vider-ticket">Annuler</button>
+    </header>
+
+    <div class="ticket__lignes" id="lignes-ticket">
+      <div class="ticket__vide" id="ticket-vide">
+        <svg><use href="#ic-panier"></use></svg>
+        <p class="t-2">Touchez un article pour l'ajouter.</p>
+      </div>
+    </div>
+
+    <div class="ticket__totaux">
+      <div class="ligne-total"><span>Total hors taxes</span><span class="montant" id="total-ht">0</span></div>
+      <div class="ligne-total"><span>TVA 19,25 %</span><span class="montant" id="total-tva">0</span></div>
+      <div class="ligne-total ligne-total--net">
+        <span>À payer</span>
+        <span class="montant"><span id="total-ttc">0</span> <span class="t-2" style="font-size:14px;font-weight:520">FCFA</span></span>
+      </div>
+    </div>
+
+    <div class="ticket__paiement">
+      <div class="moyens" role="group" aria-label="Moyen de paiement">
+        <button class="moyen" type="button" data-moyen="especes" aria-pressed="true">
+          <svg><use href="#ic-especes"></use></svg> Espèces
+        </button>
+        <button class="moyen" type="button" data-moyen="mobile_money" aria-pressed="false">
+          <svg><use href="#ic-momo"></use></svg> Mobile Money
+        </button>
+        <button class="moyen" type="button" data-moyen="carte" aria-pressed="false">
+          <svg><use href="#ic-carte"></use></svg> Carte
+        </button>
+      </div>
+
+      {% comment %}
+      Demandée au comptoir, pendant que le client est là — réseau ou pas : le
+      drapeau voyage jusque dans le catalogue hors ligne. Le rattrapage par
+      l'ordonnancier est le filet, pas le chemin normal.
+      {% endcomment %}
+      <div class="groupe-champ" id="bloc-ordonnance" hidden>
+        <label for="mention-ordonnance">Ordonnance — prescripteur et date</label>
+        <input class="champ" id="mention-ordonnance" autocomplete="off"
+               placeholder="Dr Manga, 11/09/2026">
+        <span class="t-legende">
+          Ce ticket contient un médicament délivré sur ordonnance. La mention
+          part à l'ordonnancier.
+        </span>
+      </div>
+
+      <button class="btn btn--primaire btn--grand btn--bloc" type="button" id="encaisser" disabled>
+        Encaisser
+      </button>
+
+      <p class="t-legende" style="text-align:center" id="message-caisse">
+        La vente sort le stock et génère les écritures comptables.
+      </p>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+
+  var TAUX_TVA = 0.1925;
+  var panier = new Map();
+  var moyen = "especes";
+
+  var elLignes   = document.getElementById("lignes-ticket");
+  var elVide     = document.getElementById("ticket-vide");
+  var elHT       = document.getElementById("total-ht");
+  var elTVA      = document.getElementById("total-tva");
+  var elTTC      = document.getElementById("total-ttc");
+  var elEncaisser= document.getElementById("encaisser");
+  var elMessage  = document.getElementById("message-caisse");
+  var elRecherche= document.getElementById("recherche-article");
+  var elOrdonnance = document.getElementById("mention-ordonnance");
+  var elBlocOrdonnance = document.getElementById("bloc-ordonnance");
+
+  function fcfa(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  // --- Panier ------------------------------------------------------------
+  function ajouter(donnees) {
+    var ligne = panier.get(donnees.id);
+    if (ligne) { ligne.quantite += 1; }
+    else {
+      panier.set(donnees.id, {
+        id: donnees.id,
+        libelle: donnees.libelle,
+        prix: parseFloat(donnees.prix),
+        quantite: 1,
+        ordonnance: donnees.ordonnance === "1",
+        serie: donnees.serie === "1",
+        // Les numéros saisis vivent sur la ligne du panier, pas dans le DOM :
+        // la liste est redessinée à chaque changement de quantité, et des
+        // valeurs qui n'existeraient que dans les champs disparaîtraient au
+        // premier « + ».
+        numeros: [],
+      });
+    }
+    ajusterNumeros(panier.get(donnees.id));
+    rendre();
+  }
+
+  function ajusterNumeros(ligne) {
+    if (!ligne.serie) return;
+    while (ligne.numeros.length < ligne.quantite) ligne.numeros.push("");
+    ligne.numeros.length = ligne.quantite;
+  }
+
+  function modifier(id, delta) {
+    var ligne = panier.get(id);
+    if (!ligne) return;
+    ligne.quantite += delta;
+    if (ligne.quantite <= 0) { panier.delete(id); }
+    else { ajusterNumeros(ligne); }
+    rendre();
+  }
+
+  function rendre() {
+    elLignes.querySelectorAll(".ligne-ticket").forEach(function (n) { n.remove(); });
+    elVide.hidden = panier.size > 0;
+
+    var ttc = 0;
+    var ordonnance = false;
+    panier.forEach(function (ligne) {
+      if (ligne.ordonnance) ordonnance = true;
+      var total = ligne.prix * ligne.quantite;
+      ttc += total;
+
+      var noeud = document.createElement("div");
+      noeud.className = "ligne-ticket";
+      noeud.innerHTML =
+        '<span class="ligne-ticket__nom"></span>' +
+        '<span class="ligne-ticket__total">' + fcfa(total) + "</span>" +
+        '<span class="ligne-ticket__meta">' + fcfa(ligne.prix) + " FCFA l'unité</span>" +
+        '<span class="pas-a-pas">' +
+          '<button type="button" data-action="moins" aria-label="Retirer un">−</button>' +
+          "<span>" + ligne.quantite + "</span>" +
+          '<button type="button" data-action="plus" aria-label="Ajouter un">+</button>' +
+        "</span>";
+      noeud.querySelector(".ligne-ticket__nom").textContent = ligne.libelle;
+      noeud.querySelectorAll("button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          modifier(ligne.id, b.dataset.action === "plus" ? 1 : -1);
+        });
+      });
+
+      // Un champ par exemplaire vendu, pas un champ à séparateurs : l'appareil
+      // est sur le comptoir, on scanne son étiquette et on passe au suivant.
+      if (ligne.serie) {
+        var bloc = document.createElement("span");
+        bloc.className = "ligne-ticket__series";
+        ligne.numeros.forEach(function (valeur, index) {
+          var champ = document.createElement("input");
+          champ.className = "champ champ--compact";
+          champ.type = "text";
+          champ.value = valeur;
+          champ.autocomplete = "off";
+          champ.spellcheck = false;
+          champ.placeholder = "N° de série " + (index + 1);
+          champ.setAttribute("aria-label", "Numéro de série " + (index + 1) + " — " + ligne.libelle);
+          champ.addEventListener("input", function () {
+            ligne.numeros[index] = champ.value;
+          });
+          bloc.appendChild(champ);
+        });
+        noeud.appendChild(bloc);
+      }
+
+      elLignes.appendChild(noeud);
+    });
+
+    // Les prix sont affichés TTC : le HT s'en déduit, jamais l'inverse.
+    var ht = ttc / (1 + TAUX_TVA);
+    elHT.textContent  = fcfa(ht);
+    elTVA.textContent = fcfa(ttc - ht);
+    elTTC.textContent = fcfa(ttc);
+
+    // Le champ n'est pas grisé quand il ne sert pas : il n'est pas là. Même
+    // règle que partout ailleurs — ce qui ne s'applique pas ne s'affiche pas.
+    elBlocOrdonnance.hidden = !ordonnance;
+    if (!ordonnance) elOrdonnance.value = "";
+    elEncaisser.disabled = panier.size === 0;
+  }
+
+  // --- Catalogue ---------------------------------------------------------
+  // Délégation plutôt qu'un écouteur par tuile : la grille est reconstruite
+  // quand le catalogue est rafraîchi, et des écouteurs posés une fois pour
+  // toutes survivraient mal à ce remplacement.
+  var elGrille = document.getElementById("grille-articles");
+  var elEtatCatalogue = document.getElementById("etat-catalogue");
+  var elEtatTexte = document.getElementById("etat-catalogue-texte");
+
+  elGrille.addEventListener("click", function (evt) {
+    var tuile = evt.target.closest(".article-tuile");
+    if (tuile) ajouter(tuile.dataset);
+  });
+
+  function dessinerGrille(articles) {
+    if (!articles || articles.length === 0) return;
+    var fragment = document.createDocumentFragment();
+
+    articles.forEach(function (a) {
+      var tuile = document.createElement("button");
+      tuile.className = "article-tuile";
+      tuile.type = "button";
+      tuile.dataset.id = a.id;
+      tuile.dataset.libelle = a.libelle;
+      tuile.dataset.prix = a.prix;
+      tuile.dataset.sku = a.sku;
+      tuile.dataset.stock = a.stock;
+      tuile.dataset.ordonnance = a.sur_ordonnance ? "1" : "";
+      tuile.dataset.serie = a.suivi_unitaire ? "1" : "";
+      tuile.dataset.recherche = (
+        a.libelle + " " + a.sku + " " + (a.code_barres || "")
+      ).toLowerCase();
+
+      var nom = document.createElement("span");
+      nom.className = "article-tuile__nom";
+      nom.textContent = a.libelle;
+
+      var pied = document.createElement("span");
+      pied.className = "article-tuile__pied";
+      var prix = document.createElement("span");
+      prix.className = "article-tuile__prix";
+      prix.textContent = fcfa(a.prix);
+      var stock = document.createElement("span");
+      stock.className = "t-legende chiffre";
+      stock.textContent = Math.round(a.stock * 10000) / 10000 + " en stock";
+      pied.appendChild(prix);
+      pied.appendChild(stock);
+
+      tuile.appendChild(nom);
+      if (a.sur_ordonnance) {
+        var marque = document.createElement("span");
+        marque.className = "puce puce--alerte";
+        marque.textContent = "Ordonnance";
+        tuile.appendChild(marque);
+      }
+      if (a.suivi_unitaire) {
+        var marqueSerie = document.createElement("span");
+        marqueSerie.className = "puce";
+        marqueSerie.textContent = "Numéro de série";
+        tuile.appendChild(marqueSerie);
+      }
+      tuile.appendChild(pied);
+      fragment.appendChild(tuile);
+    });
+
+    elGrille.innerHTML = "";
+    elGrille.appendChild(fragment);
+    elRecherche.dispatchEvent(new Event("input"));
+  }
+
+  function annoncerCache(range) {
+    if (!range) return;
+    var quand = new Date(range);
+    elEtatTexte.textContent =
+      "Hors ligne : catalogue du " +
+      quand.toLocaleDateString("fr-FR") +
+      " à " +
+      quand.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) +
+      ". Les quantités affichées peuvent avoir bougé.";
+    elEtatCatalogue.hidden = false;
+  }
+
+  // Au chargement : on rapporte le catalogue frais et on le range pour la
+  // prochaine coupure ; à défaut de réseau, on ressort le dernier connu.
+  //
+  // Sur `DOMContentLoaded` et non tout de suite : `hors-ligne.js` est chargé en
+  // `defer`, donc après ce script en ligne. Appelé plus tôt, `window.HorsLigne`
+  // serait indéfini et la synchronisation ne se ferait jamais — silencieusement.
+  document.addEventListener("DOMContentLoaded", function synchroniserCatalogue() {
+    if (!window.HorsLigne) {
+      console.error("File hors ligne absente : le catalogue ne sera pas rafraîchi ni conservé.");
+      return;
+    }
+
+    fetch("/caisse/catalogue.json", { headers: { Accept: "application/json" } })
+      .then(function (reponse) {
+        if (!reponse.ok) throw new Error("catalogue indisponible");
+        return reponse.json();
+      })
+      .then(function (corps) {
+        dessinerGrille(corps.articles);
+        return window.HorsLigne.catalogue.enregistrer(corps.articles, corps);
+      })
+      .catch(function () {
+        return window.HorsLigne.catalogue.lire().then(function (enregistrement) {
+          if (!enregistrement) return;
+          dessinerGrille(enregistrement.articles);
+          annoncerCache(enregistrement.range_le);
+        });
+      });
+  });
+
+  elRecherche.addEventListener("input", function () {
+    var terme = elRecherche.value.trim().toLowerCase();
+    document.querySelectorAll(".article-tuile").forEach(function (tuile) {
+      tuile.hidden = terme !== "" && tuile.dataset.recherche.indexOf(terme) === -1;
+    });
+  });
+
+  // Une douchette de code-barres tape vite puis envoie Entrée : si un seul
+  // article reste visible, on l'ajoute et on vide le champ.
+  elRecherche.addEventListener("keydown", function (evt) {
+    if (evt.key !== "Enter") return;
+    evt.preventDefault();
+    var visibles = Array.prototype.filter.call(
+      document.querySelectorAll(".article-tuile"), function (t) { return !t.hidden; }
+    );
+    if (visibles.length === 1) {
+      ajouter(visibles[0].dataset);
+      elRecherche.value = "";
+      elRecherche.dispatchEvent(new Event("input"));
+    }
+  });
+
+  document.getElementById("vider-recherche").addEventListener("click", function () {
+    elRecherche.value = "";
+    elRecherche.dispatchEvent(new Event("input"));
+    elRecherche.focus();
+  });
+
+  document.getElementById("vider-ticket").addEventListener("click", function () {
+    panier.clear();
+    rendre();
+  });
+
+  // --- Moyen de paiement -------------------------------------------------
+  document.querySelectorAll(".moyen").forEach(function (bouton) {
+    bouton.addEventListener("click", function () {
+      document.querySelectorAll(".moyen").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+      bouton.setAttribute("aria-pressed", "true");
+      moyen = bouton.dataset.moyen;
+    });
+  });
+
+  // --- Encaissement ------------------------------------------------------
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+
+  elEncaisser.addEventListener("click", function () {
+    if (panier.size === 0) return;
+
+    // Le numéro se lit sur l'appareil posé sur le comptoir. Le réclamer ici est
+    // le seul moment où il est lisible ; l'écran de garantie ne pourrait le
+    // rattraper qu'en le demandant de mémoire. Le serveur, lui, ne refuse rien —
+    // une vente encaissée n'est jamais annulée pour un registre (ADR-005).
+    var incomplete = null;
+    panier.forEach(function (l) {
+      if (!incomplete && l.serie && l.numeros.some(function (n) { return !n.trim(); })) {
+        incomplete = l;
+      }
+    });
+    if (incomplete) {
+      elMessage.textContent =
+        "Saisissez le numéro de série de chaque « " + incomplete.libelle + " » avant d'encaisser.";
+      // `querySelector("[value='']")` ne marcherait pas : les champs sont
+      // remplis par la propriété `value`, qui ne modifie pas l'attribut.
+      var vides = Array.prototype.filter.call(
+        elLignes.querySelectorAll(".ligne-ticket__series input"),
+        function (champ) { return !champ.value.trim(); }
+      );
+      if (vides.length) vides[0].focus();
+      return;
+    }
+
+    var lignes = [];
+    panier.forEach(function (l) {
+      var entree = { variante: l.id, quantite: l.quantite };
+      if (l.serie) entree.numeros = l.numeros.map(function (n) { return n.trim(); });
+      lignes.push(entree);
+    });
+
+    // Clé d'idempotence générée côté client : une retransmission après coupure
+    // réseau ne créera jamais deux ventes (ADR-004). C'est elle qui autorise la
+    // file d'attente à rejouer sans risque.
+    var charge = { operation_id: uuid(), lignes: lignes, moyen: moyen };
+    if (!elBlocOrdonnance.hidden) {
+      var mention = elOrdonnance.value.trim();
+      if (!mention) {
+        elMessage.textContent =
+          "Indiquez le prescripteur et la date de l'ordonnance avant d'encaisser.";
+        elOrdonnance.focus();
+        return;
+      }
+      charge.mention_ordonnance = mention;
+    }
+
+    elEncaisser.disabled = true;
+    elEncaisser.textContent = "Encaissement…";
+
+    // Le panier est vidé dès la mise en file, pas à la confirmation du serveur :
+    // le caissier a encaissé, le client attend, la vente ne peut plus être
+    // reprise. C'est le serveur qui rattrapera le réseau, pas le vendeur.
+    window.FileVentes.encaisser(charge)
+      .then(function (resultat) {
+        if (resultat.etat === "envoyee") {
+          elMessage.innerHTML = "";
+          var lien = document.createElement("a");
+          lien.href = "/ventes/";
+          lien.textContent =
+            "Ticket " + resultat.corps.numero + " encaissé — " + fcfa(resultat.corps.total) + " FCFA.";
+          lien.style.fontWeight = "580";
+          elMessage.appendChild(lien);
+          panier.clear();
+          elOrdonnance.value = "";
+          rendre();
+        } else if (resultat.etat === "en_attente") {
+          elMessage.textContent =
+            "Vente conservée (" + resultat.enAttente + " en attente). Elle partira au retour du réseau.";
+          panier.clear();
+          rendre();
+        } else {
+          elMessage.textContent = resultat.erreur || "L'encaissement a échoué.";
+        }
+      })
+      .finally(function () {
+        elEncaisser.textContent = "Encaisser";
+        elEncaisser.disabled = panier.size === 0;
+      });
+  });
+
+  rendre();
+})();
+</script>
+<form hidden>{% csrf_token %}</form>
+{% endblock %}

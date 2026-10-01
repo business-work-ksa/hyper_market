@@ -1,0 +1,56 @@
+{% comment %}
+Un compte de versement du dossier. Paramètre : `ligne` = {compte, concorde, alertes, refus_moi,
+par_le_commercant, en_carence}. Le numéro est complet ici : c'est lui qu'on contrôle chez l'opérateur.
+{% endcomment %}
+{% with c=ligne.compte %}
+<article class="v-element{% if cible == c.pk|stringformat:'s' %} v-element--cible{% endif %}" id="compte-{{ c.pk }}">
+  <div class="v-element__tete">
+    <span class="v-icone {% if c.etat == 'verifie' %}v-icone--bon{% elif c.etat == 'rejete' %}v-icone--critique{% elif c.etat == 'en_attente' %}v-icone--or{% endif %}" aria-hidden="true">
+      <svg><use href="#{% if c.operateur == 'VIREMENT_BANCAIRE' %}ic-argent{% else %}ic-momo{% endif %}"></use></svg>
+    </span>
+    <span class="pile-sm" style="gap:1px;min-width:0">
+      <span class="v-element__titre">{{ c.get_operateur_display }}</span>
+      <span class="t-legende v-numero">{{ c.numero }}</span>
+    </span>
+    {% include "plateforme/partials/v_etat.html" with etat=c.etat libelle=c.get_etat_display %}
+  </div>
+  <dl class="cles">
+    <dt>Titulaire</dt>
+    <dd>{{ c.titulaire }}
+      {% if c.etat != 'retire' and c.etat != 'rejete' %}
+        {% if ligne.concorde %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>correspond</span>
+        {% else %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>ne correspond pas</span>{% endif %}
+      {% endif %}
+    </dd>
+    <dt>Déclaré</dt><dd>{% if ligne.par_le_commercant %}par le commerçant{% else %}par {{ c.declare_par.nom_complet|default:"—" }}{% endif %}, le {{ c.cree_le|date:"d/m/Y à H:i" }}</dd>
+    {% if c.etat == 'verifie' %}
+      <dt>Utilisable</dt><dd>{% if ligne.en_carence %}à partir du {{ c.utilisable_le|date:"d/m/Y à H:i" }} — délai de carence en cours{% else %}depuis le {{ c.utilisable_le|date:"d/m/Y à H:i" }}{% endif %}</dd>
+    {% endif %}
+    {% if c.motif %}<dt>{% if c.etat == 'rejete' %}Motif du rejet{% else %}Motif{% endif %}</dt><dd>{{ c.motif }}</dd>{% endif %}
+  </dl>
+  {% for alerte in ligne.alertes %}
+    <div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ alerte }}</span></div>
+  {% endfor %}
+  {% if c.etat == 'en_attente' %}
+    {% if not ligne.concorde %}
+      <div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>Le titulaire ne correspond ni au nom lu sur une pièce validée du gérant, ni à la raison sociale : la vérification sera refusée.</span></div>
+    {% endif %}
+    <form class="v-decision" method="post" action="{% url 'plateforme:verification_compte' c.pk %}">
+      {% csrf_token %}
+      {% if ligne.refus_moi %}
+        <p class="v-refus-moi"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg><span>{{ ligne.refus_moi }}</span></p>
+      {% else %}
+        <button class="btn btn--primaire" type="submit" name="decision" value="valider">
+          <svg aria-hidden="true"><use href="#ic-check"></use></svg>Vérifier ({{ delai_carence_heures }} h de carence)
+        </button>
+      {% endif %}
+      <details>
+        <summary class="btn">Rejeter…</summary>
+        <label class="lecteur-seul" for="motif-{{ c.pk }}">Motif du rejet</label>
+        <textarea class="champ" id="motif-{{ c.pk }}" name="motif" rows="2" maxlength="300" placeholder="Ce que le commerçant doit corriger"></textarea>
+        <button class="btn btn--danger" type="submit" name="decision" value="rejeter" style="margin-top:8px">Rejeter avec ce motif</button>
+      </details>
+    </form>
+  {% endif %}
+</article>
+{% endwith %}

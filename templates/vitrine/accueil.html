@@ -1,0 +1,182 @@
+{% extends "vitrine/base.html" %}
+{% load static i18n hm marche %}
+
+{% block titre %}{% translate "HyperMarché — le marché de Douala et Yaoundé, livré chez vous" %}{% endblock %}
+
+{% block contenu %}
+{% comment %}
+L'accueil répond en dix secondes à trois questions : qu'est-ce qu'on trouve ici, à qui j'achète,
+et est-ce que mon argent est en sécurité. Dans cet ordre, parce que c'est l'ordre dans lequel un
+visiteur de passage décide de rester.
+{% endcomment %}
+
+{# ---- Accroche ---------------------------------------------------------------------------- #}
+<section class="relative isolate -mt-6 pb-14 pt-12 sm:-mt-8 sm:pb-20 sm:pt-16" aria-labelledby="accroche-titre">
+  {% comment %}
+  L'arrière-plan : une rue de marché dessinée (static/marque/illustrations/marche.svg, 23 Ko),
+  qui glisse plus lentement que la page. Le dégradé garde le texte lisible au-dessus, dans les
+  deux thèmes : il part de la couleur du fond, quelle qu'elle soit.
+  {% endcomment %}
+  <div class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 overflow-hidden" aria-hidden="true">
+    <img class="absolute inset-0 size-full object-cover object-right opacity-90 dark:opacity-40" data-parallaxe
+         src="{% static 'marque/illustrations/marche.svg' %}" alt="" width="1600" height="640" fetchpriority="high" decoding="async">
+    <div class="absolute inset-0 bg-gradient-to-r from-bg via-bg/90 to-bg/5 lg:via-bg/70"></div>
+    <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg to-transparent"></div>
+  </div>
+
+  <div class="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
+    <div class="flex flex-col gap-6">
+      <span class="badge badge-accent self-start" data-apparition>{% icone "etincelle" %}{% translate "Douala · Yaoundé · et bientôt toute la CEMAC" %}</span>
+      <h1 class="text-4xl font-extrabold leading-[1.05] sm:text-5xl" id="accroche-titre" data-apparition style="--delai:60ms">
+        {% translate "Le marché," %}<br><span class="text-brand">{% translate "livré chez vous." %}</span>
+      </h1>
+      <p class="max-w-xl text-lg text-ink-muted" data-apparition style="--delai:120ms">
+        {% translate "Des commerçants de Douala et Yaoundé, leurs prix affichés sans intermédiaire. Vous commandez, c'est le commerçant lui-même qui vous livre." %}
+      </p>
+      <form class="flex max-w-xl flex-col gap-2 sm:flex-row" method="get" action="{% url 'vitrine_catalogue' %}" role="search" data-apparition style="--delai:180ms">
+        <label class="sr-only" for="recherche-accroche">{% translate "Que cherchez-vous ?" %}</label>
+        <div class="relative flex-1">
+          {% icone "recherche" "pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-ink-muted" %}
+          <input class="input input-lg pl-12 shadow-md" id="recherche-accroche" type="search" name="q"
+                 placeholder="{% translate 'Ciment, pagne, téléphone, pièce auto…' %}" enterkeyhint="search">
+        </div>
+        <button class="btn btn-primary btn-lg" type="submit">{% translate "Chercher" %}</button>
+      </form>
+      <ul class="flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-ink-muted" role="list" data-apparition style="--delai:240ms">
+        <li class="flex items-center gap-2">{% icone "boutique" "size-5 text-brand" %}{% if boutiques %}{% blocktranslate count n=boutiques|length %}{{ n }} commerçant du marché{% plural %}{{ n }} commerçants du marché{% endblocktranslate %}{% else %}{% translate "Des commerçants du marché" %}{% endif %}</li>
+        <li class="flex items-center gap-2">{% icone "argent" "size-5 text-brand" %}{% translate "Prix fixés par le commerçant" %}</li>
+        <li class="flex items-center gap-2">{% icone "camion" "size-5 text-brand" %}{% translate "Livré par celui qui vend" %}</li>
+      </ul>
+    </div>
+
+    {# Carte « paiement protégé » : la promesse la plus importante, montrée et non seulement dite. #}
+    <div class="relative hidden lg:block" data-apparition style="--delai:200ms" aria-hidden="true">
+      <div class="carte flotter rotate-[1.5deg] bg-surface/95 p-6 shadow-xl backdrop-blur">
+        <div class="flex items-center justify-between">
+          <span class="sur-titre">{% translate "Commande" %} CMD-0042</span>
+          <span class="badge badge-marque">{% icone "verrou" %}{% translate "En séquestre" %}</span>
+        </div>
+        <p class="prix mt-4 text-3xl">24 350<span class="devise">FCFA</span></p>
+        <div class="mt-5 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+          <div class="rounded-lg bg-success-soft p-2 text-success-ink">{% icone "check" "mx-auto mb-1 size-4" %}{% translate "Payé" %}</div>
+          <div class="rounded-lg bg-brand-soft p-2 text-brand-ink">{% icone "camion" "mx-auto mb-1 size-4" %}{% translate "En route" %}</div>
+          <div class="rounded-lg bg-surface-sunken p-2 text-ink-muted">{% icone "argent" "mx-auto mb-1 size-4" %}{% translate "Versé" %}</div>
+        </div>
+        <div class="mt-5 rounded-xl border border-dashed border-line-strong/40 p-4">
+          <span class="sur-titre">{% translate "Code de remise" %}</span>
+          <p class="mt-1 font-mono text-2xl font-bold tracking-[0.3em]">4 8 1 9</p>
+        </div>
+      </div>
+      <div class="carte absolute -bottom-6 -left-8 flex items-center gap-3 p-4 shadow-lg">
+        <span class="grid size-10 place-items-center rounded-xl bg-accent text-accent-on">{% icone "momo" %}</span>
+        <span class="text-sm font-semibold">MTN MoMo · Orange Money</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---- Rayons ------------------------------------------------------------------------------ #}
+{% if rayons %}
+<section class="mt-4" aria-labelledby="rayons-titre">
+  <div class="mb-4 flex items-end justify-between gap-4">
+    <h2 class="text-2xl font-extrabold" id="rayons-titre" data-apparition>{% translate "Parcourir les rayons" %}</h2>
+  </div>
+  <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4" role="list">
+    {% for r in rayons %}
+      <li data-apparition style="--delai:{{ forloop.counter0|delai:40 }}">
+        <a class="carte carte-interactive group flex h-full flex-col overflow-hidden" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}">
+          <span class="block aspect-[16/10] overflow-hidden bg-surface-sunken">
+            <img class="size-full object-cover transition-transform duration-700 ease-sortie group-hover:scale-105" src="{% illustration_rayon r.code %}" alt="" width="800" height="500" loading="lazy" decoding="async">
+          </span>
+          <span class="flex items-center justify-between gap-2 px-4 py-3">
+            <span class="text-sm font-bold leading-snug">{{ r.libelle }}</span>
+            {% icone "fleche" "size-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-1 group-hover:text-brand" %}
+          </span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{# ---- Articles ---------------------------------------------------------------------------- #}
+<section class="mt-14" aria-labelledby="articles-titre">
+  <div class="mb-5 flex items-end justify-between gap-4">
+    <div>
+      <p class="sur-titre" data-apparition>{% translate "Sélection du jour" %}</p>
+      <h2 class="mt-1 text-2xl font-extrabold" id="articles-titre" data-apparition>{% translate "Au marché aujourd'hui" %}</h2>
+    </div>
+    {% if articles %}<a class="btn btn-ghost btn-sm" href="{% url 'vitrine_catalogue' %}">{% translate "Voir tout" %}{% icone "fleche" %}</a>{% endif %}
+  </div>
+  {% if articles %}
+    <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      {% for article in articles %}
+        {% include "marche/composants/carte_article.html" with rang=forloop.counter0 %}
+      {% endfor %}
+    </div>
+  {% else %}
+    {% translate "Aucun article en vitrine pour le moment." as vide_titre %}
+    {% translate "Les commerçants installent leurs étals : revenez dans quelques jours, ou ouvrez le vôtre." as vide_texte %}
+    {% translate "Espace commerçant" as vide_action %}
+    {% url 'connexion' as vide_url %}
+    {% include "marche/composants/etat_vide.html" with icone="panier" titre=vide_titre texte=vide_texte action_href=vide_url action_libelle=vide_action niveau="p" %}
+  {% endif %}
+</section>
+
+{# ---- Comment ça marche ------------------------------------------------------------------- #}
+<section class="mt-16 rounded-3xl border border-line bg-surface p-6 sm:p-10" aria-labelledby="etapes-titre">
+  <p class="sur-titre" data-apparition>{% translate "Acheter sans risque" %}</p>
+  <h2 class="mt-1 max-w-2xl text-2xl font-extrabold sm:text-3xl" id="etapes-titre" data-apparition>{% translate "Votre argent attend votre confirmation." %}</h2>
+  <ol class="mt-8 grid gap-6 md:grid-cols-3" role="list">
+    {% translate "Vous commandez" as e1 %}{% translate "Chez un ou plusieurs commerçants, en un seul panier. Rien n'est débité à l'envoi." as t1 %}
+    {% translate "Vous payez, protégé" as e2 %}{% translate "Par MTN MoMo ou Orange Money. L'argent reste en séquestre chez notre partenaire agréé." as t2 %}
+    {% translate "Vous recevez, puis confirmez" as e3 %}{% translate "Vous donnez votre code de remise au livreur quand vous avez la marchandise en main. Le commerçant est payé ensuite." as t3 %}
+    <li class="flex flex-col gap-3" data-apparition style="--delai:0ms">
+      <span class="grid size-12 place-items-center rounded-2xl bg-brand-soft text-lg font-extrabold text-brand-ink" aria-hidden="true">1</span>
+      <h3 class="text-lg font-bold">{{ e1 }}</h3><p class="text-sm text-ink-muted">{{ t1 }}</p>
+    </li>
+    <li class="flex flex-col gap-3" data-apparition style="--delai:80ms">
+      <span class="grid size-12 place-items-center rounded-2xl bg-brand-soft text-lg font-extrabold text-brand-ink" aria-hidden="true">2</span>
+      <h3 class="text-lg font-bold">{{ e2 }}</h3><p class="text-sm text-ink-muted">{{ t2 }}</p>
+    </li>
+    <li class="flex flex-col gap-3" data-apparition style="--delai:160ms">
+      <span class="grid size-12 place-items-center rounded-2xl bg-accent-soft text-lg font-extrabold text-accent-ink" aria-hidden="true">3</span>
+      <h3 class="text-lg font-bold">{{ e3 }}</h3><p class="text-sm text-ink-muted">{{ t3 }}</p>
+    </li>
+  </ol>
+</section>
+
+{# ---- Commerçants ------------------------------------------------------------------------- #}
+{% if boutiques %}
+<section class="mt-16" aria-labelledby="boutiques-titre">
+  <p class="sur-titre" data-apparition>{% translate "Qui vend ici" %}</p>
+  <h2 class="mb-5 mt-1 text-2xl font-extrabold" id="boutiques-titre" data-apparition>{% translate "Les commerçants du marché" %}</h2>
+  <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="list">
+    {% for b in boutiques %}
+      <li data-apparition style="--delai:{{ forloop.counter0|delai }}">
+        <a class="carte carte-interactive flex items-center gap-4 p-4" href="{% url 'vitrine_boutique' b.slug %}">
+          <span class="jeton size-12 text-base" style="--teinte:{{ b.enseigne|teinte }}" aria-hidden="true">{{ b.enseigne|initiales }}</span>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate font-bold">{{ b.enseigne }}</span>
+            <span class="truncate text-sm text-ink-muted">{{ b.ville }}{% if b.rayon_principal %} · {{ b.rayon_principal.libelle }}{% endif %}</span>
+          </span>
+          {% icone "chevron" "size-5 text-ink-muted" %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{# ---- Vendre ------------------------------------------------------------------------------ #}
+<section class="relative isolate mt-16 overflow-hidden rounded-3xl bg-neutral-900 px-6 py-10 text-neutral-50 sm:px-10 sm:py-14" aria-labelledby="vendre-titre" data-apparition>
+  <div class="pointer-events-none absolute -right-16 -top-20 -z-10 size-80 rounded-full bg-primary-500/30 blur-3xl" aria-hidden="true"></div>
+  <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+    <div class="max-w-xl">
+      <h2 class="text-2xl font-extrabold text-neutral-50 sm:text-3xl" id="vendre-titre">{% translate "Vous tenez un commerce ?" %}</h2>
+      <p class="mt-2 text-neutral-300">{% translate "Caisse, stock, comptabilité et vitrine en ligne, dans un seul outil qui marche même sans réseau." %}</p>
+    </div>
+    <a class="btn btn-accent btn-lg self-start md:self-auto" href="{% url 'connexion' %}">{% translate "Ouvrir mon espace commerçant" %}{% icone "fleche" %}</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,99 @@
+/* =============================================================================
+   Console — vérifications (KYC) : la file, le dossier, la liste de contrôle.
+   Uniquement des jetons de hypermarche.css et plateforme.css : le thème sombre suit sans une
+   ligne de plus. Un statut est toujours une icône ET un mot (docs/19, §2.2).
+   ============================================================================= */
+
+/* ---- Icône d'une ligne de file ---- */
+.v-icone {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--surface-creuse); color: var(--encre-2);
+}
+.v-icone svg { width: 17px; height: 17px; }
+.v-icone--or       { background: var(--or-teinte); color: var(--or); }
+.v-icone--alerte   { background: var(--alerte-teinte); color: var(--alerte-encre); }
+.v-icone--critique { background: var(--critique-teinte); color: var(--critique-encre); }
+.v-icone--bon      { background: var(--bon-teinte); color: var(--bon-encre); }
+
+.v-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; align-items: start; }
+.v-grille > * { min-width: 0; }
+.v-pile { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.v-compte-titre { margin-left: auto; font-size: 12px; color: var(--encre-muette); font-weight: 560; }
+.v-numero { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
+/* ---- Liste de contrôle ---- */
+.v-controles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.v-controle {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px;
+  padding: 11px 16px; border-top: 1px solid var(--filet);
+}
+.v-controle:first-child { border-top: 0; }
+.v-controle__marque {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--critique-teinte); color: var(--critique-encre);
+}
+.v-controle__marque svg { width: 13px; height: 13px; }
+.v-controle--fait .v-controle__marque { background: var(--bon-teinte); color: var(--bon-encre); }
+.v-controle__titre { font-weight: 580; }
+.v-controle__detail { font-size: 12.5px; color: var(--encre-2); overflow-wrap: anywhere; }
+.v-controle:not(.v-controle--fait) .v-controle__detail { color: var(--critique-encre); }
+
+.v-progression { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--encre-2); }
+.v-progression__piste { display: block; flex: 1; height: 6px; border-radius: var(--r-pilule); background: var(--surface-creuse); overflow: hidden; }
+.v-progression__rempli { display: block; height: 100%; border-radius: inherit; background: var(--bon); }
+
+/* ---- Une pièce, un compte ---- */
+.v-element { padding: 14px 16px; border-top: 1px solid var(--filet); display: flex; flex-direction: column; gap: 10px; }
+.v-element:first-child { border-top: 0; }
+.v-element--cible { background: var(--actif); }
+.v-element__tete { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.v-element__titre { font-weight: 620; }
+.v-element__tete .puce { margin-left: auto; }
+.v-element .cles { font-size: 13px; }
+.v-empreinte-courte { font-family: var(--mono); font-size: 12px; }
+
+.v-decision { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.v-decision details { flex: 1 1 260px; }
+.v-decision summary { cursor: pointer; list-style: none; display: inline-flex; }
+.v-decision summary::-webkit-details-marker { display: none; }
+.v-decision details[open] summary { margin-bottom: 8px; }
+.v-decision textarea { width: 100%; }
+.v-refus-moi { display: flex; gap: 8px; font-size: 12.5px; color: var(--encre-2); }
+.v-refus-moi svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: var(--encre-muette); }
+
+/* ---- Formulaires de la colonne des gestes ---- */
+.v-geste .carte__corps { display: flex; flex-direction: column; gap: 14px; }
+.v-geste details > summary { cursor: pointer; }
+.v-radios { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.v-radios ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.v-radios label { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.v-fichier { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px dashed var(--filet-fort); border-radius: var(--r-md); }
+.v-fichier__etat { font-size: 12.5px; color: var(--encre-2); min-height: 18px; }
+.v-fichier__etat--ok { color: var(--bon-encre); }
+.v-erreurs { margin: 0; padding-left: 18px; }
+
+/* ---- Ce qu'on garde, ce qu'on ne garde pas ---- */
+.v-garde { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 12.5px; }
+.v-garde ul { margin: 6px 0 0; padding-left: 18px; color: var(--encre-2); }
+.v-garde strong { display: inline-flex; align-items: center; gap: 6px; }
+.v-garde svg { width: 14px; height: 14px; }
+
+/* ---- Récapitulatif de l'assistant : l'option fermée par le verrou ---- */
+.choix-carte--fermee { cursor: not-allowed; }
+.choix-carte--fermee .choix-carte__corps { opacity: 0.72; background: var(--surface-creuse); }
+.choix-carte--fermee .choix-carte__icone { background: var(--surface); color: var(--encre-muette); }
+
+/* ---- Journal des décisions ---- */
+.v-journal { list-style: none; margin: 0; padding: 0; }
+.v-journal li { padding: 10px 16px; border-top: 1px solid var(--filet); font-size: 12.5px; display: flex; flex-direction: column; gap: 2px; }
+.v-journal li:first-child { border-top: 0; }
+
+@media (max-width: 640px) {
+  .v-element .cles { grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); }
+  .v-decision .btn { flex: 1 1 auto; }
+}
+
+/* Les groupes de choix sont des `fieldset` pour les lecteurs d'écran, pas des cadres. */
+.v-geste fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.v-geste legend { padding: 0; margin-bottom: 6px; font-weight: 560; font-size: 13px; }

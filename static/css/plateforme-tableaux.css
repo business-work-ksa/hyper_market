@@ -1,0 +1,363 @@
+/* =====================================================================
+   HyperMarché — console : tableaux de bord et écrans de suivi
+   Chargée après plateforme.css par les gabarits qui en ont besoin.
+   Préfixe `t-` : ce qui est propre à ces écrans. Les composants partagés
+   (.kpi, .statut, .file, .part, .onglets, .cles…) restent dans plateforme.css.
+
+   Sections :
+     1. Rythme et utilitaires
+     2. Statuts supplémentaires (loyers, emplacements) et mode sombre
+     3. Héros et indicateurs
+     4. Graphes
+     5. Listes : file, parts, accès, chronologie
+     6. Filtres, tableaux, pagination
+     7. Fiche boutique
+     8. Rayons, offres, technique
+     9. Petits écrans
+   ===================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 1. Rythme et utilitaires                                            */
+/* ------------------------------------------------------------------ */
+.t-bloc { margin-top: 16px; }
+.t-bloc-bas { margin-bottom: 16px; }
+.t-bloc-haut { margin-top: 12px; }
+.t-lien { color: var(--marque); font-weight: 560; }
+.t-lien:hover { text-decoration: underline; text-underline-offset: 2px; }
+.t-critique { color: var(--critique); }
+.t-vide-compact { padding: 28px 20px; }
+.t-sous-statut { display: block; margin-top: 3px; }
+.t-puce-grande { height: 30px; padding: 0 12px; font-size: 12.5px; }
+.t-puce-grande svg { width: 14px; height: 14px; }
+code {
+  font-family: var(--mono); font-size: 12px;
+  padding: 1px 5px; border-radius: var(--r-xs);
+  background: var(--surface-creuse); border: 1px solid var(--filet);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Statuts supplémentaires                                          */
+/* Même grammaire que ceux des boutiques : pastille + mot, jamais la   */
+/* couleur seule. Les couleurs de statut restent réservées aux états.  */
+/* ------------------------------------------------------------------ */
+.statut--payee    { background: var(--bon-teinte); color: #0A7A0A; }
+.statut--emise    { background: var(--surface-creuse); color: var(--encre-2); box-shadow: inset 0 0 0 1px var(--filet); }
+.statut--echue    { background: var(--critique-teinte); color: var(--critique); }
+.statut--annulee  { background: var(--surface-creuse); color: var(--encre-muette); text-decoration: line-through; }
+.statut--en_cours { background: var(--bon-teinte); color: #0A7A0A; }
+.statut--a_venir  { background: var(--or-teinte); color: var(--or); }
+.statut--termine  { background: var(--surface-creuse); color: var(--encre-muette); }
+/* Une facture annulée garde sa pastille pleine : seul le mot est barré. */
+.statut--annulee::before { text-decoration: none; }
+
+/* Sur fond sombre, le vert et l'ambre foncés choisis pour le clair tombent sous 3:1 :
+   on reprend les teintes de statut pleines, qui y sont lisibles. */
+:root[data-theme="dark"] .statut--active,
+:root[data-theme="dark"] .statut--payee,
+:root[data-theme="dark"] .statut--en_cours { color: #3FC23F; }
+:root[data-theme="dark"] .statut--suspendue { color: var(--alerte); }
+:root[data-theme="dark"] .statut--echue,
+:root[data-theme="dark"] .statut--impayee { color: #F07070; }
+:root[data-theme="dark"] .kpi__icone--alerte { color: var(--alerte); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .statut--active,
+  :root:not([data-theme="light"]) .statut--payee,
+  :root:not([data-theme="light"]) .statut--en_cours { color: #3FC23F; }
+  :root:not([data-theme="light"]) .statut--suspendue { color: var(--alerte); }
+  :root:not([data-theme="light"]) .statut--echue,
+  :root:not([data-theme="light"]) .statut--impayee { color: #F07070; }
+  :root:not([data-theme="light"]) .kpi__icone--alerte { color: var(--alerte); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Héros et indicateurs                                             */
+/* ------------------------------------------------------------------ */
+.t-accueil { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; padding: 24px 26px; }
+.t-accueil__texte { margin-right: auto; min-width: 0; }
+.t-accueil__date {
+  font-size: 11px; font-weight: 650; letter-spacing: 0.075em; text-transform: uppercase;
+  color: var(--console-or); margin-bottom: 6px;
+}
+.t-accueil__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.t-kpis { grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); margin-bottom: 16px; }
+.t-kpis .kpi__valeur { font-variant-numeric: normal; }
+.t-kpis .kpi__tete .t-muet { font-weight: 500; margin-left: -4px; }
+.t-kpi-note { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.t-kpis .kpi__pied { flex-wrap: wrap; row-gap: 2px; }
+.t-kpi-note::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--encre-muette); }
+.t-kpi-note--or::before { background: var(--or); }
+.t-kpi-note + .t-kpi-note { margin-left: 4px; }
+.t-kpi-pied--colonne { flex-direction: column; align-items: stretch; gap: 6px; }
+
+/* Jauge de recouvrement : une part d'un tout, horizontale, 2 px de marge interne. */
+.t-jauge { display: block; height: 6px; border-radius: var(--r-pilule); background: var(--surface-creuse); overflow: hidden; }
+.t-jauge > span { display: block; height: 100%; border-radius: inherit; background: var(--serie); max-width: 100%; }
+
+/* ------------------------------------------------------------------ */
+/* 4. Graphes                                                          */
+/* ------------------------------------------------------------------ */
+.t-segment {
+  display: inline-flex; padding: 2px; gap: 2px;
+  border-radius: var(--r-sm); background: var(--surface-creuse); border: 1px solid var(--filet);
+}
+.t-segment a {
+  padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 580; color: var(--encre-2);
+}
+.t-segment a:hover { color: var(--encre); }
+.t-segment a[aria-current="page"] { background: var(--surface); color: var(--encre); box-shadow: var(--ombre-1); }
+
+.t-graphe-total { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.t-graphe-total__valeur { font-size: 22px; font-weight: 650; letter-spacing: -0.022em; }
+
+.t-graphe { position: relative; }
+.t-graphe__compact { display: none; }
+.t-graphe__vide {
+  position: absolute; inset: 0 0 26px 64px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: var(--encre-2); font-size: 13px; text-align: center;
+}
+.t-graphe__vide span {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface); padding: 5px 12px; border-radius: var(--r-pilule);
+  box-shadow: inset 0 0 0 1px var(--filet);
+}
+.t-graphe__vide svg { width: 15px; height: 15px; color: var(--encre-muette); flex-shrink: 0; }
+
+.t-chiffres { margin-top: 10px; border-top: 1px solid var(--filet); padding-top: 8px; }
+.t-chiffres summary { cursor: pointer; font-size: 12.5px; color: var(--encre-2); font-weight: 560; width: max-content; }
+.t-chiffres summary:hover { color: var(--encre); }
+.t-chiffres .tableau { margin-top: 8px; }
+.t-chiffres .tableau td, .t-chiffres .tableau th { padding: 6px 10px; }
+
+/* ------------------------------------------------------------------ */
+/* 5. Listes                                                           */
+/* ------------------------------------------------------------------ */
+.t-file-icone {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.t-file-icone svg { width: 17px; height: 17px; }
+.t-file-icone--critique { background: var(--critique-teinte); color: var(--critique); }
+.t-file-icone--alerte   { background: var(--alerte-teinte); color: #8A6408; }
+.t-file-icone--or       { background: var(--or-teinte); color: var(--or); }
+:root[data-theme="dark"] .t-file-icone--alerte { color: var(--alerte); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .t-file-icone--alerte { color: var(--alerte); } }
+.t-file-montant { color: var(--encre); font-weight: 620; }
+
+.t-parts { display: flex; flex-direction: column; gap: 14px; }
+.t-rempli-autres { background: var(--encre-muette); opacity: 0.55; }
+
+.t-acces { list-style: none; margin: 0; padding: 0; }
+.t-acces__ligne { display: flex; align-items: flex-start; gap: 11px; padding: 11px 16px; border-top: 1px solid var(--filet); }
+.t-acces__ligne:first-child { border-top: 0; }
+.t-acces__jeton { width: 28px; height: 28px; font-size: 11px; flex-shrink: 0; }
+.t-acces__corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.t-acces__titre { font-size: 13px; overflow-wrap: anywhere; }
+.t-acces__titre a { color: var(--marque); font-weight: 560; }
+.t-acces__motif { font-size: 12px; color: var(--encre-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-acces__heure { font-size: 11.5px; color: var(--encre-muette); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.t-gouvernance__corps { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+.t-gouvernance__chiffres { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.t-gouvernance__chiffres > div { display: flex; flex-direction: column; gap: 1px; }
+.t-gouvernance__valeur { font-size: 26px; font-weight: 660; letter-spacing: -0.026em; line-height: 1.1; }
+.t-gouvernance__liste { display: flex; flex-direction: column; gap: 12px; }
+
+.t-chrono { padding: 4px 0 8px; }
+.t-chrono__jour {
+  position: sticky; top: var(--entete); z-index: 2;
+  padding: 10px 16px 6px; font-size: 11px; font-weight: 650; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--encre-muette);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+}
+.t-chrono__liste { list-style: none; margin: 0; padding: 0 16px; }
+.t-chrono__ligne {
+  position: relative; display: grid; grid-template-columns: 44px 28px minmax(0, 1fr); gap: 12px;
+  padding: 9px 0; align-items: start;
+}
+.t-chrono__ligne + .t-chrono__ligne { border-top: 1px dashed var(--filet); }
+.t-chrono__heure { font-size: 12.5px; color: var(--encre-2); padding-top: 5px; }
+.t-chrono__corps { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.t-chrono__titre { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 13.5px; }
+.t-chrono__motif { font-size: 12.5px; color: var(--encre-2); font-style: italic; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------------ */
+/* 6. Filtres, tableaux, pagination                                    */
+/* ------------------------------------------------------------------ */
+.t-filtres {
+  display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px; border-bottom: 1px solid var(--filet);
+}
+.t-filtres__recherche { flex: 1 1 240px; min-width: 0; }
+.t-filtres__recherche .champ { width: 100%; }
+.t-filtre { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 560; color: var(--encre-2); }
+.t-filtre .champ--compact { width: auto; min-width: 140px; max-width: 220px; }
+.t-filtres__boutons { display: flex; gap: 6px; margin-left: auto; }
+.t-date { min-width: 140px; }
+
+.t-boutique { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.t-boutique__noms { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.t-boutique__enseigne { font-weight: 600; color: var(--encre); }
+a.t-boutique:hover .t-boutique__enseigne { color: var(--marque); }
+.t-boutique__raison { font-size: 12px; color: var(--encre-muette); }
+.t-boutique__mobile, .t-boutique__mobile-inline, .t-statut-mobile { display: none; }
+.t-tableau-boutiques td:first-child { min-width: 240px; }
+.t-tableau-boutiques .t-boutique__enseigne { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.t-metier { font-size: 12.5px; color: var(--encre-2); max-width: 190px; }
+
+.t-btn-ligne { height: 30px; padding: 0 11px; font-size: 12.5px; }
+.t-retard { display: block; font-size: 11.5px; color: var(--encre-2); margin-top: 2px; }
+
+.t-ca { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 110px; }
+.t-ca__piste { display: block; width: 100%; height: 4px; border-radius: var(--r-pilule); background: var(--surface-creuse); overflow: hidden; }
+.t-ca__piste > span { display: block; height: 100%; background: var(--serie); border-radius: inherit; margin-left: auto; }
+
+.t-pages { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.t-pages__compte { display: none; }
+.t-pages__liens { display: flex; align-items: center; gap: 4px; }
+.t-pages__liens .btn { height: 30px; font-size: 12.5px; }
+.t-pages__numero { padding: 0 6px; font-variant-numeric: tabular-nums; }
+
+.t-mois { display: flex; align-items: center; gap: 6px; }
+.t-mois .btn--icone { height: 34px; width: 34px; }
+.t-mois__choix { height: 34px; font-size: 13px; min-width: 170px; }
+
+/* ------------------------------------------------------------------ */
+/* 7. Fiche boutique                                                   */
+/* ------------------------------------------------------------------ */
+.t-fiche { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.t-fiche__texte { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin-right: auto; }
+.t-fiche__ligne { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.t-fiche__meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--encre-2); font-size: 13px; }
+.t-fiche__meta span { display: inline-flex; align-items: center; gap: 4px; }
+.t-fiche__meta svg { width: 14px; height: 14px; color: var(--encre-muette); }
+.t-fiche__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.t-bail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.t-bail__chiffre {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 12px 14px; border-radius: var(--r-sm); background: var(--surface-creuse);
+}
+.t-bail__chiffre strong { font-size: 17px; font-weight: 640; letter-spacing: -0.015em; }
+.t-derogation { margin-bottom: 14px; background: var(--or-teinte); border-color: transparent; }
+.t-derogation svg { color: var(--or); }
+.t-cles-espace { margin-top: 2px; }
+.t-pieces { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.t-equipe { list-style: none; margin: 0; padding: 0; }
+.t-equipe__ligne { display: flex; align-items: center; gap: 11px; padding: 10px 16px; border-top: 1px solid var(--filet); }
+.t-equipe__ligne:first-child { border-top: 0; }
+.t-equipe__ligne--inactive { opacity: 0.62; }
+.t-equipe__corps { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.t-equipe__nom { font-weight: 580; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-transparence { padding-bottom: 4px; }
+
+/* Rappel d'une lecture journalisée : la couleur or de la console, celle du suivi ouvert. */
+.t-lecture {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 14px; margin-bottom: 16px;
+  border-radius: var(--r-sm); background: var(--or-teinte); color: var(--encre);
+  font-size: 13px;
+}
+.t-lecture svg { width: 16px; height: 16px; color: var(--or); flex-shrink: 0; margin-top: 1px; }
+.t-lecture a { color: var(--or); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ------------------------------------------------------------------ */
+/* 8. Rayons, offres, technique                                        */
+/* ------------------------------------------------------------------ */
+.t-regle {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 16px; border-radius: var(--r-md);
+  border: 1px solid var(--filet); border-left: 3px solid var(--console-or);
+  background: var(--surface); font-size: 13px;
+}
+.t-regle > svg { width: 18px; height: 18px; color: var(--or); flex-shrink: 0; margin-top: 1px; }
+.t-regle p + p { margin-top: 4px; }
+
+.t-colonne-part { width: 34%; min-width: 180px; }
+
+.t-offres { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; padding: 16px; }
+.t-offre {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px; border-radius: var(--r-md);
+  border: 1px solid var(--filet); background: var(--surface-creuse);
+}
+.t-offre__titre { font-size: 16px; font-weight: 640; letter-spacing: -0.012em; }
+.t-offre__prix { font-size: 22px; font-weight: 660; letter-spacing: -0.022em; margin-bottom: 6px; }
+.t-offre__cles { grid-template-columns: minmax(0, 1fr) auto; }
+.t-offre__cles dd { text-align: right; font-variant-numeric: tabular-nums; }
+.t-offre__modules { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.t-offre__modules .puce { background: var(--surface); box-shadow: inset 0 0 0 1px var(--filet); font-weight: 560; }
+
+.t-sante { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.t-sante__chiffre { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: var(--r-sm); background: var(--surface-creuse); }
+.t-sante__chiffre strong { font-size: 24px; font-weight: 660; letter-spacing: -0.024em; }
+.t-liste-technique { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.t-liste-technique li { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.t-volumes dd { text-align: right; }
+.t-volumes { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* ------------------------------------------------------------------ */
+/* 9. Petits écrans                                                    */
+/* ------------------------------------------------------------------ */
+@media (max-width: 1080px) {
+  .t-gouvernance__corps { grid-template-columns: minmax(0, 1fr); }
+  .t-cache-moyen { display: none; }
+}
+
+@media (max-width: 760px) {
+  .t-cache-etroit { display: none; }
+  .t-tableau-boutiques td:first-child { min-width: 0; }
+  .t-tableau-boutiques .t-boutique__enseigne { white-space: normal; max-width: none; }
+  .tableau thead th:first-child, .tableau tbody td:first-child { padding-left: 14px; }
+  .tableau thead th:last-child, .tableau tbody td:last-child { padding-right: 14px; }
+  .t-boutique .monogramme { width: 32px; height: 32px; font-size: 12px; }
+  .t-entete-souple { flex-wrap: wrap; }
+  .t-entete-souple .t-legende-large { display: none; }
+  .t-boutique__mobile { display: block; font-size: 12px; color: var(--encre-2); }
+  .t-boutique__mobile-inline { display: inline; }
+  .t-statut-mobile { display: inline-flex; margin-top: 4px; align-self: flex-start; }
+  .t-ca { min-width: 84px; }
+  .tableau td.num > .t-statut-mobile { display: flex; width: max-content; margin: 6px 0 0 auto; }
+  /* Le fil d'Ariane et le rappel du suivi se disputent le bandeau : sur téléphone, le bouton
+     « retour » de la page et le titre suffisent. */
+  .console__bandeau .fil { display: none; }
+  .t-graphe__large { display: none; }
+  .t-graphe__compact { display: block; }
+  .t-graphe__vide { inset: 0 0 26px 64px; font-size: 12px; }
+  .t-bail { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .t-bail__chiffre { flex-direction: row; justify-content: space-between; align-items: baseline; padding: 10px 12px; }
+  .t-sante { grid-template-columns: minmax(0, 1fr); }
+  .t-colonne-part { min-width: 120px; }
+  .tableau thead th, .tableau tbody td { padding-left: 10px; padding-right: 10px; }
+}
+
+@media (max-width: 860px) {
+  .t-accueil { padding: 18px; }
+  .t-accueil .heros-console__salut { font-size: 20px; }
+  .t-accueil__actions { width: 100%; }
+  .t-accueil__actions .btn { flex: 1 1 auto; justify-content: center; }
+  .t-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .t-kpis .kpi { padding: 13px 14px; }
+  /* Un nombre impair de tuiles : la dernière prend la rangée, plutôt que de laisser un trou. */
+  .t-kpis .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .t-kpis .kpi__valeur { font-size: 20px; }
+  .t-kpis .kpi__tete { font-size: 12px; gap: 7px; }
+  .t-kpis .kpi__icone { width: 26px; height: 26px; border-radius: 8px; }
+  .t-kpis .kpi__icone svg { width: 14px; height: 14px; }
+  .t-kpis .kpi__pied { font-size: 11.5px; flex-wrap: wrap; }
+  .t-filtres { gap: 8px; }
+  .t-filtre { flex: 1 1 calc(50% - 8px); min-width: 0; }
+  .t-filtre .champ--compact { max-width: none; width: 100%; min-width: 0; }
+  .t-filtres__boutons { margin-left: 0; }
+  .t-fiche { gap: 12px; }
+  .t-fiche__actions { width: 100%; }
+  .t-fiche__actions .btn { flex: 1 1 auto; justify-content: center; }
+  .t-mois { width: 100%; }
+  .t-mois__choix { flex: 1; min-width: 0; }
+  .t-chrono__ligne { grid-template-columns: 40px minmax(0, 1fr); }
+  .t-chrono__ligne .t-acces__jeton { display: none; }
+  .t-chrono__jour { top: var(--entete); }
+  .tableau-pied .t-pages { width: 100%; justify-content: space-between; }
+}

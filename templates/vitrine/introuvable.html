@@ -1,0 +1,15 @@
+{% extends "vitrine/base.html" %}
+{% load i18n %}
+
+{% block titre %}{% translate "Introuvable" %} — HyperMarché{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block contenu %}
+<div class="py-8">
+  {% translate "Cette page n'existe pas, ou l'article n'est plus en vente." as vide_titre %}
+  {% translate "Un commerçant peut retirer un article, ou suspendre sa boutique. Le lien cesse alors de fonctionner — c'est voulu." as vide_texte %}
+  {% translate "Retour au catalogue" as vide_action %}
+  {% url 'vitrine_catalogue' as tout %}
+  {% include "marche/composants/etat_vide.html" with icone="recherche" titre=vide_titre texte=vide_texte action_href=tout action_libelle=vide_action niveau="h1" %}
+</div>
+{% endblock %}

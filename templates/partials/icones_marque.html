@@ -1,0 +1,7 @@
+{% load static %}{% comment %}
+Icônes de la marque (docs/27, §7) : SVG pour les navigateurs qui le prennent — net à toutes les
+tailles, 600 octets —, PNG pour les autres, et l'icône pleine page pour l'écran d'accueil iOS.
+{% endcomment %}
+<link rel="icon" type="image/svg+xml" href="{% static 'marque/favicon.svg' %}">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static 'icones/hm-32.png' %}">
+<link rel="apple-touch-icon" href="{% static 'icones/hm-apple-180.png' %}">

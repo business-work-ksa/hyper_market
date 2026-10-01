@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}{{ metier.nouveau }} {{ metier.article }} — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}{{ metier.nouveau }} {{ metier.article }}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'stock' %}">Retour au stock</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Article et stock initial</h2>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+
+      {% include "partials/champ.html" with champ=formulaire.libelle %}
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.sku %}
+        {% include "partials/champ.html" with champ=formulaire.code_barres %}
+      </div>
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.prix_vente %}
+        {% include "partials/champ.html" with champ=formulaire.cout_unitaire %}
+      </div>
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.quantite %}
+        {% include "partials/champ.html" with champ=formulaire.seuil_alerte %}
+      </div>
+
+      {% include "partials/champ.html" with champ=formulaire.regime_tva %}
+
+      {% comment %}
+      Les champs que le métier ajoute, dans l'ordre que le formulaire décide.
+      La boucle plutôt qu'une liste en dur : un champ composé par le formulaire
+      et oublié ici serait invisible **et pourtant exigé** par la validation —
+      c'est exactement ce qui est arrivé à la date de péremption.
+      {% endcomment %}
+      {% if formulaire.champs_de_metier %}
+        <div class="colonne" style="gap:14px;padding-top:4px">
+          <p class="t-sur-titre">{{ metier.libelle }}</p>
+          {% for champ in formulaire.champs_de_metier %}
+            {% include "partials/champ.html" with champ=champ %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if formulaire.non_field_errors %}
+        <div class="bandeau-info bandeau-info--alerte">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>{{ formulaire.non_field_errors|join:" " }}</span>
+        </div>
+      {% endif %}
+
+      <div class="rangee" style="gap:9px;flex-wrap:wrap">
+        <button class="btn btn--primaire btn--grand" type="submit">Enregistrer</button>
+        <button class="btn btn--grand" type="submit" name="enchainer" value="1">
+          Enregistrer et ajouter le suivant
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="colonne">
+    <div class="carte">
+      <header class="carte__entete"><h2 class="t-section">Pendant l'installation</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <p class="t-2">
+          Saisissez les <strong>20 à 60 références qui font 80 % de votre chiffre d'affaires</strong>,
+          pas tout le magasin. Quarante {{ metier.articles }} bien tenus valent mieux que quatre cents
+          abandonnés au bout d'une semaine.
+        </p>
+        <p class="t-2">
+          Le <strong>coût d'achat</strong> est ce qui rend votre marge calculable. Sans lui, la
+          plateforme sait ce que vous vendez, pas ce que vous gagnez.
+        </p>
+        <p class="t-2">
+          Le <strong>seuil d'alerte</strong> répond à une seule question : en dessous de combien
+          faut-il recommander ?
+        </p>
+      </div>
+      <footer class="carte__pied">
+        <p class="t-legende">
+          Dépôt de destination : <strong>{{ depot.libelle }}</strong>. L'entrée est valorisée au
+          coût saisi et enregistrée au journal du stock.
+        </p>
+      </footer>
+    </div>
+  </section>
+</div>
+{% endblock %}

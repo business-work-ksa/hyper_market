@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Ma boutique — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Ma boutique{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  {% comment %}
+  L'emplacement loué vivait seul dans une rangée `.duo` : la moitié droite de
+  l'écran restait vide. Il rejoint l'identité, en colonne, face à ce que le
+  métier change ; `duo--libre` laisse chaque colonne à sa hauteur.
+  {% endcomment %}
+  <div class="duo duo--libre">
+    <div class="colonne">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Identité</h2>
+        <a class="btn" href="{% url 'verification' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-bouclier"></use></svg>Vérification</a>
+      </header>
+      <div class="carte__corps colonne" style="gap:14px">
+        <div class="rangee rangee--espace"><span class="t-2">Enseigne</span><strong>{{ boutique.enseigne }}</strong></div>
+        <div class="rangee rangee--espace"><span class="t-2">Raison sociale</span><span>{{ boutique.raison_sociale }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">RCCM</span><span class="chiffre">{{ boutique.rccm|default:"—" }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">NIU</span><span class="chiffre">{{ boutique.niu|default:"—" }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">Ville</span><span>{{ boutique.ville }}</span></div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">Métier</span>
+          <span class="puce puce--marque">{{ metier.libelle }}</span>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">Régime fiscal</span>
+          <span class="puce puce--marque">{{ boutique.get_regime_fiscal_display }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Emplacement loué</h2></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% if bail %}
+          <div class="rangee rangee--espace"><span class="t-2">Offre</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
+          <div class="rangee rangee--espace"><span class="t-2">Loyer mensuel</span><span class="chiffre">{{ bail.loyer_mensuel|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Dépôt de garantie</span><span class="chiffre">{{ bail.depot_garantie|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Depuis le</span><span class="chiffre">{{ bail.debut|date:"d/m/Y" }}</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Préavis</span><span>{{ bail.preavis_jours }} jours</span></div>
+          <div class="rangee rangee--espace">
+            <span class="t-2">État</span>
+            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{{ bail.get_etat_display }}</span>
+          </div>
+        {% else %}
+          <div class="vide"><svg><use href="#ic-boutique"></use></svg><p class="t-2">Aucun bail actif.</p></div>
+        {% endif %}
+      </div>
+    </section>
+    </div>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Ce que votre métier change</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <p class="t-2">{{ metier.resume }}</p>
+        {% if metier.libelles_fonctions %}
+          <ul class="colonne" style="gap:8px">
+            {% for fonction in metier.libelles_fonctions %}
+              <li class="rangee" style="gap:8px;align-items:flex-start">
+                <svg class="icone-ligne" style="color:var(--bon);margin-top:3px"><use href="#ic-check"></use></svg>
+                <span class="t-2">{{ fonction }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="t-legende">
+            Aucune fonction particulière : le commerce général est le socle, et
+            tous les autres métiers en sont des variantes.
+          </p>
+        {% endif %}
+        {% if metier.a_venir %}
+          {% comment %}
+          Ce qui est annoncé comme à venir est annoncé comme tel. Lister une
+          fonction non écrite au milieu des autres donnerait au commerçant
+          l'impression d'un suivi qu'il n'a pas — et une pharmacie paie cher ce
+          genre de malentendu.
+          {% endcomment %}
+          <div class="bandeau-info" role="note" style="margin-top:4px">
+            <svg><use href="#ic-info"></use></svg>
+            <span>
+              Prévu pour ce métier, <strong>pas encore disponible</strong> :
+              {% for a in metier.a_venir %}{{ a|lower }}{% if not forloop.last %} ; {% endif %}{% endfor %}.
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="duo duo--libre">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Équipe</h2>
+        {% if 'boutique.administrer' in droits %}
+          <a class="btn" href="{% url 'identite' %}">Mon identité</a>
+          <a class="btn" href="{% url 'equipe' %}">Gérer l'équipe</a>
+        {% endif %}
+      </header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <tbody>
+              {% for a in equipe %}
+                <tr>
+                  <td>
+                    <span class="rangee" style="gap:10px">
+                      <span class="jeton">{{ a.utilisateur.nom_complet|initiales }}</span>
+                      <span class="pile-sm">
+                        <span class="principal">{{ a.utilisateur.nom_complet }}</span>
+                        <span class="t-legende chiffre">{{ a.utilisateur.telephone }}</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td class="num"><span class="puce puce--marque">{{ a.role.libelle }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="dépôt" data-noms="dépôts">
+      {% include "partials/tableau_barre.html" with nom="depot" noms="dépôts" titre="Dépôts" creer_url=url_depot_creer creer_libelle="Nouveau dépôt" modifier_possible=peut_administrer modifier_libelle="Renommer" supprimer_url=url_depots_supprimer supprimer_libelle="Fermer" aide="Sélectionnez un dépôt pour le renommer ou le fermer. Le dépôt principal ne se ferme pas : c'est là qu'on encaisse et qu'on reçoit par défaut." avertissement_suppression="Un dépôt qui a déjà reçu de la marchandise est fermé, pas supprimé : son nom reste lisible sur les mouvements qui le citent." %}
+
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">Dépôt</th>
+              <th scope="col">Type</th>
+              <th scope="col">Adresse</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in depots %}
+              <tr data-id="{{ d.pk }}" data-libelle="{{ d.libelle }}"
+                  data-modifier="#modale-depot"
+                  data-champs='{"libelle": "{{ d.libelle|escapejs }}", "type": "{{ d.type }}", "adresse": "{{ d.adresse|escapejs }}"}'
+                  {% if d.principal %}data-protege="C'est le dépôt principal : il ne se ferme pas."{% endif %}>
+                <td class="principal">{{ d.libelle }}</td>
+                <td class="t-2">{{ d.get_type_display }}</td>
+                <td class="t-2">{{ d.adresse|default:"—"|truncatechars:34 }}</td>
+                <td class="num">
+                  {% if d.principal %}<span class="puce puce--marque">Principal</span>{% endif %}
+                  {% if not d.actif %}<span class="puce">Fermé</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="tableau-pied">
+        <span>{{ depots|length }} / {{ quota_depots }} dépôts</span>
+        <span class="t-legende">
+          {% if depots_restants %}
+            Votre emplacement autorise encore {{ depots_restants }} dépôt{{ depots_restants|pluralize }}.
+          {% else %}
+            Votre emplacement n'autorise pas de dépôt supplémentaire.
+          {% endif %}
+        </span>
+      </footer>
+    </section>
+  </div>
+
+  {% comment %}
+  Ce que chaque rôle voit, écrit à l'écran plutôt que laissé dans le code : un
+  gérant qui confie sa caisse doit pouvoir vérifier lui-même que la marge est
+  fermée à son caissier, sans avoir à croire quiconque sur parole.
+  {% endcomment %}
+  <div class="duo duo--libre{% if not 'exporter' in droits %} duo--plein{% endif %}">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">Ce que chaque rôle peut faire</h2>
+        <span class="puce"><svg><use href="#ic-verrou"></use></svg>Droits appliqués</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:16px">
+        {% for role in droits_par_role %}
+          <div class="colonne" style="gap:7px">
+            <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
+            {% for libelle in role.droits %}
+              <span class="rangee" style="gap:8px">
+                <svg class="icone-ligne" style="color:var(--bon)"><use href="#ic-check"></use></svg>
+                <span class="t-2">{{ libelle }}</span>
+              </span>
+            {% empty %}
+              <span class="t-legende">Aucun droit sur cette boutique.</span>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if 'exporter' in droits %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">Vos données</h2></header>
+        <div class="carte__corps colonne" style="gap:12px">
+          <p class="t-2">
+            Vos données vous appartiennent : <strong>export intégral et gratuit</strong> à tout
+            moment, y compris en cas de résiliation de votre emplacement.
+          </p>
+          <p class="t-2">
+            L'archive contient votre catalogue, votre stock valorisé, chaque mouvement avec son
+            coût, vos ventes et votre journal comptable — en CSV, lisibles par n'importe quel
+            tableur.
+          </p>
+        </div>
+        <footer class="carte__pied">
+          <a class="btn btn--primaire btn--bloc" href="{% url 'export_donnees' %}">
+            Exporter mes données
+          </a>
+        </footer>
+      </section>
+    {% endif %}
+  </div>
+</div>
+
+{# ---- Renommer un dépôt ------------------------------------------------- #}
+{% comment %}
+Le caractère « principal » n'est pas dans cette boîte : le déplacer d'un clic
+ferait basculer les réceptions et les caisses sans que personne ne s'en aperçoive.
+{% endcomment %}
+<dialog class="modale" id="modale-depot">
+  <form method="post" data-action-modele="{% url 'depot_modifier' '00000000-0000-0000-0000-000000000000' %}">
+    {% csrf_token %}
+    <header class="modale__entete">
+      <h2 class="t-section">Modifier « <span data-cible-libelle></span> »</h2>
+    </header>
+    <div class="modale__corps colonne" style="gap:14px">
+      <div class="groupe-champ">
+        <label for="libelle-depot">Nom du dépôt</label>
+        <input class="champ" id="libelle-depot" name="libelle" maxlength="120" placeholder="Réserve Akwa">
+      </div>
+      <div class="groupe-champ">
+        <label for="type-depot">Type</label>
+        <select class="champ" id="type-depot" name="type">
+          {% for code, libelle in types_depot %}<option value="{{ code }}">{{ libelle }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="groupe-champ">
+        <label for="adresse-depot">Adresse</label>
+        <input class="champ" id="adresse-depot" name="adresse" maxlength="255" placeholder="Facultative">
+      </div>
+    </div>
+    <footer class="modale__pied">
+      <button class="btn" type="button" data-ferme>Annuler</button>
+      <button class="btn btn--primaire" type="submit">Enregistrer</button>
+    </footer>
+  </form>
+</dialog>
+{% endblock %}

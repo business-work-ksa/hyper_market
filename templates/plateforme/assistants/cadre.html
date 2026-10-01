@@ -1,0 +1,59 @@
+{% extends "plateforme/base.html" %}
+{% load static %}
+{% comment %}
+Le cadre commun des assistants : étapes à gauche (en haut sur petit écran), la question du
+moment à droite, dans une carte dont le pied porte Abandonner / Précédent / Continuer.
+Chaque étape remplit `{% block etape %}` ; le récapitulatif remplit aussi `{% block avant_formulaire %}`.
+{% endcomment %}
+{% block titre %}{{ etape.titre }} · {{ assistant.titre }}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
+{% block fil %}
+  <nav class="fil" aria-label="Fil d'Ariane">
+    <a href="{% url assistant.url_abandon %}">{% block fil_parent %}Console{% endblock %}</a>
+    <span class="fil__sep" aria-hidden="true">/</span>
+    <span>{{ assistant.titre }}</span>
+  </nav>
+{% endblock %}
+{% block entete %}{{ assistant.titre }}{% endblock %}
+
+{% block contenu %}
+<div class="assistant a-assistant">
+  <aside class="a-colonne-etapes" aria-label="Progression">
+    {% include "plateforme/partials/a_etapes.html" %}
+  </aside>
+
+  <div class="assistant__principal">
+    <header class="a-tete">
+      <div class="a-tete__ligne">
+        <p class="t-sur-titre">Étape {{ numero }} sur {{ total }}</p>
+        <span class="t-legende">{{ assistant.titre }}</span>
+      </div>
+      <div class="progression" role="progressbar" aria-label="Avancement de l'assistant"
+           aria-valuemin="0" aria-valuemax="{{ total }}" aria-valuenow="{{ numero }}"
+           aria-valuetext="Étape {{ numero }} sur {{ total }}">
+        <div class="progression__rempli" style="width:{{ progression }}%"></div>
+      </div>
+      <h2 class="a-tete__titre">{% block question %}{{ etape.titre }}{% endblock %}</h2>
+      <p class="a-tete__phrase">{% block phrase %}{{ etape.aide }}{% endblock %}</p>
+    </header>
+
+    {% block avant_formulaire %}{% endblock %}
+    {% include "plateforme/partials/a_erreurs.html" %}
+
+    <form method="post" class="carte a-carte" novalidate {% block attributs_formulaire %}{% endblock %}>
+      {% csrf_token %}
+      {# Premier bouton d'envoi du formulaire : c'est lui que déclenche la touche Entrée. #}
+      <button type="submit" name="{% if etape.recapitulatif %}_confirmer{% else %}_continuer{% endif %}" value="1"
+              class="visuellement-cache" tabindex="-1" aria-hidden="true">Continuer</button>
+      <div class="carte__corps a-carte__corps">
+        {% block etape %}{% endblock %}
+      </div>
+      <footer class="carte__pied assistant__pied a-pied">
+        {% include "plateforme/partials/a_pied.html" %}
+      </footer>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/plateforme-assistants.js' %}" defer></script>{% endblock %}

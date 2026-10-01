@@ -1,0 +1,9 @@
+{% comment %}
+Composant — Grille de squelettes. Paramètre : nombre (défaut 8). Gabarit `<template>` cloné par
+static/js/marche.js : il n'est ni affiché ni lu tant que le script ne le pose pas.
+{% endcomment %}
+<template id="squelette-grille">
+  <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+    {% for _ in "12345678" %}{% include "marche/composants/squelette_carte.html" %}{% endfor %}
+  </div>
+</template>

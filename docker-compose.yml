@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: hypermarche
+      POSTGRES_USER: hypermarche
+      POSTGRES_PASSWORD: hypermarche
+    ports: ["5432:5432"]
+    volumes:
+      - "donnees_postgres:/var/lib/postgresql/data"
+      # Retire SUPERUSER au rôle applicatif : sans cela, il ignore silencieusement
+      # toutes les politiques de sécurité au niveau ligne (docs/09, §3.2).
+      - "./infrastructure/postgres:/docker-entrypoint-initdb.d:ro"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hypermarche"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+volumes:
+  donnees_postgres:

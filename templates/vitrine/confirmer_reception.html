@@ -1,0 +1,41 @@
+{% extends "vitrine/base.html" %}
+{% load i18n hm marche %}
+
+{% block titre %}{% translate "Confirmer la réception" %} — {{ commande.numero }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+<section class="carte mx-auto max-w-2xl" data-apparition aria-labelledby="reception-titre">
+  <header class="carte-entete">
+    <h1 class="text-xl font-extrabold" id="reception-titre">{% translate "Avez-vous reçu votre commande ?" %}</h1>
+  </header>
+  <div class="carte-corps flex flex-col gap-5">
+    <p class="text-ink-muted">
+      {% blocktranslate with numero=commande.numero boutique=part.boutique.enseigne montant=part.total_ttc|fcfa %}Commande <span class="chiffre font-semibold text-ink">{{ numero }}</span> chez <strong class="text-ink">{{ boutique }}</strong> — {{ montant }} FCFA.{% endblocktranslate %}
+    </p>
+    <ul class="flex flex-col gap-2 rounded-xl bg-surface-sunken p-4" role="list">
+      {% for ligne in part.lignes.all %}
+        <li class="flex items-baseline justify-between gap-3 text-sm">
+          <span>{{ ligne.libelle }} <span class="text-ink-muted">× {{ ligne.quantite|quantite }}</span></span>
+          <span class="chiffre">{{ ligne.total_ttc|fcfa }} FCFA</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if part.sequestre_vu %}
+      <div class="bandeau bandeau-info" role="note">
+        {% icone "info" %}
+        <span>{% blocktranslate count jours=delai %}En confirmant, vous dites que la marchandise vous a été remise et qu'elle est conforme. L'argent en séquestre sera versé au commerçant dans {{ jours }} jour ; d'ici là, vous pouvez encore signaler un problème.{% plural %}En confirmant, vous dites que la marchandise vous a été remise et qu'elle est conforme. L'argent en séquestre sera versé au commerçant dans {{ jours }} jours ; d'ici là, vous pouvez encore signaler un problème.{% endblocktranslate %}</span>
+      </div>
+    {% endif %}
+
+    <p class="flex items-start gap-2 text-sm font-semibold text-warning-ink">{% icone "alerte" "mt-0.5 size-4" %}{% translate "Ne confirmez pas si vous n'avez pas la marchandise en main, même si on vous le demande." %}</p>
+  </div>
+  <form method="post" class="carte-pied">
+    {% csrf_token %}
+    <a class="btn btn-ghost btn-md" href="{% url 'vitrine_commande' commande.pk %}">{% translate "Pas encore" %}</a>
+    <button class="btn btn-primary btn-md" type="submit">{% icone "check" %}{% translate "Oui, j'ai reçu ma commande" %}</button>
+  </form>
+</section>
+{% endblock %}

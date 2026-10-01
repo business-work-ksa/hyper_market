@@ -1,0 +1,228 @@
+{% extends "vitrine/base.html" %}
+{% load i18n hm marche %}
+
+{% block titre %}{% blocktranslate with numero=commande.numero %}Commande {{ numero }}{% endblocktranslate %} — HyperMarché{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block rayons %}{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Le paiement d'avance vient en premier quand il reste à faire : c'est le seul geste qui attend
+l'acheteur, et tant qu'il n'est pas fait, aucun commerçant ne prépare rien.
+
+Trois états : rien de lancé (formulaire), demande en attente (MTN attend le code sur le téléphone ;
+la page relit l'opérateur toutes les cinq secondes, et un bouton le fait sans JavaScript), ou
+dernier essai échoué (le motif, puis le formulaire à nouveau).
+{% endcomment %}
+<div class="mx-auto flex max-w-3xl flex-col gap-5">
+
+{% if paiement %}
+  <section class="carte overflow-hidden border-warning-600/30" id="paiement" aria-labelledby="paiement-titre"
+           {% if paiement.en_cours %}data-attente="{% url 'vitrine_paiement_etat' commande.pk %}"{% endif %} data-apparition>
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-warning-soft px-5 py-4 sm:px-6">
+      <span class="badge bg-surface text-warning-ink">{% icone "horloge" %}{% translate "Paiement d'avance attendu" %}</span>
+      <span class="prix text-2xl">{{ paiement.montant|fcfa }}<span class="devise">FCFA</span></span>
+    </div>
+    <div class="carte-corps flex flex-col gap-4">
+      <h2 class="sr-only" id="paiement-titre">{% translate "Paiement" %}</h2>
+      {% if paiement.simule %}
+        <div class="bandeau bandeau-alerte" role="note">
+          {% icone "info" %}
+          <span><strong>{% translate "Démonstration : aucun argent réel ne bouge." %}</strong> {% translate "Un numéro finissant par 0 simule un refus, par 9 une attente ; tout autre, une réussite." %}</span>
+        </div>
+      {% endif %}
+
+      {% if paiement.en_cours %}
+        <div class="flex items-start gap-4" role="status" aria-live="polite">
+          <span class="relative mt-1 grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand-ink" aria-hidden="true">
+            {% icone "momo" "size-6" %}
+            <span class="absolute inset-0 animate-ping rounded-2xl bg-brand/20 motion-reduce:hidden"></span>
+          </span>
+          <div class="flex flex-col gap-2">
+            <p class="text-lg font-bold" id="paiement-texte">{% translate "Validez le paiement sur votre téléphone" %}</p>
+            <p class="text-ink-muted">
+              {% blocktranslate with montant=paiement.montant|fcfa numero=paiement.en_cours.numero_payeur %}Une demande de {{ montant }} FCFA a été envoyée au {{ numero }}. Composez votre code secret Mobile Money pour l'accepter. Cette page se met à jour toute seule.{% endblocktranslate %}
+            </p>
+            <p class="text-xs font-semibold text-ink-muted">{% translate "HyperMarché ne vous demandera jamais votre code secret, ni au téléphone ni par message." %}</p>
+          </div>
+        </div>
+        <form method="post" action="{% url 'vitrine_paiement_etat' commande.pk %}">
+          {% csrf_token %}
+          <button class="btn btn-outline btn-md" type="submit">{% icone "check" %}{% translate "J'ai validé — vérifier maintenant" %}</button>
+        </form>
+      {% else %}
+        {% if paiement.dernier_echec %}
+          <div class="bandeau bandeau-erreur" role="alert">
+            {% icone "alerte" %}
+            <span>{% if paiement.dernier_echec.etat == 'expiree' %}{% translate "Le dernier essai n'a pas abouti : la demande a expiré." %}{% else %}{% translate "Le dernier essai n'a pas abouti." %}{% endif %} {% translate "Vous pouvez réessayer, avec ce numéro ou un autre." %}</span>
+          </div>
+        {% endif %}
+        {% if paiement.operateurs %}
+          <form class="flex flex-col gap-4" method="post" action="{% url 'vitrine_payer' commande.pk %}">
+            {% csrf_token %}
+            <div class="champ">
+              <label class="champ-libelle" for="numero-payeur">{% translate "Numéro Mobile Money qui paie" %}</label>
+              <input class="input input-lg" id="numero-payeur" name="numero" value="{{ paiement.numero }}" required
+                     inputmode="tel" autocomplete="tel" maxlength="20" aria-describedby="numero-payeur-aide">
+              <p class="champ-aide" id="numero-payeur-aide">{% blocktranslate with operateurs=paiement.operateurs|join:", " %}Le numéro décide de l'opérateur : {{ operateurs }}.{% endblocktranslate %}</p>
+            </div>
+            <button class="btn btn-accent btn-lg btn-bloc" type="submit">
+              {% icone "verrou" %}{% blocktranslate with montant=paiement.montant|fcfa %}Payer {{ montant }} FCFA{% endblocktranslate %}
+            </button>
+            <p class="text-xs text-ink-muted">{% translate "L'argent reste en séquestre chez notre partenaire agréé jusqu'à ce que vous confirmiez la réception. Le commerçant ne le reçoit pas avant." %}</p>
+          </form>
+        {% else %}
+          <p class="text-ink-muted">{% translate "Le paiement en ligne n'est pas ouvert en ce moment. Le commerçant vous appellera pour convenir du règlement." %}</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </section>
+{% endif %}
+
+<section class="carte" data-apparition aria-labelledby="commande-titre">
+  <div class="carte-corps flex flex-col gap-3">
+    <span class="badge badge-succes self-start">{% icone "check" %}{% translate "Commande enregistrée" %}</span>
+    <h1 class="chiffre text-3xl font-extrabold" id="commande-titre">{{ commande.numero }}</h1>
+    <p class="text-ink-muted">
+      {% if parts|length > 1 %}{% blocktranslate with n=parts|length telephone=commande.acheteur.telephone %}Merci. Vos {{ n }} commerçants vont vous appeler au {{ telephone }} pour convenir de la livraison.{% endblocktranslate %}{% else %}{% blocktranslate with telephone=commande.acheteur.telephone %}Merci. Le commerçant va vous appeler au {{ telephone }} pour convenir de la livraison.{% endblocktranslate %}{% endif %}
+    </p>
+    <p class="text-xs text-ink-muted">{% translate "Gardez cette page dans vos favoris : c'est votre suivi. Le numéro de commande est ce que vous direz au commerçant au téléphone." %}</p>
+  </div>
+</section>
+
+{% comment %}
+Une carte par commerçant, avec son propre état d'avancement : une commande qui traverse deux
+boutiques avance à deux vitesses, et un état unique mentirait sur l'une des deux.
+Vocabulaire du montage (docs/08, §5) : l'argent est « en séquestre chez notre partenaire agréé »,
+la plateforme « ordonne » un remboursement — jamais « nous gardons votre argent ».
+{% endcomment %}
+{% for part in parts %}
+  <section class="carte" data-apparition style="--delai:{{ forloop.counter0|delai }}" aria-labelledby="part-{{ forloop.counter }}">
+    <header class="carte-entete">
+      <h2 class="carte-titre" id="part-{{ forloop.counter }}">{{ part.boutique.enseigne }}</h2>
+      {% translate part.get_etat_display as etat %}
+      <span class="badge {% if part.etat == 'annulee' %}badge-erreur{% elif part.etat == 'livree' %}badge-succes{% else %}badge-marque{% endif %}">{{ etat }}</span>
+    </header>
+    <div class="carte-corps flex flex-col gap-4">
+      <ul class="flex flex-col gap-2" role="list">
+        {% for ligne in part.lignes.all %}
+          <li class="flex items-baseline justify-between gap-3 text-sm">
+            <span>{{ ligne.libelle }} <span class="text-ink-muted">× {{ ligne.quantite|quantite }}</span></span>
+            <span class="chiffre shrink-0">{{ ligne.total_ttc|fcfa }} FCFA</span>
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="flex items-baseline justify-between border-t border-line pt-3 text-sm">
+        <span class="text-ink-muted">{% translate "Sous-total" %}</span>
+        <span class="chiffre font-bold">{{ part.total_ttc|fcfa }} FCFA</span>
+      </div>
+
+      {% with s=part.sequestre_vu l=part.litige_vu %}
+      <div class="flex flex-col gap-3 border-t border-line pt-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm text-ink-muted">{% translate "Paiement" %}</span>
+          {% if not part.prepayee %}
+            <span class="badge badge-neutre">{% icone "camion" %}{% translate "À la livraison" %}</span>
+          {% elif not s %}
+            {% if part.etat == 'annulee' %}<span class="badge badge-neutre">{% translate "Rien à payer" %}</span>
+            {% else %}<span class="badge badge-alerte">{% icone "horloge" %}{% translate "Paiement d'avance attendu" %}</span>{% endif %}
+          {% elif s.etat == 'bloque' and part.en_litige %}
+            <span class="badge badge-alerte">{% icone "verrou" %}{% translate "Réclamation en cours" %}</span>
+          {% elif s.etat == 'bloque' %}
+            <span class="badge badge-marque">{% icone "verrou" %}{% translate "En séquestre" %}</span>
+          {% elif s.etat == 'libere' %}
+            <span class="badge badge-succes">{% icone "check" %}{% translate "Versé au commerçant" %}</span>
+          {% elif s.etat == 'rembourse' %}
+            <span class="badge badge-succes">{% icone "retour" %}{% translate "Remboursement ordonné" %}</span>
+          {% else %}
+            <span class="badge badge-succes">{% icone "retour" %}{% translate "Remboursement partiel ordonné" %}</span>
+          {% endif %}
+        </div>
+
+        {% if s and s.etat == 'bloque' %}
+          {% if part.en_litige %}
+            <p class="text-sm text-ink-muted">{% blocktranslate with date=l.cree_le|date:"d/m/Y" %}Votre réclamation du {{ date }} est examinée par la plateforme, sous 72 heures. Votre argent reste en séquestre chez notre partenaire agréé : le commerçant n'y a pas accès tant que la décision n'est pas rendue.{% endblocktranslate %}</p>
+          {% elif part.livraison_confirmee_le %}
+            <p class="text-sm text-ink-muted">
+              {% blocktranslate with date=part.livraison_confirmee_le|date:"d/m/Y" %}Réception confirmée le {{ date }}.{% endblocktranslate %}
+              {% if part.echeance_liberation %}{% blocktranslate with date=part.echeance_liberation|date:"d/m/Y" %}L'argent sera versé au commerçant à partir du {{ date }} ; jusque-là, vous pouvez encore ouvrir une réclamation.{% endblocktranslate %}{% endif %}
+            </p>
+          {% else %}
+            <p class="text-sm text-ink-muted">{% translate "Votre argent est en séquestre chez notre partenaire de paiement agréé. Le commerçant ne le reçoit qu'après votre confirmation de réception." %}</p>
+            {% if part.code_affiche %}
+              <div class="flex flex-col gap-2 rounded-2xl border-2 border-dashed border-brand/40 bg-brand-soft/40 p-5">
+                <span class="sur-titre">{% translate "Code de remise" %}</span>
+                <span class="chiffre font-mono text-4xl font-extrabold tracking-[0.25em] text-ink">{{ part.code_affiche }}</span>
+                <span class="text-xs text-ink-muted">{% blocktranslate %}Donnez-le au livreur <strong>seulement quand vous avez la marchandise en main</strong> : c'est votre signature de réception. Ne le communiquez à personne d'autre, ni par téléphone ni par message — HyperMarché ne vous le demandera jamais.{% endblocktranslate %}</span>
+              </div>
+            {% endif %}
+          {% endif %}
+        {% elif s and s.etat == 'libere' %}
+          <p class="text-xs text-ink-muted">{% blocktranslate with date=s.libere_le|date:"d/m/Y" %}Libéré au commerçant le {{ date }}.{% endblocktranslate %}</p>
+        {% elif s and s.rembourse_acheteur %}
+          <p class="text-sm text-ink-muted">{% blocktranslate with montant=s.rembourse_acheteur|fcfa date=s.rembourse_le|date:"d/m/Y" %}La plateforme a ordonné le remboursement de <strong class="chiffre">{{ montant }} FCFA</strong> le {{ date }}.{% endblocktranslate %}</p>
+        {% endif %}
+
+        {% if l and not part.en_litige and l.decision %}
+          <div class="bandeau bandeau-info" role="note">
+            {% icone "info" %}
+            <span><strong>{% translate "Décision de la plateforme" %}</strong> ({{ l.tranche_le|date:"d/m/Y" }}) — {{ l.decision }}</span>
+          </div>
+        {% endif %}
+
+        {% if part.peut_confirmer or part.peut_contester %}
+          <div class="flex flex-wrap gap-2">
+            {% if part.peut_confirmer %}
+              <a class="btn btn-primary btn-md" href="{% url 'vitrine_confirmer_reception' commande.pk part.pk %}">{% icone "check" %}{% translate "J'ai reçu ma commande" %}</a>
+            {% endif %}
+            {% if part.peut_contester %}
+              <a class="btn btn-outline btn-md" href="{% url 'vitrine_litige' commande.pk part.pk %}">{% translate "Signaler un problème" %}</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+      {% endwith %}
+    </div>
+  </section>
+{% endfor %}
+
+{% if prepayee and not reconnu %}
+  <p class="text-xs text-ink-muted">{% translate "Le code de remise, la confirmation de réception et les réclamations ne s'affichent que sur l'appareil qui a passé la commande." %}</p>
+{% endif %}
+
+<section class="carte" data-apparition aria-labelledby="livraison-titre">
+  <header class="carte-entete"><h2 class="carte-titre" id="livraison-titre">{% translate "Livraison" %}</h2></header>
+  <dl class="carte-corps grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
+    <dt class="text-ink-muted">{% translate "Adresse" %}</dt><dd class="text-right">{{ commande.adresse_livraison|default:"—" }}</dd>
+    {% if commande.note %}<dt class="text-ink-muted">{% translate "Précisions" %}</dt><dd class="text-right">{{ commande.note }}</dd>{% endif %}
+    <dt class="text-ink-muted">{% translate "Total" %}</dt><dd class="chiffre text-right font-bold">{{ commande.total_ttc|fcfa }} FCFA</dd>
+  </dl>
+</section>
+
+<div><a class="btn btn-primary btn-md" href="{% url 'vitrine_catalogue' %}">{% translate "Retour au marché" %}</a></div>
+</div>
+
+{% if paiement.en_cours %}
+<script>
+  // Relit le paiement toutes les cinq secondes, pendant cinq minutes au plus. Chaque lecture
+  // interroge l'opérateur côté serveur : ce n'est pas la page qui décide qu'un paiement a réussi.
+  (function () {
+    var bloc = document.getElementById("paiement");
+    var adresse = bloc && bloc.getAttribute("data-attente");
+    if (!adresse || !window.fetch) return;
+    var essais = 0;
+    function relire() {
+      essais += 1;
+      fetch(adresse, { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.etat === "initiee" && essais < 60) { setTimeout(relire, 5000); return; }
+          window.location.reload();
+        })
+        .catch(function () { if (essais < 60) setTimeout(relire, 5000); });
+    }
+    setTimeout(relire, 5000);
+  })();
+</script>
+{% endif %}
+{% endblock %}

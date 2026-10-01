@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Transfert — {{ variante.produit.libelle }}{% endblock %}
+{% block entete %}Transfert entre dépôts{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'article' variante.pk %}">Retour à l'article</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{{ variante.produit.libelle }}</h2>
+      <span class="puce chiffre">{{ variante.sku }}</span>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+
+      <div class="groupe-champ">
+        <label>Depuis le dépôt</label>
+        {% comment %}
+        La source n'est pas un choix : c'est le dépôt d'exploitation courant,
+        celui de l'en-tête. On sort la marchandise du dépôt où l'on se trouve,
+        pas d'un dépôt désigné de loin.
+        {% endcomment %}
+        <p class="rangee" style="gap:9px">
+          <span class="puce puce--marque"><svg><use href="#ic-stock"></use></svg>{{ source.libelle }}</span>
+          <span class="t-legende">
+            {% if niveau %}{{ niveau.quantite|quantite }} en stock{% else %}aucun stock ici{% endif %}
+          </span>
+        </p>
+      </div>
+
+      {% include "partials/champ.html" with champ=formulaire.cible %}
+      {% include "partials/champ.html" with champ=formulaire.quantite %}
+      {% include "partials/champ.html" with champ=formulaire.commentaire %}
+
+      {% if formulaire.non_field_errors %}
+        <div class="bandeau-info bandeau-info--alerte">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>{{ formulaire.non_field_errors|join:" " }}</span>
+        </div>
+      {% endif %}
+
+      <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+        Transférer
+      </button>
+    </form>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Ce qu'un transfert fait</h2></header>
+    <div class="carte__corps colonne" style="gap:12px">
+      <p class="t-2">
+        La marchandise <strong>sort au coût moyen du dépôt d'origine</strong> et entre au même coût
+        dans le dépôt de destination. Un déplacement interne ne crée ni ne détruit de valeur : la
+        valeur totale de votre stock est identique avant et après.
+      </p>
+      <p class="t-2">
+        Deux mouvements sont écrits au journal, pas une correction de compteur. Ils resteront
+        lisibles dans l'historique de l'article, avec leur motif.
+      </p>
+      <p class="t-2">
+        Si le stock du dépôt d'origine devient négatif, le transfert n'est pas refusé :
+        c'est une anomalie à régulariser par inventaire, pas une erreur à bloquer.
+      </p>
+    </div>
+  </section>
+</div>
+{% endblock %}

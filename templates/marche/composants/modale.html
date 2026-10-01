@@ -1,0 +1,32 @@
+{% load i18n marche %}{% comment %}
+Composant — Modale de confirmation (docs/26, §4.5)
+
+Paramètres : id, titre, texte, action (URL du formulaire POST), libelle_confirmer,
+variante_confirmer (défaut primary), libelle_annuler (défaut « Annuler »).
+Ouverture : un bouton `data-modale-ouvrir="<id>"` (static/js/marche.js). Sans JavaScript, le
+bouton d'ouverture est un vrai lien ou un vrai formulaire : la modale n'est qu'un confort.
+
+Élément <dialog> natif ouvert par `showModal()` : le reste de la page devient inerte, le focus
+est piégé dans la modale, Échap la ferme, et le focus revient au bouton d'ouverture.
+
+Quand l'utiliser : confirmer une action qui engage (vider le panier, annuler, confirmer une
+réception) — ce qu'on ne peut pas défaire.
+Quand ne pas l'utiliser : pour une information (un bandeau suffit) ; pour un formulaire long
+(une page dédiée se partage et survit à un retour arrière) ; jamais à l'ouverture d'une page.
+Accessibilité : `aria-labelledby` vers le titre, `aria-describedby` vers le texte ; bouton de
+fermeture nommé ; l'action destructrice n'a pas le focus initial (c'est « Annuler »).
+{% endcomment %}
+<dialog class="modale" id="{{ id }}" aria-labelledby="{{ id }}-titre" aria-describedby="{{ id }}-texte">
+  <form method="post" action="{{ action }}">
+    {% csrf_token %}
+    <div class="modale-entete">
+      <h2 class="text-xl font-bold" id="{{ id }}-titre">{{ titre }}</h2>
+      <button class="btn btn-ghost btn-sm btn-icone -mr-2 -mt-1" type="button" data-modale-fermer aria-label="{% translate 'Fermer' %}">{% icone "fermer" %}</button>
+    </div>
+    <p class="modale-corps" id="{{ id }}-texte">{{ texte }}</p>
+    <div class="modale-pied">
+      <button class="btn btn-outline btn-md" type="button" data-modale-fermer autofocus>{{ libelle_annuler|default:_("Annuler") }}</button>
+      <button class="btn btn-{{ variante_confirmer|default:'primary' }} btn-md" type="submit">{{ libelle_confirmer }}</button>
+    </div>
+  </form>
+</dialog>

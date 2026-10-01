@@ -1,0 +1,19 @@
+{% load static %}{% comment %}
+Le logo (docs/27, §2) : symbole seul sur téléphone, logo complet à partir de 640 px — sous cette
+largeur, l'en-tête n'a pas la place du logotype à une taille lisible, et le symbole suffit.
+Deux fichiers par version, clair et négatif, que le thème choisit : un SVG en <img> ne peut pas
+suivre les couleurs de la page. L'enveloppe décide de la taille d'écran, l'image du thème : jamais
+les deux sur un même élément, où l'ordre des variantes ferait gagner l'une au hasard.
+Décoratifs ici (alt vide) : le lien qui les porte est nommé.
+Paramètres : hauteur (classe Tailwind, défaut h-9), toujours_complet (pas de version symbole).
+{% endcomment %}
+{% if not toujours_complet %}
+  <span class="inline-flex sm:hidden">
+    <img class="{{ hauteur|default:'h-9' }} w-auto dark:hidden" src="{% static 'marque/symbole.svg' %}" alt="" width="36" height="36">
+    <img class="{{ hauteur|default:'h-9' }} hidden w-auto dark:block" src="{% static 'marque/symbole-negatif.svg' %}" alt="" width="36" height="36">
+  </span>
+{% endif %}
+<span class="{% if toujours_complet %}inline-flex{% else %}hidden sm:inline-flex{% endif %}">
+  <img class="{{ hauteur|default:'h-9' }} w-auto dark:hidden" src="{% static 'marque/logo.svg' %}" alt="" width="189" height="36">
+  <img class="{{ hauteur|default:'h-9' }} hidden w-auto dark:block" src="{% static 'marque/logo-negatif.svg' %}" alt="" width="189" height="36">
+</span>

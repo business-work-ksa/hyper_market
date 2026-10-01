@@ -1,0 +1,208 @@
+{% load static hm confiance %}<!doctype html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0E1A16">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block titre %}Console{% endblock %} — HyperMarché</title>
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+<link rel="stylesheet" href="{% static 'css/plateforme.css' %}">
+{% block styles %}{% endblock %}
+{% include "partials/icones_marque.html" %}
+<script>
+  // Même clé que le back-office : un thème choisi l'est partout.
+  (function () {
+    try {
+      var t = localStorage.getItem("hm-theme");
+      if (t) document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body class="console">
+{% include "partials/icones.html" %}
+{% include "plateforme/partials/icones.html" %}
+
+{% comment %}
+La console n'est pas le back-office d'une boutique, et elle ne doit pas lui ressembler au point
+qu'on s'y trompe : un administrateur qui croit être chez un commerçant, ou l'inverse, commet
+exactement l'erreur que l'ADR-012 cherche à rendre impossible. D'où le rail sombre et le sceau
+doré — la même typographie, les mêmes composants, mais une pièce reconnaissable au premier coup
+d'œil.
+{% endcomment %}
+<div class="coquille console__coquille">
+  <nav class="rail console__rail" id="console-rail" aria-label="Navigation de la console">
+    <div class="rail__marque">
+      <img class="console__symbole" src="{% static 'marque/symbole-negatif.svg' %}" alt="" width="36" height="36" style="width:36px;height:36px;flex:none">
+      <span class="pile-sm" style="gap:1px;min-width:0">
+        <span class="rail__nom">HyperMarché</span>
+        <span class="console__piece">Console</span>
+      </span>
+    </div>
+
+    <div class="rail__nav">
+      <div class="rail__groupe">
+        <p class="t-sur-titre">Pilotage</p>
+        {% nav 'plateforme:tableau_de_bord' 'ic-tableau' 'Tableau de bord' page %}
+        {% nav 'plateforme:activite' 'ic-pouls' 'Activité des boutiques' page %}
+      </div>
+
+      <div class="rail__groupe">
+        <p class="t-sur-titre">Marché</p>
+        {% nav 'plateforme:boutiques' 'ic-boutique' 'Boutiques' page a_traiter.candidatures %}
+        {% if 'plateforme.boutiques' in droits %}
+          {% nav 'plateforme:verifications' 'ic-document' 'Vérifications' page %}
+        {% endif %}
+        {% nav 'plateforme:loyers' 'ic-argent' 'Loyers' page a_traiter.impayes %}
+        {% if 'plateforme.litiges' in droits %}
+          {% nav 'plateforme:litiges' 'ic-retour' 'Litiges' page %}
+        {% endif %}
+        {% if 'plateforme.versements' in droits %}
+          {% nav 'plateforme:versements' 'ic-momo' 'Versements' page %}
+        {% endif %}
+        {% nav 'plateforme:rayons' 'ic-rayons' 'Rayons et commissions' page %}
+        {% nav 'plateforme:emplacements' 'ic-etoile' 'Emplacements premium' page %}
+      </div>
+
+      {% if 'plateforme.boutiques' in droits or 'plateforme.emplacements' in droits %}
+        <div class="rail__groupe">
+          <p class="t-sur-titre">Assistants</p>
+          {% if 'plateforme.boutiques' in droits %}
+            {% nav 'plateforme:assistant_boutique' 'ic-baguette' 'Ouvrir une boutique' page %}
+          {% endif %}
+          {% if 'plateforme.emplacements' in droits %}
+            {% nav 'plateforme:assistant_emplacement' 'ic-etoile' 'Vendre un emplacement' page %}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="rail__groupe">
+        <p class="t-sur-titre">Gouvernance</p>
+        {% if 'plateforme.boutiques' in droits %}
+          {# La pastille compte les signaux à trancher ; `None` quand il n'y en a pas — une pastille « 0 » apprend à ne plus la regarder. #}
+          {% signaux_ouverts as nb_signaux %}
+          {% nav 'plateforme:signaux' 'ic-alerte' 'Signaux' page nb_signaux %}
+        {% endif %}
+        {% nav 'plateforme:journal' 'ic-journal' 'Journal des accès' page %}
+        {% if 'console.administrateurs' in droits %}
+          {% nav 'plateforme:administrateurs' 'ic-equipe' 'Administrateurs' page %}
+        {% endif %}
+        {% if 'console.technique' in droits %}
+          {% nav 'plateforme:technique' 'ic-bouclier' 'Santé technique' page %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="rail__pied colonne" style="gap:8px">
+      {% if superadmin %}
+        {% comment %}
+        Le recours technique reste à portée, mais en pied de rail et nommé pour ce qu'il est :
+        l'administration brute de Django, pas l'écran de travail quotidien.
+        {% endcomment %}
+        <a class="lien console__recours" href="/admin/">
+          <svg aria-hidden="true"><use href="#ic-cle"></use></svg><span>Administration technique</span>
+        </a>
+      {% endif %}
+      <div class="compte">
+        <span class="jeton console__jeton" aria-hidden="true">{{ request.user.nom_complet|initiales }}</span>
+        <div class="pile-sm" style="min-width:0;gap:2px">
+          <span class="t-petit console__tronque" style="font-weight:600">{{ request.user.nom_complet }}</span>
+          <span class="console__niveau {% if superadmin %}console__niveau--super{% endif %}">{{ niveau }}</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="console__voile" id="console-voile" hidden></div>
+
+  <div style="min-width:0">
+    <header class="bandeau console__bandeau">
+      <button class="btn btn--icone btn--discret console__menu" id="console-menu"
+              aria-label="Ouvrir le menu" aria-controls="console-rail" aria-expanded="false">
+        <svg><use href="#ic-menu"></use></svg>
+      </button>
+      <div class="pile-sm" style="gap:0;min-width:0">
+        {% block fil %}{% endblock %}
+        <h1 class="bandeau__titre console__tronque">{% block entete %}{% endblock %}</h1>
+      </div>
+      <div class="bandeau__actions">
+        {% block actions_entete %}{% endblock %}
+
+        {% if suivi %}
+          <form class="console__suivi" method="post" action="{% url 'plateforme:suivi_fermer' %}"
+                title="Chaque écran d'activité consulté est inscrit au journal des accès avec ce motif.">
+            {% csrf_token %}
+            <span class="console__suivi-point" aria-hidden="true"></span>
+            <span class="console__tronque">Suivi : {{ suivi.motif }}</span>
+            <button class="console__suivi-fermer" type="submit" aria-label="Fermer le suivi">×</button>
+          </form>
+        {% endif %}
+
+        <button class="btn btn--icone btn--discret" id="bascule-theme"
+                aria-label="Basculer le thème clair ou sombre">
+          <svg id="icone-theme"><use href="#ic-sombre"></use></svg>
+        </button>
+        <a class="btn btn--icone btn--discret" href="{% url 'deconnexion' %}" aria-label="Se déconnecter"
+           title="Se déconnecter">
+          <svg><use href="#ic-sortie"></use></svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="zone console__zone {% block classe_zone %}{% endblock %}">
+      {% if messages %}
+        <div class="colonne" style="gap:8px;margin-bottom:16px">
+          {% for message in messages %}
+            <div class="bandeau-info {% if message.tags == 'error' %}bandeau-info--alerte{% else %}console__succes{% endif %}"
+                 role="status">
+              <svg><use href="#{% if message.tags == 'error' %}ic-alerte{% else %}ic-check{% endif %}"></use></svg>
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% block contenu %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script>
+  (function () {
+    // --- Thème ---------------------------------------------------------------
+    var racine = document.documentElement;
+    var bouton = document.getElementById("bascule-theme");
+    var icone = document.getElementById("icone-theme");
+    function reflet() {
+      var sombre = racine.getAttribute("data-theme") === "dark";
+      icone.querySelector("use").setAttribute("href", sombre ? "#ic-clair" : "#ic-sombre");
+    }
+    reflet();
+    bouton.addEventListener("click", function () {
+      var suivant = racine.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      racine.setAttribute("data-theme", suivant);
+      try { localStorage.setItem("hm-theme", suivant); } catch (e) {}
+      reflet();
+    });
+
+    // --- Menu sur petit écran ------------------------------------------------
+    // Le rail devient un tiroir. Sans JavaScript, il reste en haut de page : rien ne se perd.
+    var menu = document.getElementById("console-menu");
+    var rail = document.getElementById("console-rail");
+    var voile = document.getElementById("console-voile");
+    function basculer(ouvert) {
+      rail.classList.toggle("console__rail--ouvert", ouvert);
+      voile.hidden = !ouvert;
+      menu.setAttribute("aria-expanded", ouvert ? "true" : "false");
+    }
+    menu.addEventListener("click", function () {
+      basculer(!rail.classList.contains("console__rail--ouvert"));
+    });
+    voile.addEventListener("click", function () { basculer(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") basculer(false); });
+  })();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

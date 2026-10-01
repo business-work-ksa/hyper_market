@@ -1,0 +1,138 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}Litige {{ part.commande.numero }}{% endblock %}
+{% block fil %}<p class="fil"><a href="{% url 'plateforme:litiges' %}">Litiges</a><span class="fil__sep">›</span><span>{{ part.commande.numero }}</span></p>{% endblock %}
+{% block entete %}Litige {{ part.commande.numero }}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-litiges.css' %}">{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">{{ l.boutique.enseigne }} · {{ palier.libelle }}</p>
+    <h2 class="entete-page__titre">{{ l.get_motif_display }}</h2>
+    <p class="entete-page__phrase rangee" style="gap:10px;flex-wrap:wrap">
+      {% include "plateforme/partials/l_statut_litige.html" with litige=l %}
+      {% if l.en_cours %}{% include "plateforme/partials/l_age.html" %}{% endif %}
+      <span class="t-legende">Ouvert le {{ l.cree_le|date:"d/m/Y à H:i" }}</span>
+    </p>
+  </div>
+  {% if l.etat == 'ouvert' %}
+    <div class="entete-page__actions">
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="instruire">
+        <button class="btn" type="submit">Prendre en instruction</button></form>
+    </div>
+  {% endif %}
+</div>
+
+{% if l.en_cours and age.depasse %}
+  <div class="bandeau-info bandeau-info--alerte" role="status" style="margin-bottom:16px">
+    <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+    <span><strong>Délai de 72 heures dépassé.</strong> L'argent de l'acheteur est gelé depuis {{ age.libelle }} : tranchez, ou consignez pourquoi il faut attendre.</span>
+  </div>
+{% endif %}
+
+<div class="grille-console">
+  <div class="col-7 colonne">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Ce que dit l'acheteur</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <blockquote class="l-citation">{{ l.description }}</blockquote>
+        <dl class="cles">
+          <dt>Acheteur</dt><dd>{{ part.commande.acheteur.nom_complet }} · <span class="chiffre">{{ part.commande.acheteur.telephone }}</span></dd>
+          <dt>Adresse de livraison</dt><dd>{{ part.commande.adresse_livraison|default:"—" }}</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">La part contestée</h2><span class="t-legende">{{ part.get_etat_display }}</span></header>
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead><tr><th scope="col">Article</th><th scope="col" class="num">Quantité</th><th scope="col" class="num">Total</th></tr></thead>
+          <tbody>
+            {% for ligne in lignes %}
+              <tr><td class="principal">{{ ligne.libelle }}</td><td class="num chiffre">{{ ligne.quantite|quantite }}</td><td class="num">{{ ligne.total_ttc|fcfa }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Historique</h2></header>
+      <div class="carte__corps">
+        <ol class="l-chrono">
+          {% for fait in historique %}
+            <li><span class="l-chrono__quand">{{ fait.quand|date:"d/m/Y H:i" }}</span>
+              <span><strong>{{ fait.quoi }}</strong>{% if fait.detail %}<span class="t-legende"> — {{ fait.detail }}</span>{% endif %}</span></li>
+          {% endfor %}
+        </ol>
+        {% if precedents %}
+          <p class="t-legende" style="margin-top:12px">{{ precedents|length }} autre{{ precedents|length|pluralize }} litige{{ precedents|length|pluralize }} sur cette part :
+            {% for p in precedents %}{{ p.get_etat_display|lower }} ({{ p.cree_le|date:"d/m/Y" }}){% if not forloop.last %} · {% endif %}{% endfor %}</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-5 colonne">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Séquestre</h2></header>
+      <div class="carte__corps">
+        {% if sequestre %}{% include "plateforme/partials/l_sequestre.html" with s=sequestre %}{% else %}<p class="t-legende">Aucun séquestre : paiement non constaté.</p>{% endif %}
+      </div>
+      {% if mouvements %}
+        <footer class="carte__pied t-legende">
+          Journal du portefeuille :
+          {% for m in mouvements %}{{ m.libelle|lower }} {{ m.get_compartiment_display|lower }} {{ m.montant|fcfa }}{% if not forloop.last %} · {% endif %}{% endfor %}
+        </footer>
+      {% endif %}
+    </section>
+
+    {% if l.en_cours %}
+      <form class="carte" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="trancher">
+        <header class="carte__entete"><h2 class="t-section">Décision</h2></header>
+        <div class="carte__corps l-decision">
+          <fieldset class="choix-cartes" style="border:0;padding:0;margin:0">
+            <legend class="t-sur-titre" style="margin-bottom:8px">Trancher</legend>
+            {% for code, libelle in decisions %}
+              <label class="choix-carte">
+                <input type="radio" name="decision" value="{{ code }}" required {% if decision_choisie == code %}checked{% endif %}>
+                <span class="choix-carte__corps"><span class="choix-carte__titre">{{ libelle }}</span></span>
+              </label>
+            {% endfor %}
+          </fieldset>
+          <label class="groupe-champ">
+            <span class="t-petit" style="font-weight:560">Montant rendu à l'acheteur <span class="t-legende">— décision partielle seulement, inférieur à {{ sequestre.montant|fcfa }} FCFA</span></span>
+            <input class="champ" name="montant" inputmode="decimal" placeholder="Ex. : 5000">
+          </label>
+          <label class="groupe-champ">
+            <span class="t-petit" style="font-weight:560">Motivation <span class="t-legende">— obligatoire, lue par l'acheteur et consignée au journal</span></span>
+            <textarea class="champ" name="motivation" rows="5" minlength="20" required
+                      placeholder="Faits établis, pièces consultées, raison de la décision."></textarea>
+          </label>
+          <div class="bandeau-info">
+            <svg aria-hidden="true"><use href="#ic-verrou"></use></svg>
+            <span>La décision est définitive : elle ordonne la libération ou le remboursement, et entre dans le palier de confiance de la boutique. Le marchand ne voit qu'un message neutre tant que la part est gelée.</span>
+          </div>
+        </div>
+        <footer class="carte__pied assistant__pied">
+          <a class="btn" href="{% url 'plateforme:litiges' %}">Retour à la file</a>
+          <button class="btn btn--primaire" type="submit">Rendre la décision</button>
+        </footer>
+      </form>
+    {% else %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">Décision</h2></header>
+        <div class="carte__corps colonne" style="gap:10px">
+          <p>{{ l.get_etat_display }}{% if l.montant_rembourse %} — <strong class="chiffre">{{ l.montant_rembourse|fcfa }} FCFA</strong> rendus à l'acheteur{% endif %}.</p>
+          <blockquote class="l-citation">{{ l.decision }}</blockquote>
+          <p class="t-legende">Par {{ l.tranche_par.nom_complet|default:"—" }}, le {{ l.tranche_le|date:"d/m/Y à H:i" }}.</p>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

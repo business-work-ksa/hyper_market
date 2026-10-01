@@ -1,0 +1,121 @@
+{% extends "plateforme/base.html" %}
+{% load static hm l10n %}
+{% block titre %}Activité des boutiques{% endblock %}
+{% block entete %}Activité des boutiques{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Agrégats seulement (ADR-012) : un total TTC, des nombres, une date. Rien qui décrive ce qu'une
+boutique vend, à qui, ni à quel prix elle l'a payé — l'administrateur du marché n'en a pas besoin
+pour repérer une boutique qui s'endort, et un exploitant qui vend aussi sur sa place ne doit pas
+pouvoir le lire chez ses concurrents.
+{% endcomment %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">Pilotage · lecture journalisée</p>
+    <h2 class="entete-page__titre">Activité des boutiques</h2>
+    <p class="entete-page__phrase">Les {{ fenetre }} derniers jours, caisse et vitrine confondues. Une boutique active sans vente depuis {{ seuil }} jours est signalée « endormie » : un appel vaut mieux qu'une résiliation.</p>
+  </div>
+</div>
+
+{% include "plateforme/partials/t_lecture.html" %}
+
+<section class="kpis t-kpis t-bloc-bas" aria-label="Activité agrégée du marché">
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>Chiffre d'affaires TTC</span>
+    <span class="kpi__valeur">{{ total_ca|fcfa }}<span class="unite">FCFA</span></span>
+    <span class="kpi__pied">{{ nb_boutiques }} boutique{{ nb_boutiques|pluralize }} suivie{{ nb_boutiques|pluralize }}, {{ fenetre }} jours</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-caisse"></use></svg></span>Tickets de caisse</span>
+    <span class="kpi__valeur">{{ total_tickets }}</span>
+    <span class="kpi__pied">Ventes clôturées au comptoir</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-commandes"></use></svg></span>Commandes en ligne</span>
+    <span class="kpi__valeur">{{ total_commandes }}</span>
+    <span class="kpi__pied">Hors commandes annulées</span>
+  </div>
+  <a class="kpi" href="?vue=endormies">
+    <span class="kpi__tete"><span class="kpi__icone {% if nb_endormies %}kpi__icone--alerte{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#{% if nb_endormies %}ic-horloge{% else %}ic-check{% endif %}"></use></svg></span>Boutiques endormies</span>
+    <span class="kpi__valeur">{{ nb_endormies }}</span>
+    <span class="kpi__pied">{% if nb_endormies %}Aucune vente depuis {{ seuil }} jours ou plus{% else %}<span class="t-muet">Toutes vendent</span>{% endif %}</span>
+  </a>
+</section>
+
+<nav class="onglets" aria-label="Filtre">
+  <a class="onglet" href="?tri={{ tri }}" {% if vue != 'endormies' %}aria-current="page"{% endif %}>Toutes<span class="onglet__compte">{{ nb_boutiques }}</span></a>
+  <a class="onglet" href="?vue=endormies&amp;tri={{ tri }}" {% if vue == 'endormies' %}aria-current="page"{% endif %}>Endormies<span class="onglet__compte">{{ nb_endormies }}</span></a>
+</nav>
+
+<section class="carte">
+  <form class="t-filtres" method="get" data-filtres>
+    <input type="hidden" name="vue" value="{{ vue }}">
+    <label class="t-filtre">
+      <span>Trier par</span>
+      <select class="champ champ--compact" name="tri" data-auto>
+        {% for code, libelle in tris %}<option value="{{ code }}" {% if tri == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
+      </select>
+    </label>
+    <span class="t-filtres__boutons"><button class="btn" type="submit" data-appliquer>Appliquer</button></span>
+  </form>
+  {% if lignes %}
+  <div class="tableau-boite">
+    <table class="tableau">
+      <thead>
+        <tr>
+          <th scope="col">Boutique</th>
+          <th scope="col" class="num">CA TTC, {{ fenetre }} j</th>
+          <th scope="col" class="num t-cache-etroit">Tickets</th>
+          <th scope="col" class="num t-cache-etroit">Commandes</th>
+          <th scope="col" class="t-cache-moyen">Dernière vente</th>
+          <th scope="col" class="t-cache-etroit">Signal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lignes %}
+          <tr>
+            <td>
+              <a class="t-boutique" href="{% url 'plateforme:boutique_activite' l.b.pk %}">
+                <span class="monogramme" aria-hidden="true">{{ l.b.enseigne|initiales }}</span>
+                <span class="t-boutique__noms">
+                  <span class="t-boutique__enseigne">{{ l.b.enseigne }}</span>
+                  <span class="t-boutique__raison">{{ l.b.rayon_principal.libelle|default:"Sans rayon" }} · {{ l.b.ville }}</span>
+                  <span class="t-statut-mobile">{% include "plateforme/partials/t_signal.html" %}</span>
+                </span>
+              </a>
+            </td>
+            <td class="num">
+              <span class="t-ca">
+                <span>{{ l.ca|fcfa }}</span>
+                {% if l.ca %}{% localize off %}<span class="t-ca__piste" aria-hidden="true"><span style="width:{{ l.largeur }}%"></span></span>{% endlocalize %}{% endif %}
+              </span>
+            </td>
+            <td class="num t-cache-etroit">{{ l.tickets }}</td>
+            <td class="num t-cache-etroit">{{ l.commandes }}</td>
+            <td class="t-cache-moyen chiffre">{% if l.derniere %}{{ l.derniere|date:"d/m/Y" }}{% else %}<span class="t-muet">Jamais</span>{% endif %}</td>
+            <td class="t-cache-etroit">
+              {% include "plateforme/partials/t_signal.html" %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="vide">
+      <svg aria-hidden="true"><use href="#{% if vue == 'endormies' %}ic-check{% else %}ic-boutique{% endif %}"></use></svg>
+      {% if vue == 'endormies' %}
+        <p class="t-section">Aucune boutique endormie</p>
+        <p class="t-legende">Toutes les boutiques actives ont vendu depuis moins de {{ seuil }} jours.</p>
+      {% else %}
+        <p class="t-section">Aucune boutique en activité</p>
+        <p class="t-legende">L'activité apparaît ici dès qu'une boutique est validée.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/plateforme-tableaux.js' %}" defer></script>{% endblock %}

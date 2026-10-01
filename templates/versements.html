@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Versements — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Versements{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-verrou"></use></svg><span class="t-sur-titre">Bloqué</span></div>
+      <p class="tuile__valeur">{{ bilan.bloque|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">En séquestre, en attente de livraison confirmée et du délai de {{ palier.delai_liberation_jours }} jour{{ palier.delai_liberation_jours|pluralize }}</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">Disponible</span></div>
+      <p class="tuile__valeur">{{ bilan.disponible|fcfa }}<span class="unite">FCFA</span></p>
+      {% if bilan.disponible < zero %}
+        <p class="tuile__note"><span class="t-muet">Commissions de vos ventes à la livraison restant à régler : elles se retiennent sur vos prochains paiements en ligne.</span></p>
+      {% else %}
+        <p class="tuile__note"><span class="t-muet">Ce que vous pouvez demander à recevoir{% if bilan.commissions_compensees %}, après {{ bilan.commissions_compensees|fcfa }} FCFA de commissions sur vos ventes à la livraison{% endif %}</span></p>
+      {% endif %}
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-momo"></use></svg><span class="t-sur-titre">Versé</span></div>
+      <p class="tuile__valeur">{{ bilan.verse|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{% if bilan.en_attente_de_versement %}dont {{ bilan.en_attente_de_versement|fcfa }} FCFA en cours d'exécution{% else %}Depuis l'ouverture de la boutique{% endif %}</span></p>
+    </article>
+  </section>
+
+  <div class="duo">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Demander un versement</h2></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% if compte %}
+          <div class="rangee rangee--espace"><span class="t-2">Vers</span><span>{{ compte.get_operateur_display }} <span class="chiffre">{{ compte.numero }}</span></span></div>
+          <div class="rangee rangee--espace"><span class="t-2">Titulaire</span><span>{{ compte.titulaire }}</span></div>
+        {% else %}
+          <div class="bandeau-info bandeau-info--alerte" role="status">
+            <svg><use href="#ic-alerte"></use></svg><span>{{ refus_compte }}</span>
+          </div>
+        {% endif %}
+
+        {% if en_attente %}
+          <p class="t-2">Un versement est en cours d'exécution par la plateforme. Le suivant pourra être demandé dès qu'il sera parti.</p>
+        {% elif compte and bilan.disponible > zero %}
+          {% if peut_demander %}
+            <form method="post" class="colonne" style="gap:10px">
+              {% csrf_token %}
+              <p class="t-2">Tout votre disponible, <strong class="chiffre">{{ bilan.disponible|fcfa }} FCFA</strong>, partira vers ce compte, et vers lui seul.</p>
+              <button class="btn btn--primaire" type="submit" style="align-self:flex-start">
+                <svg><use href="#ic-argent"></use></svg> Demander le versement
+              </button>
+            </form>
+          {% else %}
+            <p class="t-legende">Seul le gérant de la boutique demande un versement.</p>
+          {% endif %}
+        {% elif compte %}
+          <p class="t-legende">Rien à verser pour le moment.</p>
+        {% endif %}
+
+        <p class="t-legende">
+          Ce portefeuille est un compte de suivi : il retrace ce que la plateforme vous doit, il
+          n'est pas un dépôt. Le numéro de destination est figé au moment de la demande — le
+          changer ensuite ne déroute pas un versement déjà demandé, et un nouveau compte attend sa
+          vérification et son délai de carence.
+        </p>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">Historique des versements</h2></header>
+      {% if historique %}
+        <div class="carte__corps--serre">
+          <div class="tableau-boite">
+            <table class="tableau">
+              <thead>
+                <tr>
+                  <th scope="col">Demandé le</th>
+                  <th scope="col">Vers</th>
+                  <th scope="col">État</th>
+                  <th scope="col" class="num">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for v in historique %}
+                  <tr>
+                    <td class="chiffre t-2">{{ v.cree_le|date:"d/m/Y" }}</td>
+                    <td class="t-2">{{ v.libelle_operateur }} <span class="chiffre">{{ v.numero }}</span></td>
+                    <td>
+                      <span class="puce {% if v.etat == 'execute' %}puce--bon{% elif v.etat == 'annule' %}puce--critique{% else %}puce--alerte{% endif %}">{{ v.get_etat_display }}</span>
+                      {% if v.reference_operateur %}<span class="t-legende chiffre">réf. {{ v.reference_operateur }}</span>{% endif %}
+                      {% if v.motif_annulation %}<span class="t-legende">{{ v.motif_annulation }}</span>{% endif %}
+                    </td>
+                    <td class="num" style="font-weight:620">{{ v.montant|fcfa }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <div class="carte__corps"><div class="vide"><svg><use href="#ic-argent"></use></svg><p class="t-2">Aucun versement pour le moment.</p></div></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Mouvements du portefeuille</h2></header>
+    {% if mouvements %}
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Mouvement</th>
+                <th scope="col">Solde</th>
+                <th scope="col" class="num">Montant</th>
+                <th scope="col" class="num">Solde après</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in mouvements %}
+                <tr>
+                  <td class="chiffre t-2">{{ m.cree_le|date:"d/m/Y H:i" }}</td>
+                  <td class="principal">{{ m.libelle }}</td>
+                  <td class="t-2">{{ m.get_compartiment_display }}</td>
+                  <td class="num chiffre" style="font-weight:620">{% if m.montant > 0 %}+{% endif %}{{ m.montant|fcfa }}</td>
+                  <td class="num chiffre t-2">{{ m.solde_apres|fcfa }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="carte__corps"><div class="vide"><svg><use href="#ic-argent"></use></svg><p class="t-2">Aucun mouvement : les commandes prépayées apparaîtront ici dès leur paiement.</p></div></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

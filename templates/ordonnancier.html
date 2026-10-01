@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Ordonnancier — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Ordonnancier{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'ventes' %}">Toutes les ventes</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">Consignées</span></div>
+      <p class="tuile__valeur">{{ consignees|length }}</p>
+      <p class="tuile__note"><span class="t-muet">Délivrances avec leur prescripteur</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-alerte"></use></svg><span class="t-sur-titre">À compléter</span></div>
+      <p class="tuile__valeur">{{ incompletes|length }}</p>
+      <p class="tuile__note"><span class="t-muet">Délivrées, pas encore consignées</span></p>
+    </article>
+  </section>
+
+  {% if incompletes %}
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">À compléter</h2>
+        <span class="puce puce--alerte"><svg><use href="#ic-alerte"></use></svg>{{ incompletes|length }}</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:16px">
+        <p class="t-legende">
+          Ces ventes portent un {{ metier.article }} délivré sur ordonnance et
+          n'ont pas encore de prescripteur. La vente n'a pas été refusée — la
+          boîte est partie avec le client, et la refuser n'aurait effacé que la
+          trace.
+        </p>
+
+        {% for t in incompletes %}
+          <div class="carte carte__corps colonne" style="gap:10px">
+            <div class="rangee rangee--espace" style="flex-wrap:wrap;gap:8px">
+              <span class="principal">
+                <a href="{% url 'ticket' ticket_id=t.pk %}">{{ t.numero }}</a>
+                <span class="t-muet"> · {{ t.cloture_le|date:"d/m/Y à H:i" }}</span>
+              </span>
+              <span class="chiffre">{{ t.total_ttc|fcfa }}<span class="unite">FCFA</span></span>
+            </div>
+            <p class="t-2">
+              {% for ligne in t.lignes.all %}
+                {% if ligne.sur_ordonnance %}
+                  <span class="puce puce--alerte">{{ ligne.libelle }} × {{ ligne.quantite|quantite }}</span>
+                {% endif %}
+              {% endfor %}
+            </p>
+            {% if t.client_nom %}<p class="t-legende">Client : {{ t.client_nom }}</p>{% endif %}
+            {% if peut_consigner %}
+              <form method="post" action="{% url 'ordonnancier_consigner' ticket_id=t.pk %}"
+                    class="rangee" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+                {% csrf_token %}
+                <div class="groupe-champ" style="flex:1;min-width:240px">
+                  <label for="mention-{{ t.pk }}">Prescripteur et date de l'ordonnance</label>
+                  <input class="champ" id="mention-{{ t.pk }}" name="mention"
+                         placeholder="Dr Manga, 11/09/2026" required>
+                </div>
+                <button class="btn btn--primaire" type="submit">Consigner</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="délivrance" data-noms="délivrances" data-accord="e">
+    {% include "partials/tableau_barre.html" with nom="delivrance" noms="délivrances" titre="Registre" filtres_id="filtres-ordonnancier" filtres_actifs=filtres.actifs aide="Registre en ajout seul : une délivrance ne s'efface pas. Seule la mention d'ordonnance reste modifiable — un registre se complète, une écriture jamais." %}
+    <div class="carte__corps--serre">
+      {% if consignees %}
+        <div class="tableau-boite">
+          <table class="tableau">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Ticket</th>
+                <th scope="col">{{ metier.articles|capfirst }}</th>
+                <th scope="col">Client</th>
+                <th scope="col">Ordonnance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in consignees %}
+                <tr data-id="{{ t.pk }}" data-libelle="{{ t.numero }}"
+                    data-ouvrir="{% url 'ticket' ticket_id=t.pk %}">
+                  <td class="t-2 chiffre">{{ t.cloture_le|date:"d/m/Y H:i" }}</td>
+                  <td class="principal"><a href="{% url 'ticket' ticket_id=t.pk %}">{{ t.numero }}</a></td>
+                  <td class="t-2">
+                    {% for ligne in t.lignes.all %}{% if ligne.sur_ordonnance %}{{ ligne.libelle }} × {{ ligne.quantite|quantite }}{% if not forloop.last %}<br>{% endif %}{% endif %}{% endfor %}
+                  </td>
+                  <td class="t-2">{{ t.client_nom|default:"—" }}</td>
+                  <td class="t-2">{{ t.mention_ordonnance }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte__corps">
+          <div class="vide">
+            <svg><use href="#ic-ventes"></use></svg>
+            <p class="t-2">Aucune délivrance consignée.</p>
+            {% if filtres.actifs %}
+              <a class="btn" href="{% url 'ordonnancier' %}">Retirer les filtres</a>
+            {% endif %}
+            <p class="t-legende">
+              Un {{ metier.article }} n'apparaît ici que s'il est marqué
+              « délivré sur ordonnance » dans sa fiche. Sans cette marque, la
+              caisse ne demande rien et le registre reste vide.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% include "partials/modal_filtres.html" with id="filtres-ordonnancier" formulaire=filtres action=url_ordonnancier titre="Filtrer l'ordonnancier" aide="« À compléter » est la seule partie du registre sur laquelle il reste un geste à faire." %}
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% load static %}
+{% block styles %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/plateforme-verifications.css' %}">{% endblock %}
+{% block fil_parent %}Boutiques{% endblock %}
+{% block question %}Relisez, puis ouvrez{% endblock %}
+{% block phrase %}Rien n'est encore créé. À la confirmation, la boutique, son bail, son gérant, son plan comptable et son magasin principal naissent ensemble — ou pas du tout.{% endblock %}
+{% block avant_formulaire %}{% include "plateforme/partials/a_recap.html" %}{% endblock %}
+{% block etape %}
+  <fieldset class="a-groupe" id="{{ form.ouverture.auto_id }}">
+    <legend class="a-legende">{{ form.ouverture.label }}</legend>
+    <div class="choix-cartes a-cartes--deux">
+      {% with valeur=form.ouverture.value|stringformat:"s" %}
+      {% comment %}
+      Le verrou d'activation : une boutique qui naît n'a encore ni pièce vérifiée ni compte de
+      versement, et le second regard doit venir d'un autre administrateur. L'option reste visible,
+      pour dire pourquoi elle est fermée ; le service la refuserait de toute façon.
+      {% endcomment %}
+      <label class="choix-carte{% if verrou_activation %} choix-carte--fermee{% endif %}">
+        <input type="radio" name="ouverture" value="active" {% if verrou_activation %}disabled aria-describedby="verrou-activation"{% elif valeur == 'active' %}checked{% endif %}>
+        <span class="choix-carte__corps">
+          <span class="choix-carte__tete">
+            <span class="choix-carte__icone" aria-hidden="true"><svg><use href="#{% if verrou_activation %}ic-verrou{% else %}ic-lecture{% endif %}"></use></svg></span>
+            <span class="choix-carte__titre">Ouvrir tout de suite</span>
+            <span class="choix-carte__coche" aria-hidden="true"><svg><use href="#ic-check"></use></svg></span>
+          </span>
+          {% if verrou_activation %}
+            <span class="choix-carte__texte" id="verrou-activation"><strong>Fermé tant que la vérification n'est pas faite.</strong> Pièce du gérant, appel de vérification, RCCM, identifiant fiscal et compte de versement doivent d'abord être validés — par un autre administrateur que vous.</span>
+          {% else %}
+            <span class="choix-carte__texte">Boutique <span class="statut statut--active">active</span> et bail actif : elle paraît en vitrine dès la confirmation.</span>
+          {% endif %}
+        </span>
+      </label>
+      <label class="choix-carte">
+        <input type="radio" name="ouverture" value="candidature" {% if valeur == 'candidature' or verrou_activation %}checked{% endif %}>
+        <span class="choix-carte__corps">
+          <span class="choix-carte__tete">
+            <span class="choix-carte__icone" aria-hidden="true"><svg><use href="#ic-horloge"></use></svg></span>
+            <span class="choix-carte__titre">Laisser en candidature</span>
+            <span class="choix-carte__coche" aria-hidden="true"><svg><use href="#ic-check"></use></svg></span>
+          </span>
+          <span class="choix-carte__texte">Boutique <span class="statut statut--candidature">candidature</span> et bail en brouillon : hors vitrine. Son dossier se complète dans « Vérifications », puis elle se valide depuis sa fiche.</span>
+        </span>
+      </label>
+      {% endwith %}
+    </div>
+    {% if form.ouverture.errors %}<p class="a-erreur" id="{{ form.ouverture.auto_id }}_erreur"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ form.ouverture.errors|join:" " }}</span></p>{% endif %}
+  </fieldset>
+  <p class="t-legende a-trace">
+    <svg class="icone-ligne" aria-hidden="true"><use href="#ic-journal"></use></svg>
+    L'ouverture sera inscrite au journal des accès, à votre nom.
+  </p>
+{% endblock %}

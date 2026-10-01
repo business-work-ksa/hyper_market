@@ -1,0 +1,18 @@
+{% load hm %}
+<ul class="s-preuves">
+  {% for autre in s.preuves.boutiques %}
+    <li class="s-preuve">
+      <span class="s-preuve__tete">
+        <a class="t-lien" href="{% url 'plateforme:boutique' autre.id %}">{{ autre.enseigne }}</a>
+        <span class="statut statut--{{ autre.etat }}">{{ autre.etat_libelle }}</span>
+        <span class="t-legende">ouverte le {{ autre.ouverte_le }}</span>
+      </span>
+      <span class="s-preuve__champs">
+        {% for c in autre.champs %}
+          <span class="puce puce--marque">Même {{ c.champ }} · <span class="chiffre">{{ c.valeur }}</span></span>
+        {% endfor %}
+      </span>
+    </li>
+  {% endfor %}
+</ul>
+{% include "plateforme/partials/s_lecture.html" with indice="Une personne, plusieurs vitrines : on encaisse sur l'une, on la laisse suspendre, on rouvre sous un autre nom avec les mêmes coordonnées — un numéro Mobile Money et une pièce d'identité ne se changent pas facilement. Le lien avec une boutique suspendue ou résiliée est le cas grave." innocent="Un commerçant honnête peut tenir deux boutiques ; une galerie peut donner le même standard à ses locataires ; un comptable peut déposer plusieurs dossiers avec son téléphone." verifier="ouvrez les deux fiches : mêmes gérants ? La boutique liée a-t-elle été suspendue pour des livraisons non faites ? Appelez le gérant sur le numéro vérifié, pas sur celui de la fiche." %}

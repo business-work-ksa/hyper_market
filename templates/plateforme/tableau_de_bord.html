@@ -1,0 +1,226 @@
+{% extends "plateforme/base.html" %}
+{% load static hm l10n %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block entete %}Tableau de bord{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Le tableau de bord répond à trois questions, dans cet ordre : qu'est-ce qui attend un geste de
+moi ? le marché se porte-t-il bien ? qui a regardé quoi ? Tout le reste est à un clic : chaque
+indicateur mène à l'écran filtré qui l'explique.
+{% endcomment %}
+
+<section class="heros-console t-accueil">
+  <div class="t-accueil__texte">
+    <p class="t-accueil__date">{{ date_du_jour|capfirst }}</p>
+    <h2 class="heros-console__salut">{{ salut }}{% if prenom %} {{ prenom }}{% endif %}.</h2>
+    <p class="heros-console__phrase">
+      {% if file %}
+        {{ file|length }} sujet{{ file|length|pluralize }} attend{{ file|length|pluralize:"ent" }} un geste de votre part.
+      {% else %}
+        Rien n'attend de geste aujourd'hui. Le marché compte {{ boutiques.active }} boutique{{ boutiques.active|pluralize }} active{{ boutiques.active|pluralize }}.
+      {% endif %}
+    </p>
+  </div>
+  <div class="t-accueil__actions">
+    {% for r in raccourcis %}
+      <a class="btn{% if r.primaire %} btn--primaire{% endif %}" href="{{ r.url }}">
+        <svg aria-hidden="true"><use href="#{{ r.icone }}"></use></svg>{{ r.libelle }}
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="kpis t-kpis" aria-label="Indicateurs du marché">
+  <a class="kpi" href="{% url 'plateforme:boutiques' %}?etat=active">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg></span>Boutiques actives</span>
+    <span class="kpi__valeur">{{ boutiques.active }}</span>
+    <span class="kpi__pied">
+      {% if boutiques.candidature %}<span class="t-kpi-note t-kpi-note--or">{{ boutiques.candidature }} candidature{{ boutiques.candidature|pluralize }}</span>{% endif %}
+      {% if boutiques.suspendue %}<span class="t-kpi-note">{{ boutiques.suspendue }} suspendue{{ boutiques.suspendue|pluralize }}</span>{% endif %}
+      {% if not boutiques.candidature and not boutiques.suspendue %}<span class="t-muet">Aucune en attente</span>{% endif %}
+    </span>
+  </a>
+
+  {% if 'plateforme.boutiques' in droits %}
+  <a class="kpi" href="{% url 'plateforme:loyers' %}">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--bon"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>Loyers du mois</span>
+    <span class="kpi__valeur">{{ loyers.encaisse|fcfa }}<span class="unite">FCFA</span></span>
+    <span class="kpi__pied t-kpi-pied--colonne">
+      {% if loyers.taux is not None %}
+        {% localize off %}
+        <span class="t-jauge" role="img" aria-label="{{ loyers.taux }} % recouvré"><span style="width:{{ loyers.taux }}%"></span></span>
+        {% endlocalize %}
+        <span>{{ loyers.taux|pourcent }} recouvré sur {{ loyers.emis|fcfa }} émis</span>
+      {% else %}
+        <span class="t-muet">Aucune facture émise ce mois-ci</span>
+      {% endif %}
+    </span>
+  </a>
+
+  <a class="kpi" href="{% url 'plateforme:loyers' %}?mois=tous&amp;etat=echues">
+    <span class="kpi__tete"><span class="kpi__icone {% if impayes.nombre %}kpi__icone--critique{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#{% if impayes.nombre %}ic-alerte{% else %}ic-check{% endif %}"></use></svg></span>Impayés échus</span>
+    <span class="kpi__valeur">{{ impayes.montant|fcfa }}<span class="unite">FCFA</span></span>
+    <span class="kpi__pied">
+      {% if impayes.nombre %}
+        {{ impayes.nombre }} facture{{ impayes.nombre|pluralize }} · {{ impayes.boutiques }} boutique{{ impayes.boutiques|pluralize }}
+      {% else %}
+        <span class="t-muet">Aucun retard de paiement</span>
+      {% endif %}
+    </span>
+  </a>
+
+  <a class="kpi" href="{% url 'plateforme:loyers' %}?etat=payees">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-hausse"></use></svg></span>Revenus du mois <span class="t-muet">HT</span></span>
+    <span class="kpi__valeur">{{ revenus_mois|fcfa }}<span class="unite">FCFA</span></span>
+    <span class="kpi__pied">Loyers {{ revenus_loyers|fcfa }} · premium {{ revenus_premium|fcfa }}</span>
+    {% if trace_revenus %}
+      <svg class="kpi__trace" viewBox="0 0 92 30" aria-hidden="true" preserveAspectRatio="none">
+        <polyline points="{{ trace_revenus }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+    {% endif %}
+  </a>
+  {% endif %}
+
+  {% if 'plateforme.emplacements' in droits %}
+  <a class="kpi" href="{% url 'plateforme:emplacements' %}">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-etoile"></use></svg></span>Emplacements</span>
+    <span class="kpi__valeur">{{ emplacements.en_cours }}<span class="unite">en cours</span></span>
+    <span class="kpi__pied">
+      Premium{% if emplacements.a_venir %} · {{ emplacements.a_venir }} à venir{% else %} · <span class="t-muet">aucun à venir</span>{% endif %}
+    </span>
+  </a>
+  {% endif %}
+</section>
+
+<div class="grille-console t-bloc">
+  {% if 'plateforme.boutiques' in droits %}
+  <section class="carte col-7">
+    <header class="carte__entete">
+      <h2 class="t-section">Loyers encaissés <span class="t-muet t-petit">HT, par mois facturé</span></h2>
+      <nav class="t-segment" aria-label="Période du graphe">
+        <a href="?periode=6" {% if nb_mois == 6 %}aria-current="page"{% endif %}>6 mois</a>
+        <a href="?periode=12" {% if nb_mois == 12 %}aria-current="page"{% endif %}>12 mois</a>
+      </nav>
+    </header>
+    <div class="carte__corps">
+      <p class="t-graphe-total">
+        <span class="t-graphe-total__valeur">{{ graphe.total|fcfa }}<span class="unite">FCFA</span></span>
+        <span class="t-legende">sur {{ nb_mois }} mois</span>
+      </p>
+      {% include "plateforme/partials/t_graphe.html" with aria="Loyers encaissés hors taxes, par mois facturé, en francs CFA." vide="Aucun loyer encaissé sur la période." %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="carte {% if 'plateforme.boutiques' in droits %}col-5{% else %}col-12{% endif %}">
+    <header class="carte__entete">
+      <h2 class="t-section">À traiter</h2>
+      {% if file %}<span class="puce puce--marque">{{ file|length }}</span>{% endif %}
+    </header>
+    {% if file %}
+      <div class="file">
+        {% for item in file %}
+          <a class="file__ligne" href="{{ item.url }}">
+            <span class="t-file-icone t-file-icone--{{ item.ton }}"><svg aria-hidden="true"><use href="#{{ item.icone }}"></use></svg></span>
+            <span class="file__corps">
+              <span class="file__titre">{{ item.titre }}</span>
+              <span class="t-legende">{{ item.detail }}{% if item.montant %} · <strong class="t-file-montant">{{ item.montant|fcfa }} FCFA</strong>{% endif %}</span>
+            </span>
+            <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="vide t-vide-compact">
+        <svg aria-hidden="true"><use href="#ic-check"></use></svg>
+        <p class="t-section">Rien n'attend</p>
+        <p class="t-legende">Candidatures, loyers échus, signaux de risque, baux et signalements sont à jour.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="carte col-4">
+    <header class="carte__entete">
+      <h2 class="t-section">Boutiques actives par rayon</h2>
+    </header>
+    <div class="carte__corps t-parts">
+      {% for r in par_rayon %}
+        <div class="part">
+          <div class="part__tete"><span>{{ r.libelle }}</span><span class="chiffre">{{ r.nombre }} <span class="t-muet">· {{ r.part|floatformat:0 }} %</span></span></div>
+          {% localize off %}<div class="part__piste"><div class="part__rempli{% if r.autres %} t-rempli-autres{% endif %}" style="width:{{ r.largeur }}%"></div></div>{% endlocalize %}
+        </div>
+      {% empty %}
+        <p class="t-legende">Aucune boutique active.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="carte col-4">
+    <header class="carte__entete">
+      <h2 class="t-section">Boutiques actives par ville</h2>
+    </header>
+    <div class="carte__corps t-parts">
+      {% for v in par_ville %}
+        <div class="part">
+          <div class="part__tete"><span>{{ v.libelle }}</span><span class="chiffre">{{ v.nombre }} <span class="t-muet">· {{ v.part|floatformat:0 }} %</span></span></div>
+          {% localize off %}<div class="part__piste"><div class="part__rempli{% if v.autres %} t-rempli-autres{% endif %}" style="width:{{ v.largeur }}%"></div></div>{% endlocalize %}
+        </div>
+      {% empty %}
+        <p class="t-legende">Aucune boutique active.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="carte col-4">
+    <header class="carte__entete">
+      <h2 class="t-section">Derniers accès journalisés</h2>
+      <a class="t-petit t-lien" href="{% url 'plateforme:journal' %}">Tout le journal</a>
+    </header>
+    {% if derniers_acces %}
+      {% include "plateforme/partials/t_acces.html" with lignes=derniers_acces %}
+    {% else %}
+      <div class="vide t-vide-compact">
+        <svg aria-hidden="true"><use href="#ic-journal"></use></svg>
+        <p class="t-legende">Personne n'a encore consulté l'activité d'une boutique.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if gouvernance %}
+  <section class="carte col-12 t-gouvernance">
+    <header class="carte__entete t-entete-souple">
+      <h2 class="t-section">Gouvernance</h2>
+      <span class="t-legende t-legende-large">Réservé au superadministrateur</span>
+      <a class="btn btn--discret" href="{% url 'plateforme:technique' %}"><svg aria-hidden="true"><use href="#ic-bouclier"></use></svg>Santé technique</a>
+    </header>
+    <div class="carte__corps t-gouvernance__corps">
+      <div class="t-gouvernance__chiffres">
+        <div><span class="t-gouvernance__valeur">{{ gouvernance.nb_administrateurs }}</span><span class="t-legende">administrateur{{ gouvernance.nb_administrateurs|pluralize }} du marché actif{{ gouvernance.nb_administrateurs|pluralize }}</span></div>
+        <div><span class="t-gouvernance__valeur">{{ gouvernance.acces_semaine }}</span><span class="t-legende">accès journalisé{{ gouvernance.acces_semaine|pluralize }} en 7 jours</span></div>
+        {% if 'console.administrateurs' in droits %}
+          <a class="btn" href="{% url 'plateforme:administrateurs' %}"><svg aria-hidden="true"><use href="#ic-equipe"></use></svg>Gérer les administrateurs</a>
+        {% endif %}
+      </div>
+      <div class="t-gouvernance__liste">
+        <p class="t-sur-titre">Accès des 7 derniers jours, par personne</p>
+        {% for p in gouvernance.personnes %}
+          <div class="part">
+            <div class="part__tete">
+              <span><strong>{{ p.utilisateur.nom_complet }}</strong> <span class="t-legende">· {{ p.niveau }}</span></span>
+              <span class="chiffre">{{ p.acces }}</span>
+            </div>
+            {% localize off %}<div class="part__piste"><div class="part__rempli" style="width:{{ p.largeur }}%"></div></div>{% endlocalize %}
+          </div>
+        {% empty %}
+          <p class="t-legende">Aucun administrateur nommé.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/plateforme-tableaux.js' %}" defer></script>{% endblock %}

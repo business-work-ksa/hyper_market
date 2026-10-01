@@ -1,0 +1,92 @@
+# Déploiement d'HyperMarché sur une seule machine.
+#
+# C'est la cible du palier 1 (docs/17) : un VPS, un domaine, pas d'orchestrateur.
+# Un commerçant de Douala n'attend pas un cluster, et personne ici n'a de quoi
+# en exploiter un. La montée en charge se traite quand elle se présente — le
+# premier étage est d'ajouter des instances `web` derrière le proxy.
+#
+#   cp .env.production.example .env.production   # puis remplir
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Les fichiers statiques sont servis par WhiteNoise depuis le processus
+# applicatif : il n'y a donc **pas** de Nginx ici. Le TLS est terminé en amont
+# (Caddy, Traefik, le reverse proxy de l'hébergeur), et cet amont doit
+# transmettre `X-Forwarded-Proto` — sans quoi Django boucle sur la redirection
+# HTTPS. Voir `SECURE_PROXY_SSL_HEADER` dans config/settings.py.
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hypermarche}
+      POSTGRES_USER: ${POSTGRES_USER:-hypermarche}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?mot de passe de la base obligatoire}
+    volumes:
+      - "donnees_postgres:/var/lib/postgresql/data"
+      # Retire SUPERUSER au rôle applicatif. Sans cela, il ignore silencieusement
+      # toutes les politiques de sécurité au niveau ligne et la barrière 3 est
+      # décorative. Le script ne joue qu'à la création du volume : sur une base
+      # déjà initialisée, exécuter l'instruction à la main.
+      - "./infrastructure/postgres:/docker-entrypoint-initdb.d:ro"
+    # Le port n'est **pas** publié : la base ne parle qu'au réseau du compose.
+    # L'exposer sur l'hôte est la manière la plus courante de se faire lire sa
+    # comptabilité par le reste d'Internet.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hypermarche}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    volumes:
+      - "donnees_redis:/data"
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: [.env.production]
+    environment:
+      DEBUG: "False"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-hypermarche}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hypermarche}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      # Partagé entre les trois `workers` : le compteur d'essais de mot de passe
+      # y vit, et un cache local par processus multiplierait la limite par trois.
+      REDIS_CACHE_URL: "redis://redis:6379/2"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    ports: ["${PORT_PUBLIC:-8000}:8000"]
+    volumes:
+      # Les médias (logos, photos d'articles) survivent à un redéploiement :
+      # ils ont été téléversés par des commerçants, pas construits par l'image.
+      - "medias:/app/media"
+
+  # Le même conteneur, sans serveur web. Les migrations et la vérification de
+  # l'isolation sont faites par l'entrée, qui s'exécute aussi ici — un worker
+  # qui démarrerait sur un schéma non migré échouerait tâche par tâche.
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file: [.env.production]
+    environment:
+      DEBUG: "False"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-hypermarche}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hypermarche}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      CELERY_TASK_ALWAYS_EAGER: "False"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=2"]
+    volumes:
+      - "medias:/app/media"
+
+volumes:
+  donnees_postgres:
+  donnees_redis:
+  medias:

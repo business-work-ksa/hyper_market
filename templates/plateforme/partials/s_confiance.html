@@ -1,0 +1,82 @@
+{% load hm l10n %}
+{% comment %}
+La carte « Confiance » de la fiche d'une boutique : son palier, ce qui lui manque pour le suivant,
+ses derniers changements et ses signaux ouverts. Tout vient de la dernière évaluation de nuit
+(`carte_confiance`) : aucune table scopée n'est relue, la fiche s'ouvre sans motif de suivi.
+{% endcomment %}
+{% with c=confiance %}
+<section class="carte" aria-labelledby="s-confiance-titre">
+  <header class="carte__entete">
+    <h2 class="t-section" id="s-confiance-titre">Confiance</h2>
+    {% if c.evalue_le %}<span class="t-legende">évaluée le {{ c.evalue_le|date:"d/m à H:i" }}</span>{% else %}<span class="t-legende">jamais évaluée</span>{% endif %}
+  </header>
+  <div class="carte__corps">
+    <div class="s-palier">
+      <span class="s-palier__niveau" aria-hidden="true">{{ c.palier.niveau }}</span>
+      <span class="s-palier__texte">
+        <span class="s-palier__titre">Palier {{ c.palier.niveau }} — {{ c.palier.libelle }}</span>
+        <span class="t-legende">
+          Séquestre plafonné à {% if c.palier.plafond_sequestre is None %}rien : sans plafond{% else %}{{ c.palier.plafond_sequestre|fcfa }} FCFA{% endif %}
+          · fonds libérés {{ c.palier.delai_liberation_jours }} j après la livraison confirmée
+        </span>
+      </span>
+    </div>
+
+    {% if c.progression %}
+      <div class="s-criteres" aria-label="Progression vers le palier {{ c.progression.palier.niveau }}">
+        <p class="t-sur-titre">Vers « {{ c.progression.palier.libelle }} »</p>
+        {% for k in c.progression.criteres %}
+          <div class="part s-critere{% if k.rempli %} s-critere--rempli{% endif %}">
+            <div class="part__tete">
+              <span>{% if k.rempli %}<svg aria-hidden="true" class="s-monte"><use href="#ic-check"></use></svg>{% endif %}{{ k.libelle }}</span>
+              <span class="chiffre">{{ k.valeur }} <span class="t-muet">/ {{ k.requis }}</span></span>
+            </div>
+            {% localize off %}<div class="part__piste"><div class="part__rempli" style="width:{{ k.part }}%"></div></div>{% endlocalize %}
+          </div>
+        {% endfor %}
+        <p class="t-petit">
+          {% if c.progression.taux_rempli %}
+            <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>Litiges perdus {{ c.progression.taux|taux:1 }}</span>
+          {% else %}
+            <span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>Litiges perdus {{ c.progression.taux|taux:1 }}</span>
+          {% endif %}
+          <span class="t-legende">plafond du palier visé : {{ c.progression.taux_max|taux:0 }}</span>
+        </p>
+      </div>
+    {% elif c.dernier_palier %}
+      <p class="t-legende" style="margin-top:12px">Dernier palier atteint. Il se garde tant que les litiges perdus restent sous {{ c.palier.taux_litiges_perdus_max|taux:0 }}.</p>
+    {% elif not c.mesure %}
+      <p class="t-legende" style="margin-top:12px">Aucune mesure encore : la tâche de nuit (<code>evaluer_confiance</code>) ne l'a pas évaluée.</p>
+    {% endif %}
+  </div>
+
+  {% if c.signaux %}
+    <div class="s-file">
+      {% for x in c.signaux %}
+        <a class="file__ligne" href="{% url 'plateforme:signal' x.pk %}">
+          {% include "plateforme/partials/s_gravite.html" with signal=x %}
+          <span class="file__corps">
+            <span class="file__titre">{{ x.get_type_display }}</span>
+            <span class="t-legende">{{ x.resume|truncatechars:110 }}</span>
+          </span>
+          <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if c.changements %}
+    <footer class="carte__pied">
+      <ul class="s-changements" aria-label="Derniers changements de palier">
+        {% for ch in c.changements %}
+          <li>
+            {% if ch.est_une_montee %}<svg class="s-monte" aria-hidden="true"><use href="#ic-hausse"></use></svg>{% else %}<svg class="s-descend" aria-hidden="true"><use href="#ic-baisse"></use></svg>{% endif %}
+            <span><strong>{% if ch.est_une_montee %}Montée{% else %}Rétrogradation{% endif %} {{ ch.ancien }} → {{ ch.nouveau }}</strong> <span class="t-legende">le {{ ch.decide_le|date:"d/m/Y" }}</span><br>
+              <span class="t-legende">{{ ch.raisons|first }}</span></span>
+          </li>
+        {% endfor %}
+      </ul>
+    </footer>
+  {% endif %}
+</section>
+{% endwith %}

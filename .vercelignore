@@ -1,0 +1,35 @@
+# Ce qui n'a rien à faire dans une fonction sans serveur.
+#
+# Ce n'est pas de l'hygiène : la fonction a une taille maximale, et Playwright
+# seul pèse plus que tout le reste de l'application. Ce qui entre ici est aussi
+# ce qui est téléversé à chaque déploiement, donc ce qui fait le temps d'attente.
+
+# Outillage de capture d'écran : Playwright et un navigateur complet.
+node_modules
+package.json
+package-lock.json
+scripts
+captures
+
+# Téléversements de développement. Le disque est éphémère de toute façon (§2 bis
+# du document 20) : les emporter donnerait l'illusion qu'ils persistent.
+media
+
+# `static/` reste, lui : `collectstatic` tourne à la construction et le lit. Ce
+# fichier écarte du téléversement, donc de la machine de construction, pas
+# seulement de la fonction — l'écarter casserait la construction.
+
+# `infrastructure/` reste : il porte le script de construction, que la plateforme
+# exécute. Le champ `buildCommand` est limité à 256 caractères, et une suite de
+# commandes enchaînée à la main ne se commente pas.
+
+# Documentation, tests, outils de production locale.
+docs
+tests
+outils
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+Makefile
+render.yaml
+.github

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load hm %}
+
+{% block titre %}Nouveau dépôt — {{ boutique.enseigne }}{% endblock %}
+{% block entete %}Nouveau dépôt{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'boutique' %}">Retour à ma boutique</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">Ouvrir un dépôt</h2>
+      <span class="puce">{{ existants }} / {{ quota_depots }} utilisé{{ existants|pluralize }}</span>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+      {% include "partials/champ.html" with champ=formulaire.libelle %}
+      {% include "partials/champ.html" with champ=formulaire.type %}
+      {% include "partials/champ.html" with champ=formulaire.adresse %}
+      <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+        Ouvrir le dépôt
+      </button>
+    </form>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">Un dépôt, un stock</h2></header>
+    <div class="carte__corps colonne" style="gap:12px">
+      <p class="t-2">
+        Chaque dépôt tient <strong>son propre stock et son propre coût moyen</strong>. Le comptoir
+        et la réserve ne sont pas deux vues du même compteur : ce sont deux emplacements réels,
+        entre lesquels la marchandise se déplace par transfert.
+      </p>
+      <p class="t-2">
+        Le sélecteur en haut de l'écran désigne le <strong>dépôt d'exploitation</strong> : celui
+        où l'on encaisse, où l'on reçoit et où l'on compte. Un inventaire fait dans la mauvaise
+        réserve produit des écarts inventés de toutes pièces.
+      </p>
+      <p class="t-2">
+        Le nombre de dépôts fait partie de votre offre de location : votre emplacement en autorise
+        <strong>{{ quota_depots }}</strong>.
+      </p>
+    </div>
+  </section>
+</div>
+{% endblock %}

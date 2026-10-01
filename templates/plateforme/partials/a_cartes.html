@@ -1,0 +1,43 @@
+{% comment %}
+Un choix en cartes : des boutons radio, rendus comme des cartes, dans un fieldset nommé.
+Paramètres : `champ`, `cartes` (liste de {valeur, titre, texte, prix, suffixe, lignes, icone,
+monogramme, donnees}), et facultativement `aide` et `classe` (modifie la grille).
+{% endcomment %}
+{% load hm %}
+<fieldset class="a-groupe{% if champ.errors %} a-groupe--erreur{% endif %}" id="{{ champ.auto_id }}"
+          {% if champ.errors %}aria-describedby="{{ champ.auto_id }}_erreur"{% elif aide %}aria-describedby="{{ champ.auto_id }}_aide"{% endif %}>
+  <legend class="a-legende">{{ champ.label }}</legend>
+  {% if aide %}<p class="t-legende a-groupe__aide" id="{{ champ.auto_id }}_aide">{{ aide }}</p>{% endif %}
+  {% if champ.errors %}
+    <p class="a-erreur" id="{{ champ.auto_id }}_erreur">
+      <svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ champ.errors|join:" " }}</span>
+    </p>
+  {% endif %}
+  <div class="choix-cartes {{ classe|default:'' }}">
+    {% with valeur=champ.value|stringformat:"s" %}
+    {% for carte in cartes %}
+      <label class="choix-carte">
+        <input type="radio" name="{{ champ.html_name }}" value="{{ carte.valeur }}" id="{{ champ.auto_id }}_{{ forloop.counter0 }}"
+               {% if valeur == carte.valeur %}checked{% endif %}
+               {% if champ.errors %}aria-invalid="true"{% if forloop.first and form.premier_en_erreur == champ.name %} autofocus{% endif %}{% endif %}
+               {% for cle, val in carte.donnees.items %} data-{{ cle }}="{{ val }}"{% endfor %}>
+        <span class="choix-carte__corps">
+          <span class="choix-carte__tete">
+            {% if carte.icone %}<span class="choix-carte__icone" aria-hidden="true"><svg><use href="#{{ carte.icone }}"></use></svg></span>{% endif %}
+            {% if carte.monogramme %}<span class="monogramme" aria-hidden="true">{{ carte.monogramme|initiales }}</span>{% endif %}
+            <span class="choix-carte__titre">{{ carte.titre }}</span>
+            <span class="choix-carte__coche" aria-hidden="true"><svg><use href="#ic-check"></use></svg></span>
+          </span>
+          {% if carte.prix %}<span class="choix-carte__prix">{{ carte.prix }}{% if carte.suffixe %} <span class="choix-carte__suffixe">{{ carte.suffixe }}</span>{% endif %}</span>{% endif %}
+          {% if carte.texte %}<span class="choix-carte__texte">{{ carte.texte }}</span>{% endif %}
+          {% if carte.lignes %}
+            <ul class="choix-carte__lignes">{% for ligne in carte.lignes %}<li>{{ ligne }}</li>{% endfor %}</ul>
+          {% endif %}
+        </span>
+      </label>
+    {% empty %}
+      <p class="t-legende">Aucun choix disponible.</p>
+    {% endfor %}
+    {% endwith %}
+  </div>
+</fieldset>

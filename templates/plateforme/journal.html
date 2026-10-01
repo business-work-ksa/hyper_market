@@ -1,0 +1,111 @@
+{% extends "plateforme/base.html" %}
+{% load static hm %}
+{% block titre %}Journal des accès{% endblock %}
+{% block entete %}Journal des accès{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">Gouvernance</p>
+    <h2 class="entete-page__titre">Journal des accès</h2>
+    <p class="entete-page__phrase">Chaque fois que la plateforme a regardé l'activité d'une boutique : qui, quand, quel écran, pour quel motif. {{ total }} ligne{{ total|pluralize }} au total.</p>
+  </div>
+</div>
+
+<div class="t-regle t-bloc-bas" role="note">
+  <svg aria-hidden="true"><use href="#ic-verrou"></use></svg>
+  <div>
+    <p><strong>En ajout seul.</strong> Une ligne écrite ici ne se modifie ni ne s'efface — pas même par le
+      superadministrateur, pas même en SQL : un déclencheur PostgreSQL le refuse. Un journal qu'on
+      pourrait effacer ne prouverait rien.</p>
+  </div>
+</div>
+
+<section class="carte">
+  <form class="t-filtres" method="get" data-filtres>
+    <label class="t-filtre">
+      <span>Administrateur</span>
+      <select class="champ champ--compact" name="utilisateur" data-auto>
+        <option value="">Tous</option>
+        {% for u in auteurs %}<option value="{{ u.pk }}" {% if filtres.utilisateur == u.pk|stringformat:'s' %}selected{% endif %}>{{ u.nom_complet }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="t-filtre">
+      <span>Boutique</span>
+      <select class="champ champ--compact" name="boutique" data-auto>
+        <option value="">Toutes</option>
+        <option value="ensemble" {% if filtres.boutique == 'ensemble' %}selected{% endif %}>Vue d'ensemble seulement</option>
+        {% for b in boutiques_vues %}<option value="{{ b.pk }}" {% if filtres.boutique == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.enseigne }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="t-filtre">
+      <span>Écran</span>
+      <select class="champ champ--compact" name="ecran" data-auto>
+        <option value="">Tous</option>
+        {% for code, libelle in ecrans %}<option value="{{ code }}" {% if filtres.ecran == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="t-filtre">
+      <span>Du</span>
+      <input class="champ champ--compact t-date" type="date" name="du" value="{{ filtres.du|date:'Y-m-d' }}">
+    </label>
+    <label class="t-filtre">
+      <span>Au</span>
+      <input class="champ champ--compact t-date" type="date" name="au" value="{{ filtres.au|date:'Y-m-d' }}">
+    </label>
+    <span class="t-filtres__boutons">
+      <button class="btn" type="submit" data-appliquer>Filtrer</button>
+      {% if nb_filtres %}<a class="btn btn--discret" href="?">Effacer <span class="pastille-compteur">{{ nb_filtres }}</span></a>{% endif %}
+    </span>
+  </form>
+
+  {% if jours %}
+    <div class="t-chrono">
+      {% for j in jours %}
+        <h3 class="t-chrono__jour">{{ j.libelle }}</h3>
+        <ol class="t-chrono__liste">
+          {% for l in j.lignes %}
+            <li class="t-chrono__ligne">
+              <time class="t-chrono__heure chiffre" datetime="{{ l.horodatage|date:'c' }}">{{ l.horodatage|date:"H:i" }}</time>
+              <span class="jeton t-acces__jeton" aria-hidden="true">{{ l.utilisateur.nom_complet|initiales }}</span>
+              <span class="t-chrono__corps">
+                <span class="t-chrono__titre">
+                  <strong>{{ l.utilisateur.nom_complet }}</strong>
+                  <span class="t-2">a consulté</span>
+                  <span class="puce">{{ l.ecran }}</span>
+                  {% if l.boutique %}
+                    <span class="t-2">·</span> <a class="t-lien" href="{% url 'plateforme:boutique' l.boutique_id %}">{{ l.boutique }}</a>
+                  {% elif l.boutique_disparue %}
+                    <span class="t-2">·</span> <span class="t-muet">boutique retirée</span>
+                  {% else %}
+                    <span class="t-2">· vue d'ensemble</span>
+                  {% endif %}
+                </span>
+                <span class="t-chrono__motif">« {{ l.motif }} »</span>
+              </span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endfor %}
+    </div>
+    <footer class="tableau-pied">
+      <span>{{ page_obj.paginator.count }} ligne{{ page_obj.paginator.count|pluralize }}{% if nb_filtres %} avec ces filtres{% endif %}</span>
+      {% include "plateforme/partials/t_pagination.html" with parametres=parametres %}
+    </footer>
+  {% else %}
+    <div class="vide">
+      <svg aria-hidden="true"><use href="#ic-journal"></use></svg>
+      {% if nb_filtres %}
+        <p class="t-section">Aucune ligne avec ces filtres</p>
+        <a class="btn" href="?">Tout afficher</a>
+      {% else %}
+        <p class="t-section">Le journal est vide</p>
+        <p class="t-legende">Personne n'a encore consulté l'activité d'une boutique. La première lecture y sera inscrite.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/plateforme-tableaux.js' %}" defer></script>{% endblock %}

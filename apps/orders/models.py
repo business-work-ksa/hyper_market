@@ -1,0 +1,333 @@
+"""Commandes en ligne.
+
+Règle centrale : un panier multi-boutiques produit **une `Commande` et N `SousCommande`**.
+L'acheteur voit une commande et paie une fois ; chaque marchand ne gère que sa sous-commande.
+Toute la comptabilité, la commission et l'affiliation s'appuient sur la `SousCommande`
+(docs/10-modele-de-donnees.md, §8).
+"""
+
+from decimal import Decimal
+
+from django.conf import settings
+from django.db import models
+from django.db.models import Max
+
+from apps.core.models import BaseModel, TenantScopedModel
+
+CENTIME = Decimal("0.01")
+
+
+class Commande(BaseModel):
+    """Commande de l'acheteur. **Non scopée à une boutique : elle les traverse.**"""
+
+    BROUILLON = "brouillon"
+    CONFIRMEE = "confirmee"
+    PAYEE = "payee"
+    LIVREE = "livree"
+    CLOTUREE = "cloturee"
+    ANNULEE = "annulee"
+    ETATS = [
+        (BROUILLON, "Brouillon"),
+        (CONFIRMEE, "Confirmée"),
+        (PAYEE, "Payée"),
+        (LIVREE, "Livrée"),
+        (CLOTUREE, "Clôturée"),
+        (ANNULEE, "Annulée"),
+    ]
+
+    numero = models.CharField(max_length=32, unique=True)
+    acheteur = models.ForeignKey(
+        "accounts.Utilisateur", on_delete=models.PROTECT, related_name="commandes"
+    )
+    total_ht = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    total_tva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    total_ttc = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    frais_livraison = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    etat = models.CharField(max_length=16, choices=ETATS, default=BROUILLON, db_index=True)
+
+    # Attribution d'affiliation, figée à la commande (docs/06, §3).
+    code_apporteur = models.CharField(max_length=12, blank=True)
+    apporteur_n1 = models.ForeignKey(
+        "affiliation.Apporteur", null=True, blank=True, on_delete=models.SET_NULL, related_name="commandes_n1"
+    )
+    apporteur_n2 = models.ForeignKey(
+        "affiliation.Apporteur", null=True, blank=True, on_delete=models.SET_NULL, related_name="commandes_n2"
+    )
+    revendeur = models.ForeignKey(
+        "affiliation.Revendeur", null=True, blank=True, on_delete=models.SET_NULL, related_name="commandes"
+    )
+
+    adresse_livraison = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Texte libre : le découpage en zones et tarifs relève du lot 2.",
+    )
+    note = models.TextField(blank=True, help_text="Précisions de l'acheteur pour le marchand.")
+
+    livree_le = models.DateTimeField(null=True, blank=True)
+    operation_id = models.UUIDField(
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Clé d'idempotence du tunnel de commande (ADR-004).",
+    )
+
+    class Meta:
+        verbose_name = "commande"
+        ordering = ["-cree_le"]
+
+    def __str__(self):
+        return f"Commande {self.numero}"
+
+    @staticmethod
+    def numero_suivant() -> str:
+        dernier = Commande.objects.aggregate(m=Max("numero"))["m"]
+        prochain = 1 if dernier is None else int(dernier.split("-")[-1]) + 1
+        return f"CMD-{prochain:08d}"
+
+
+class SousCommande(TenantScopedModel):
+    """Part d'une commande revenant à une boutique. **L'unité de travail du marchand.**"""
+
+    EN_ATTENTE = "en_attente"
+    ACCEPTEE = "acceptee"
+    PREPAREE = "preparee"
+    EXPEDIEE = "expediee"
+    LIVREE = "livree"
+    ANNULEE = "annulee"
+    ETATS = [
+        (EN_ATTENTE, "En attente"),
+        (ACCEPTEE, "Acceptée"),
+        (PREPAREE, "Préparée"),
+        (EXPEDIEE, "Expédiée"),
+        (LIVREE, "Livrée"),
+        (ANNULEE, "Annulée"),
+    ]
+
+    # Comment l'acheteur paie **cette part**. Choisi par boutique et non par commande : le plafond
+    # de séquestre d'une boutique nouvelle peut refuser le prépaiement chez elle sans le refuser
+    # chez son voisin (`apps/marketplace/confiance.py`).
+    PREPAYE = "prepaye"
+    A_LA_LIVRAISON = "livraison"
+    MODES_PAIEMENT = [
+        (PREPAYE, "Prépayée — en séquestre jusqu'à la livraison confirmée"),
+        (A_LA_LIVRAISON, "Payée à la livraison"),
+    ]
+
+    commande = models.ForeignKey(Commande, on_delete=models.CASCADE, related_name="sous_commandes")
+    mode_paiement = models.CharField(max_length=12, choices=MODES_PAIEMENT, default=PREPAYE)
+    total_ht = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    total_tva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    total_ttc = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    taux_commission = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal("0"))
+    commission_plateforme = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal("0")
+    )
+    etat = models.CharField(max_length=16, choices=ETATS, default=EN_ATTENTE, db_index=True)
+    # Point de départ de la confirmation implicite : sans confirmation ni litige sept jours après
+    # l'expédition déclarée, la livraison est réputée confirmée (`liberer_sequestres`).
+    expediee_le = models.DateTimeField(null=True, blank=True)
+    livree_le = models.DateTimeField(null=True, blank=True)
+    # La livraison **déclarée** par le marchand (`livree_le`) ne suffit pas à libérer l'argent d'un
+    # acheteur : c'est précisément ce qu'une fausse boutique déclarerait. La confirmation vient de
+    # l'acheteur — code de remise donné au livreur, ou geste sur sa page de commande (docs/23).
+    livraison_confirmee_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "sous-commande"
+        verbose_name_plural = "sous-commandes"
+        ordering = ["-cree_le"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["commande", "boutique"], name="une_sous_commande_par_boutique"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.commande.numero} · {self.boutique}"
+
+    @property
+    def prepayee(self) -> bool:
+        return self.mode_paiement == self.PREPAYE
+
+    def recalculer(self) -> None:
+        lignes = list(LigneCommande.objects_all_tenants.filter(sous_commande=self))
+        ttc = sum((l.total_ttc for l in lignes), Decimal("0"))
+        ht = sum((l.total_ht for l in lignes), Decimal("0"))
+        self.total_ttc = ttc.quantize(CENTIME)
+        self.total_ht = ht.quantize(CENTIME)
+        self.total_tva = (ttc - ht).quantize(CENTIME)
+        self.commission_plateforme = (self.total_ht * self.taux_commission).quantize(CENTIME)
+        self.save(
+            update_fields=[
+                "total_ttc",
+                "total_ht",
+                "total_tva",
+                "commission_plateforme",
+                "modifie_le",
+            ]
+        )
+
+
+class LigneCommande(TenantScopedModel):
+    sous_commande = models.ForeignKey(
+        SousCommande, on_delete=models.CASCADE, related_name="lignes"
+    )
+    variante = models.ForeignKey("catalog.Variante", on_delete=models.PROTECT, related_name="+")
+    libelle = models.CharField(max_length=200)
+    quantite = models.DecimalField(max_digits=14, decimal_places=4)
+    pu_ttc = models.DecimalField(max_digits=12, decimal_places=2)
+    taux_tva = models.DecimalField(max_digits=5, decimal_places=4)
+    remise = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+
+    class Meta:
+        verbose_name = "ligne de commande"
+        verbose_name_plural = "lignes de commande"
+
+    def __str__(self):
+        return f"{self.libelle} × {self.quantite}"
+
+    @property
+    def total_ttc(self) -> Decimal:
+        return (self.quantite * self.pu_ttc - self.remise).quantize(CENTIME)
+
+    @property
+    def total_ht(self) -> Decimal:
+        return (self.total_ttc / (1 + self.taux_tva)).quantize(CENTIME)
+
+
+class Retour(TenantScopedModel):
+    """Retour d'une sous-commande. Annule les commissions d'affiliation associées."""
+
+    DEMANDE = "demande"
+    ACCEPTE = "accepte"
+    REFUSE = "refuse"
+    REMBOURSE = "rembourse"
+    ETATS = [
+        (DEMANDE, "Demandé"),
+        (ACCEPTE, "Accepté"),
+        (REFUSE, "Refusé"),
+        (REMBOURSE, "Remboursé"),
+    ]
+
+    sous_commande = models.ForeignKey(
+        SousCommande, on_delete=models.PROTECT, related_name="retours"
+    )
+    motif = models.TextField()
+    etat = models.CharField(max_length=16, choices=ETATS, default=DEMANDE)
+    montant_rembourse = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+
+    class Meta:
+        verbose_name = "retour"
+        ordering = ["-cree_le"]
+
+    def __str__(self):
+        return f"Retour {self.sous_commande} · {self.get_etat_display()}"
+
+
+class Litige(TenantScopedModel):
+    """Un acheteur conteste une sous-commande : non reçue, non conforme, incomplète.
+
+    Ouvrir un litige **gèle** la part correspondante du séquestre : ni libérée au marchand, ni
+    remboursée, jusqu'à la décision. La plateforme instruit sous 72 heures (docs/08, §8), avec le
+    droit `plateforme.litiges`, et chaque consultation est journalisée (ADR-012).
+
+    Scopé par boutique, comme la sous-commande qu'il conteste : c'est une donnée du commerçant,
+    protégée par la barrière 3.
+
+    Un litige **perdu** par le marchand — tranché en faveur de l'acheteur, en tout ou partie —
+    compte dans son palier de confiance (`apps/marketplace/confiance.py`).
+    """
+
+    NON_RECUE = "non_recue"
+    NON_CONFORME = "non_conforme"
+    INCOMPLETE = "incomplete"
+    AUTRE = "autre"
+    MOTIFS = [
+        (NON_RECUE, "Commande non reçue"),
+        (NON_CONFORME, "Article non conforme à l'annonce"),
+        (INCOMPLETE, "Commande incomplète"),
+        (AUTRE, "Autre"),
+    ]
+
+    OUVERT = "ouvert"
+    EN_INSTRUCTION = "en_instruction"
+    TRANCHE_ACHETEUR = "tranche_acheteur"
+    TRANCHE_MARCHAND = "tranche_marchand"
+    PARTAGE = "partage"
+    ETATS = [
+        (OUVERT, "Ouvert"),
+        (EN_INSTRUCTION, "En instruction"),
+        (TRANCHE_ACHETEUR, "Tranché en faveur de l'acheteur"),
+        (TRANCHE_MARCHAND, "Tranché en faveur du marchand"),
+        (PARTAGE, "Tranché : remboursement partiel"),
+    ]
+    ETATS_OUVERTS = (OUVERT, EN_INSTRUCTION)
+    ETATS_CLOS = (TRANCHE_ACHETEUR, TRANCHE_MARCHAND, PARTAGE)
+    PERDUS_PAR_LE_MARCHAND = (TRANCHE_ACHETEUR, PARTAGE)
+
+    sous_commande = models.ForeignKey(SousCommande, on_delete=models.PROTECT, related_name="litiges")
+    motif = models.CharField(max_length=16, choices=MOTIFS)
+    description = models.TextField()
+    etat = models.CharField(max_length=20, choices=ETATS, default=OUVERT, db_index=True)
+    montant_rembourse = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    decision = models.TextField(blank=True)
+    tranche_par = models.ForeignKey(
+        "accounts.Utilisateur", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    tranche_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "litige"
+        ordering = ["-cree_le"]
+        constraints = [
+            # Un seul litige en cours par part : deux instructions parallèles pourraient trancher
+            # deux fois le même argent.
+            models.UniqueConstraint(
+                fields=["sous_commande"],
+                condition=models.Q(etat__in=["ouvert", "en_instruction"]),
+                name="un_litige_en_cours_par_sous_commande",
+            )
+        ]
+
+    @property
+    def en_cours(self) -> bool:
+        return self.etat in self.ETATS_OUVERTS
+
+    def __str__(self):
+        return f"Litige {self.sous_commande} · {self.get_etat_display()}"
+
+
+class AvisCommande(TenantScopedModel):
+    """Un avis WhatsApp envoyé à une personne de l'équipe pour une part de commande.
+
+    Un par part et par destinataire, pas davantage : la contrainte d'unicité arbitre, comme pour
+    tout ce qui peut être déclenché deux fois (ADR-004). Le journal dit aussi ce qui **n'est pas**
+    parti, et pourquoi — l'écran de la commande le montre, avec le lien pour prévenir à la main.
+    """
+
+    ENVOYE = "envoye"
+    ECHEC = "echec"
+    ETATS = [(ENVOYE, "Envoyé"), (ECHEC, "Non parti")]
+
+    sous_commande = models.ForeignKey(SousCommande, on_delete=models.CASCADE, related_name="avis")
+    destinataire = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+"
+    )
+    numero = models.CharField(max_length=20, help_text="Figé à l'envoi.")
+    etat = models.CharField(max_length=8, choices=ETATS)
+    reference = models.CharField(max_length=128, blank=True)
+    erreur = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "avis de commande"
+        verbose_name_plural = "avis de commande"
+        ordering = ["cree_le"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sous_commande", "destinataire"], name="un_avis_par_part_et_destinataire"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.sous_commande} → {self.numero} ({self.get_etat_display()})"

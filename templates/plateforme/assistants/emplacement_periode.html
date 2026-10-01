@@ -1,0 +1,11 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% block fil_parent %}Emplacements premium{% endblock %}
+{% block question %}Pour combien de temps ?{% endblock %}
+{% block phrase %}Du premier au dernier jour, inclus. Une période à cheval sur deux mois est comptée au prorata des jours dans chacun.{% endblock %}
+{% block etape %}
+  <div class="a-grille-2">
+    {% include "plateforme/partials/a_champ.html" with champ=form.debut %}
+    {% include "plateforme/partials/a_champ.html" with champ=form.fin %}
+  </div>
+  <p class="t-legende" data-duree hidden><svg class="icone-ligne" aria-hidden="true"><use href="#ic-calendrier"></use></svg> <span data-duree-texte></span></p>
+{% endblock %}

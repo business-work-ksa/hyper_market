@@ -32,10 +32,21 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
   })();
 </script>
 <link rel="preload" href="{% static 'fonts/plus-jakarta-sans-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{% static 'fonts/bricolage-grotesque-800-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{% static 'css/marche.css' %}">
 {% include "partials/charte.html" %}
-<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
-<link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
+{% include "partials/icones_marque.html" %}
+{# Aperçu de partage (WhatsApp, Facebook) : c'est par là que le marché circule à Douala. #}
+<meta property="og:site_name" content="HyperMarché">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="{% if LANGUE == 'en' %}en_US{% else %}fr_FR{% endif %}">
+<meta property="og:title" content="{% block og_titre %}{% translate 'HyperMarché — le marché de Douala et Yaoundé, livré chez vous' %}{% endblock %}">
+<meta property="og:description" content="{% translate 'Les commerçants de Douala et Yaoundé, leurs prix affichés, livrés par celui qui vend. Paiement Mobile Money protégé.' %}">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'marque/partage-1200x630.png' %}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <script src="{% static 'js/marche.js' %}" defer></script>
 </head>
 <body class="flex min-h-screen flex-col overflow-x-clip">
@@ -45,9 +56,8 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
 
 <header class="sticky top-0 z-30 border-b border-line/80 bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/75">
   <div class="mx-auto flex max-w-contenu items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 lg:px-8">
-    <a class="group flex shrink-0 items-center gap-2.5 rounded-lg" href="{% url 'vitrine_accueil' %}" aria-label="{% translate 'HyperMarché, accueil du marché' %}">
-      <span class="grid size-10 place-items-center rounded-xl bg-brand text-sm font-extrabold text-brand-on shadow-sm transition-transform duration-200 group-hover:-rotate-3" aria-hidden="true">HM</span>
-      <span class="hidden text-lg font-extrabold tracking-tight sm:inline">Hyper<span class="text-brand">Marché</span></span>
+    <a class="group flex shrink-0 items-center rounded-lg" href="{% url 'vitrine_accueil' %}" aria-label="{% translate 'HyperMarché, accueil du marché' %}">
+      {% include "marche/logo.html" with hauteur="h-9" %}
     </a>
 
     <form class="relative hidden flex-1 md:block" method="get" action="{% url 'vitrine_catalogue' %}" role="search" data-recherche>
@@ -127,7 +137,7 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
 <footer class="border-t border-line bg-surface">
   <div class="mx-auto grid max-w-contenu gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr] lg:px-8">
     <div class="flex flex-col gap-3">
-      <span class="text-lg font-extrabold tracking-tight">Hyper<span class="text-brand">Marché</span></span>
+      {% include "marche/logo.html" with hauteur="h-8" toujours_complet=True %}
       <p class="max-w-md text-sm text-ink-muted">
         {% translate "Place de marché camerounaise. Chaque article est vendu par le commerçant nommé sur sa fiche, qui en assure la livraison." %}
       </p>

@@ -95,6 +95,7 @@ module.exports = {
         "Roboto",
         "sans-serif",
       ],
+      display: ['"Bricolage Grotesque"', '"Plus Jakarta Sans"', "system-ui", "sans-serif"],
       mono: ["ui-monospace", '"SF Mono"', '"Cascadia Mono"', "Menlo", "monospace"],
     },
     borderRadius: {

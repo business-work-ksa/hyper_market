@@ -9,8 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 {% include "partials/charte.html" %}
 <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
-<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
-<link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
+{% include "partials/icones_marque.html" %}
 <script src="{% static 'js/hors-ligne.js' %}" defer></script>
 {% comment %}
 Chargé partout : les tableaux de données sont le mode d'affichage principal du

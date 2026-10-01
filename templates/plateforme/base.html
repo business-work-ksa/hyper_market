@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 <link rel="stylesheet" href="{% static 'css/plateforme.css' %}">
 {% block styles %}{% endblock %}
-<link rel="apple-touch-icon" href="{% static 'icones/hm-192.png' %}">
+{% include "partials/icones_marque.html" %}
 <script>
   // Même clé que le back-office : un thème choisi l'est partout.
   (function () {
@@ -35,7 +35,7 @@ d'œil.
 <div class="coquille console__coquille">
   <nav class="rail console__rail" id="console-rail" aria-label="Navigation de la console">
     <div class="rail__marque">
-      <span class="sceau console__sceau" aria-hidden="true">HM</span>
+      <img class="console__symbole" src="{% static 'marque/symbole-negatif.svg' %}" alt="" width="36" height="36" style="width:36px;height:36px;flex:none">
       <span class="pile-sm" style="gap:1px;min-width:0">
         <span class="rail__nom">HyperMarché</span>
         <span class="console__piece">Console</span>

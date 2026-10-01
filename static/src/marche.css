@@ -28,6 +28,16 @@
                  U+FEFF, U+FFFD;
 }
 
+/* Titrage : Bricolage Grotesque (OFL), instance 800, sous-ensemble latin, 17 Ko — la police du
+   logotype (docs/27, §3). Réservée aux titres h1–h2 et aux prix mis en avant. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url("../fonts/bricolage-grotesque-800-latin.woff2") format("woff2");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -147,6 +157,7 @@
   }
 
   h1, h2, h3, h4 { @apply font-bold tracking-tight text-ink; text-wrap: balance; }
+  h1, h2 { @apply font-display font-extrabold; }
   p { text-wrap: pretty; }
   a { @apply text-inherit; }
   svg { @apply shrink-0; }

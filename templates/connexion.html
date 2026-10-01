@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#00806A">
 <title>Connexion — HyperMarché</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
-<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
+{% include "partials/icones_marque.html" %}
 <script>(function(){try{var t=localStorage.getItem("hm-theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 </head>
 <body>
@@ -20,8 +20,7 @@
   {% endcomment %}
   <aside class="portail__scene">
     <div class="rangee" style="gap:11px">
-      <span class="sceau" style="background:rgba(255,255,255,0.17);color:#fff">HM</span>
-      <span style="font-size:15px;font-weight:620;letter-spacing:-0.015em">HyperMarché</span>
+      <img src="{% static 'marque/logo-blanc.svg' %}" alt="HyperMarché" height="34" style="height:34px;width:auto">
     </div>
 
     <div class="colonne" style="gap:26px">
@@ -79,7 +78,7 @@
       téléphone affichait un formulaire anonyme, sans rien qui dise où l'on est.
       {% endcomment %}
       <div class="portail__marque">
-        <span class="sceau" aria-hidden="true">HM</span>
+        <img src="{% static 'marque/symbole.svg' %}" alt="" width="34" height="34" style="width:34px;height:34px">
         <span>HyperMarché</span>
       </div>
       <div class="pile-sm">

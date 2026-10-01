@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light">
 <title>Ticket {{ ticket.numero }} — {{ boutique.enseigne }}</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
-<link rel="icon" type="image/png" href="{% static 'icones/hm-192.png' %}">
+{% include "partials/icones_marque.html" %}
 <style>
   /* Bande de 80 mm : la largeur des imprimantes thermiques courantes.
      Tout est en monospace pour que les colonnes s'alignent sans tableau. */

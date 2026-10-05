@@ -165,6 +165,27 @@ class IsolationDesVuesTest(TestCase):
         self.assertContains(anglais, "Total value")
         self.assertNotContains(anglais, "Valeur totale")
         self.assertContains(anglais, "ALPHA-1")
+        # Le vocabulaire du métier suit : « Nouvel article » devient « New item ».
+        self.assertContains(anglais, "New item")
+        # Les pastilles d'état, composées en Python, aussi.
+        for mot in ("</svg>En stock<", "</svg>Sous le seuil<", "</svg>Rupture<"):
+            self.assertNotContains(anglais, mot)
+        self.assertRegex(anglais.content.decode(), r"</svg>(In stock|Below threshold|Out of stock)<")
+
+    def test_les_scripts_recoivent_leur_catalogue_en_anglais_seulement(self):
+        francais = self.client.get(reverse("stock"))
+        self.assertNotContains(francais, reverse("catalogue_js"))
+        self.client.cookies["hm_langue"] = "en"
+        anglais = self.client.get(reverse("stock"))
+        self.assertContains(anglais, f'{reverse("catalogue_js")}?l=en')
+        catalogue = self.client.get(reverse("catalogue_js"), {"l": "en"})
+        self.assertEqual(catalogue.status_code, 200)
+        self.assertContains(catalogue, "Select all")
+        self.assertIn("max-age", catalogue.headers["Cache-Control"])
+        # Les textes des scripts écrits dans la page sont traduits par le gabarit.
+        caisse = self.client.get(reverse("caisse"))
+        self.assertContains(caisse, "Taking payment")
+        self.assertNotContains(caisse, "Encaissement…")
 
     def test_un_visiteur_anonyme_est_renvoye_vers_la_connexion(self):
         self.client.logout()

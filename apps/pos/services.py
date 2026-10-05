@@ -130,8 +130,8 @@ def regler(*, ticket: Ticket, moyen: str, montant, reference_psp: str = "") -> R
             raise ValidationError(
                 {
                     "client": (
-                        "Une vente à crédit exige un client du cahier : sans lui, personne ne "
-                        "saura qui doit cette somme."
+                        _("Une vente à crédit exige un client du cahier : sans lui, personne ne "
+                        "saura qui doit cette somme.")
                     )
                 }
             )

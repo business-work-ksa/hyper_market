@@ -29,6 +29,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.utils.translation import gettext as _
 
 __all__ = ["boutiques_de", "en_conflit_sur_le_rayon", "fixer_taux_rayon"]
 
@@ -97,8 +98,8 @@ def fixer_taux_rayon(rayon, taux: Decimal, *, par, motif: str):
         raise ValidationError(
             {
                 "motif": (
-                    "Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. "
-                    "Dites pourquoi vous le changez."
+                    _("Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. "
+                    "Dites pourquoi vous le changez.")
                 )
             }
         )
@@ -108,8 +109,7 @@ def fixer_taux_rayon(rayon, taux: Decimal, *, par, motif: str):
         raise ValidationError(
             {
                 "taux_commission": (
-                    f"Un taux se saisit en fraction, pas en pourcentage : {taux} vaudrait "
-                    f"{taux:.0%} de commission."
+                    _('Un taux se saisit en fraction, pas en pourcentage : %(taux)s vaudrait %(taux2)s de commission.') % {"taux": taux, "taux2": format(taux, ".0%")}
                 )
             }
         )

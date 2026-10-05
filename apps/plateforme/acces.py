@@ -36,6 +36,7 @@ from django.utils import timezone
 
 from apps.accounts.permissions import TOUS_PLATEFORME, droits_plateforme_de
 from apps.core.tenancy import acces_plateforme
+from django.utils.translation import gettext_lazy
 
 # Droits propres à la console qui ne sont **pas** des droits de plateforme : ils n'existent que
 # pour le superadministrateur. Nommés comme les autres, pour que les gabarits les testent de la
@@ -59,12 +60,12 @@ LIBELLES_CONSOLE = {
 # « test » et de « . » au bout d'une semaine — et qu'un auditeur qui relit le journal doit pouvoir
 # regrouper les lignes.
 MOTIFS_DE_SUIVI = [
-    ("suivi_mensuel", "Suivi mensuel de l'activité des boutiques"),
-    ("commission", "Calcul ou contrôle de la commission"),
-    ("loyer", "Relance d'un loyer impayé"),
-    ("litige", "Instruction d'un litige"),
-    ("accompagnement", "Accompagnement d'un commerçant, à sa demande"),
-    ("autre", "Autre — à préciser"),
+    ("suivi_mensuel", gettext_lazy("Suivi mensuel de l'activité des boutiques")),
+    ("commission", gettext_lazy("Calcul ou contrôle de la commission")),
+    ("loyer", gettext_lazy("Relance d'un loyer impayé")),
+    ("litige", gettext_lazy("Instruction d'un litige")),
+    ("accompagnement", gettext_lazy("Accompagnement d'un commerçant, à sa demande")),
+    ("autre", gettext_lazy("Autre — à préciser")),
 ]
 
 DUREE_DU_SUIVI = timedelta(minutes=30)

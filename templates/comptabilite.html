@@ -111,7 +111,7 @@
     </section>
 
     <section class="carte tableau-panneau">
-      {% include "partials/tableau_barre.html" with nom="écriture" noms="écritures" titre="Dernières écritures" filtres_id="filtres-ecritures" filtres_actifs=filtres.actifs aide="Journal en ajout seul : une écriture validée est immuable, et toute correction passe par une contre-passation." %}
+      {% include "partials/tableau_barre.html" with nom="écriture" noms="écritures" titre=_("Dernières écritures") filtres_id="filtres-ecritures" filtres_actifs=filtres.actifs aide=_("Journal en ajout seul : une écriture validée est immuable, et toute correction passe par une contre-passation.") %}
       <div class="carte__corps--serre">
         <div class="tableau-boite">
           <table class="tableau">
@@ -151,6 +151,6 @@
     </section>
   </div>
 
-  {% include "partials/modal_filtres.html" with id="filtres-ecritures" formulaire=filtres action=url_comptabilite titre="Filtrer les écritures" %}
+  {% include "partials/modal_filtres.html" with id="filtres-ecritures" formulaire=filtres action=url_comptabilite titre=_("Filtrer les écritures") %}
 </div>
 {% endblock %}

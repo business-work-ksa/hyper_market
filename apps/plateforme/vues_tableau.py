@@ -27,8 +27,14 @@ from apps.core.models import AccesPlateforme
 from apps.marketplace.models import Bail, Boutique, EmplacementPremium, FactureLoyer
 from apps.plateforme import indicateurs as ind
 from apps.plateforme.acces import CONSOLE_TECHNIQUE, contexte_console, exige_console
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
+from django.utils.translation import ngettext
 
-JOURS_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+JOURS_SEMAINE = [
+    gettext_lazy("lundi"), gettext_lazy("mardi"), gettext_lazy("mercredi"), gettext_lazy("jeudi"),
+    gettext_lazy("vendredi"), gettext_lazy("samedi"), gettext_lazy("dimanche"),
+]
 
 # Les écrans journalisés, nommés pour un lecteur humain. Un écran inconnu s'affiche tel quel :
 # mieux vaut un identifiant brut qu'une ligne de journal masquée.
@@ -44,10 +50,6 @@ def libelle_ecran(ecran: str) -> str:
 
 def date_longue(jour) -> str:
     return f"{JOURS_SEMAINE[jour.weekday()]} {jour.day} {ind.MOIS_LONGS[jour.month - 1]} {jour.year}"
-
-
-def _accord(n: int, singulier: str, pluriel: str) -> str:
-    return f"{n} {singulier if n == 1 else pluriel}"
 
 
 def _lien_admin(nom: str, requete: str = "") -> str | None:
@@ -102,9 +104,9 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "ton": "critique",
                     "icone": "ic-argent",
                     "nombre": impayes["nombre"],
-                    "titre": _accord(impayes["nombre"], "facture de loyer échue", "factures de loyer échues"),
+                    "titre": ngettext("%(n)s facture de loyer échue", "%(n)s factures de loyer échues", impayes["nombre"]) % {"n": impayes["nombre"]},
                     "montant": impayes["montant"],
-                    "detail": _accord(impayes["boutiques"], "boutique concernée", "boutiques concernées"),
+                    "detail": ngettext("%(n)s boutique concernée", "%(n)s boutiques concernées", impayes["boutiques"]) % {"n": impayes["boutiques"]},
                     "url": reverse("plateforme:loyers") + "?mois=tous&etat=echues",
                 }
             )
@@ -115,8 +117,8 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "ton": "or",
                     "icone": "ic-boutique",
                     "nombre": candidatures,
-                    "titre": _accord(candidatures, "candidature à valider", "candidatures à valider"),
-                    "detail": "Vérifier l'identité légale, puis valider ou refuser",
+                    "titre": ngettext("%(n)s candidature à valider", "%(n)s candidatures à valider", candidatures) % {"n": candidatures},
+                    "detail": _("Vérifier l'identité légale, puis valider ou refuser"),
                     "url": reverse("plateforme:boutiques") + "?etat=candidature",
                 }
             )
@@ -128,8 +130,8 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "ton": "or",
                     "icone": "ic-document",
                     "nombre": kyc,
-                    "titre": _accord(kyc, "dossier d'identité à instruire", "dossiers d'identité à instruire"),
-                    "detail": "Pièces d'identité, RCCM et NIU déposés",
+                    "titre": ngettext("%(n)s dossier d'identité à instruire", "%(n)s dossiers d'identité à instruire", kyc) % {"n": kyc},
+                    "detail": _("Pièces d'identité, RCCM et NIU déposés"),
                     "url": url_kyc,
                 }
             )
@@ -153,9 +155,9 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "ton": "critique" if critiques else "alerte",
                     "icone": "ic-alerte",
                     "nombre": nb_signaux,
-                    "titre": _accord(nb_signaux, "signal de risque à trancher", "signaux de risque à trancher"),
+                    "titre": ngettext("%(n)s signal de risque à trancher", "%(n)s signaux de risque à trancher", nb_signaux) % {"n": nb_signaux},
                     "detail": (
-                        (_accord(critiques, "critique", "critiques") + " · " if critiques else "")
+                        (ngettext("%(n)s critique", "%(n)s critiques", critiques) % {"n": critiques} + " · " if critiques else "")
                         + "Des indices, pas des preuves : écarter ou confirmer, avec un motif"
                     ),
                     "url": reverse("plateforme:signaux"),
@@ -169,8 +171,8 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "ton": "alerte",
                     "icone": "ic-calendrier",
                     "nombre": baux,
-                    "titre": _accord(baux, "bail se termine sous 30 jours", "baux se terminent sous 30 jours"),
-                    "detail": "Renouveler ou préparer l'état des lieux de sortie",
+                    "titre": ngettext("%(n)s bail se termine sous 30 jours", "%(n)s baux se terminent sous 30 jours", baux) % {"n": baux},
+                    "detail": _("Renouveler ou préparer l'état des lieux de sortie"),
                     "url": reverse("plateforme:boutiques") + "?etat=active&tri=fin_bail",
                 }
             )
@@ -185,8 +187,8 @@ def file_a_traiter(droits, aujourdhui) -> list[dict]:
                     "ton": "critique",
                     "icone": "ic-alerte",
                     "nombre": signaux,
-                    "titre": _accord(signaux, "signalement de fraude ouvert", "signalements de fraude ouverts"),
-                    "detail": "Réseau d'apporteurs : décision à consigner",
+                    "titre": ngettext("%(n)s signalement de fraude ouvert", "%(n)s signalements de fraude ouverts", signaux) % {"n": signaux},
+                    "detail": _("Réseau d'apporteurs : décision à consigner"),
                     "url": url_fraude,
                 }
             )
@@ -198,12 +200,12 @@ def raccourcis(droits) -> list[dict]:
     liens = []
     if "plateforme.boutiques" in droits:
         liens.append({"url": reverse("plateforme:assistant_boutique"), "icone": "ic-baguette",
-                      "libelle": "Ouvrir une boutique", "primaire": True})
+                      "libelle": _("Ouvrir une boutique"), "primaire": True})
     if "plateforme.emplacements" in droits:
         liens.append({"url": reverse("plateforme:assistant_emplacement"), "icone": "ic-etoile",
-                      "libelle": "Vendre un emplacement"})
+                      "libelle": _("Vendre un emplacement")})
     liens.append({"url": reverse("plateforme:activite"), "icone": "ic-pouls",
-                  "libelle": "Suivre l'activité"})
+                  "libelle": _("Suivre l'activité")})
     return liens
 
 
@@ -263,7 +265,7 @@ def tableau_de_bord(request):
     contexte = contexte_console(
         request,
         page="plateforme:tableau_de_bord",
-        salut="Bonsoir" if heure >= 18 else "Bonjour",
+        salut=_("Bonsoir") if heure >= 18 else _("Bonjour"),
         prenom=(request.user.nom_complet or "").split(" ")[0],
         date_du_jour=date_longue(aujourdhui),
         libelle_mois=ind.libelle_mois(mois, long=True),
@@ -279,7 +281,7 @@ def tableau_de_bord(request):
         file=file_a_traiter(droits, aujourdhui),
         graphe=ind.graphe_de(serie, etiquette=30),
         nb_mois=nb_mois,
-        par_rayon=ind.repartition(actives, "rayon_principal__libelle", vide="Sans rayon"),
+        par_rayon=ind.repartition(actives, "rayon_principal__libelle", vide=_("Sans rayon")),
         par_ville=ind.repartition(actives, "ville"),
         derniers_acces=lignes_de_journal(
             AccesPlateforme.objects.select_related("utilisateur")[:5]
@@ -462,20 +464,20 @@ def reglages_sensibles() -> list[dict]:
     hsts = int(getattr(settings, "SECURE_HSTS_SECONDS", 0) or 0)
     return [
         {"nom": "DEBUG", "valeur": "activé" if debug else "désactivé", "bon": not debug,
-         "aide": "Activé, une erreur affiche le code et les réglages à qui la provoque."},
+         "aide": _("Activé, une erreur affiche le code et les réglages à qui la provoque.")},
         https("SECURE_SSL_REDIRECT", "Renvoie tout accès en clair vers HTTPS."),
         https("SESSION_COOKIE_SECURE", "Le cookie de session ne circule qu'en HTTPS."),
         https("CSRF_COOKIE_SECURE", "Même règle pour le jeton anti-falsification."),
         {"nom": "SECURE_HSTS_SECONDS", "valeur": f"{hsts} s",
          "bon": True if hsts > 0 else (None if debug else False),
-         "aide": "Le navigateur retient d'imposer HTTPS pendant cette durée."},
+         "aide": _("Le navigateur retient d'imposer HTTPS pendant cette durée.")},
         {"nom": "ALLOWED_HOSTS", "valeur": f"{len(settings.ALLOWED_HOSTS)} hôte(s)",
          "bon": True if settings.ALLOWED_HOSTS else (None if debug else False),
-         "aide": "Nombre de noms d'hôte acceptés — les noms eux-mêmes ne sont pas affichés."},
+         "aide": _("Nombre de noms d'hôte acceptés — les noms eux-mêmes ne sont pas affichés.")},
         {"nom": "SANS_SERVEUR", "valeur": "oui" if getattr(settings, "SANS_SERVEUR", False) else "non",
-         "bon": None, "aide": "Fonctions sans serveur : connexions non persistantes, cache en base."},
+         "bon": None, "aide": _("Fonctions sans serveur : connexions non persistantes, cache en base.")},
         {"nom": "CONN_MAX_AGE", "valeur": f"{settings.DATABASES['default'].get('CONN_MAX_AGE', 0)} s",
-         "bon": None, "aide": "Durée de vie d'une connexion à la base."},
+         "bon": None, "aide": _("Durée de vie d'une connexion à la base.")},
     ]
 
 

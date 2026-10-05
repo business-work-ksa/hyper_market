@@ -25,7 +25,7 @@ class CommandeForm(forms.Form):
     nom_complet = forms.CharField(
         label=_("Votre nom"),
         max_length=150,
-        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Marie Ekedi", "autocomplete": "name"}),
+        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Marie Ekedi", "autocomplete": "name"}),  # i18n: non (un nom propre)
     )
     telephone = forms.CharField(
         label=_("Votre téléphone"),

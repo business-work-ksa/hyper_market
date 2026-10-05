@@ -58,6 +58,7 @@ from django.utils import timezone
 
 from apps.core.tenancy import contexte_plateforme
 from apps.marketplace.confiance import PALIERS, Palier, palier
+from django.utils.translation import gettext as _
 
 ZERO = Decimal("0")
 
@@ -337,21 +338,21 @@ def progression(niveau: int, mesure: Mesure) -> dict | None:
         "palier": cible,
         "criteres": [
             {
-                "libelle": "Livraisons confirmées",
+                "libelle": _("Livraisons confirmées"),
                 "valeur": mesure.livraisons_confirmees,
                 "requis": cible.livraisons_min,
                 "part": part(mesure.livraisons_confirmees, cible.livraisons_min),
                 "rempli": mesure.livraisons_confirmees >= cible.livraisons_min,
             },
             {
-                "libelle": "Acheteurs distincts",
+                "libelle": _("Acheteurs distincts"),
                 "valeur": mesure.acheteurs_distincts,
                 "requis": getattr(cible, "acheteurs_distincts_min", 0),
                 "part": part(mesure.acheteurs_distincts, getattr(cible, "acheteurs_distincts_min", 0)),
                 "rempli": mesure.acheteurs_distincts >= getattr(cible, "acheteurs_distincts_min", 0),
             },
             {
-                "libelle": "Jours d'ancienneté",
+                "libelle": _("Jours d'ancienneté"),
                 "valeur": mesure.anciennete_jours,
                 "requis": cible.anciennete_jours_min,
                 "part": part(mesure.anciennete_jours, cible.anciennete_jours_min),

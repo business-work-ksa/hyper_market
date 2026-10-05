@@ -11,7 +11,7 @@ Cibles, et seulement elles (ce que l'utilisateur lit) :
 
 Une f-chaîne devient `_("… %(nom)s …") % {"nom": …}` : le traducteur voit la phrase entière.
 Dans une fonction : `gettext` (la langue de la requête) ; au niveau d'une classe ou du module :
-`gettext_lazy` (évalué à l'affichage).
+`gettext_lazy` (nom complet : `makemessages` ne reconnaît pas d'alias ; évalué à l'affichage).
 """
 
 from __future__ import annotations
@@ -161,14 +161,14 @@ def traiter(chemin: Path) -> int:
         offsets.append(total)
         total += len(l.encode())
     remplacements = []
-    besoin = {"_": False, "_l": False}
+    besoin = {"_": False, "gettext_lazy": False}
     for node, dans_fonction in collecteur.cibles:
         debut = offsets[node.lineno - 1] + node.col_offset
         fin = offsets[node.end_lineno - 1] + node.end_col_offset
         avant = octets[:debut].decode(errors="ignore").rstrip()
         if re.search(r"(\b_|\b_l|gettext|gettext_lazy|ngettext|pgettext|gettext_noop)\($", avant):
             continue
-        fonction = "_" if dans_fonction else "_l"
+        fonction = "_" if dans_fonction else "gettext_lazy"
         besoin[fonction] = True
         remplacements.append((debut, fin, _remplacement(node, source, fonction)))
     if not remplacements:
@@ -186,8 +186,8 @@ def _imports(source: str, besoin: dict) -> str:
     lignes = []
     if besoin["_"] and not re.search(r"^from django\.utils\.translation import .*\bgettext as _\b", source, re.M):
         lignes.append("from django.utils.translation import gettext as _")
-    if besoin["_l"] and not re.search(r"^from django\.utils\.translation import .*\bgettext_lazy as _l\b", source, re.M):
-        lignes.append("from django.utils.translation import gettext_lazy as _l")
+    if besoin["gettext_lazy"] and not re.search(r"^from django\.utils\.translation import .*\bgettext_lazy\b", source, re.M):
+        lignes.append("from django.utils.translation import gettext_lazy")
     if not lignes:
         return source
     arbre = ast.parse(source)

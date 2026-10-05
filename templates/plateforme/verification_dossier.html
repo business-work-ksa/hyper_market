@@ -190,13 +190,13 @@ Les numéros de pièce n'y sont que masqués — la base ne les garde pas en cla
       var f = entree.files && entree.files[0];
       if (!f) return;
       if (!(window.crypto && crypto.subtle)) {
-        etat.textContent = "Calcul impossible dans ce navigateur (connexion non sécurisée). Utilisez « sha256sum » et collez le résultat.";
+        etat.textContent = "{{ _("Calcul impossible dans ce navigateur (connexion non sécurisée). Utilisez « sha256sum » et collez le résultat.")|escapejs }}";
         return;
       }
-      etat.textContent = "Calcul en cours…";
+      etat.textContent = "{{ _("Calcul en cours…")|escapejs }}";
       f.arrayBuffer().then(function (b) { return crypto.subtle.digest("SHA-256", b); }).then(function (h) {
         cible.value = Array.from(new Uint8Array(h)).map(function (o) { return o.toString(16).padStart(2, "0"); }).join("");
-        etat.textContent = "Empreinte calculée sur votre appareil. Le fichier n'a pas été envoyé ; supprimez-le maintenant.";
+        etat.textContent = "{{ _("Empreinte calculée sur votre appareil. Le fichier n'a pas été envoyé ; supprimez-le maintenant.")|escapejs }}";
         etat.classList.add("v-fichier__etat--ok");
         entree.value = "";
         var recu = document.querySelector('input[name="mode"][value="document_recu"]');

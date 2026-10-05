@@ -60,8 +60,8 @@
     qui ne se retire depuis la désignation qui les rapproche.
     {% endcomment %}
     <section class="carte tableau-panneau" data-tableau
-             data-nom="désignation" data-noms="désignations" data-accord="e">
-      {% include "partials/tableau_barre.html" with nom="designation" noms="désignations" titre="Aussi appelé" creer_url=url_designation_creer creer_libelle="Ajouter un nom" modifier_possible=peut_mouvementer modifier_libelle="Corriger" supprimer_url=url_designations_retirer supprimer_libelle="Retirer" aide="Une désignation est un nom de plus pour le même article. C'est elle qui le rend trouvable par quelqu'un qui ne connaît pas le nom que vous avez saisi." avertissement_suppression="Une désignation se supprime vraiment : elle n'a rien laissé dehors. Les équivalences qu'elle portait disparaissent avec elle." %}
+             data-nom="{% translate "désignation" context "ligne de tableau" %}" data-noms="{% translate "désignations" context "ligne de tableau" %}" data-accord="e">
+      {% include "partials/tableau_barre.html" with nom="designation" noms="désignations" titre=_("Aussi appelé") creer_url=url_designation_creer creer_libelle=_("Ajouter un nom") modifier_possible=peut_mouvementer modifier_libelle=_("Corriger") supprimer_url=url_designations_retirer supprimer_libelle=_("Retirer") aide=_("Une désignation est un nom de plus pour le même article. C'est elle qui le rend trouvable par quelqu'un qui ne connaît pas le nom que vous avez saisi.") avertissement_suppression=_("Une désignation se supprime vraiment : elle n'a rien laissé dehors. Les équivalences qu'elle portait disparaissent avec elle.") %}
 
       {% if designations %}
         <div class="tableau-boite">
@@ -140,8 +140,8 @@
     vue ne compose ni la liste ni le formulaire (`compatibilites` vaut `None`).
     {% endcomment %}
     <section class="carte tableau-panneau" data-tableau
-             data-nom="compatibilité" data-noms="compatibilités" data-accord="e">
-      {% include "partials/tableau_barre.html" with nom="compatibilite" noms="compatibilités" titre="Se monte sur" creer_url=url_compatibilite_creer creer_libelle="Déclarer un véhicule" modifier_possible=peut_mouvementer modifier_libelle="Corriger" supprimer_url=url_compatibilites_retirer supprimer_libelle="Retirer" aide="Une compatibilité est une déclaration du vendeur, pas une donnée du constructeur : elle se corrige et se retire librement." avertissement_suppression="Une compatibilité se supprime vraiment : elle n'a rien laissé dehors, et une affirmation fausse ne se conserve pas « pour l'historique »." %}
+             data-nom="{% translate "compatibilité" context "ligne de tableau" %}" data-noms="{% translate "compatibilités" context "ligne de tableau" %}" data-accord="e">
+      {% include "partials/tableau_barre.html" with nom="compatibilite" noms="compatibilités" titre=_("Se monte sur") creer_url=url_compatibilite_creer creer_libelle=_("Déclarer un véhicule") modifier_possible=peut_mouvementer modifier_libelle=_("Corriger") supprimer_url=url_compatibilites_retirer supprimer_libelle=_("Retirer") aide=_("Une compatibilité est une déclaration du vendeur, pas une donnée du constructeur : elle se corrige et se retire librement.") avertissement_suppression=_("Une compatibilité se supprime vraiment : elle n'a rien laissé dehors, et une affirmation fausse ne se conserve pas « pour l'historique ».") %}
 
       {% if compatibilites %}
         <div class="tableau-boite">
@@ -160,9 +160,9 @@
                     {% if peut_mouvementer %}data-modifier="#modale-compatibilite"{% endif %}
                     data-champs='{"marque": "{{ c.marque|escapejs }}", "modele": "{{ c.modele|escapejs }}", "motorisation": "{{ c.motorisation|escapejs }}", "annee_debut": "{{ c.annee_debut|default_if_none:"" }}", "annee_fin": "{{ c.annee_fin|default_if_none:"" }}"}'>
                   <td class="principal">{{ c.marque }}</td>
-                  <td class="t-2">{{ c.modele|default:"Toute la marque" }}</td>
+                  <td class="t-2">{{ c.modele|default:_("Toute la marque") }}</td>
                   <td class="t-2">{{ c.motorisation|default:"—" }}</td>
-                  <td class="t-2 chiffre">{{ c.annees|default:"Sans borne" }}</td>
+                  <td class="t-2 chiffre">{{ c.annees|default:_("Sans borne") }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -196,8 +196,8 @@
     d'électronique — un câble n'a pas d'IMEI et n'a pas à montrer une liste vide.
     {% endcomment %}
     <section class="carte tableau-panneau" data-tableau
-             data-nom="exemplaire" data-noms="exemplaires">
-      {% include "partials/tableau_barre.html" with nom="exemplaire" noms="exemplaires" titre="Exemplaires suivis" creer_url=url_exemplaires_creer creer_libelle="Déclarer des numéros" supprimer_url=url_exemplaires_supprimer supprimer_libelle="Effacer" aide="Un numéro effacé doit n'avoir jamais servi : un exemplaire vendu porte une garantie due à quelqu'un, et un appareil à l'atelier appartient à un client qui attend." avertissement_suppression="Seuls les exemplaires encore en stock et jamais vendus sont effacés. Les autres sont refusés et nommés." %}
+             data-nom="{% translate "exemplaire" context "ligne de tableau" %}" data-noms="{% translate "exemplaires" context "ligne de tableau" %}">
+      {% include "partials/tableau_barre.html" with nom="exemplaire" noms="exemplaires" titre=_("Exemplaires suivis") creer_url=url_exemplaires_creer creer_libelle=_("Déclarer des numéros") supprimer_url=url_exemplaires_supprimer supprimer_libelle=_("Effacer") aide=_("Un numéro effacé doit n'avoir jamais servi : un exemplaire vendu porte une garantie due à quelqu'un, et un appareil à l'atelier appartient à un client qui attend.") avertissement_suppression=_("Seuls les exemplaires encore en stock et jamais vendus sont effacés. Les autres sont refusés et nommés.") %}
 
       {% if exemplaires %}
         <div class="tableau-boite">
@@ -319,7 +319,7 @@
       <div class="modale__corps colonne" style="gap:14px">
         {% include "partials/champ.html" with champ=formulaire_exemplaires.numeros %}
         <p class="t-legende">
-          {% blocktranslate with libelle=depot_courant.libelle|default:"votre dépôt" trimmed %}Pour rattraper une réception saisie sans les numéros. Les exemplaires
+          {% blocktranslate with libelle=depot_courant.libelle|default:_("votre dépôt") trimmed %}Pour rattraper une réception saisie sans les numéros. Les exemplaires
           seront rattachés à {{ libelle }}.{% endblocktranslate %}
         </p>
       </div>

@@ -37,6 +37,8 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from apps.marketplace.models import Bail, Boutique, EmplacementPremium, FactureLoyer
+from django.utils.translation import gettext as _
+from django.utils.translation import pgettext_lazy
 
 ZERO = Decimal("0")
 
@@ -48,13 +50,34 @@ SEUIL_ENDORMIE = 14
 # Fenêtre de l'activité agrégée. Trente jours lissent le jour de marché hebdomadaire.
 FENETRE_ACTIVITE = 30
 
+# Traduits selon la langue de la page ; le contexte sépare « mars » court de « mars » long.
 MOIS_COURTS = [
-    "janv.", "févr.", "mars", "avr.", "mai", "juin",
-    "juil.", "août", "sept.", "oct.", "nov.", "déc.",
+    pgettext_lazy("mois court", "janv."),
+    pgettext_lazy("mois court", "févr."),
+    pgettext_lazy("mois court", "mars"),
+    pgettext_lazy("mois court", "avr."),
+    pgettext_lazy("mois court", "mai"),
+    pgettext_lazy("mois court", "juin"),
+    pgettext_lazy("mois court", "juil."),
+    pgettext_lazy("mois court", "août"),
+    pgettext_lazy("mois court", "sept."),
+    pgettext_lazy("mois court", "oct."),
+    pgettext_lazy("mois court", "nov."),
+    pgettext_lazy("mois court", "déc."),
 ]
 MOIS_LONGS = [
-    "janvier", "février", "mars", "avril", "mai", "juin",
-    "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+    pgettext_lazy("mois long", "janvier"),
+    pgettext_lazy("mois long", "février"),
+    pgettext_lazy("mois long", "mars"),
+    pgettext_lazy("mois long", "avril"),
+    pgettext_lazy("mois long", "mai"),
+    pgettext_lazy("mois long", "juin"),
+    pgettext_lazy("mois long", "juillet"),
+    pgettext_lazy("mois long", "août"),
+    pgettext_lazy("mois long", "septembre"),
+    pgettext_lazy("mois long", "octobre"),
+    pgettext_lazy("mois long", "novembre"),
+    pgettext_lazy("mois long", "décembre"),
 ]
 
 # Le TTC d'une facture, calculé en base : `montant_ttc` est une propriété Python, et l'agréger
@@ -163,7 +186,7 @@ def repartition(qs, champ: str, *, limite: int = 6, vide: str = "Non renseigné"
     resultat = [{"libelle": l[champ] or vide, "nombre": l["n"]} for l in tete]
     if queue:
         resultat.append(
-            {"libelle": f"Autres ({len(queue)})", "nombre": sum(l["n"] for l in queue), "autres": True}
+            {"libelle": _('Autres (%(len)s)') % {"len": len(queue)}, "nombre": sum(l["n"] for l in queue), "autres": True}
         )
     maximum = max((r["nombre"] for r in resultat), default=0)
     for r in resultat:
@@ -310,7 +333,7 @@ def loyers_encaisses_par_mois(dernier_mois: date, nb_mois: int) -> list[dict]:
             {
                 "mois": mois,
                 "valeur": (montants.get(mois) or ZERO).quantize(Decimal("1")),
-                "libelle": MOIS_COURTS[mois.month - 1].rstrip("."),
+                "libelle": str(MOIS_COURTS[mois.month - 1]).rstrip("."),
                 "libelle_long": libelle_mois(mois, long=True).capitalize(),
             }
         )

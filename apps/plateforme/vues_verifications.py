@@ -94,7 +94,7 @@ def _page_dossier(request, boutique, *, status=200, refus=None, cible=None, form
                 declare_par_id=d.declare_par_id,
                 boutique_ids=verification._boutiques_du_sujet(d),
                 sujet_id=d.utilisateur_id,
-                quoi="cette pièce",
+                quoi=_("cette pièce"),
             )
         pieces.append(ligne)
 
@@ -110,7 +110,7 @@ def _page_dossier(request, boutique, *, status=200, refus=None, cible=None, form
         }
         if c.etat == CompteVersement.EN_ATTENTE:
             ligne["refus_moi"] = verification.refus_quatre_yeux(
-                moi, declare_par_id=c.declare_par_id, boutique_ids={boutique.pk}, quoi="ce compte"
+                moi, declare_par_id=c.declare_par_id, boutique_ids={boutique.pk}, quoi=_("ce compte")
             )
         comptes.append(ligne)
 
@@ -296,5 +296,5 @@ def decider_compte(request, compte_id):
         cible=compte,
         valider=verification.verifier_compte,
         rejeter=verification.rejeter_compte,
-        libelle=f"Compte {compte.get_operateur_display()} {verification.masquer(compte.numero)}",
+        libelle=_('Compte %(get_operateur_display)s %(masquer)s') % {"get_operateur_display": compte.get_operateur_display(), "masquer": verification.masquer(compte.numero)},
     )

@@ -7,6 +7,14 @@
 (function () {
   "use strict";
 
+  // Traductions : le catalogue de Django (`/jsi18n/`) n'est chargé qu'en anglais. En français,
+  // le texte source est la traduction : les repli rendent la chaîne telle quelle.
+  var gettext = window.gettext || function (s) { return s; };
+  var ngettext = window.ngettext || function (s, p, n) { return n > 1 ? p : s; };
+  var f = window.interpolate || function (modele, valeurs) {
+    return modele.replace(/%\((\w+)\)s/g, function (_, cle) { return valeurs[cle]; });
+  };
+
   function tous(sel, racine) { return Array.prototype.slice.call((racine || document).querySelectorAll(sel)); }
   function nombre(texte) {
     if (texte == null) return NaN;
@@ -141,8 +149,9 @@
       var jours = Math.round((f - d) / 86400000) + 1;
       duree.hidden = false;
       duree.querySelector("[data-duree-texte]").textContent = jours > 1
-        ? jours + " jours, du premier au dernier inclus" + (jours % 7 === 0 ? " — " + (jours / 7) + " semaine" + (jours > 7 ? "s" : "") : "")
-        : "La fin doit venir après le début.";
+        ? f(gettext("%(n)s jours, du premier au dernier inclus"), { n: jours }, true) +
+          (jours % 7 === 0 ? " — " + f(ngettext("%(n)s semaine", "%(n)s semaines", jours / 7), { n: jours / 7 }, true) : "")
+        : gettext("La fin doit venir après le début.");
     };
     debut.addEventListener("input", majDuree);
     fin.addEventListener("input", majDuree);

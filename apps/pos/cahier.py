@@ -37,6 +37,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models, transaction
 
 from apps.pos.models import ClientCahier, ReglementCahier, ReglementTicket, Ticket
+from django.utils.translation import gettext as _
 
 __all__ = [
     "CENTIME",
@@ -149,7 +150,7 @@ def verifier_plafond(client, montant) -> Decimal:
     """
     montant = Decimal(montant)
     if montant <= 0:
-        raise ValidationError({"montant": "Un montant porté au cahier est strictement positif."})
+        raise ValidationError({"montant": _("Un montant porté au cahier est strictement positif.")})
 
     if not client.actif:
         raise PlafondDepasse(
@@ -191,10 +192,10 @@ def enregistrer_reglement(
 
     montant = Decimal(montant)
     if montant <= 0:
-        raise ValidationError({"montant": "Un règlement est strictement positif."})
+        raise ValidationError({"montant": _("Un règlement est strictement positif.")})
     if moyen == ReglementTicket.CREDIT or moyen not in dict(ReglementCahier.MOYENS):
         raise ValidationError(
-            {"moyen": "Moyen de règlement inconnu. Payer un crédit à crédit n'est rien."}
+            {"moyen": _("Moyen de règlement inconnu. Payer un crédit à crédit n'est rien.")}
         )
     if CAHIER_ENCAISSER not in droits_de(recu_par, client.boutique_id):
         raise PermissionDenied("Encaisser sur le cahier demande le droit correspondant.")
@@ -241,7 +242,7 @@ def releve_de(client, *, depuis=None):
         {
             "date": r.ticket.cloture_le,
             "nature": "achat",
-            "libelle": f"Ticket {r.ticket.numero}",
+            "libelle": _('Ticket %(numero)s') % {"numero": r.ticket.numero},
             "debit": r.montant,
             "credit": Decimal("0"),
         }

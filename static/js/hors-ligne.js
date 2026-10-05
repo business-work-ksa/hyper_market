@@ -34,6 +34,9 @@
 (function (global) {
   "use strict";
 
+  // Traduction : le catalogue de Django (`/jsi18n/`) n'est chargé qu'en anglais.
+  var gettext = window.gettext || function (s) { return s; };
+
   var NOM_BASE = "hypermarche";
   var VERSION_BASE = 1;
   var FILE = "operations";
@@ -309,7 +312,7 @@
                   return {};
                 })
                 .then(function (corps) {
-                  refusees.push({ entree: entree, erreur: corps.erreur || "Opération refusée." });
+                  refusees.push({ entree: entree, erreur: corps.erreur || gettext("Opération refusée.") });
                   return retirer(entree.rang).then(suivante);
                 });
             }
@@ -355,7 +358,7 @@
               return { etat: "envoyee", corps: corps };
             }
             if (reponse.status >= 400 && reponse.status < 500) {
-              return { etat: "refusee", erreur: corps.erreur || "Opération refusée." };
+              return { etat: "refusee", erreur: corps.erreur || gettext("Opération refusée.") };
             }
             throw new Error("serveur indisponible");
           });

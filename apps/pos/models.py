@@ -14,7 +14,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.models import TenantScopedModel
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CENTIME = Decimal("0.01")
 
@@ -22,7 +22,7 @@ CENTIME = Decimal("0.01")
 class SessionCaisse(TenantScopedModel):
     OUVERTE = "ouverte"
     FERMEE = "fermee"
-    ETATS = [(OUVERTE, _l("Ouverte")), (FERMEE, _l("Fermée"))]
+    ETATS = [(OUVERTE, gettext_lazy("Ouverte")), (FERMEE, gettext_lazy("Fermée"))]
 
     depot = models.ForeignKey("inventory.Depot", on_delete=models.PROTECT, related_name="sessions")
     caissier = models.ForeignKey(
@@ -84,14 +84,14 @@ class ClientCahier(TenantScopedModel):
     telephone = models.CharField(
         max_length=16,
         blank=True,
-        help_text=_l("Facultatif : beaucoup de clients de quartier n'en donnent pas. Sert de clé."),
+        help_text=gettext_lazy("Facultatif : beaucoup de clients de quartier n'en donnent pas. Sert de clé."),
     )
     plafond_credit = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal("0"),
         help_text=(
-            _l("Encours maximal autorisé. Zéro signifie « pas de crédit » et non « illimité » : "
+            gettext_lazy("Encours maximal autorisé. Zéro signifie « pas de crédit » et non « illimité » : "
             "un plafond oublié ne doit pas ouvrir un crédit sans limite.")
         ),
     )
@@ -135,9 +135,9 @@ class ReglementCahier(TenantScopedModel):
     CARTE = "carte"
     # Pas de `CREDIT` ici, et ce n'est pas un oubli : payer son crédit à crédit n'est rien.
     MOYENS = [
-        (ESPECES, _l("Espèces")),
-        (MOBILE_MONEY, _l("Mobile Money")),
-        (CARTE, _l("Carte bancaire")),
+        (ESPECES, gettext_lazy("Espèces")),
+        (MOBILE_MONEY, gettext_lazy("Mobile Money")),
+        (CARTE, gettext_lazy("Carte bancaire")),
     ]
 
     client = models.ForeignKey(
@@ -171,7 +171,7 @@ class Ticket(TenantScopedModel):
     BROUILLON = "brouillon"
     CLOTURE = "cloture"
     ANNULE = "annule"
-    ETATS = [(BROUILLON, _l("Brouillon")), (CLOTURE, _l("Clôturé")), (ANNULE, _l("Annulé"))]
+    ETATS = [(BROUILLON, gettext_lazy("Brouillon")), (CLOTURE, gettext_lazy("Clôturé")), (ANNULE, gettext_lazy("Annulé"))]
 
     session = models.ForeignKey(SessionCaisse, on_delete=models.PROTECT, related_name="tickets")
     numero = models.CharField(max_length=32)
@@ -182,7 +182,7 @@ class Ticket(TenantScopedModel):
         on_delete=models.PROTECT,
         related_name="tickets",
         help_text=(
-            _l("Renseigné seulement pour une vente au cahier. PROTECT : on ne supprime pas un "
+            gettext_lazy("Renseigné seulement pour une vente au cahier. PROTECT : on ne supprime pas un "
             "client dont des ventes portent la trace.")
         ),
     )
@@ -198,10 +198,10 @@ class Ticket(TenantScopedModel):
     mention_ordonnance = models.CharField(
         max_length=180,
         blank=True,
-        help_text=_l("Prescripteur et date de l'ordonnance, pour l'ordonnancier."),
+        help_text=gettext_lazy("Prescripteur et date de l'ordonnance, pour l'ordonnancier."),
     )
     operation_id = models.UUIDField(
-        null=True, blank=True, unique=True, help_text=_l("Clé d'idempotence du mode hors ligne.")
+        null=True, blank=True, unique=True, help_text=gettext_lazy("Clé d'idempotence du mode hors ligne.")
     )
 
     class Meta:
@@ -225,7 +225,7 @@ class Ticket(TenantScopedModel):
 class LigneTicket(TenantScopedModel):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="lignes")
     variante = models.ForeignKey("catalog.Variante", on_delete=models.PROTECT, related_name="+")
-    libelle = models.CharField(max_length=200, help_text=_l("Figé à la vente : le produit peut changer."))
+    libelle = models.CharField(max_length=200, help_text=gettext_lazy("Figé à la vente : le produit peut changer."))
     quantite = models.DecimalField(max_digits=14, decimal_places=4)
     pu_ttc = models.DecimalField(max_digits=12, decimal_places=2)
     taux_tva = models.DecimalField(max_digits=5, decimal_places=4)
@@ -233,7 +233,7 @@ class LigneTicket(TenantScopedModel):
     sur_ordonnance = models.BooleanField(
         default=False,
         help_text=(
-            _l("Figé à la vente, comme le libellé et le prix : un médicament reclassé "
+            gettext_lazy("Figé à la vente, comme le libellé et le prix : un médicament reclassé "
             "l'an prochain ne doit pas réécrire l'ordonnancier de cette année.")
         ),
     )
@@ -264,10 +264,10 @@ class ReglementTicket(TenantScopedModel):
     CARTE = "carte"
     CREDIT = "credit"
     MOYENS = [
-        (ESPECES, _l("Espèces")),
-        (MOBILE_MONEY, _l("Mobile Money")),
-        (CARTE, _l("Carte bancaire")),
-        (CREDIT, _l("À crédit")),
+        (ESPECES, gettext_lazy("Espèces")),
+        (MOBILE_MONEY, gettext_lazy("Mobile Money")),
+        (CARTE, gettext_lazy("Carte bancaire")),
+        (CREDIT, gettext_lazy("À crédit")),
     ]
 
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="reglements")

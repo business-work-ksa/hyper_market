@@ -23,7 +23,7 @@ from django.db import models
 
 from apps.core.models import BaseModel
 from apps.marketplace.confiance import CHOIX_PALIERS
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 
 class MesureConfiance(BaseModel):
@@ -36,7 +36,7 @@ class MesureConfiance(BaseModel):
     acheteurs_distincts = models.PositiveIntegerField(
         default=0,
         help_text=(
-            _l("Acheteurs distincts derrière ces livraisons. Cent livraisons à un seul acheteur ne "
+            gettext_lazy("Acheteurs distincts derrière ces livraisons. Cent livraisons à un seul acheteur ne "
             "prouvent pas la même chose que cent livraisons à cent acheteurs.")
         ),
     )
@@ -68,8 +68,8 @@ class ChangementPalier(BaseModel):
     )
     ancien = models.PositiveSmallIntegerField(choices=CHOIX_PALIERS)
     nouveau = models.PositiveSmallIntegerField(choices=CHOIX_PALIERS)
-    raisons = models.JSONField(default=list, help_text=_l("Phrases lisibles, dans l'ordre."))
-    mesures = models.JSONField(default=dict, help_text=_l("Les chiffres au moment de la décision."))
+    raisons = models.JSONField(default=list, help_text=gettext_lazy("Phrases lisibles, dans l'ordre."))
+    mesures = models.JSONField(default=dict, help_text=gettext_lazy("Les chiffres au moment de la décision."))
     # L'instant de l'évaluation qui a décidé, distinct de `cree_le` : c'est lui qui ouvre la
     # fenêtre avant la montée suivante, et une évaluation rejouée pour une date donnée doit
     # raisonner sur cette date-là, pas sur l'horloge du serveur.
@@ -118,12 +118,12 @@ class SignalRisque(BaseModel):
     CHANGEMENT_COMPTE = "changement_compte"
     NON_VERIFIEE = "non_verifiee"
     TYPES = [
-        (IDENTITES_PARTAGEES, _l("Identité partagée avec une autre boutique")),
-        (PRIX_APPAT, _l("Prix d'appât")),
-        (PIC_PREPAIEMENT, _l("Pic de prépaiement")),
-        (LITIGES_ANNULATIONS, _l("Litiges et annulations anormaux")),
-        (CHANGEMENT_COMPTE, _l("Compte de versement changé avant un versement")),
-        (NON_VERIFIEE, _l("Boutique active non vérifiée")),
+        (IDENTITES_PARTAGEES, gettext_lazy("Identité partagée avec une autre boutique")),
+        (PRIX_APPAT, gettext_lazy("Prix d'appât")),
+        (PIC_PREPAIEMENT, gettext_lazy("Pic de prépaiement")),
+        (LITIGES_ANNULATIONS, gettext_lazy("Litiges et annulations anormaux")),
+        (CHANGEMENT_COMPTE, gettext_lazy("Compte de versement changé avant un versement")),
+        (NON_VERIFIEE, gettext_lazy("Boutique active non vérifiée")),
     ]
 
     # Trois gravités, pas cinq : au-delà, personne ne sait plus dire la différence entre la
@@ -131,32 +131,32 @@ class SignalRisque(BaseModel):
     MODEREE = 1
     ELEVEE = 2
     CRITIQUE = 3
-    GRAVITES = [(MODEREE, _l("Modérée")), (ELEVEE, _l("Élevée")), (CRITIQUE, _l("Critique"))]
+    GRAVITES = [(MODEREE, gettext_lazy("Modérée")), (ELEVEE, gettext_lazy("Élevée")), (CRITIQUE, gettext_lazy("Critique"))]
 
     OUVERT = "ouvert"
     ECARTE = "ecarte"
     CONFIRME = "confirme"
-    ETATS = [(OUVERT, _l("Ouvert")), (ECARTE, _l("Écarté")), (CONFIRME, _l("Confirmé"))]
+    ETATS = [(OUVERT, gettext_lazy("Ouvert")), (ECARTE, gettext_lazy("Écarté")), (CONFIRME, gettext_lazy("Confirmé"))]
 
     boutique = models.ForeignKey(
         "marketplace.Boutique", on_delete=models.PROTECT, related_name="signaux_risque"
     )
     type = models.CharField(max_length=32, choices=TYPES, db_index=True)
     gravite = models.PositiveSmallIntegerField(choices=GRAVITES, default=MODEREE, db_index=True)
-    score = models.PositiveSmallIntegerField(default=0, help_text=_l("0 à 100, pour trier à gravité égale."))
-    resume = models.CharField(max_length=240, help_text=_l("La preuve en une phrase, pour la file."))
+    score = models.PositiveSmallIntegerField(default=0, help_text=gettext_lazy("0 à 100, pour trier à gravité égale."))
+    resume = models.CharField(max_length=240, help_text=gettext_lazy("La preuve en une phrase, pour la file."))
     preuves = models.JSONField(default=dict)
     # Empreinte des faits qui fondent le signal. Un signal écarté ne revient pas tant que les faits
     # sont les mêmes : l'administrateur a déjà jugé ceux-là. S'ils changent — une troisième boutique
     # partage le téléphone — l'empreinte change, et un nouveau signal s'ouvre.
     empreinte = models.CharField(max_length=64, db_index=True)
-    constate_le = models.DateTimeField(help_text=_l("Dernière fois que la tâche de nuit l'a constaté."))
+    constate_le = models.DateTimeField(help_text=gettext_lazy("Dernière fois que la tâche de nuit l'a constaté."))
     etat = models.CharField(max_length=16, choices=ETATS, default=OUVERT, db_index=True)
     traite_par = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
     traite_le = models.DateTimeField(null=True, blank=True)
-    decision = models.TextField(blank=True, help_text=_l("Le motif de la décision, obligatoire."))
+    decision = models.TextField(blank=True, help_text=gettext_lazy("Le motif de la décision, obligatoire."))
 
     class Meta:
         verbose_name = "signal de risque"

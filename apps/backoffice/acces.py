@@ -24,6 +24,7 @@ from apps.inventory.models import Depot, NiveauStock
 from apps.inventory.services import lots_a_surveiller
 from apps.marketplace.metiers import GARANTIE, ORDONNANCE, PEREMPTION
 from apps.marketplace.models import Boutique, IdentiteVisuelle
+from django.utils.translation import gettext as _
 
 
 # ----------------------------------------------------------------------------
@@ -269,12 +270,12 @@ def exige_json(*droits_requis: str):
         def enveloppe(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return JsonResponse(
-                    {"ok": False, "erreur": "Session expirée. Reconnectez-vous."}, status=401
+                    {"ok": False, "erreur": _("Session expirée. Reconnectez-vous.")}, status=401
                 )
             boutique = boutique_courante(request)
             if boutique is None:
                 return JsonResponse(
-                    {"ok": False, "erreur": "Aucune boutique active."}, status=403
+                    {"ok": False, "erreur": _("Aucune boutique active.")}, status=403
                 )
             acquis = droits_de(request.user, boutique)
             manquants = [d for d in droits_requis if d not in acquis]
@@ -282,7 +283,7 @@ def exige_json(*droits_requis: str):
                 return JsonResponse(
                     {
                         "ok": False,
-                        "erreur": "Votre rôle ne permet pas cette opération.",
+                        "erreur": _("Votre rôle ne permet pas cette opération."),
                         "droits_manquants": manquants,
                     },
                     status=403,

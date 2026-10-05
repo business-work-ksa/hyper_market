@@ -52,6 +52,7 @@ from apps.marketplace.models import (
     TypeEmplacement,
 )
 from apps.plateforme.acces import CONSOLE_ADMINISTRATEURS, droits_console_de
+from django.utils.translation import gettext as _
 
 CENT = Decimal("100")
 
@@ -146,10 +147,10 @@ def _compte_nouveau(*, telephone: str, nom: str, mot_de_passe_hache: str):
     """
     Utilisateur = get_user_model()
     if not mot_de_passe_hache:
-        raise ValidationError({"mot_de_passe": "Le mot de passe initial manque : saisissez-le à nouveau."})
+        raise ValidationError({"mot_de_passe": _("Le mot de passe initial manque : saisissez-le à nouveau.")})
     if Utilisateur.objects.filter(telephone=telephone).exists():
         raise ValidationError(
-            {"telephone": "Ce numéro a déjà un compte. Choisissez « compte existant »."}
+            {"telephone": _("Ce numéro a déjà un compte. Choisissez « compte existant ».")}
         )
     compte = Utilisateur(telephone=telephone, nom_complet=nom.strip())
     compte.password = mot_de_passe_hache
@@ -234,7 +235,7 @@ def ouvrir_boutique(demande: DemandeOuverture, *, par) -> Boutique:
 
     if not demande.rayon.ouvert:
         # Arbitrage A8 : un rayon fermé n'accepte plus de nouvelles boutiques.
-        raise ValidationError({"rayon": f"Le rayon « {demande.rayon} » est fermé aux nouvelles boutiques."})
+        raise ValidationError({"rayon": _('Le rayon « %(rayon)s » est fermé aux nouvelles boutiques.') % {"rayon": demande.rayon}})
 
     # --- Le gérant, d'abord vérifié : s'il est refusé, rien d'autre ne doit exister ----------
     if demande.gerant_existant is not None:
@@ -285,8 +286,8 @@ def ouvrir_boutique(demande: DemandeOuverture, *, par) -> Boutique:
     bail.save()
 
     # --- Le gérant, rattaché ---------------------------------------------------------------
-    role_gerant, _ = Role.objects.get_or_create(
-        code=Role.GERANT, defaults={"libelle": "Gérant de boutique", "portee": Role.BOUTIQUE}
+    role_gerant, _cree = Role.objects.get_or_create(
+        code=Role.GERANT, defaults={"libelle": "Gérant de boutique", "portee": Role.BOUTIQUE}  # i18n: non (enregistré en base)
     )
     Appartenance.objects.create(utilisateur=gerant, boutique=boutique, role=role_gerant)
 
@@ -294,7 +295,7 @@ def ouvrir_boutique(demande: DemandeOuverture, *, par) -> Boutique:
     initialiser_boutique(boutique)
     with contexte_boutique(boutique):
         Depot.objects.create(
-            boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True
+            boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True  # i18n: non (enregistré en base)
         )
 
     if demande.activer:
@@ -336,16 +337,16 @@ def vendre_emplacement(*, par, boutique, type_emplacement: str, rayon, debut: da
     boutique = Boutique.objects.select_for_update().get(pk=boutique.pk)
     if boutique.etat != Boutique.ACTIVE:
         raise ValidationError(
-            {"boutique": "Seule une boutique active peut occuper un emplacement : les autres ne sont pas en vitrine."}
+            {"boutique": _("Seule une boutique active peut occuper un emplacement : les autres ne sont pas en vitrine.")}
         )
     if type_emplacement not in dict(EmplacementPremium.TYPES):
-        raise ValidationError({"type": "Type d'emplacement inconnu."})
+        raise ValidationError({"type": _("Type d'emplacement inconnu.")})
     if type_emplacement in TYPES_A_RAYON and rayon is None:
-        raise ValidationError({"rayon": "Une tête de gondole ou un bandeau se place dans un rayon : choisissez-le."})
+        raise ValidationError({"rayon": _("Une tête de gondole ou un bandeau se place dans un rayon : choisissez-le.")})
     if type_emplacement not in TYPES_A_RAYON:
         rayon = None
     if fin <= debut:
-        raise ValidationError({"fin": "La fin doit venir après le début."})
+        raise ValidationError({"fin": _("La fin doit venir après le début.")})
     tarif = Decimal(tarif)
     if tarif <= 0:
         raise ValidationError({"tarif": MESSAGE_TARIF_NUL})
@@ -400,7 +401,7 @@ def nommer_administrateur(
     """
     _exiger(par, CONSOLE_ADMINISTRATEURS)
     if code_role not in LIBELLES_ROLES_ADMINISTRATION:
-        raise ValidationError({"role": "Choisissez l'un des deux rôles d'exploitation."})
+        raise ValidationError({"role": _("Choisissez l'un des deux rôles d'exploitation.")})
     motif = _motif_obligatoire(
         motif, "Dites pourquoi vous confiez l'exploitation à ce compte : un auditeur le relira."
     )
@@ -414,7 +415,7 @@ def nommer_administrateur(
         compte = _compte_nouveau(telephone=telephone, nom=nom, mot_de_passe_hache=mot_de_passe_hache)
 
     if compte.roles_plateforme.filter(actif=True, role_id=code_role).exists():
-        raise ValidationError({"role": "Ce compte porte déjà ce rôle."})
+        raise ValidationError({"role": _("Ce compte porte déjà ce rôle.")})
 
     pose = poser_administrateur_du_marche(compte, code_role=code_role, motif=motif)
     tracer(
@@ -441,10 +442,10 @@ def retirer_administrateur(role_plateforme: RolePlateforme, *, par, motif: str) 
         RolePlateforme.objects.select_for_update().select_related("utilisateur", "role").get(pk=role_plateforme.pk)
     )
     if not role_plateforme.actif:
-        raise ValidationError({"motif": "Ce rôle est déjà retiré."})
+        raise ValidationError({"motif": _("Ce rôle est déjà retiré.")})
     if role_plateforme.utilisateur_id == par.pk:
         raise ValidationError(
-            {"motif": "On ne se retire pas soi-même son rôle : demandez-le à un autre superadministrateur."}
+            {"motif": _("On ne se retire pas soi-même son rôle : demandez-le à un autre superadministrateur.")}
         )
     acces_retire = retirer_role_plateforme(role_plateforme)
     compte = role_plateforme.utilisateur
@@ -527,7 +528,7 @@ def changer_etat_boutique(boutique: Boutique, action: str, *, par, motif: str = 
         brouillon = boutique.baux.filter(etat=Bail.BROUILLON).order_by("-debut").first()
         if brouillon is None:
             raise ValidationError(
-                {"motif": "Cette candidature n'a aucun bail à activer : ouvrez-la par l'assistant."}
+                {"motif": _("Cette candidature n'a aucun bail à activer : ouvrez-la par l'assistant.")}
             )
         brouillon.etat = Bail.ACTIF
         brouillon.save()

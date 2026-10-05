@@ -37,6 +37,7 @@ from dataclasses import dataclass
 
 from apps.accounts import permissions as droit
 from apps.marketplace import metiers
+from django.utils.translation import gettext_lazy
 
 __all__ = ["FICHES", "FicheVue", "fiches_pour", "fiche_de"]
 
@@ -95,8 +96,8 @@ class Fiche:
 FICHES: tuple[Fiche, ...] = (
     Fiche(
         cle="tableau_de_bord",
-        titre="Tableau de bord",
-        resume="Ce que la boutique a fait aujourd'hui, et ce qu'il faut commander.",
+        titre=gettext_lazy("Tableau de bord"),
+        resume=gettext_lazy("Ce que la boutique a fait aujourd'hui, et ce qu'il faut commander."),
         gestes=(
             ("Les tuiles", "Ventes et marge du jour, valeur du stock au coût moyen, articles à réapprovisionner."),
             ("Le graphique", "Quatorze jours de chiffre d'affaires, ventes clôturées seulement."),
@@ -110,8 +111,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="caisse",
-        titre="Caisse",
-        resume="Encaisser, y compris sans réseau.",
+        titre=gettext_lazy("Caisse"),
+        resume=gettext_lazy("Encaisser, y compris sans réseau."),
         gestes=(
             ("Ouvrir la session", "Saisissez les espèces présentes dans le tiroir avant la première vente."),
             ("Vendre", "Cherchez par nom, référence ou code-barres, puis choisissez le règlement : espèces, Mobile Money, carte, ou à crédit."),
@@ -131,8 +132,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="stock",
-        titre="Stock",
-        resume="Ce que vous avez, ce qu'il a coûté, et ce qui bouge.",
+        titre=gettext_lazy("Stock"),
+        resume=gettext_lazy("Ce que vous avez, ce qu'il a coûté, et ce qui bouge."),
         gestes=(
             ("Chercher", "Par nom, référence, code-barres — et par les autres désignations de l'article là où votre métier en gère."),
             ("Recevoir", "Ouvrez l'article, puis Entrée de stock : quantité reçue et coût d'achat unitaire.", droit.STOCK_MOUVEMENTER),
@@ -154,8 +155,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="peremptions",
-        titre="Péremptions",
-        resume="Ce qui est déjà perdu, et ce qu'on peut encore écouler.",
+        titre=gettext_lazy("Péremptions"),
+        resume=gettext_lazy("Ce qui est déjà perdu, et ce qu'on peut encore écouler."),
         gestes=(
             ("Lire l'écran", "Les deux listes sont séparées : le périmé d'un côté, ce qui approche de l'autre."),
             ("Agir", "Écouler, remiser, ou retourner au grossiste — l'écran ne décide pas à votre place."),
@@ -169,8 +170,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="production",
-        titre="Production",
-        resume="Fabriquer consomme les ingrédients et calcule le coût de revient.",
+        titre=gettext_lazy("Production"),
+        resume=gettext_lazy("Fabriquer consomme les ingrédients et calcule le coût de revient."),
         gestes=(
             ("Fiche technique", "Ce qu'il faut pour une fournée : les ingrédients et leurs quantités."),
             ("Produire", "Sort réellement les ingrédients du stock et fait entrer le produit fini.", droit.STOCK_MOUVEMENTER),
@@ -188,8 +189,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="ventes",
-        titre="Ventes",
-        resume="Le journal de ce qui a été encaissé.",
+        titre=gettext_lazy("Ventes"),
+        resume=gettext_lazy("Le journal de ce qui a été encaissé."),
         gestes=(
             ("Filtrer", "Par période, par état, par caissier. Les filtres vivent dans l'adresse : le lien se partage."),
             ("Ouvrir un ticket", "Le détail, et la réimpression."),
@@ -202,8 +203,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="ordonnancier",
-        titre="Ordonnancier",
-        resume="Les délivrances sur ordonnance qui restent à consigner.",
+        titre=gettext_lazy("Ordonnancier"),
+        resume=gettext_lazy("Les délivrances sur ordonnance qui restent à consigner."),
         gestes=(
             ("Consigner", "Ajoutez le prescripteur et le numéro d'ordonnance."),
         ),
@@ -219,8 +220,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="garantie",
-        titre="Garantie et atelier",
-        resume="Retrouver un appareil par son numéro, et suivre ses réparations.",
+        titre=gettext_lazy("Garantie et atelier"),
+        resume=gettext_lazy("Retrouver un appareil par son numéro, et suivre ses réparations."),
         gestes=(
             ("Chercher", "Par numéro de série ou IMEI. L'écran dit d'où vient l'appareil et à qui il a été vendu."),
             ("Atelier", "Entrée et sortie, avec le motif et le résultat."),
@@ -245,8 +246,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="commandes",
-        titre="Commandes en ligne",
-        resume="Les commandes des clients de la vitrine, étape par étape.",
+        titre=gettext_lazy("Commandes en ligne"),
+        resume=gettext_lazy("Les commandes des clients de la vitrine, étape par étape."),
         gestes=(
             ("Avancer", "En attente → acceptée → préparée → expédiée → livrée."),
             ("Annuler", "Possible tant que la commande n'est pas expédiée."),
@@ -259,8 +260,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="comptabilite",
-        titre="Comptabilité",
-        resume="Les écritures SYSCOHADA, générées à chaque vente.",
+        titre=gettext_lazy("Comptabilité"),
+        resume=gettext_lazy("Les écritures SYSCOHADA, générées à chaque vente."),
         gestes=(
             ("Balance", "Les soldes par compte."),
             ("Écritures", "Les dernières lignes du journal. Le détail complet part à l'export."),
@@ -276,8 +277,8 @@ FICHES: tuple[Fiche, ...] = (
     ),
     Fiche(
         cle="boutique",
-        titre="Ma boutique",
-        resume="Identité, dépôts, équipe, et export de vos données.",
+        titre=gettext_lazy("Ma boutique"),
+        resume=gettext_lazy("Identité, dépôts, équipe, et export de vos données."),
         gestes=(
             ("Équipe", "Embaucher, changer un rôle, régénérer un mot de passe, retirer un accès.", droit.BOUTIQUE_ADMINISTRER),
             ("Dépôts", "Ajouter une réserve, si votre emplacement l'autorise.", droit.BOUTIQUE_ADMINISTRER),

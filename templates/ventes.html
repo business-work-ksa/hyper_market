@@ -39,7 +39,7 @@
   de proposer des boutons qui refuseraient.
   {% endcomment %}
   <section class="carte tableau-panneau">
-    {% include "partials/tableau_barre.html" with nom="vente" noms="ventes" titre="Journal des ventes" filtres_id="filtres-ventes" filtres_actifs=filtres.actifs aide="Journal en ajout seul : une vente encaissée ne se modifie ni ne se supprime. Ouvrez un ticket pour le détail." %}
+    {% include "partials/tableau_barre.html" with nom="vente" noms="ventes" titre=_("Journal des ventes") filtres_id="filtres-ventes" filtres_actifs=filtres.actifs aide=_("Journal en ajout seul : une vente encaissée ne se modifie ni ne se supprime. Ouvrez un ticket pour le détail.") %}
     <div class="carte__corps--serre">
       <div class="tableau-boite tableau-boite--haute">
         <table class="tableau">
@@ -88,6 +88,6 @@
     </div>
   </section>
 
-  {% include "partials/modal_filtres.html" with id="filtres-ventes" formulaire=filtres action=url_ventes titre="Filtrer les ventes" aide="Le journal se lit par le haut : sans filtre, ce sont les soixante ventes les plus récentes." %}
+  {% include "partials/modal_filtres.html" with id="filtres-ventes" formulaire=filtres action=url_ventes titre=_("Filtrer les ventes") aide=_("Le journal se lit par le haut : sans filtre, ce sont les soixante ventes les plus récentes.") %}
 </div>
 {% endblock %}

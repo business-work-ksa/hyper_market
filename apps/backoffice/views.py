@@ -178,8 +178,8 @@ def connexion(request):
                 "connexion.html",
                 {
                     "erreur": (
-                        "Trop d'essais sur ce numéro. Réessayez dans un quart d'heure — "
-                        "le compte se rouvrira tout seul."
+                        _("Trop d'essais sur ce numéro. Réessayez dans un quart d'heure — "
+                        "le compte se rouvrira tout seul.")
                     ),
                     "telephone": telephone,
                     "demo": compte_de_demonstration(),
@@ -199,7 +199,7 @@ def connexion(request):
                 # faux : le distinguer dirait à un attaquant lesquels de ses
                 # numéros sont inscrits.
                 {
-                    "erreur": "Numéro ou mot de passe incorrect.",
+                    "erreur": _("Numéro ou mot de passe incorrect."),
                     "telephone": telephone,
                     "demo": compte_de_demonstration(),
                 },
@@ -223,8 +223,8 @@ def connexion(request):
                 "connexion.html",
                 {
                     "erreur": (
-                        "Ce compte n'est rattaché à aucune boutique active. Demandez à votre "
-                        "gérant de vous ajouter à l'équipe."
+                        _("Ce compte n'est rattaché à aucune boutique active. Demandez à votre "
+                        "gérant de vous ajouter à l'équipe.")
                     ),
                     "demo": compte_de_demonstration(),
                 },
@@ -671,11 +671,11 @@ def caisse_encaisser(request):
     try:
         charge = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "erreur": "Requête illisible."}, status=400)
+        return JsonResponse({"ok": False, "erreur": _("Requête illisible.")}, status=400)
 
     lignes = charge.get("lignes") or []
     if not lignes:
-        return JsonResponse({"ok": False, "erreur": "Le panier est vide."}, status=400)
+        return JsonResponse({"ok": False, "erreur": _("Le panier est vide.")}, status=400)
 
     # Une session ouverte est liée à son dépôt : elle l'emporte sur le dépôt
     # choisi dans l'en-tête, sinon une vente sortirait le stock d'une réserve
@@ -683,7 +683,7 @@ def caisse_encaisser(request):
     session = _session_ouverte(request)
     depot = session.depot if session else depot_courant(request)
     if depot is None:
-        return JsonResponse({"ok": False, "erreur": "Aucun dépôt configuré."}, status=400)
+        return JsonResponse({"ok": False, "erreur": _("Aucun dépôt configuré.")}, status=400)
 
     if session is None:
         session = caisse_service.ouvrir_session(
@@ -816,12 +816,13 @@ def stock(request):
             # jamais seul de ce qu'il montre (docs/09, §3.6).
             "peut_mouvementer": peut_mouvementer,
             "url_creer": reverse("nouvel_article") if peut_mouvementer else "",
-            "libelle_creer": f"{metier.nouveau} {metier.article}" if metier else "Nouvel article",
+            "libelle_creer": f"{metier.nouveau} {metier.article}" if metier else _("Nouvel article"),
             "url_supprimer": reverse("articles_supprimer") if peut_mouvementer else "",
             "aide_stock": (
-                f"Sélectionnez {'une' if metier and metier.feminin else 'un'} "
-                f"{metier.article if metier else 'article'} pour le modifier ou le retirer."
-            ),
+                _("Sélectionnez une %(article)s pour la modifier ou la retirer.")
+                if metier and metier.feminin
+                else _("Sélectionnez un %(article)s pour le modifier ou le retirer.")
+            ) % {"article": metier.article if metier else _("article")},
             "conserver_dans_recherche": conserver(
                 request, "etat", "depot", "sans_mouvement", "marque", "modele", "annee"
             ),
@@ -1286,7 +1287,7 @@ def nouvel_article(request):
     depot = contexte["depot_courant"]
     if depot is None:
         depot = Depot.objects.create(
-            boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True
+            boutique=boutique, libelle="Magasin principal", type=Depot.BOUTIQUE, principal=True  # i18n: non (enregistré en base)
         )
         request.session["depot_id"] = str(depot.pk)
 
@@ -1569,17 +1570,17 @@ def entree_stock_json(request, variante_id):
     try:
         charge = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "erreur": "Requête illisible."}, status=400)
+        return JsonResponse({"ok": False, "erreur": _("Requête illisible.")}, status=400)
 
     variante = Variante.objects.filter(pk=variante_id).first()
     if variante is None:
-        return JsonResponse({"ok": False, "erreur": "Article introuvable."}, status=400)
+        return JsonResponse({"ok": False, "erreur": _("Article introuvable.")}, status=400)
 
     depot = Depot.objects.filter(pk=charge.get("depot"), actif=True).first() or depot_courant(
         request
     )
     if depot is None:
-        return JsonResponse({"ok": False, "erreur": "Aucun dépôt configuré."}, status=400)
+        return JsonResponse({"ok": False, "erreur": _("Aucun dépôt configuré.")}, status=400)
 
     formulaire = EntreeStockForm(
         {

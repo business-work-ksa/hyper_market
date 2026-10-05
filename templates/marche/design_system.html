@@ -168,7 +168,7 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
       </table>
     </div>
   </div>
-  {% include "marche/doc_usage.html" with quand="primary : l'action principale d'une zone, une seule. accent (or) : l'action d'achat — ajouter, commander, payer. secondary : alternative proche. outline : alternative neutre, retour. ghost : action tertiaire, barre d'outils." pas_quand="Deux primary côte à côte. Un bouton pour naviguer dans un paragraphe (un lien suffit). Un libellé vague (« OK », « Valider ») : dire ce qui se passe (« Payer 24 350 FCFA »)." a11y="Cible ≥ 44 × 44 px (md, lg) — sm réservé aux barres denses sur bureau. Focus visible (anneau 2 px, contraste ≥ 3:1). Bouton-icône : aria-label obligatoire. Désactivé : attribut disabled (lien : aria-disabled + tabindex=-1). Occupé : aria-busy=true, posé à l'envoi. Contraste du libellé ≥ 4,5:1 dans les deux thèmes." responsive="Hauteur fixe par taille ; md passe de 14 à 16 px de texte à partir de sm (640 px). btn-bloc pour la pleine largeur sur mobile." %}
+  {% include "marche/doc_usage.html" with quand=_("primary : l'action principale d'une zone, une seule. accent (or) : l'action d'achat — ajouter, commander, payer. secondary : alternative proche. outline : alternative neutre, retour. ghost : action tertiaire, barre d'outils.") pas_quand=_("Deux primary côte à côte. Un bouton pour naviguer dans un paragraphe (un lien suffit). Un libellé vague (« OK », « Valider ») : dire ce qui se passe (« Payer 24 350 FCFA »).") a11y=_("Cible ≥ 44 × 44 px (md, lg) — sm réservé aux barres denses sur bureau. Focus visible (anneau 2 px, contraste ≥ 3:1). Bouton-icône : aria-label obligatoire. Désactivé : attribut disabled (lien : aria-disabled + tabindex=-1). Occupé : aria-busy=true, posé à l'envoi. Contraste du libellé ≥ 4,5:1 dans les deux thèmes.") responsive=_("Hauteur fixe par taille ; md passe de 14 à 16 px de texte à partir de sm (640 px). btn-bloc pour la pleine largeur sur mobile.") %}
 </section>
 
 {# =================================================================== CHAMPS #}
@@ -202,7 +202,7 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
       </div>
     </div>
   </div>
-  {% include "marche/doc_usage.html" with quand="Toute saisie. Libellé visible au-dessus, aide en dessous, erreur sous le champ. Partial : marche/composants/champ.html (BoundField Django). Radio en carte (.choix) pour un choix qui engage (paiement)." pas_quand="Un placeholder à la place du libellé (il disparaît dès qu'on tape). Un select pour 2 ou 3 options (des choix en carte se lisent d'un coup d'œil). Un champ en plus « au cas où » : chaque champ coûte des acheteurs." a11y="Libellé relié par label/for. aria-describedby vers aide et erreur (ids Django 5 : id_helptext, id_error). Erreur : aria-invalid=true + icône + texte, jamais la couleur seule. Bord de champ ≥ 3:1 (1.4.11). autocomplete et inputmode posés (name, tel, street-address). Texte ≥ 16 px : iOS ne zoome pas." responsive="Pleine largeur ; deux colonnes à partir de sm pour les paires courtes (nom, téléphone). input-lg pour la saisie clé sur mobile (téléphone de paiement)." %}
+  {% include "marche/doc_usage.html" with quand=_("Toute saisie. Libellé visible au-dessus, aide en dessous, erreur sous le champ. Partial : marche/composants/champ.html (BoundField Django). Radio en carte (.choix) pour un choix qui engage (paiement).") pas_quand=_("Un placeholder à la place du libellé (il disparaît dès qu'on tape). Un select pour 2 ou 3 options (des choix en carte se lisent d'un coup d'œil). Un champ en plus « au cas où » : chaque champ coûte des acheteurs.") a11y=_("Libellé relié par label/for. aria-describedby vers aide et erreur (ids Django 5 : id_helptext, id_error). Erreur : aria-invalid=true + icône + texte, jamais la couleur seule. Bord de champ ≥ 3:1 (1.4.11). autocomplete et inputmode posés (name, tel, street-address). Texte ≥ 16 px : iOS ne zoome pas.") responsive=_("Pleine largeur ; deux colonnes à partir de sm pour les paires courtes (nom, téléphone). input-lg pour la saisie clé sur mobile (téléphone de paiement).") %}
 </section>
 
 {# =================================================================== BADGES #}
@@ -218,7 +218,7 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
       <span class="badge badge-erreur">{% icone "alerte" %}Annulée</span>
     </div>
   </div>
-  {% include "marche/doc_usage.html" with quand="Un état ou un fait court sur un objet : état d'une commande, fait de confiance, nombre de résultats." pas_quand="Comme bouton (un badge ne se clique pas). Pour une phrase entière (c'est un bandeau). Plus de trois badges sur une même carte." a11y="Le mot porte le sens, l'icône et la couleur le doublent (1.4.1). Contraste texte/fond ≥ 4,5:1 vérifié pour chaque ton, dans les deux thèmes. Icône décorative (aria-hidden)." responsive="Taille fixe ; les rangées de badges passent à la ligne (flex-wrap)." %}
+  {% include "marche/doc_usage.html" with quand=_("Un état ou un fait court sur un objet : état d'une commande, fait de confiance, nombre de résultats.") pas_quand=_("Comme bouton (un badge ne se clique pas). Pour une phrase entière (c'est un bandeau). Plus de trois badges sur une même carte.") a11y=_("Le mot porte le sens, l'icône et la couleur le doublent (1.4.1). Contraste texte/fond ≥ 4,5:1 vérifié pour chaque ton, dans les deux thèmes. Icône décorative (aria-hidden).") responsive=_("Taille fixe ; les rangées de badges passent à la ligne (flex-wrap).") %}
 </section>
 
 {# =================================================================== CARTES #}
@@ -242,7 +242,7 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
       {% include "marche/composants/squelette_carte.html" %}
     </div>
   </div>
-  {% include "marche/doc_usage.html" with quand="Regrouper ce qui va ensemble (un commerçant dans le panier, un récapitulatif). Carte d'article : partial marche/composants/carte_article.html." pas_quand="Une carte dans une carte dans une carte. Une carte pour un seul paragraphe de texte (le fond de page suffit)." a11y="Carte cliquable : un seul lien (étiré sur le titre), pas trois liens vers la même page. Les actions internes (Ajouter) passent au-dessus du lien étiré. Titres hiérarchisés (h2/h3) pour la navigation au lecteur d'écran." responsive="Grille d'articles : 2 colonnes (mobile), 3 (md, 768 px), 4 (lg, 1024 px). Bouton d'ajout réduit à l'icône sous 640 px, avec aria-label complet." %}
+  {% include "marche/doc_usage.html" with quand=_("Regrouper ce qui va ensemble (un commerçant dans le panier, un récapitulatif). Carte d'article : partial marche/composants/carte_article.html.") pas_quand=_("Une carte dans une carte dans une carte. Une carte pour un seul paragraphe de texte (le fond de page suffit).") a11y=_("Carte cliquable : un seul lien (étiré sur le titre), pas trois liens vers la même page. Les actions internes (Ajouter) passent au-dessus du lien étiré. Titres hiérarchisés (h2/h3) pour la navigation au lecteur d'écran.") responsive=_("Grille d'articles : 2 colonnes (mobile), 3 (md, 768 px), 4 (lg, 1024 px). Bouton d'ajout réduit à l'icône sous 640 px, avec aria-label complet.") %}
 </section>
 
 {# =================================================================== MODALE #}
@@ -254,8 +254,8 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
       <span class="text-sm text-ink-muted">Échap ferme ; Tab reste dans la modale ; le focus revient au bouton.</span>
     </div>
   </div>
-  {% include "marche/composants/modale.html" with id="ds-modale" titre="Vider le panier ?" texte="Les 3 articles de votre panier seront retirés. Cette action ne peut pas être annulée." action="#modale" libelle_confirmer="Vider le panier" variante_confirmer="primary" %}
-  {% include "marche/doc_usage.html" with quand="Confirmer une action qu'on ne peut pas défaire." pas_quand="Pour informer (bandeau). Pour un long formulaire (page dédiée). À l'ouverture d'une page. Sans JavaScript elle ne s'ouvre pas : le bouton d'ouverture doit rester un vrai lien ou un vrai formulaire." a11y="Élément dialog natif + showModal() : page inerte, focus piégé, Échap. aria-labelledby / aria-describedby. Focus initial sur « Annuler », pas sur l'action destructrice. Bouton de fermeture nommé." responsive="Largeur min(32rem, 100vw − 2rem) ; boutons empilés pleine largeur sur mobile, alignés à droite à partir de sm." %}
+  {% include "marche/composants/modale.html" with id="ds-modale" titre=_("Vider le panier ?") texte=_("Les 3 articles de votre panier seront retirés. Cette action ne peut pas être annulée.") action="#modale" libelle_confirmer=_("Vider le panier") variante_confirmer="primary" %}
+  {% include "marche/doc_usage.html" with quand=_("Confirmer une action qu'on ne peut pas défaire.") pas_quand=_("Pour informer (bandeau). Pour un long formulaire (page dédiée). À l'ouverture d'une page. Sans JavaScript elle ne s'ouvre pas : le bouton d'ouverture doit rester un vrai lien ou un vrai formulaire.") a11y=_("Élément dialog natif + showModal() : page inerte, focus piégé, Échap. aria-labelledby / aria-describedby. Focus initial sur « Annuler », pas sur l'action destructrice. Bouton de fermeture nommé.") responsive=_("Largeur min(32rem, 100vw − 2rem) ; boutons empilés pleine largeur sur mobile, alignés à droite à partir de sm.") %}
 </section>
 
 {# =================================================================== ÉTATS #}
@@ -267,7 +267,7 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
       <div class="carte-corps grid grid-cols-2 gap-3">{% include "marche/composants/squelette_carte.html" %}{% include "marche/composants/squelette_carte.html" %}</div>
     </div>
     <div class="flex flex-col gap-4" data-apparition>
-      {% include "marche/composants/etat_vide.html" with icone="recherche" titre="Rien ne correspond à cette recherche." texte="Essayez un autre mot, ou parcourez un rayon." action_href="#etats" action_libelle="Voir tout le marché" niveau="p" %}
+      {% include "marche/composants/etat_vide.html" with icone="recherche" titre=_("Rien ne correspond à cette recherche.") texte=_("Essayez un autre mot, ou parcourez un rayon.") action_href="#etats" action_libelle=_("Voir tout le marché") niveau="p" %}
     </div>
   </div>
   <div class="flex flex-col gap-3" data-apparition>
@@ -276,7 +276,7 @@ lecteur d'écran la prononce correctement même quand le marché est affiché en
     <div class="bandeau bandeau-alerte">{% icone "info" %}<span><strong>Alerte.</strong> Le prépaiement n'est pas possible chez une boutique de votre panier.</span></div>
     <div class="bandeau bandeau-erreur">{% icone "alerte" %}<span><strong>Erreur.</strong> Le paiement n'a pas abouti : la demande a expiré.</span></div>
   </div>
-  {% include "marche/doc_usage.html" with quand="Squelette : pendant qu'une grille se recharge (rayon, recherche), à la forme exacte du contenu attendu. État vide : une liste qui pourrait contenir quelque chose — dire pourquoi, proposer la suite. Bandeau : un message qui concerne la page." pas_quand="Un squelette pour un chargement de moins de 300 ms, ou à la place d'une erreur. Un état vide sans action. Un bandeau d'erreur sans dire quoi faire." a11y="Région en chargement : aria-busy=true + annonce aria-live polie (« Chargement des articles… », puis « 12 articles »). Squelettes aria-hidden. Animation coupée si prefers-reduced-motion. Messages flash : role=status." responsive="Le squelette reprend la grille réelle (2 → 3 → 4 colonnes) : rien ne saute à l'arrivée du contenu." %}
+  {% include "marche/doc_usage.html" with quand=_("Squelette : pendant qu'une grille se recharge (rayon, recherche), à la forme exacte du contenu attendu. État vide : une liste qui pourrait contenir quelque chose — dire pourquoi, proposer la suite. Bandeau : un message qui concerne la page.") pas_quand=_("Un squelette pour un chargement de moins de 300 ms, ou à la place d'une erreur. Un état vide sans action. Un bandeau d'erreur sans dire quoi faire.") a11y=_("Région en chargement : aria-busy=true + annonce aria-live polie (« Chargement des articles… », puis « 12 articles »). Squelettes aria-hidden. Animation coupée si prefers-reduced-motion. Messages flash : role=status.") responsive=_("Le squelette reprend la grille réelle (2 → 3 → 4 colonnes) : rien ne saute à l'arrivée du contenu.") %}
 </section>
 
 {# =================================================================== RESPONSIVE #}

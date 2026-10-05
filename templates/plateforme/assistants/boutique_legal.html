@@ -8,7 +8,7 @@
     {% include "plateforme/partials/a_champ.html" with champ=form.rccm %}
     {% include "plateforme/partials/a_champ.html" with champ=form.niu %}
   </div>
-  {% include "plateforme/partials/a_cartes.html" with champ=form.regime_fiscal cartes=cartes_regimes aide="Le seuil de chiffre d'affaires est rappelé dans chaque libellé. Une boutique qui le franchit change de régime." %}
+  {% include "plateforme/partials/a_cartes.html" with champ=form.regime_fiscal cartes=cartes_regimes aide=_("Le seuil de chiffre d'affaires est rappelé dans chaque libellé. Une boutique qui le franchit change de régime.") %}
   <div class="bandeau-info">
     <svg aria-hidden="true"><use href="#ic-info"></use></svg>
     <span>{% translate "Un assujetti à l'IGS" %} <strong>{% translate "ne facture pas de TVA" %}</strong> {% blocktranslate trimmed %}et ne la récupère pas ; les

@@ -3,6 +3,6 @@
   <span class="v-controle__marque" aria-hidden="true"><svg><use href="#{% if c.fait %}ic-check{% else %}ic-alerte{% endif %}"></use></svg></span>
   <span class="pile-sm" style="gap:2px;min-width:0">
     <span class="v-controle__titre">{{ c.titre }} <span class="lecteur-seul">— {% if c.fait %}{% translate "fait" %}{% else %}{% translate "manquant" %}{% endif %}</span></span>
-    <span class="v-controle__detail">{% if c.fait %}{{ c.detail|default:"Fait" }}{% else %}{{ c.manque }}{% endif %}</span>
+    <span class="v-controle__detail">{% if c.fait %}{{ c.detail|default:_("Fait") }}{% else %}{{ c.manque }}{% endif %}</span>
   </span>
 </li>

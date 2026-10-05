@@ -58,7 +58,7 @@ d'une boutique, et chaque affichage d'un dossier est inscrit au journal.
                 <span class="file__titre">{{ d.get_type_piece_display }} <span class="v-numero">{{ d.numero_masque }}</span>{% if d.utilisateur %} · {{ d.utilisateur.nom_complet }}{% endif %}</span>
                 <span class="t-legende">{% blocktranslate with enseigne=d.boutique.enseigne|default:"—" nom_complet=d.declare_par.nom_complet|default:"—" cree_le=d.cree_le|date:"d/m/Y" get_mode_verification_display=d.get_mode_verification_display|lower trimmed %}{{ enseigne }} · attestée par {{ nom_complet }} le {{ cree_le }} · {{ get_mode_verification_display }}{% endblocktranslate %}</span>
               </span>
-              {% include "plateforme/partials/v_etat.html" with etat=d.etat libelle="À valider" %}
+              {% include "plateforme/partials/v_etat.html" with etat=d.etat libelle=_("À valider") %}
               <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
             </a>
           {% endfor %}
@@ -79,7 +79,7 @@ d'une boutique, et chaque affichage d'un dossier est inscrit au journal.
                 <span class="file__titre">{{ c.get_operateur_display }} <span class="v-numero">{{ c.numero_masque }}</span> · {{ c.boutique.enseigne }}</span>
                 <span class="t-legende">{% blocktranslate with titulaire=c.titulaire cree_le=c.cree_le|date:"d/m/Y à H:i" trimmed %}Au nom de « {{ titulaire }} » · déclaré le {{ cree_le }}{% endblocktranslate %}</span>
               </span>
-              {% include "plateforme/partials/v_etat.html" with etat=c.etat libelle="À vérifier" %}
+              {% include "plateforme/partials/v_etat.html" with etat=c.etat libelle=_("À vérifier") %}
               <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
             </a>
           {% endfor %}

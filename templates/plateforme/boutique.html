@@ -153,7 +153,7 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
                   <td>
                     <span class="t-boutique__noms">
                       <span class="t-boutique__enseigne">{{ e.get_type_display }}</span>
-                      <span class="t-boutique__raison">{{ e.rayon.libelle|default:"Tout le marché" }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
+                      <span class="t-boutique__raison">{{ e.rayon.libelle|default:_("Tout le marché") }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
                     </span>
                   </td>
                   <td class="chiffre t-cache-etroit">{{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m/Y" }}</td>

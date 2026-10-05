@@ -27,6 +27,9 @@
 (function (global) {
   "use strict";
 
+  // Traduction : le catalogue de Django (`/jsi18n/`) n'est chargé qu'en anglais.
+  var gettext = window.gettext || function (s) { return s; };
+
   // Service « série » des imprimantes ESC/POS courantes, et deux variantes
   // rencontrées sur les modèles bon marché.
   var SERVICES = [
@@ -170,8 +173,8 @@
 
     ruban.separateur();
     if (ticket.assujetti_tva) {
-      ruban.duo("Total hors taxes", fcfa(ticket.total_ht));
-      ruban.duo("TVA 19,25 %", fcfa(ticket.total_tva));
+      ruban.duo(gettext("Total hors taxes"), fcfa(ticket.total_ht));
+      ruban.duo(gettext("TVA 19,25 %"), fcfa(ticket.total_tva));
     }
     ruban.gras(true).duo("TOTAL", fcfa(ticket.total_ttc) + " FCFA").gras(false);
     ruban.separateur();
@@ -182,11 +185,11 @@
 
     ruban.centre().ligne("");
     if (!ticket.assujetti_tva) {
-      ruban.ligne("TVA non applicable");
-      ruban.ligne("Impot general synthetique");
+      ruban.ligne(gettext("TVA non applicable"));
+      ruban.ligne(gettext("Impot general synthetique"));
     }
-    ruban.ligne("Merci de votre visite.");
-    ruban.ligne("Conservez ce ticket.");
+    ruban.ligne(gettext("Merci de votre visite."));
+    ruban.ligne(gettext("Conservez ce ticket."));
 
     return ruban.couper().terminer();
   }
@@ -216,7 +219,7 @@
       return Promise.resolve(caracteristique);
     }
     if (!global.navigator || !navigator.bluetooth) {
-      return Promise.reject(new Error("Ce navigateur ne sait pas parler Bluetooth."));
+      return Promise.reject(new Error(gettext("Ce navigateur ne sait pas parler Bluetooth.")));
     }
 
     return navigator.bluetooth
@@ -230,7 +233,7 @@
       })
       .then(trouverCaracteristique)
       .then(function (trouvee) {
-        if (!trouvee) throw new Error("Aucune voie d'écriture sur cette imprimante.");
+        if (!trouvee) throw new Error(gettext("Aucune voie d'écriture sur cette imprimante."));
         caracteristique = trouvee;
         return caracteristique;
       });

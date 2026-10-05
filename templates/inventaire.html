@@ -14,7 +14,7 @@
     bouton.addEventListener("click", function () {
       var visible = bouton.getAttribute("aria-pressed") === "true";
       bouton.setAttribute("aria-pressed", visible ? "false" : "true");
-      bouton.textContent = visible ? "Afficher le théorique" : "Masquer le théorique";
+      bouton.textContent = visible ? "{{ _("Afficher le théorique")|escapejs }}" : "{{ _("Masquer le théorique")|escapejs }}";
       document.querySelectorAll(".theorique-masque").forEach(function (n) { n.hidden = !visible; });
       document.querySelectorAll(".theorique-valeur").forEach(function (n) { n.hidden = visible; });
     });

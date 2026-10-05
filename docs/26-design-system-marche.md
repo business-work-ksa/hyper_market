@@ -120,6 +120,16 @@ pas les adjectifs, et une variable d'accord ne peut pas disparaître de la tradu
 `outils/i18n/pluriels.py` convertit les anciens accords ; `outils/i18n/envelopper.py` et
 `envelopper_py.py` ont enveloppé les textes existants (outils de migration, à relire après usage).
 
+Les scripts suivent la même langue. Les fichiers de `static/js/` appellent `gettext()` /
+`ngettext()` : le catalogue `djangojs` est servi par `/jsi18n/` (`partials/catalogue_js.html`),
+seulement hors du français — sans lui, les scripts se rabattent sur le texte source. Les scripts
+écrits dans un gabarit reçoivent leurs textes du gabarit (`"{{ _('…')|escapejs }}"`).
+
+Ce qui est **enregistré** ne se traduit pas : libellés d'écritures comptables, motifs du journal,
+libellés créés à l'ouverture d'une boutique (« Magasin principal »). Ils restent dans la langue du
+jour de l'écriture, quelle que soit celle de la personne qui agit. Une ligne de code marquée
+`# i18n: non` est laissée telle quelle par `outils/i18n/envelopper_cles.py`.
+
 Régénérer après modification d'un texte :
 
 ```bash
@@ -127,6 +137,8 @@ python manage.py makemessages -l en --no-obsolete \
   -i .venv -i node_modules -i static -i staticfiles -i docs -i tests -i scripts -i outils \
   -i infrastructure -i captures -i media -i sortie_vide -i "*/migrations/*" -i apps/api -i config
 # traduire les nouvelles entrées (et retirer la marque « fuzzy » des rapprochements), puis :
+python manage.py makemessages -d djangojs -l en --no-obsolete \
+  -i .venv -i node_modules -i staticfiles -i docs -i tests -i outils
 python manage.py compilemessages -l en --ignore=.venv --ignore=node_modules
 ```
 

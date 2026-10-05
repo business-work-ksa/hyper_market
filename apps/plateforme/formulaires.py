@@ -25,7 +25,7 @@ from apps.marketplace.models import Boutique, EmplacementPremium, Rayon, TypeEmp
 from apps.plateforme import services
 from apps.plateforme.assistant import Confirmation, FormulaireEtape
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CHAMP = {"class": "champ"}
 CHAMP_GRAND = {"class": "champ champ--grand"}
@@ -77,7 +77,7 @@ def pourcent(fraction) -> str:
 
 
 def _choix_obligatoire(message):
-    return {"required": message, "invalid_choice": "Ce choix n'est pas (ou plus) proposé."}
+    return {"required": message, "invalid_choice": _("Ce choix n'est pas (ou plus) proposé.")}
 
 
 # ----------------------------------------------------------------------------
@@ -96,33 +96,33 @@ class CompteForm(FormulaireEtape):
     secrets = ("mot_de_passe", "mot_de_passe_confirmation")
 
     mode = forms.ChoiceField(
-        label=_l("Compte"),
+        label=gettext_lazy("Compte"),
         choices=[(EXISTANT, "Un compte existant"), (NOUVEAU, "Un nouveau compte")],
         initial=EXISTANT,
         widget=forms.RadioSelect,
         error_messages=_choix_obligatoire("Dites s'il s'agit d'un compte existant ou nouveau."),
     )
     telephone = forms.CharField(
-        label=_l("Numéro de téléphone"),
+        label=gettext_lazy("Numéro de téléphone"),
         max_length=24,  # saisi avec ses espaces ; normalisé puis validé à 16
-        help_text=_l("Le numéro est l'identifiant de connexion. Format : +237699000000."),
+        help_text=gettext_lazy("Le numéro est l'identifiant de connexion. Format : +237699000000."),
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "+237699000000", "inputmode": "tel", "autocomplete": "off"}),
-        error_messages={"required": "Le numéro est obligatoire."},
+        error_messages={"required": gettext_lazy("Le numéro est obligatoire.")},
     )
     nom = forms.CharField(
-        label=_l("Nom complet"),
+        label=gettext_lazy("Nom complet"),
         max_length=150,
         required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Marie Ekedi", "autocomplete": "off"}),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Marie Ekedi"), "autocomplete": "off"}),
     )
     mot_de_passe = forms.CharField(
-        label=_l("Mot de passe initial"),
+        label=gettext_lazy("Mot de passe initial"),
         required=False,
         strip=False,
         widget=forms.PasswordInput(attrs={**CHAMP, "autocomplete": "new-password"}),
     )
     mot_de_passe_confirmation = forms.CharField(
-        label=_l("Le même, une seconde fois"),
+        label=gettext_lazy("Le même, une seconde fois"),
         required=False,
         strip=False,
         widget=forms.PasswordInput(attrs={**CHAMP, "autocomplete": "new-password"}),
@@ -235,37 +235,37 @@ class CompteForm(FormulaireEtape):
 # ----------------------------------------------------------------------------
 class IdentiteForm(FormulaireEtape):
     enseigne = forms.CharField(
-        label=_l("Enseigne"),
+        label=gettext_lazy("Enseigne"),
         max_length=120,
-        help_text=_l("Le nom affiché aux acheteurs. L'adresse de la vitrine en est dérivée."),
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Quincaillerie Ateba", "autocomplete": "off"}),
-        error_messages={"required": "L'enseigne est obligatoire : c'est le nom que verront les acheteurs."},
+        help_text=gettext_lazy("Le nom affiché aux acheteurs. L'adresse de la vitrine en est dérivée."),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Quincaillerie Ateba"), "autocomplete": "off"}),
+        error_messages={"required": gettext_lazy("L'enseigne est obligatoire : c'est le nom que verront les acheteurs.")},
     )
     raison_sociale = forms.CharField(
-        label=_l("Raison sociale"),
+        label=gettext_lazy("Raison sociale"),
         max_length=180,
-        help_text=_l("Telle qu'elle figure au registre du commerce."),
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Ets Ateba et Fils SARL", "autocomplete": "off"}),
-        error_messages={"required": "La raison sociale est obligatoire : elle figure sur le bail."},
+        help_text=gettext_lazy("Telle qu'elle figure au registre du commerce."),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Ets Ateba et Fils SARL"), "autocomplete": "off"}),
+        error_messages={"required": gettext_lazy("La raison sociale est obligatoire : elle figure sur le bail.")},
     )
     metier = forms.ChoiceField(
-        label=_l("Métier"),
+        label=gettext_lazy("Métier"),
         choices=CHOIX_METIER,
         initial=METIER_DEFAUT,
         error_messages=_choix_obligatoire("Choisissez ce que la boutique vend."),
     )
     ville = forms.CharField(
-        label=_l("Ville"),
+        label=gettext_lazy("Ville"),
         max_length=80,
         initial="Douala",
         widget=forms.TextInput(attrs={**CHAMP, "autocomplete": "address-level2"}),
-        error_messages={"required": "La ville est obligatoire."},
+        error_messages={"required": gettext_lazy("La ville est obligatoire.")},
     )
     telephone = forms.CharField(
-        label=_l("Téléphone de la boutique"),
+        label=gettext_lazy("Téléphone de la boutique"),
         max_length=24,  # saisi avec ses espaces ; normalisé puis validé à 16
         required=False,
-        help_text=_l("Celui que les acheteurs appellent. Peut être celui du gérant."),
+        help_text=gettext_lazy("Celui que les acheteurs appellent. Peut être celui du gérant."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "+237699000000", "inputmode": "tel"}),
     )
 
@@ -295,21 +295,21 @@ EXPLICATIONS_REGIMES = {
 
 class LegalForm(FormulaireEtape):
     rccm = forms.CharField(
-        label=_l("RCCM"),
+        label=gettext_lazy("RCCM"),
         max_length=64,
         required=False,
-        help_text=_l("Numéro au registre du commerce et du crédit mobilier."),
+        help_text=gettext_lazy("Numéro au registre du commerce et du crédit mobilier."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "RC/DLA/2024/B/1234", "autocomplete": "off"}),
     )
     niu = forms.CharField(
-        label=_l("NIU"),
+        label=gettext_lazy("NIU"),
         max_length=32,
         required=False,
-        help_text=_l("Numéro identifiant unique, attribué par l'administration fiscale."),
+        help_text=gettext_lazy("Numéro identifiant unique, attribué par l'administration fiscale."),
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "M012345678901A", "autocomplete": "off"}),
     )
     regime_fiscal = forms.ChoiceField(
-        label=_l("Régime fiscal"),
+        label=gettext_lazy("Régime fiscal"),
         choices=Boutique.REGIMES,
         initial=Boutique.REEL_SIMPLIFIE,
         error_messages=_choix_obligatoire("Choisissez le régime fiscal de la boutique."),
@@ -331,49 +331,49 @@ class OffreForm(FormulaireEtape):
     être dite à cette étape plutôt qu'au récapitulatif.
     """
 
-    offre = forms.ChoiceField(label=_l("Offre"), error_messages=_choix_obligatoire("Choisissez l'offre louée."))
+    offre = forms.ChoiceField(label=gettext_lazy("Offre"), error_messages=_choix_obligatoire("Choisissez l'offre louée."))
     rayon = forms.ChoiceField(
-        label=_l("Rayon principal"),
-        help_text=_l("Là où la boutique est rangée dans le marché. Seuls les rayons ouverts accueillent de nouvelles boutiques."),
+        label=gettext_lazy("Rayon principal"),
+        help_text=gettext_lazy("Là où la boutique est rangée dans le marché. Seuls les rayons ouverts accueillent de nouvelles boutiques."),
         widget=forms.Select(attrs=CHAMP),
         error_messages=_choix_obligatoire("Choisissez le rayon de la boutique."),
     )
     debut = forms.DateField(
-        label=_l("Début du bail"),
+        label=gettext_lazy("Début du bail"),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
-        error_messages={"required": "La date de début est obligatoire.", "invalid": "Date invalide."},
+        error_messages={"required": gettext_lazy("La date de début est obligatoire."), "invalid": gettext_lazy("Date invalide.")},
     )
     loyer_mensuel = ChampNombre(
-        label=_l("Loyer mensuel HT"),
+        label=gettext_lazy("Loyer mensuel HT"),
         required=False,
         min_value=Decimal("0"),
         max_digits=12,
         decimal_places=0,
-        help_text=_l("En francs CFA. Vide : le loyer de l'offre."),
+        help_text=gettext_lazy("En francs CFA. Vide : le loyer de l'offre."),
     )
     depot_garantie = ChampNombre(
-        label=_l("Dépôt de garantie"),
+        label=gettext_lazy("Dépôt de garantie"),
         required=False,
         min_value=Decimal("0"),
         max_digits=12,
         decimal_places=0,
         placeholder="0",
-        help_text=_l("En francs CFA, versé à la signature, restitué à la sortie après l'état des lieux."),
+        help_text=gettext_lazy("En francs CFA, versé à la signature, restitué à la sortie après l'état des lieux."),
     )
     taux_commission = ChampNombre(
-        label=_l("Commission"),
+        label=gettext_lazy("Commission"),
         required=False,
         min_value=Decimal("0"),
         max_value=CENT,
         max_digits=5,
         decimal_places=2,
-        help_text=_l("En pourcent : « 5 » pour 5 %. Vide : le taux de l'offre."),
+        help_text=gettext_lazy("En pourcent : « 5 » pour 5 %. Vide : le taux de l'offre."),
     )
     motif_derogation = forms.CharField(
-        label=_l("Motif de la dérogation"),
+        label=gettext_lazy("Motif de la dérogation"),
         max_length=300,
         required=False,
-        help_text=_l("Obligatoire si la commission s'écarte de celle de l'offre. Il sera relu."),
+        help_text=gettext_lazy("Obligatoire si la commission s'écarte de celle de l'offre. Il sera relu."),
         widget=forms.Textarea(attrs={**CHAMP, "rows": 2, "maxlength": 300, "data-compteur": ""}),
     )
 
@@ -423,7 +423,7 @@ class OffreForm(FormulaireEtape):
 class OuvertureForm(Confirmation):
     ACTIVE, CANDIDATURE = "active", "candidature"
     ouverture = forms.ChoiceField(
-        label=_l("À la confirmation"),
+        label=gettext_lazy("À la confirmation"),
         choices=[
             (ACTIVE, "Ouvrir tout de suite"),
             (CANDIDATURE, "Laisser en candidature"),
@@ -443,7 +443,7 @@ class GerantForm(CompteForm):
 # ----------------------------------------------------------------------------
 class BoutiqueOccupanteForm(FormulaireEtape):
     boutique = forms.ChoiceField(
-        label=_l("Boutique"),
+        label=gettext_lazy("Boutique"),
         error_messages=_choix_obligatoire("Choisissez la boutique qui occupera l'emplacement."),
     )
 
@@ -462,14 +462,14 @@ class BoutiqueOccupanteForm(FormulaireEtape):
 
 class TypeEmplacementForm(FormulaireEtape):
     type = forms.ChoiceField(
-        label=_l("Type d'emplacement"),
+        label=gettext_lazy("Type d'emplacement"),
         choices=EmplacementPremium.TYPES,
         error_messages=_choix_obligatoire("Choisissez le type d'emplacement."),
     )
     rayon = forms.ChoiceField(
-        label=_l("Rayon"),
+        label=gettext_lazy("Rayon"),
         required=False,
-        help_text=_l("Pour une tête de gondole ou un bandeau. Ignoré pour la page d'accueil."),
+        help_text=gettext_lazy("Pour une tête de gondole ou un bandeau. Ignoré pour la page d'accueil."),
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -503,15 +503,15 @@ class TypeEmplacementForm(FormulaireEtape):
 
 class PeriodeForm(FormulaireEtape):
     debut = forms.DateField(
-        label=_l("Premier jour"),
+        label=gettext_lazy("Premier jour"),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
-        error_messages={"required": "La date de début est obligatoire.", "invalid": "Date invalide."},
+        error_messages={"required": gettext_lazy("La date de début est obligatoire."), "invalid": gettext_lazy("Date invalide.")},
     )
     fin = forms.DateField(
-        label=_l("Dernier jour"),
-        help_text=_l("Inclus. L'emplacement est compté jusqu'au soir de ce jour."),
+        label=gettext_lazy("Dernier jour"),
+        help_text=gettext_lazy("Inclus. L'emplacement est compté jusqu'au soir de ce jour."),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}, format="%Y-%m-%d"),
-        error_messages={"required": "La date de fin est obligatoire.", "invalid": "Date invalide."},
+        error_messages={"required": gettext_lazy("La date de fin est obligatoire."), "invalid": gettext_lazy("Date invalide.")},
     )
 
     def __init__(self, *args, **kwargs):
@@ -533,12 +533,12 @@ class PeriodeForm(FormulaireEtape):
 
 class TarifForm(FormulaireEtape):
     tarif = ChampNombre(
-        label=_l("Tarif HT de la période"),
+        label=gettext_lazy("Tarif HT de la période"),
         max_digits=12,
         decimal_places=0,
         placeholder="75 000",
-        help_text=_l("En francs CFA, pour toute la période."),
-        error_messages={"required": "Le tarif est obligatoire.", "invalid": "Saisissez un montant en francs."},
+        help_text=gettext_lazy("En francs CFA, pour toute la période."),
+        error_messages={"required": gettext_lazy("Le tarif est obligatoire."), "invalid": gettext_lazy("Saisissez un montant en francs.")},
     )
 
     def clean_tarif(self):
@@ -561,19 +561,19 @@ class AdministrateurCompteForm(CompteForm):
 
 class RoleForm(FormulaireEtape):
     role = forms.ChoiceField(
-        label=_l("Rôle"),
+        label=gettext_lazy("Rôle"),
         choices=list(LIBELLES_ROLES_ADMINISTRATION.items()),
         error_messages=_choix_obligatoire("Choisissez le rôle confié."),
     )
     motif = forms.CharField(
-        label=_l("Motif"),
+        label=gettext_lazy("Motif"),
         max_length=300,
         min_length=10,
-        help_text=_l("Pourquoi cette personne exploite le marché. Utile le jour où on se le demande."),
+        help_text=gettext_lazy("Pourquoi cette personne exploite le marché. Utile le jour où on se le demande."),
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "maxlength": 300, "data-compteur": ""}),
         error_messages={
-            "required": "Le motif est obligatoire : un auditeur le relira.",
-            "min_length": "Une phrase, s'il vous plaît : un auditeur doit pouvoir la comprendre.",
+            "required": gettext_lazy("Le motif est obligatoire : un auditeur le relira."),
+            "min_length": gettext_lazy("Une phrase, s'il vous plaît : un auditeur doit pouvoir la comprendre."),
         },
     )
 
@@ -595,13 +595,13 @@ class MotifForm(FormulaireEtape):
     """Un motif, et rien d'autre : suspendre, résilier, retirer un rôle."""
 
     motif = forms.CharField(
-        label=_l("Motif"),
+        label=gettext_lazy("Motif"),
         max_length=300,
         min_length=10,
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "maxlength": 300, "data-compteur": ""}),
         error_messages={
-            "required": "Le motif est obligatoire : cette décision sera relue.",
-            "min_length": "Une phrase, s'il vous plaît : elle sera relue, peut-être par le commerçant.",
+            "required": gettext_lazy("Le motif est obligatoire : cette décision sera relue."),
+            "min_length": gettext_lazy("Une phrase, s'il vous plaît : elle sera relue, peut-être par le commerçant."),
         },
     )
 
@@ -620,29 +620,29 @@ class MotifForm(FormulaireEtape):
 
 class TauxRayonForm(FormulaireEtape):
     pourcent = ChampNombre(
-        label=_l("Nouveau taux (%)"),
+        label=gettext_lazy("Nouveau taux (%)"),
         min_value=Decimal("0"),
         # La borne du modèle (`Rayon.taux_commission`, MaxValueValidator 0.30) : au-delà, c'est
         # presque toujours une fraction saisie comme un pourcentage, ou l'inverse.
         max_value=Decimal("30"),
         max_digits=5,
         decimal_places=2,
-        help_text=_l("En pourcent : « 5 » pour 5 %, « 7,5 » pour 7,5 %. De 0 à 30 %."),
+        help_text=gettext_lazy("En pourcent : « 5 » pour 5 %, « 7,5 » pour 7,5 %. De 0 à 30 %."),
         error_messages={
-            "required": "Saisissez le nouveau taux.",
-            "invalid": "Saisissez un nombre : « 5 » pour 5 %.",
-            "max_value": "Au plus 30 %% : c'est la borne du rayon. Un « 0,05 » voulait-il dire 5 %% ?",
-            "min_value": "Un taux ne peut pas être négatif.",
+            "required": gettext_lazy("Saisissez le nouveau taux."),
+            "invalid": gettext_lazy("Saisissez un nombre : « 5 » pour 5 %."),
+            "max_value": gettext_lazy("Au plus 30 %% : c'est la borne du rayon. Un « 0,05 » voulait-il dire 5 %% ?"),
+            "min_value": gettext_lazy("Un taux ne peut pas être négatif."),
         },
     )
     motif = forms.CharField(
-        label=_l("Motif"),
+        label=gettext_lazy("Motif"),
         max_length=240,
         min_length=10,
-        help_text=_l("Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. Dites pourquoi."),
+        help_text=gettext_lazy("Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. Dites pourquoi."),
         widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "maxlength": 240, "data-compteur": ""}),
         error_messages={
-            "required": "Le motif est obligatoire : ce changement sera relu.",
-            "min_length": "Une phrase, s'il vous plaît : ce changement sera relu.",
+            "required": gettext_lazy("Le motif est obligatoire : ce changement sera relu."),
+            "min_length": gettext_lazy("Une phrase, s'il vous plaît : ce changement sera relu."),
         },
     )

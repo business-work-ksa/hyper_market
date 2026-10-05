@@ -2,6 +2,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.views.decorators.cache import cache_control
+from django.views.i18n import JavaScriptCatalog
 
 from apps.backoffice import vues_identite
 from apps.confiance.taches import taches_quotidiennes
@@ -17,6 +19,13 @@ urlpatterns = [
     path("marche/", include("apps.vitrine.urls")),
     # Choix de la langue du marché (POST, protégé par CSRF) : pose le cookie `hm_langue`.
     path("i18n/", include("django.conf.urls.i18n")),
+    # Les traductions des scripts (`gettext()` côté navigateur), chargées seulement hors du
+    # français. L'adresse porte la langue (`?l=en`) : le cache du navigateur ne mélange pas.
+    path(
+        "jsi18n/",
+        cache_control(public=True, max_age=3600)(JavaScriptCatalog.as_view()),
+        name="catalogue_js",
+    ),
     # La console du superadministrateur et de l'administrateur du marché (ADR-012).
     path("plateforme/", include("apps.plateforme.urls")),
     # Lien court d'une boutique : il est fait pour être dicté et imprimé, donc

@@ -462,9 +462,7 @@ def detecter_prix_appat(ctx: Contexte) -> list[Constat]:
                 gravite=2 if part >= Decimal("0.5") else 1,
                 score=int(part * 100),
                 resume=(
-                    f"{len(liste)} article(s) sur {n} comparables à moins de la moitié du prix du "
-                    f"marché, boutique ouverte depuis {ctx.age_jours(bid)} jour(s) — ex. « {premier['article']} » "
-                    f"à {_fcfa(premier['prix'])} contre {_fcfa(premier['mediane'])}"
+                    _('%(len)s article(s) sur %(n)s comparables à moins de la moitié du prix du marché, boutique ouverte depuis %(age_jours)s jour(s) — ex. « %(element)s » à %(fcfa)s contre %(fcfa2)s') % {"len": len(liste), "n": n, "age_jours": ctx.age_jours(bid), "element": premier['article'], "fcfa": _fcfa(premier['prix']), "fcfa2": _fcfa(premier['mediane'])}
                 ),
                 preuves={
                     "anciennete_jours": ctx.age_jours(bid),
@@ -990,11 +988,11 @@ def trancher(signal, *, decision: str, motif: str, par):
     if par is None or not getattr(par, "is_authenticated", False):
         raise ValidationError(_("Une décision exige un utilisateur identifié."))
     if decision not in (ECARTER, CONFIRMER):
-        raise ValidationError({"decision": "Choisissez : écarter ou confirmer."})
+        raise ValidationError({"decision": _("Choisissez : écarter ou confirmer.")})
     motif = (motif or "").strip()
     if len(motif) < 10:
         raise ValidationError(
-            {"motif": "Dites pourquoi, en une phrase : ce motif sera relu, peut-être par le commerçant."}
+            {"motif": _("Dites pourquoi, en une phrase : ce motif sera relu, peut-être par le commerçant.")}
         )
     with transaction.atomic():
         signal = SignalRisque.objects.select_for_update().select_related("boutique").get(pk=signal.pk)

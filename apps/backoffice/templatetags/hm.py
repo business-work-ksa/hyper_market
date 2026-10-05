@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from django import template
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext as _
 from django.utils.safestring import mark_safe
 
 register = template.Library()
@@ -185,14 +186,17 @@ def puce_stock(niveau):
     if niveau.quantite <= 0:
         return format_html(
             '<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-rupture">'
-            "</use></svg>Rupture</span>"
+            "</use></svg>{}</span>",
+            _("Rupture"),
         )
     if niveau.sous_le_seuil:
         return format_html(
             '<span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-alerte">'
-            "</use></svg>Sous le seuil</span>"
+            "</use></svg>{}</span>",
+            _("Sous le seuil"),
         )
     return format_html(
         '<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check">'
-        "</use></svg>En stock</span>"
+        "</use></svg>{}</span>",
+        _("En stock"),
     )

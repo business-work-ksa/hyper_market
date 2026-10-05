@@ -96,7 +96,7 @@
   <section class="carte tableau-panneau" data-tableau
            data-nom="{{ metier.article }}" data-noms="{{ metier.articles }}"
            data-accord="{% if metier.feminin %}e{% endif %}">
-    {% include "partials/tableau_barre.html" with nom="article" noms=metier.articles creer_url=url_creer creer_libelle=libelle_creer modifier_possible=peut_mouvementer supprimer_url=url_supprimer supprimer_libelle="Supprimer" filtres_id="filtres-stock" filtres_actifs=filtres.actifs aide=aide_stock avertissement_suppression="Un article qui a déjà bougé en stock est retiré de la vente au lieu d'être supprimé : son libellé reste lisible sur les tickets et les écritures qui le citent." %}
+    {% include "partials/tableau_barre.html" with nom="article" noms=metier.articles creer_url=url_creer creer_libelle=libelle_creer modifier_possible=peut_mouvementer supprimer_url=url_supprimer supprimer_libelle=_("Supprimer") filtres_id="filtres-stock" filtres_actifs=filtres.actifs aide=aide_stock avertissement_suppression=_("Un article qui a déjà bougé en stock est retiré de la vente au lieu d'être supprimé : son libellé reste lisible sur les tickets et les écritures qui le citent.") %}
 
     <div class="tableau-boite tableau-boite--haute">
       <table class="tableau">
@@ -176,7 +176,7 @@
     {% endif %}
   </section>
 
-  {% include "partials/modal_filtres.html" with id="filtres-stock" formulaire=filtres action=url_stock conserver=conserver_dans_filtres titre="Filtrer le stock" aide="Les filtres restent dans l'adresse de la page : elle se partage telle quelle." %}
+  {% include "partials/modal_filtres.html" with id="filtres-stock" formulaire=filtres action=url_stock conserver=conserver_dans_filtres titre=_("Filtrer le stock") aide=_("Les filtres restent dans l'adresse de la page : elle se partage telle quelle.") %}
 
   <div class="bandeau-info">
     <svg><use href="#ic-info"></use></svg>

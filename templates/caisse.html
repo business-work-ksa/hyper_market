@@ -145,6 +145,31 @@
 (function () {
   "use strict";
 
+  // Les textes de l'écran, traduits par le gabarit : ce script est écrit dans la page, il ne passe
+  // pas par le catalogue JavaScript. `texte()` y glisse les valeurs (%(nom)s).
+  var TEXTES = {
+    unite: "{{ _("%(prix)s FCFA l'unité")|escapejs }}",
+    retirerUn: "{{ _("Retirer un")|escapejs }}",
+    ajouterUn: "{{ _("Ajouter un")|escapejs }}",
+    serieCourt: "{{ _("N° de série %(n)s")|escapejs }}",
+    serieLong: "{{ _("Numéro de série %(n)s — %(libelle)s")|escapejs }}",
+    enStock: "{{ _("%(stock)s en stock")|escapejs }}",
+    ordonnance: "{{ _("Ordonnance")|escapejs }}",
+    numeroSerie: "{{ _("Numéro de série")|escapejs }}",
+    horsLigne: "{{ _("Hors ligne : catalogue du %(date)s à %(heure)s. Les quantités affichées peuvent avoir bougé.")|escapejs }}",
+    serieManquante: "{{ _("Saisissez le numéro de série de chaque « %(libelle)s » avant d'encaisser.")|escapejs }}",
+    ordonnanceManquante: "{{ _("Indiquez le prescripteur et la date de l'ordonnance avant d'encaisser.")|escapejs }}",
+    encaissement: "{{ _("Encaissement…")|escapejs }}",
+    encaisse: "{{ _("Ticket %(numero)s encaissé — %(total)s FCFA.")|escapejs }}",
+    conservee: "{{ _("Vente conservée (%(n)s en attente). Elle partira au retour du réseau.")|escapejs }}",
+    echec: "{{ _("L'encaissement a échoué.")|escapejs }}",
+    encaisser: "{{ _("Encaisser")|escapejs }}",
+  };
+  function texte(cle, valeurs) {
+    return TEXTES[cle].replace(/%\((\w+)\)s/g, function (tout, nom) { return valeurs[nom]; });
+  }
+  var LANGUE = document.documentElement.lang || "fr";
+
   var TAUX_TVA = 0.1925;
   var panier = new Map();
   var moyen = "especes";
@@ -218,11 +243,11 @@
       noeud.innerHTML =
         '<span class="ligne-ticket__nom"></span>' +
         '<span class="ligne-ticket__total">' + fcfa(total) + "</span>" +
-        '<span class="ligne-ticket__meta">' + fcfa(ligne.prix) + " FCFA l'unité</span>" +
+        '<span class="ligne-ticket__meta">' + texte("unite", { prix: fcfa(ligne.prix) }) + "</span>" +
         '<span class="pas-a-pas">' +
-          '<button type="button" data-action="moins" aria-label="Retirer un">−</button>' +
+          '<button type="button" data-action="moins" aria-label="' + TEXTES.retirerUn + '">−</button>' +
           "<span>" + ligne.quantite + "</span>" +
-          '<button type="button" data-action="plus" aria-label="Ajouter un">+</button>' +
+          '<button type="button" data-action="plus" aria-label="' + TEXTES.ajouterUn + '">+</button>' +
         "</span>";
       noeud.querySelector(".ligne-ticket__nom").textContent = ligne.libelle;
       noeud.querySelectorAll("button").forEach(function (b) {
@@ -243,8 +268,8 @@
           champ.value = valeur;
           champ.autocomplete = "off";
           champ.spellcheck = false;
-          champ.placeholder = "N° de série " + (index + 1);
-          champ.setAttribute("aria-label", "Numéro de série " + (index + 1) + " — " + ligne.libelle);
+          champ.placeholder = texte("serieCourt", { n: index + 1 });
+          champ.setAttribute("aria-label", texte("serieLong", { n: index + 1, libelle: ligne.libelle }));
           champ.addEventListener("input", function () {
             ligne.numeros[index] = champ.value;
           });
@@ -312,7 +337,7 @@
       prix.textContent = fcfa(a.prix);
       var stock = document.createElement("span");
       stock.className = "t-legende chiffre";
-      stock.textContent = Math.round(a.stock * 10000) / 10000 + " en stock";
+      stock.textContent = texte("enStock", { stock: Math.round(a.stock * 10000) / 10000 });
       pied.appendChild(prix);
       pied.appendChild(stock);
 
@@ -320,13 +345,13 @@
       if (a.sur_ordonnance) {
         var marque = document.createElement("span");
         marque.className = "puce puce--alerte";
-        marque.textContent = "Ordonnance";
+        marque.textContent = TEXTES.ordonnance;
         tuile.appendChild(marque);
       }
       if (a.suivi_unitaire) {
         var marqueSerie = document.createElement("span");
         marqueSerie.className = "puce";
-        marqueSerie.textContent = "Numéro de série";
+        marqueSerie.textContent = TEXTES.numeroSerie;
         tuile.appendChild(marqueSerie);
       }
       tuile.appendChild(pied);
@@ -341,12 +366,10 @@
   function annoncerCache(range) {
     if (!range) return;
     var quand = new Date(range);
-    elEtatTexte.textContent =
-      "Hors ligne : catalogue du " +
-      quand.toLocaleDateString("fr-FR") +
-      " à " +
-      quand.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) +
-      ". Les quantités affichées peuvent avoir bougé.";
+    elEtatTexte.textContent = texte("horsLigne", {
+      date: quand.toLocaleDateString(LANGUE),
+      heure: quand.toLocaleTimeString(LANGUE, { hour: "2-digit", minute: "2-digit" }),
+    });
     elEtatCatalogue.hidden = false;
   }
 
@@ -445,8 +468,7 @@
       }
     });
     if (incomplete) {
-      elMessage.textContent =
-        "Saisissez le numéro de série de chaque « " + incomplete.libelle + " » avant d'encaisser.";
+      elMessage.textContent = texte("serieManquante", { libelle: incomplete.libelle });
       // `querySelector("[value='']")` ne marcherait pas : les champs sont
       // remplis par la propriété `value`, qui ne modifie pas l'attribut.
       var vides = Array.prototype.filter.call(
@@ -471,8 +493,7 @@
     if (!elBlocOrdonnance.hidden) {
       var mention = elOrdonnance.value.trim();
       if (!mention) {
-        elMessage.textContent =
-          "Indiquez le prescripteur et la date de l'ordonnance avant d'encaisser.";
+        elMessage.textContent = TEXTES.ordonnanceManquante;
         elOrdonnance.focus();
         return;
       }
@@ -480,7 +501,7 @@
     }
 
     elEncaisser.disabled = true;
-    elEncaisser.textContent = "Encaissement…";
+    elEncaisser.textContent = TEXTES.encaissement;
 
     // Le panier est vidé dès la mise en file, pas à la confirmation du serveur :
     // le caissier a encaissé, le client attend, la vente ne peut plus être
@@ -491,24 +512,22 @@
           elMessage.innerHTML = "";
           var lien = document.createElement("a");
           lien.href = "/ventes/";
-          lien.textContent =
-            "Ticket " + resultat.corps.numero + " encaissé — " + fcfa(resultat.corps.total) + " FCFA.";
+          lien.textContent = texte("encaisse", { numero: resultat.corps.numero, total: fcfa(resultat.corps.total) });
           lien.style.fontWeight = "580";
           elMessage.appendChild(lien);
           panier.clear();
           elOrdonnance.value = "";
           rendre();
         } else if (resultat.etat === "en_attente") {
-          elMessage.textContent =
-            "Vente conservée (" + resultat.enAttente + " en attente). Elle partira au retour du réseau.";
+          elMessage.textContent = texte("conservee", { n: resultat.enAttente });
           panier.clear();
           rendre();
         } else {
-          elMessage.textContent = resultat.erreur || "L'encaissement a échoué.";
+          elMessage.textContent = resultat.erreur || TEXTES.echec;
         }
       })
       .finally(function () {
-        elEncaisser.textContent = "Encaisser";
+        elEncaisser.textContent = TEXTES.encaisser;
         elEncaisser.disabled = panier.size === 0;
       });
   });

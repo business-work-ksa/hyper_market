@@ -389,7 +389,7 @@ def controles(boutique, *, jour=None) -> list[Controle]:
                 "gerant",
                 "Un gérant rattaché",
                 False,
-                manque="Aucun gérant n'est rattaché à la boutique : il faut quelqu'un dont vérifier l'identité.",
+                manque=_("Aucun gérant n'est rattaché à la boutique : il faut quelqu'un dont vérifier l'identité."),
             )
         )
     for g in equipe_gerante:
@@ -406,8 +406,7 @@ def controles(boutique, *, jour=None) -> list[Controle]:
                     f"Pièce d'identité de {g.nom_complet}",
                     False,
                     manque=(
-                        f"La pièce d'identité de {g.nom_complet} a expiré le "
-                        f"{derniere.expire_le:%d/%m/%Y} : une pièce en cours de validité doit être vérifiée."
+                        _("La pièce d'identité de %(nom_complet)s a expiré le %(expire_le)s : une pièce en cours de validité doit être vérifiée.") % {"nom_complet": g.nom_complet, "expire_le": format(derniere.expire_le, "%d/%m/%Y")}
                     ),
                     sujet=g,
                 )
@@ -418,7 +417,7 @@ def controles(boutique, *, jour=None) -> list[Controle]:
                     "identite",
                     f"Pièce d'identité de {g.nom_complet}",
                     False,
-                    manque=f"La pièce d'identité du gérant {g.nom_complet} n'a pas été vérifiée.",
+                    manque=_("La pièce d'identité du gérant %(nom_complet)s n'a pas été vérifiée.") % {"nom_complet": g.nom_complet},
                     sujet=g,
                 )
             )
@@ -428,8 +427,7 @@ def controles(boutique, *, jour=None) -> list[Controle]:
                 f"Téléphone de {g.nom_complet}",
                 bool(g.telephone_verifie),
                 manque=(
-                    f"Le téléphone du gérant {g.nom_complet} n'a pas été vérifié : un administrateur "
-                    "doit l'appeler et l'attester."
+                    _("Le téléphone du gérant %(nom_complet)s n'a pas été vérifié : un administrateur doit l'appeler et l'attester.") % {"nom_complet": g.nom_complet}
                 ),
                 detail=masquer(g.telephone, 3) if g.telephone_verifie else "",
                 sujet=g,
@@ -451,7 +449,7 @@ def controles(boutique, *, jour=None) -> list[Controle]:
 
 def _controle_piece_boutique(boutique, type_piece, sigle, titre, numero_fiche) -> Controle:
     if not (numero_fiche or "").strip():
-        return Controle(type_piece, titre, False, manque=f"Le {sigle} de la boutique n'est pas renseigné.")
+        return Controle(type_piece, titre, False, manque=_("Le %(sigle)s de la boutique n'est pas renseigné.") % {"sigle": sigle})
     concordante, derniere = _piece_de_boutique(boutique, type_piece, numero_fiche)
     if concordante:
         return Controle(type_piece, titre, True, detail=f"{sigle} {concordante.numero_masque}")
@@ -460,22 +458,22 @@ def _controle_piece_boutique(boutique, type_piece, sigle, titre, numero_fiche) -
             type_piece,
             titre,
             False,
-            manque=f"Le {sigle} de la boutique a changé depuis sa vérification : le nouveau numéro doit être vérifié.",
+            manque=_('Le %(sigle)s de la boutique a changé depuis sa vérification : le nouveau numéro doit être vérifié.') % {"sigle": sigle},
         )
-    return Controle(type_piece, titre, False, manque=f"Le {sigle} de la boutique n'a pas été vérifié.")
+    return Controle(type_piece, titre, False, manque=_("Le %(sigle)s de la boutique n'a pas été vérifié.") % {"sigle": sigle})
 
 
 def _controle_compte(boutique, jour) -> Controle:
     titre = "Compte de versement vérifié, au nom du gérant ou de la société"
     compte = CompteVersement.objects.filter(boutique_id=boutique.pk, etat=CompteVersement.VERIFIE).first()
     if compte is None:
-        return Controle("compte", titre, False, manque="Aucun compte de versement vérifié.")
+        return Controle("compte", titre, False, manque=_("Aucun compte de versement vérifié."))
     if compte.operateur not in operateurs_admis(boutique.pays):
         return Controle(
             "compte",
             titre,
             False,
-            manque=f"Le compte de versement vérifié ({compte.get_operateur_display()}) n'est pas un opérateur du pays de la boutique.",
+            manque=_("Le compte de versement vérifié (%(get_operateur_display)s) n'est pas un opérateur du pays de la boutique.") % {"get_operateur_display": compte.get_operateur_display()},
         )
     if not titulaire_concorde(compte, boutique, jour=jour):
         return Controle(
@@ -483,8 +481,7 @@ def _controle_compte(boutique, jour) -> Controle:
             titre,
             False,
             manque=(
-                f"Le titulaire du compte de versement (« {compte.titulaire} ») ne correspond ni au "
-                "nom lu sur la pièce du gérant, ni à la raison sociale."
+                _('Le titulaire du compte de versement (« %(titulaire)s ») ne correspond ni au nom lu sur la pièce du gérant, ni à la raison sociale.') % {"titulaire": compte.titulaire}
             ),
         )
     return Controle(
@@ -558,7 +555,7 @@ def attester_piece(
     pays = (pays or "").strip().upper()
 
     if type_piece not in dict(DossierKyc.TYPES_PIECE) or type_piece == DossierKyc.TELEPHONE:
-        raise ValidationError({"type_piece": "Type de pièce inconnu."})
+        raise ValidationError({"type_piece": _("Type de pièce inconnu.")})
     if mode not in {DossierKyc.PRESENTIEL, DossierKyc.VISIO, DossierKyc.DOCUMENT_RECU}:
         erreurs["mode"] = "Dites comment vous avez vu l'original : en présentiel, en visio, ou sur un document reçu."
     if not numero:
@@ -715,7 +712,7 @@ def valider_piece(dossier: DossierKyc, *, par) -> DossierKyc:
         declare_par_id=dossier.declare_par_id,
         boutique_ids=_boutiques_du_sujet(dossier),
         sujet_id=dossier.utilisateur_id,
-        quoi="cette pièce",
+        quoi=_("cette pièce"),
     )
     if refus:
         raise PermissionDenied(refus)
@@ -780,9 +777,9 @@ def attester_appel(boutique, gerant, *, par, note: str = "") -> DossierKyc:
     _exiger_droit(par)
     boutique = Boutique.objects.get(pk=boutique.pk)
     if gerant not in gerants(boutique):
-        raise ValidationError({"gerant": "Ce compte n'est pas gérant de la boutique."})
+        raise ValidationError({"gerant": _("Ce compte n'est pas gérant de la boutique.")})
     refus = refus_quatre_yeux(
-        par, boutique_ids={boutique.pk}, sujet_id=gerant.pk, quoi="ce téléphone"
+        par, boutique_ids={boutique.pk}, sujet_id=gerant.pk, quoi=_("ce téléphone")
     )
     if refus:
         raise PermissionDenied(refus)
@@ -901,7 +898,7 @@ def verifier_compte(compte: CompteVersement, *, par) -> CompteVersement:
     boutique = compte.boutique
     if compte.etat != CompteVersement.EN_ATTENTE:
         raise ValidationError(_('Ce compte est déjà « %(lower)s » : rien à décider.') % {"lower": compte.get_etat_display().lower()})
-    refus = refus_quatre_yeux(par, declare_par_id=compte.declare_par_id, boutique_ids={boutique.pk}, quoi="ce compte")
+    refus = refus_quatre_yeux(par, declare_par_id=compte.declare_par_id, boutique_ids={boutique.pk}, quoi=_("ce compte"))
     if refus:
         raise PermissionDenied(refus)
     erreurs = _verifier_saisie_compte(boutique, compte.operateur, compte.numero, compte.titulaire)

@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="{% static 'css/plateforme.css' %}">
 {% block styles %}{% endblock %}
 {% include "partials/icones_marque.html" %}
+{% include "partials/catalogue_js.html" %}
 <script>
   // Même clé que le back-office : un thème choisi l'est partout.
   (function () {
@@ -45,35 +46,35 @@ d'œil.
     <div class="rail__nav">
       <div class="rail__groupe">
         <p class="t-sur-titre">{% translate "Pilotage" %}</p>
-        {% nav 'plateforme:tableau_de_bord' 'ic-tableau' 'Tableau de bord' page %}
-        {% nav 'plateforme:activite' 'ic-pouls' 'Activité des boutiques' page %}
+        {% nav 'plateforme:tableau_de_bord' 'ic-tableau' _('Tableau de bord') page %}
+        {% nav 'plateforme:activite' 'ic-pouls' _('Activité des boutiques') page %}
       </div>
 
       <div class="rail__groupe">
         <p class="t-sur-titre">{% translate "Marché" %}</p>
-        {% nav 'plateforme:boutiques' 'ic-boutique' 'Boutiques' page a_traiter.candidatures %}
+        {% nav 'plateforme:boutiques' 'ic-boutique' _('Boutiques') page a_traiter.candidatures %}
         {% if 'plateforme.boutiques' in droits %}
-          {% nav 'plateforme:verifications' 'ic-document' 'Vérifications' page %}
+          {% nav 'plateforme:verifications' 'ic-document' _('Vérifications') page %}
         {% endif %}
-        {% nav 'plateforme:loyers' 'ic-argent' 'Loyers' page a_traiter.impayes %}
+        {% nav 'plateforme:loyers' 'ic-argent' _('Loyers') page a_traiter.impayes %}
         {% if 'plateforme.litiges' in droits %}
-          {% nav 'plateforme:litiges' 'ic-retour' 'Litiges' page %}
+          {% nav 'plateforme:litiges' 'ic-retour' _('Litiges') page %}
         {% endif %}
         {% if 'plateforme.versements' in droits %}
-          {% nav 'plateforme:versements' 'ic-momo' 'Versements' page %}
+          {% nav 'plateforme:versements' 'ic-momo' _('Versements') page %}
         {% endif %}
-        {% nav 'plateforme:rayons' 'ic-rayons' 'Rayons et commissions' page %}
-        {% nav 'plateforme:emplacements' 'ic-etoile' 'Emplacements premium' page %}
+        {% nav 'plateforme:rayons' 'ic-rayons' _('Rayons et commissions') page %}
+        {% nav 'plateforme:emplacements' 'ic-etoile' _('Emplacements premium') page %}
       </div>
 
       {% if 'plateforme.boutiques' in droits or 'plateforme.emplacements' in droits %}
         <div class="rail__groupe">
           <p class="t-sur-titre">{% translate "Assistants" %}</p>
           {% if 'plateforme.boutiques' in droits %}
-            {% nav 'plateforme:assistant_boutique' 'ic-baguette' 'Ouvrir une boutique' page %}
+            {% nav 'plateforme:assistant_boutique' 'ic-baguette' _('Ouvrir une boutique') page %}
           {% endif %}
           {% if 'plateforme.emplacements' in droits %}
-            {% nav 'plateforme:assistant_emplacement' 'ic-etoile' 'Vendre un emplacement' page %}
+            {% nav 'plateforme:assistant_emplacement' 'ic-etoile' _('Vendre un emplacement') page %}
           {% endif %}
         </div>
       {% endif %}
@@ -83,14 +84,14 @@ d'œil.
         {% if 'plateforme.boutiques' in droits %}
           {# La pastille compte les signaux à trancher ; `None` quand il n'y en a pas — une pastille « 0 » apprend à ne plus la regarder. #}
           {% signaux_ouverts as nb_signaux %}
-          {% nav 'plateforme:signaux' 'ic-alerte' 'Signaux' page nb_signaux %}
+          {% nav 'plateforme:signaux' 'ic-alerte' _('Signaux') page nb_signaux %}
         {% endif %}
-        {% nav 'plateforme:journal' 'ic-journal' 'Journal des accès' page %}
+        {% nav 'plateforme:journal' 'ic-journal' _('Journal des accès') page %}
         {% if 'console.administrateurs' in droits %}
-          {% nav 'plateforme:administrateurs' 'ic-equipe' 'Administrateurs' page %}
+          {% nav 'plateforme:administrateurs' 'ic-equipe' _('Administrateurs') page %}
         {% endif %}
         {% if 'console.technique' in droits %}
-          {% nav 'plateforme:technique' 'ic-bouclier' 'Santé technique' page %}
+          {% nav 'plateforme:technique' 'ic-bouclier' _('Santé technique') page %}
         {% endif %}
       </div>
     </div>

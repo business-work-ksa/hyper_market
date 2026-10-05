@@ -12,8 +12,8 @@
 {% block contenu %}
 <div class="colonne">
   <section class="carte tableau-panneau" data-tableau
-           data-nom="fiche" data-noms="fiches" data-accord="e">
-    {% include "partials/tableau_barre.html" with nom="fiche" noms="fiches" titre="Mes fiches" creer_url=url_creer creer_libelle="Ouvrir une fiche" modifier_possible=peut_mouvementer modifier_libelle="Modifier" supprimer_url=url_supprimer supprimer_libelle="Supprimer" aide="Sélectionnez une fiche pour corriger son rendement, sa conservation ou son mode opératoire. Ouvrez-la pour en changer les ingrédients." avertissement_suppression="Une fiche qui a déjà servi explique des fournées inscrites au journal du stock : elle est retirée de la production, pas effacée." %}
+           data-nom="{% translate "fiche" context "ligne de tableau" %}" data-noms="{% translate "fiches" context "ligne de tableau" %}" data-accord="e">
+    {% include "partials/tableau_barre.html" with nom="fiche" noms="fiches" titre=_("Mes fiches") creer_url=url_creer creer_libelle=_("Ouvrir une fiche") modifier_possible=peut_mouvementer modifier_libelle=_("Modifier") supprimer_url=url_supprimer supprimer_libelle=_("Supprimer") aide=_("Sélectionnez une fiche pour corriger son rendement, sa conservation ou son mode opératoire. Ouvrez-la pour en changer les ingrédients.") avertissement_suppression=_("Une fiche qui a déjà servi explique des fournées inscrites au journal du stock : elle est retirée de la production, pas effacée.") %}
 
     {% if fiches %}
       <div class="tableau-boite">

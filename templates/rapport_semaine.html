@@ -112,8 +112,8 @@
     if (!bouton || !navigator.clipboard) { if (bouton) bouton.hidden = true; return; }
     bouton.addEventListener("click", function () {
       navigator.clipboard.writeText(document.getElementById("rapport-message").textContent).then(function () {
-        bouton.textContent = "Copié";
-        setTimeout(function () { bouton.textContent = "Copier le texte"; }, 2000);
+        bouton.textContent = "{{ _("Copié")|escapejs }}";
+        setTimeout(function () { bouton.textContent = "{{ _("Copier le texte")|escapejs }}"; }, 2000);
       });
     });
   })();

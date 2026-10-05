@@ -117,7 +117,7 @@ def _prestataire_simule() -> Prestataire:
     prestataire, _cree = Prestataire.objects.get_or_create(
         code=Prestataire.FAUX,
         defaults={
-            "libelle": "Paiement simulé (démonstration)",
+            "libelle": "Paiement simulé (démonstration)",  # i18n: non (enregistré en base)
             "taux_frais": Decimal("0"),
             "prefixes_numero": [],
         },

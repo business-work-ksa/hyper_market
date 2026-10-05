@@ -18,7 +18,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.core.models import BaseModel, TenantScopedModel
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CENTIME = Decimal("0.01")
 
@@ -35,10 +35,10 @@ class Prestataire(models.Model):
     libelle = models.CharField(max_length=64)
     actif = models.BooleanField(default=True)
     taux_frais = models.DecimalField(
-        max_digits=5, decimal_places=4, default=Decimal("0.016"), help_text=_l("1,6 % par défaut.")
+        max_digits=5, decimal_places=4, default=Decimal("0.016"), help_text=gettext_lazy("1,6 % par défaut.")
     )
     prefixes_numero = models.JSONField(
-        default=list, blank=True, help_text=_l('Ex. ["67", "650", "651"] pour le routage automatique.')
+        default=list, blank=True, help_text=gettext_lazy('Ex. ["67", "650", "651"] pour le routage automatique.')
     )
 
     class Meta:
@@ -55,9 +55,9 @@ class Transaction(BaseModel):
     VERSEMENT = "versement"
     REMBOURSEMENT = "remboursement"
     SENS = [
-        (ENCAISSEMENT, _l("Encaissement")),
-        (VERSEMENT, _l("Versement")),
-        (REMBOURSEMENT, _l("Remboursement")),
+        (ENCAISSEMENT, gettext_lazy("Encaissement")),
+        (VERSEMENT, gettext_lazy("Versement")),
+        (REMBOURSEMENT, gettext_lazy("Remboursement")),
     ]
 
     INITIEE = "initiee"
@@ -65,10 +65,10 @@ class Transaction(BaseModel):
     ECHOUEE = "echouee"
     EXPIREE = "expiree"
     ETATS = [
-        (INITIEE, _l("Initiée")),
-        (REUSSIE, _l("Réussie")),
-        (ECHOUEE, _l("Échouée")),
-        (EXPIREE, _l("Expirée")),
+        (INITIEE, gettext_lazy("Initiée")),
+        (REUSSIE, gettext_lazy("Réussie")),
+        (ECHOUEE, gettext_lazy("Échouée")),
+        (EXPIREE, gettext_lazy("Expirée")),
     ]
 
     commande = models.ForeignKey(
@@ -83,7 +83,7 @@ class Transaction(BaseModel):
     cle_idempotence = models.CharField(
         max_length=120,
         unique=True,
-        help_text=_l("Unicité globale : protection principale contre le double débit."),
+        help_text=gettext_lazy("Unicité globale : protection principale contre le double débit."),
     )
     charge_utile_psp = models.JSONField(default=dict, blank=True)
 
@@ -135,10 +135,10 @@ class Sequestre(BaseModel):
     REMBOURSE = "rembourse"
     PARTAGE = "partage"
     ETATS = [
-        (BLOQUE, _l("Bloqué")),
-        (LIBERE, _l("Libéré")),
-        (REMBOURSE, _l("Remboursé")),
-        (PARTAGE, _l("Libéré en partie, remboursé en partie")),
+        (BLOQUE, gettext_lazy("Bloqué")),
+        (LIBERE, gettext_lazy("Libéré")),
+        (REMBOURSE, gettext_lazy("Remboursé")),
+        (PARTAGE, gettext_lazy("Libéré en partie, remboursé en partie")),
     ]
 
     # Comment la livraison a été confirmée. La déclaration du marchand n'y figure pas, et ce n'est
@@ -147,9 +147,9 @@ class Sequestre(BaseModel):
     PAR_ACHETEUR = "acheteur"
     IMPLICITE = "implicite"
     CONFIRMATIONS = [
-        (PAR_CODE, _l("Code de remise saisi à la livraison")),
-        (PAR_ACHETEUR, _l("Confirmée par l'acheteur")),
-        (IMPLICITE, _l("Réputée confirmée, sans réclamation 7 jours après l'expédition")),
+        (PAR_CODE, gettext_lazy("Code de remise saisi à la livraison")),
+        (PAR_ACHETEUR, gettext_lazy("Confirmée par l'acheteur")),
+        (IMPLICITE, gettext_lazy("Réputée confirmée, sans réclamation 7 jours après l'expédition")),
     ]
 
     commande = models.ForeignKey(
@@ -164,20 +164,20 @@ class Sequestre(BaseModel):
     montant_encaisse = models.DecimalField(max_digits=14, decimal_places=2)
     commission = models.DecimalField(max_digits=14, decimal_places=2)
     montant = models.DecimalField(
-        max_digits=14, decimal_places=2, help_text=_l("Part nette du marchand.")
+        max_digits=14, decimal_places=2, help_text=gettext_lazy("Part nette du marchand.")
     )
     montant_libere = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     montant_rembourse = models.DecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0"),
-        help_text=_l("Ce qui, sur la part du marchand, revient à l'acheteur."),
+        help_text=gettext_lazy("Ce qui, sur la part du marchand, revient à l'acheteur."),
     )
     rembourse_acheteur = models.DecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0"),
-        help_text=_l("Total à rendre à l'acheteur, commission annulée comprise."),
+        help_text=gettext_lazy("Total à rendre à l'acheteur, commission annulée comprise."),
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=BLOQUE, db_index=True)
     libere_le = models.DateTimeField(null=True, blank=True)
@@ -241,7 +241,7 @@ class MouvementPortefeuille(TenantScopedModel):
 
     DISPONIBLE = "disponible"
     BLOQUE = "bloque"
-    COMPARTIMENTS = [(DISPONIBLE, _l("Disponible")), (BLOQUE, _l("Bloqué"))]
+    COMPARTIMENTS = [(DISPONIBLE, gettext_lazy("Disponible")), (BLOQUE, gettext_lazy("Bloqué"))]
 
     # Types écrits par le séquestre et les versements.
     SEQUESTRE = "sequestre"
@@ -270,7 +270,7 @@ class MouvementPortefeuille(TenantScopedModel):
     )
     montant = models.DecimalField(max_digits=16, decimal_places=2)
     solde_apres = models.DecimalField(
-        max_digits=16, decimal_places=2, help_text=_l("Solde du compartiment après le mouvement.")
+        max_digits=16, decimal_places=2, help_text=gettext_lazy("Solde du compartiment après le mouvement.")
     )
     origine_type = models.CharField(max_length=64, blank=True)
     origine_id = models.UUIDField(null=True, blank=True)
@@ -318,7 +318,7 @@ class Versement(BaseModel):
     DEMANDE = "demande"
     EXECUTE = "execute"
     ANNULE = "annule"
-    ETATS = [(DEMANDE, _l("À exécuter")), (EXECUTE, _l("Exécuté")), (ANNULE, _l("Annulé"))]
+    ETATS = [(DEMANDE, gettext_lazy("À exécuter")), (EXECUTE, gettext_lazy("Exécuté")), (ANNULE, gettext_lazy("Annulé"))]
 
     boutique = models.ForeignKey(
         "marketplace.Boutique", on_delete=models.PROTECT, related_name="versements"

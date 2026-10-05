@@ -21,7 +21,7 @@ une courbe — c'est tout ce qu'il faut pour décider d'un appel.
       {% if ligne.endormie %}<span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "Endormie" %}</span>{% endif %}
     </div>
     <p class="t-fiche__meta">
-      <span>{{ b.rayon_principal.libelle|default:"Sans rayon" }}</span>
+      <span>{{ b.rayon_principal.libelle|default:_("Sans rayon") }}</span>
       <span><svg aria-hidden="true"><use href="#ic-lieu"></use></svg>{{ b.ville }}</span>
       <span>{% blocktranslate with fenetre=fenetre trimmed %}{{ fenetre }} derniers jours{% endblocktranslate %}</span>
     </p>
@@ -65,7 +65,7 @@ une courbe — c'est tout ce qu'il faut pour décider d'un appel.
     <h2 class="t-section">{% translate "Chiffre d'affaires quotidien" %} <span class="t-muet t-petit">{% translate "TTC, caisse et vitrine" %}</span></h2>
   </header>
   <div class="carte__corps">
-    {% include "plateforme/partials/t_graphe.html" with aria="Chiffre d'affaires quotidien TTC des 30 derniers jours, en francs CFA." vide="Aucune vente sur les 30 derniers jours." %}
+    {% include "plateforme/partials/t_graphe.html" with aria=_("Chiffre d'affaires quotidien TTC des 30 derniers jours, en francs CFA.") vide=_("Aucune vente sur les 30 derniers jours.") %}
   </div>
 </section>
 {% endblock %}

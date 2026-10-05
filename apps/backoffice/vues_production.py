@@ -292,9 +292,9 @@ def fiche(request, recette_id):
                 else ""
             ),
             "aide_ingredients": (
-                "Sélectionnez un ingrédient pour corriger sa quantité. "
+                _("Sélectionnez un ingrédient pour corriger sa quantité. "
                 "Retirer une ligne ne réécrit aucune fournée passée : elle change "
-                "la prochaine."
+                "la prochaine.")
             ),
         }
     )

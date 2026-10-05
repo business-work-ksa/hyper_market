@@ -7,6 +7,7 @@
 <title>{% blocktranslate with numero=ticket.numero enseigne=boutique.enseigne trimmed %}Ticket {{ numero }} — {{ enseigne }}{% endblocktranslate %}</title>
 <link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
 {% include "partials/icones_marque.html" %}
+{% include "partials/catalogue_js.html" %}
 <style>
   /* Bande de 80 mm : la largeur des imprimantes thermiques courantes.
      Tout est en monospace pour que les colonnes s'alignent sans tableau. */
@@ -147,8 +148,8 @@ tel quel dans la page (docs/19, §8).
     bouton.hidden = false;
     bouton.addEventListener("click", function () {
       navigator.share({
-        title: "Ticket {{ ticket.numero }} — {{ boutique.enseigne|escapejs }}",
-        text: "Votre ticket de {{ ticket.total_ttc|fcfa }} FCFA chez {{ boutique.enseigne|escapejs }}.",
+        title: "{% filter escapejs %}{% blocktranslate with numero=ticket.numero enseigne=boutique.enseigne trimmed %}Ticket {{ numero }} — {{ enseigne }}{% endblocktranslate %}{% endfilter %}",
+        text: "{% filter escapejs %}{% blocktranslate with total=ticket.total_ttc|fcfa enseigne=boutique.enseigne trimmed %}Votre ticket de {{ total }} FCFA chez {{ enseigne }}.{% endblocktranslate %}{% endfilter %}",
         url: window.location.href,
       }).catch(function () {});
     });
@@ -164,8 +165,7 @@ tel quel dans la page (docs/19, §8).
 
     if (!window.Imprimante || !window.Imprimante.disponible()) {
       etat.textContent =
-        "Impression directe indisponible sur cet appareil : utilisez l'impression du " +
-        "navigateur ou le partage.";
+        "{{ _("Impression directe indisponible sur cet appareil : utilisez l'impression du navigateur ou le partage.")|escapejs }}";
       return;
     }
 
@@ -185,19 +185,21 @@ tel quel dans la page (docs/19, §8).
 
     bouton.addEventListener("click", function () {
       bouton.disabled = true;
-      etat.textContent = "Recherche de l'imprimante…";
+      etat.textContent = "{{ _("Recherche de l'imprimante…")|escapejs }}";
 
       window.Imprimante.imprimer(donnees, parseInt(largeur.value, 10))
         .then(function () {
-          etat.textContent = "Ticket envoyé à « " + window.Imprimante.appareil() + " ».";
+          etat.textContent = "{{ _('Ticket envoyé à « %(appareil)s ».')|escapejs }}".replace("%(appareil)s", window.Imprimante.appareil());
         })
         .catch(function (erreur) {
           // Un refus de la boîte de sélection n'est pas une panne : c'est un
           // choix. On ne l'annonce pas comme une erreur.
           etat.textContent =
             erreur && erreur.name === "NotFoundError"
-              ? "Aucune imprimante sélectionnée."
-              : "Impression impossible : " + (erreur && erreur.message ? erreur.message : "liaison interrompue") + ".";
+              ? "{{ _('Aucune imprimante sélectionnée.')|escapejs }}"
+              : "{{ _('Impression impossible : %(raison)s.')|escapejs }}".replace(
+                  "%(raison)s", erreur && erreur.message ? erreur.message : "{{ _('liaison interrompue')|escapejs }}"
+                );
         })
         .finally(function () {
           bouton.disabled = false;

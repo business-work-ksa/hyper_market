@@ -61,6 +61,7 @@ from apps.plateforme.formulaires import (
 )
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
+from django.utils.translation import gettext_lazy
 
 STYLES = "css/plateforme-assistants.css"
 
@@ -159,7 +160,7 @@ class AssistantBoutique(Assistant):
         return [
             {
                 "etape": "identite",
-                "titre": "Identité",
+                "titre": _("Identité"),
                 "lignes": [
                     ("Enseigne", identite["enseigne"]),
                     ("Adresse de la vitrine", f"/marche/boutique/{services.slug_libre(identite['enseigne'])}/"),
@@ -171,15 +172,15 @@ class AssistantBoutique(Assistant):
             },
             {
                 "etape": "legal",
-                "titre": "Légal et fiscal",
+                "titre": _("Légal et fiscal"),
                 "lignes": [
                     ("RCCM", legal["rccm"] or "— à compléter"),
                     ("NIU", legal["niu"] or "— à compléter"),
                     ("Régime fiscal", dict(Boutique.REGIMES)[legal["regime_fiscal"]]),
                 ],
             },
-            {"etape": "offre", "titre": "Offre et bail", "lignes": lignes_offre},
-            {"etape": "gerant", "titre": "Gérant", "lignes": f["gerant"].resume()},
+            {"etape": "offre", "titre": _("Offre et bail"), "lignes": lignes_offre},
+            {"etape": "gerant", "titre": _("Gérant"), "lignes": f["gerant"].resume()},
         ]
 
     def executer(self, f, confirmation):
@@ -224,14 +225,14 @@ def _cartes_mode(qui: str) -> list[dict]:
     return [
         {
             "valeur": "existant",
-            "titre": "Un compte existant",
-            "texte": f"Le {qui} a déjà un compte HyperMarché : on le retrouve par son numéro.",
+            "titre": _("Un compte existant"),
+            "texte": _('Le %(qui)s a déjà un compte HyperMarché : on le retrouve par son numéro.') % {"qui": qui},
             "icone": "ic-recherche",
         },
         {
             "valeur": "nouveau",
-            "titre": "Un nouveau compte",
-            "texte": "Créé à la confirmation, avec un mot de passe initial à lui transmettre.",
+            "titre": _("Un nouveau compte"),
+            "texte": _("Créé à la confirmation, avec un mot de passe initial à lui transmettre."),
             "icone": "ic-plus",
         },
     ]
@@ -314,7 +315,7 @@ class AssistantEmplacement(Assistant):
                 debut, fin = date.fromisoformat(periode["debut"]), date.fromisoformat(periode["fin"])
             except (KeyError, TypeError, ValueError):
                 return {}
-            return {"periode_texte": f"du {_date(debut)} au {_date(fin)}, soit {(fin - debut).days + 1} jours"}
+            return {"periode_texte": _('du %(date)s au %(date2)s, soit %(valeur)s jours') % {"date": _date(debut), "date2": _date(fin), "valeur": (fin - debut).days + 1}}
         return {}
 
     def recapitulatif(self, f):
@@ -323,23 +324,23 @@ class AssistantEmplacement(Assistant):
         periode = f["periode"].cleaned_data
         tarif = f["tarif"].cleaned_data["tarif"]
         return [
-            {"etape": "boutique", "titre": "Boutique", "lignes": [("Occupante", boutique.enseigne), ("Ville", boutique.ville)]},
+            {"etape": "boutique", "titre": _("Boutique"), "lignes": [("Occupante", boutique.enseigne), ("Ville", boutique.ville)]},
             {
                 "etape": "type",
-                "titre": "Emplacement",
+                "titre": _("Emplacement"),
                 "lignes": [("Type", dict(EmplacementPremium.TYPES)[type_["type"]])]
                 + ([("Rayon", type_["rayon_objet"].libelle)] if type_["rayon_objet"] else []),
             },
             {
                 "etape": "periode",
-                "titre": "Période",
+                "titre": _("Période"),
                 "lignes": [
                     ("Du", _date(periode["debut"])),
                     ("Au (inclus)", _date(periode["fin"])),
                     ("Durée", f"{periode['jours']} jours"),
                 ],
             },
-            {"etape": "tarif", "titre": "Tarif", "lignes": [("Tarif HT", _montant(tarif))]},
+            {"etape": "tarif", "titre": _("Tarif"), "lignes": [("Tarif HT", _montant(tarif))]},
         ]
 
     def executer(self, f, confirmation):
@@ -416,10 +417,10 @@ class AssistantAdministrateur(Assistant):
     def recapitulatif(self, f):
         role = f["role"].cleaned_data
         return [
-            {"etape": "compte", "titre": "Compte", "lignes": f["compte"].resume()},
+            {"etape": "compte", "titre": _("Compte"), "lignes": f["compte"].resume()},
             {
                 "etape": "role",
-                "titre": "Rôle et motif",
+                "titre": _("Rôle et motif"),
                 "lignes": [
                     ("Rôle", LIBELLES_ROLES_ADMINISTRATION[role["role"]]),
                     ("Ce qu'il ouvre", " · ".join(sorted(LIBELLES.get(d, d) for d in droits_du_role(role["role"])))),
@@ -536,8 +537,8 @@ def retirer_administrateur(request, role_id):
 # ============================================================================
 ACTIONS = {
     services.VALIDER: {
-        "titre": "Valider la candidature",
-        "bouton": "Valider et ouvrir",
+        "titre": gettext_lazy("Valider la candidature"),
+        "bouton": gettext_lazy("Valider et ouvrir"),
         "icone": "ic-check",
         "ton": "primaire",
         "consequences": [
@@ -547,8 +548,8 @@ ACTIONS = {
         ],
     },
     services.SUSPENDRE: {
-        "titre": "Suspendre la boutique",
-        "bouton": "Suspendre",
+        "titre": gettext_lazy("Suspendre la boutique"),
+        "bouton": gettext_lazy("Suspendre"),
         "icone": "ic-pause",
         "ton": "danger",
         "consequences": [
@@ -560,8 +561,8 @@ ACTIONS = {
         ],
     },
     services.REACTIVER: {
-        "titre": "Réactiver la boutique",
-        "bouton": "Réactiver",
+        "titre": gettext_lazy("Réactiver la boutique"),
+        "bouton": gettext_lazy("Réactiver"),
         "icone": "ic-lecture",
         "ton": "primaire",
         "consequences": [
@@ -570,8 +571,8 @@ ACTIONS = {
         ],
     },
     services.RESILIER: {
-        "titre": "Résilier la boutique",
-        "bouton": "Résilier définitivement",
+        "titre": gettext_lazy("Résilier la boutique"),
+        "bouton": gettext_lazy("Résilier définitivement"),
         "icone": "ic-alerte",
         "ton": "danger",
         "consequences": [

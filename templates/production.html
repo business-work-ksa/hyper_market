@@ -15,7 +15,7 @@
     <article class="tuile">
       <div class="tuile__libelle"><svg><use href="#ic-production"></use></svg><span class="t-sur-titre">{% translate "Fabrications" %}</span></div>
       <p class="tuile__valeur">{{ mouvements|length }}</p>
-      <p class="tuile__note"><span class="t-muet">{% blocktranslate with libelle=depot_courant.libelle|default:"ce dépôt" trimmed %}Depuis ce matin, dans {{ libelle }}{% endblocktranslate %}</span></p>
+      <p class="tuile__note"><span class="t-muet">{% blocktranslate with libelle=depot_courant.libelle|default:_("ce dépôt") trimmed %}Depuis ce matin, dans {{ libelle }}{% endblocktranslate %}</span></p>
     </article>
     {% if valeur_produite is not None %}
       <article class="tuile">
@@ -102,7 +102,7 @@
   inventaire — deux gestes qui, eux, laissent leur propre trace datée.
   {% endcomment %}
   <section class="carte tableau-panneau">
-    {% include "partials/tableau_barre.html" with nom="fournée" noms="fournées" titre=titre_journal filtres_id="filtres-production" filtres_actifs=filtres.actifs aide="Journal en ajout seul : une fournée constatée ne se corrige pas. Une erreur se rattrape par une perte ou un inventaire." %}
+    {% include "partials/tableau_barre.html" with nom="fournée" noms="fournées" titre=titre_journal filtres_id="filtres-production" filtres_actifs=filtres.actifs aide=_("Journal en ajout seul : une fournée constatée ne se corrige pas. Une erreur se rattrape par une perte ou un inventaire.") %}
     <div class="carte__corps--serre">
       {% if mouvements %}
         <div class="tableau-boite">
@@ -201,6 +201,6 @@
     </section>
   {% endif %}
 
-  {% include "partials/modal_filtres.html" with id="filtres-production" formulaire=filtres action=url_production titre="Choisir la journée" aide="Sans date, c'est la journée d'aujourd'hui — celle qu'un boulanger regarde quatre-vingt-dix-neuf fois sur cent." %}
+  {% include "partials/modal_filtres.html" with id="filtres-production" formulaire=filtres action=url_production titre=_("Choisir la journée") aide=_("Sans date, c'est la journée d'aujourd'hui — celle qu'un boulanger regarde quatre-vingt-dix-neuf fois sur cent.") %}
 </div>
 {% endblock %}

@@ -114,11 +114,11 @@ def _etat_de_l_argent(part, sequestre, gelee: bool) -> dict:
     Une part gelée ne dit **jamais** pourquoi (voir l'en-tête du module).
     """
     if not part.prepayee:
-        return {"code": "livraison", "libelle": "Payée à la livraison", "ton": ""}
+        return {"code": "livraison", "libelle": _("Payée à la livraison"), "ton": ""}
     if sequestre is None:
         if part.etat == SousCommande.ANNULEE:
-            return {"code": "aucun", "libelle": "Aucun paiement", "ton": ""}
-        return {"code": "attendu", "libelle": "Paiement attendu", "ton": "alerte"}
+            return {"code": "aucun", "libelle": _("Aucun paiement"), "ton": ""}
+        return {"code": "attendu", "libelle": _("Paiement attendu"), "ton": "alerte"}
     if sequestre.etat == Sequestre.BLOQUE:
         if gelee:
             return {"code": "gele", "libelle": sequestre_service.MESSAGE_GEL, "ton": "alerte"}
@@ -126,27 +126,27 @@ def _etat_de_l_argent(part, sequestre, gelee: bool) -> dict:
         if echeance is not None:
             return {
                 "code": "bloque",
-                "libelle": "En séquestre — libération prévue",
+                "libelle": _("En séquestre — libération prévue"),
                 "ton": "marque",
                 "date": echeance,
             }
         return {
             "code": "bloque",
-            "libelle": "En séquestre — livraison à confirmer",
+            "libelle": _("En séquestre — livraison à confirmer"),
             "ton": "marque",
         }
     if sequestre.etat == Sequestre.LIBERE:
-        return {"code": "libere", "libelle": "Libéré", "ton": "bon", "date": sequestre.libere_le}
+        return {"code": "libere", "libelle": _("Libéré"), "ton": "bon", "date": sequestre.libere_le}
     if sequestre.etat == Sequestre.REMBOURSE:
         return {
             "code": "rembourse",
-            "libelle": "Remboursé à l'acheteur",
+            "libelle": _("Remboursé à l'acheteur"),
             "ton": "critique",
             "date": sequestre.rembourse_le,
         }
     return {
         "code": "partage",
-        "libelle": "Libéré en partie",
+        "libelle": _("Libéré en partie"),
         "ton": "bon",
         "date": sequestre.libere_le,
     }

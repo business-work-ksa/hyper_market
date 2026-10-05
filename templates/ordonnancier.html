@@ -74,8 +74,8 @@
   {% endif %}
 
   <section class="carte tableau-panneau" data-tableau
-           data-nom="délivrance" data-noms="délivrances" data-accord="e">
-    {% include "partials/tableau_barre.html" with nom="delivrance" noms="délivrances" titre="Registre" filtres_id="filtres-ordonnancier" filtres_actifs=filtres.actifs aide="Registre en ajout seul : une délivrance ne s'efface pas. Seule la mention d'ordonnance reste modifiable — un registre se complète, une écriture jamais." %}
+           data-nom="{% translate "délivrance" context "ligne de tableau" %}" data-noms="{% translate "délivrances" context "ligne de tableau" %}" data-accord="e">
+    {% include "partials/tableau_barre.html" with nom="delivrance" noms="délivrances" titre=_("Registre") filtres_id="filtres-ordonnancier" filtres_actifs=filtres.actifs aide=_("Registre en ajout seul : une délivrance ne s'efface pas. Seule la mention d'ordonnance reste modifiable — un registre se complète, une écriture jamais.") %}
     <div class="carte__corps--serre">
       {% if consignees %}
         <div class="tableau-boite">
@@ -124,6 +124,6 @@
     </div>
   </section>
 
-  {% include "partials/modal_filtres.html" with id="filtres-ordonnancier" formulaire=filtres action=url_ordonnancier titre="Filtrer l'ordonnancier" aide="« À compléter » est la seule partie du registre sur laquelle il reste un geste à faire." %}
+  {% include "partials/modal_filtres.html" with id="filtres-ordonnancier" formulaire=filtres action=url_ordonnancier titre=_("Filtrer l'ordonnancier") aide=_("« À compléter » est la seule partie du registre sur laquelle il reste un geste à faire.") %}
 </div>
 {% endblock %}

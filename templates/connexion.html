@@ -177,7 +177,7 @@
       var visible = champ.type === "password";
       champ.type = visible ? "text" : "password";
       voir.setAttribute("aria-pressed", visible ? "true" : "false");
-      voir.setAttribute("aria-label", visible ? "Masquer le mot de passe" : "Afficher le mot de passe");
+      voir.setAttribute("aria-label", visible ? "{{ _("Masquer le mot de passe")|escapejs }}" : "{{ _("Afficher le mot de passe")|escapejs }}");
       voir.querySelector("use").setAttribute("href", visible ? "#ic-oeil-barre" : "#ic-oeil");
       champ.focus();
     });
@@ -186,7 +186,7 @@
     // retape le bouton et l'on envoie deux fois. Le bouton dit qu'il travaille.
     formulaire.addEventListener("submit", function () {
       bouton.setAttribute("aria-busy", "true");
-      bouton.textContent = "Ouverture de votre boutique…";
+      bouton.textContent = "{{ _("Ouverture de votre boutique…")|escapejs }}";
       // Désactivé au tour suivant : désactiver pendant l'événement annulerait
       // l'envoi dans certains navigateurs.
       setTimeout(function () { bouton.disabled = true; }, 0);
@@ -196,7 +196,7 @@
     window.addEventListener("pageshow", function () {
       bouton.disabled = false;
       bouton.removeAttribute("aria-busy");
-      bouton.textContent = "Ouvrir ma boutique";
+      bouton.textContent = "{{ _("Ouvrir ma boutique")|escapejs }}";
     });
 
     // Démonstration : un geste au lieu de recopier deux identifiants.

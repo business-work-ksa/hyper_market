@@ -19,7 +19,7 @@ filtre posé et la pastille annoncerait un filtrage qui n'a pas lieu.
 """
 
 from django import forms
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CHAMP = {"class": "champ"}
 
@@ -141,26 +141,26 @@ class FiltresStockForm(FiltreForm):
     """Liste du stock : ce qu'on cherche, dans quel état, dans quel dépôt."""
 
     q = forms.CharField(
-        label=_l("Rechercher"),
+        label=gettext_lazy("Rechercher"),
         widget=forms.TextInput(
-            attrs={**CHAMP, "type": "search", "placeholder": "Nom, référence, référence constructeur"}
+            attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Nom, référence, référence constructeur")}
         ),
     )
     etat = ChoixTolerant(
-        label=_l("État du stock"),
+        label=gettext_lazy("État du stock"),
         choices=[
-            ("", "Tous"),
-            ("alerte", "Sous le seuil d'alerte"),
-            ("rupture", "En rupture"),
-            ("negatif", "Stock négatif"),
+            ("", gettext_lazy("Tous")),
+            ("alerte", gettext_lazy("Sous le seuil d'alerte")),
+            ("rupture", gettext_lazy("En rupture")),
+            ("negatif", gettext_lazy("Stock négatif")),
         ],
         widget=forms.Select(attrs=CHAMP),
     )
-    depot = ChoixTolerant(label=_l("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depot = ChoixTolerant(label=gettext_lazy("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
     sans_mouvement = ChoixTolerant(
-        label=_l("Activité"),
-        choices=[("", "Peu importe"), ("dormant", "Aucun mouvement depuis 30 jours")],
-        help_text=_l("Ce qui dort en rayon immobilise de la trésorerie."),
+        label=gettext_lazy("Activité"),
+        choices=[("", gettext_lazy("Peu importe")), ("dormant", gettext_lazy("Aucun mouvement depuis 30 jours"))],
+        help_text=gettext_lazy("Ce qui dort en rayon immobilise de la trésorerie."),
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -171,13 +171,13 @@ class FiltresStockForm(FiltreForm):
 
 class FiltresEquipeForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Rechercher"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Nom ou téléphone"}),
+        label=gettext_lazy("Rechercher"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Nom ou téléphone")}),
     )
-    role = ChoixTolerant(label=_l("Rôle"), choices=[], widget=forms.Select(attrs=CHAMP))
+    role = ChoixTolerant(label=gettext_lazy("Rôle"), choices=[], widget=forms.Select(attrs=CHAMP))
     etat = ChoixTolerant(
-        label=_l("Accès"),
-        choices=[("", "Tous"), ("actif", "Actif"), ("retire", "Retiré")],
+        label=gettext_lazy("Accès"),
+        choices=[("", gettext_lazy("Tous")), ("actif", gettext_lazy("Actif")), ("retire", gettext_lazy("Retiré"))],
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -190,32 +190,32 @@ class FiltresEquipeForm(FiltreForm):
 
 class FiltresLiensForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Rechercher"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Usage ou code"}),
+        label=gettext_lazy("Rechercher"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Usage ou code")}),
     )
     etat = ChoixTolerant(
-        label=_l("État"),
-        choices=[("", "Tous"), ("actif", "Actifs"), ("retire", "Retirés")],
+        label=gettext_lazy("État"),
+        choices=[("", gettext_lazy("Tous")), ("actif", gettext_lazy("Actifs")), ("retire", gettext_lazy("Retirés"))],
         widget=forms.Select(attrs=CHAMP),
     )
     portee = ChoixTolerant(
-        label=_l("Destination"),
-        choices=[("", "Peu importe"), ("vitrine", "Ma vitrine"), ("article", "Un article")],
+        label=gettext_lazy("Destination"),
+        choices=[("", gettext_lazy("Peu importe")), ("vitrine", gettext_lazy("Ma vitrine")), ("article", gettext_lazy("Un article"))],
         widget=forms.Select(attrs=CHAMP),
     )
 
 
 class FiltresVentesForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Rechercher"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Numéro de ticket ou client"}),
+        label=gettext_lazy("Rechercher"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Numéro de ticket ou client")}),
     )
-    depuis = DateTolerante(label=_l("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    jusqua = DateTolerante(label=_l("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    moyen = ChoixTolerant(label=_l("Règlement"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=gettext_lazy("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    jusqua = DateTolerante(label=gettext_lazy("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    moyen = ChoixTolerant(label=gettext_lazy("Règlement"), choices=[], widget=forms.Select(attrs=CHAMP))
     etat = ChoixTolerant(
-        label=_l("État"),
-        choices=[("", "Tous"), ("cloture", "Clôturés"), ("annule", "Annulés")],
+        label=gettext_lazy("État"),
+        choices=[("", gettext_lazy("Tous")), ("cloture", gettext_lazy("Clôturés")), ("annule", gettext_lazy("Annulés"))],
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -236,10 +236,10 @@ class FiltresVentesForm(FiltreForm):
 
 
 class FiltresMouvementsForm(FiltreForm):
-    type = ChoixTolerant(label=_l("Type de mouvement"), choices=[], widget=forms.Select(attrs=CHAMP))
-    depuis = DateTolerante(label=_l("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    jusqua = DateTolerante(label=_l("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    depot = ChoixTolerant(label=_l("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
+    type = ChoixTolerant(label=gettext_lazy("Type de mouvement"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=gettext_lazy("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    jusqua = DateTolerante(label=gettext_lazy("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    depot = ChoixTolerant(label=gettext_lazy("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
 
     def __init__(self, donnees=None, *, depots=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -251,13 +251,13 @@ class FiltresMouvementsForm(FiltreForm):
 
 class FiltresExemplairesForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Numéro de série"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "IMEI ou numéro"}),
+        label=gettext_lazy("Numéro de série"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("IMEI ou numéro")}),
     )
-    etat = ChoixTolerant(label=_l("État"), choices=[], widget=forms.Select(attrs=CHAMP))
+    etat = ChoixTolerant(label=gettext_lazy("État"), choices=[], widget=forms.Select(attrs=CHAMP))
     garantie = ChoixTolerant(
-        label=_l("Garantie"),
-        choices=[("", "Peu importe"), ("en_cours", "En cours"), ("expiree", "Expirée"), ("aucune", "Aucune")],
+        label=gettext_lazy("Garantie"),
+        choices=[("", gettext_lazy("Peu importe")), ("en_cours", gettext_lazy("En cours")), ("expiree", gettext_lazy("Expirée")), ("aucune", gettext_lazy("Aucune"))],
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -270,22 +270,22 @@ class FiltresExemplairesForm(FiltreForm):
 
 class FiltresPeremptionsForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Rechercher"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Article ou numéro de lot"}),
+        label=gettext_lazy("Rechercher"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Article ou numéro de lot")}),
     )
     etat = ChoixTolerant(
-        label=_l("Échéance"),
-        choices=[("", "Tous"), ("perime", "Déjà périmés"), ("bientot", "Périment bientôt")],
+        label=gettext_lazy("Échéance"),
+        choices=[("", gettext_lazy("Tous")), ("perime", gettext_lazy("Déjà périmés")), ("bientot", gettext_lazy("Périment bientôt"))],
         widget=forms.Select(attrs=CHAMP),
     )
     jours = forms.IntegerField(
-        label=_l("Horizon (jours)"),
+        label=gettext_lazy("Horizon (jours)"),
         min_value=1,
         max_value=365,
-        help_text=_l("Trente jours : le délai à partir duquel on peut encore agir."),
+        help_text=gettext_lazy("Trente jours : le délai à partir duquel on peut encore agir."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "30"}),
     )
-    depot = ChoixTolerant(label=_l("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depot = ChoixTolerant(label=gettext_lazy("Dépôt"), choices=[], widget=forms.Select(attrs=CHAMP))
 
     def __init__(self, donnees=None, *, depots=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -294,11 +294,11 @@ class FiltresPeremptionsForm(FiltreForm):
 
 class FiltresCommandesForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Rechercher"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Numéro ou client"}),
+        label=gettext_lazy("Rechercher"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Numéro ou client")}),
     )
-    etat = ChoixTolerant(label=_l("État"), choices=[], widget=forms.Select(attrs=CHAMP))
-    depuis = DateTolerante(label=_l("Passées depuis le"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    etat = ChoixTolerant(label=gettext_lazy("État"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=gettext_lazy("Passées depuis le"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
 
     def __init__(self, donnees=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -309,12 +309,12 @@ class FiltresCommandesForm(FiltreForm):
 
 class FiltresEcrituresForm(FiltreForm):
     q = forms.CharField(
-        label=_l("Rechercher"),
-        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": "Libellé ou pièce"}),
+        label=gettext_lazy("Rechercher"),
+        widget=forms.TextInput(attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Libellé ou pièce")}),
     )
-    journal = ChoixTolerant(label=_l("Journal"), choices=[], widget=forms.Select(attrs=CHAMP))
-    depuis = DateTolerante(label=_l("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
-    jusqua = DateTolerante(label=_l("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    journal = ChoixTolerant(label=gettext_lazy("Journal"), choices=[], widget=forms.Select(attrs=CHAMP))
+    depuis = DateTolerante(label=gettext_lazy("Du"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    jusqua = DateTolerante(label=gettext_lazy("Au"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
 
     def __init__(self, donnees=None, *, journaux=None, **kwargs):
         super().__init__(donnees, **kwargs)
@@ -332,17 +332,17 @@ class FiltresOrdonnancierForm(FiltreForm):
     """
 
     q = forms.CharField(
-        label=_l("Rechercher"),
+        label=gettext_lazy("Rechercher"),
         widget=forms.TextInput(
-            attrs={**CHAMP, "type": "search", "placeholder": "Ticket, client ou prescripteur"}
+            attrs={**CHAMP, "type": "search", "placeholder": gettext_lazy("Ticket, client ou prescripteur")}
         ),
     )
     etat = ChoixTolerant(
-        label=_l("Consignation"),
-        choices=[("", "Toutes"), ("incomplete", "À compléter"), ("consignee", "Consignées")],
+        label=gettext_lazy("Consignation"),
+        choices=[("", gettext_lazy("Toutes")), ("incomplete", gettext_lazy("À compléter")), ("consignee", gettext_lazy("Consignées"))],
         widget=forms.Select(attrs=CHAMP),
     )
-    depuis = DateTolerante(label=_l("Depuis le"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
+    depuis = DateTolerante(label=gettext_lazy("Depuis le"), widget=forms.DateInput(attrs={**CHAMP, "type": "date"}))
 
 
 class FiltresProductionForm(FiltreForm):
@@ -353,7 +353,7 @@ class FiltresProductionForm(FiltreForm):
     """
 
     jour = DateTolerante(
-        label=_l("Journée"),
-        help_text=_l("Vide : aujourd'hui."),
+        label=gettext_lazy("Journée"),
+        help_text=gettext_lazy("Vide : aujourd'hui."),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}),
     )

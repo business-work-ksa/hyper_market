@@ -1,0 +1,6 @@
+{% comment %}
+Le catalogue de traduction des scripts (`gettext()` en JavaScript), servi par Django. Seulement
+hors du français : le français est la langue source, et les scripts se rabattent sur le texte tel
+quel quand `window.gettext` n'existe pas. Placé avant les autres scripts : ceux en `defer`
+s'exécutent dans l'ordre du document, après lui.
+{% endcomment %}{% if LANGUAGE_CODE and LANGUAGE_CODE != "fr" %}<script src="{% url 'catalogue_js' %}?l={{ LANGUAGE_CODE }}"></script>{% endif %}

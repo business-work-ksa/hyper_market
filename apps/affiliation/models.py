@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from apps.core.models import BaseModel
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CENTIME = Decimal("0.01")
 
@@ -35,7 +35,7 @@ class Apporteur(BaseModel):
 
     ACTIF = "actif"
     SUSPENDU = "suspendu"
-    ETATS = [(ACTIF, _l("Actif")), (SUSPENDU, _l("Suspendu"))]
+    ETATS = [(ACTIF, gettext_lazy("Actif")), (SUSPENDU, gettext_lazy("Suspendu"))]
 
     utilisateur = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="apporteur"
@@ -49,7 +49,7 @@ class Apporteur(BaseModel):
     )
     etat = models.CharField(max_length=16, choices=ETATS, default=ACTIF, db_index=True)
     kyc_renforce = models.BooleanField(
-        default=False, help_text=_l("Requis au-delà de 500 000 FCFA de gains mensuels (docs/06, §6).")
+        default=False, help_text=gettext_lazy("Requis au-delà de 500 000 FCFA de gains mensuels (docs/06, §6).")
     )
 
     class Meta:
@@ -86,15 +86,15 @@ class Attribution(BaseModel):
     ACHETEUR = "acheteur"
     MARCHAND = "marchand"
     REVENDEUR = "revendeur"
-    CIBLES = [(ACHETEUR, _l("Acheteur")), (MARCHAND, _l("Marchand")), (REVENDEUR, _l("Revendeur"))]
+    CIBLES = [(ACHETEUR, gettext_lazy("Acheteur")), (MARCHAND, gettext_lazy("Marchand")), (REVENDEUR, gettext_lazy("Revendeur"))]
 
     CODE = "code"
     CLIC = "clic"
     RATTACHEMENT = "rattachement"
     ORIGINES = [
-        (CODE, _l("Code saisi explicitement")),
-        (CLIC, _l("Dernier clic non direct")),
-        (RATTACHEMENT, _l("Rattachement permanent du compte")),
+        (CODE, gettext_lazy("Code saisi explicitement")),
+        (CLIC, gettext_lazy("Dernier clic non direct")),
+        (RATTACHEMENT, gettext_lazy("Rattachement permanent du compte")),
     ]
 
     apporteur = models.ForeignKey(Apporteur, on_delete=models.CASCADE, related_name="attributions")
@@ -132,7 +132,7 @@ class Revendeur(BaseModel):
 
     ACTIF = "actif"
     SUSPENDU = "suspendu"
-    ETATS = [(ACTIF, _l("Actif")), (SUSPENDU, _l("Suspendu"))]
+    ETATS = [(ACTIF, gettext_lazy("Actif")), (SUSPENDU, gettext_lazy("Suspendu"))]
 
     utilisateur = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="revendeur"
@@ -143,7 +143,7 @@ class Revendeur(BaseModel):
         max_digits=5,
         decimal_places=4,
         default=Decimal("0"),
-        help_text=_l("Remise maximale que le revendeur peut consentir, prise sur sa propre marge."),
+        help_text=gettext_lazy("Remise maximale que le revendeur peut consentir, prise sur sa propre marge."),
     )
 
     class Meta:
@@ -196,7 +196,7 @@ class Commission(BaseModel):
     N1 = "N1"
     N2 = "N2"
     REVENDEUR = "REVENDEUR"
-    ROLES = [(N1, _l("Apporteur direct")), (N2, _l("Apporteur indirect")), (REVENDEUR, _l("Revendeur"))]
+    ROLES = [(N1, gettext_lazy("Apporteur direct")), (N2, gettext_lazy("Apporteur indirect")), (REVENDEUR, gettext_lazy("Revendeur"))]
 
     ATTENDUE = "attendue"
     ACQUISE = "acquise"
@@ -205,12 +205,12 @@ class Commission(BaseModel):
     ANNULEE = "annulee"
     REPRISE = "reprise"
     ETATS = [
-        (ATTENDUE, _l("Attendue")),
-        (ACQUISE, _l("Acquise")),
-        (PAYABLE, _l("Payable")),
-        (PAYEE, _l("Payée")),
-        (ANNULEE, _l("Annulée")),
-        (REPRISE, _l("Reprise sur gains futurs")),
+        (ATTENDUE, gettext_lazy("Attendue")),
+        (ACQUISE, gettext_lazy("Acquise")),
+        (PAYABLE, gettext_lazy("Payable")),
+        (PAYEE, gettext_lazy("Payée")),
+        (ANNULEE, gettext_lazy("Annulée")),
+        (REPRISE, gettext_lazy("Reprise sur gains futurs")),
     ]
 
     beneficiaire = models.ForeignKey(
@@ -221,7 +221,7 @@ class Commission(BaseModel):
         "orders.SousCommande", on_delete=models.PROTECT, related_name="commissions"
     )
     assiette = models.DecimalField(
-        max_digits=14, decimal_places=2, help_text=_l("Commission plateforme sur laquelle est prélevée la part.")
+        max_digits=14, decimal_places=2, help_text=gettext_lazy("Commission plateforme sur laquelle est prélevée la part.")
     )
     taux = models.DecimalField(max_digits=5, decimal_places=4)
     montant = models.DecimalField(max_digits=14, decimal_places=2)
@@ -249,11 +249,11 @@ class SignalFraude(BaseModel):
     RETOURS_SYSTEMATIQUES = "retours_systematiques"
     VOL_ATTRIBUTION = "vol_attribution"
     TYPES = [
-        (AUTO_PARRAINAGE, _l("Auto-parrainage")),
-        (COMPTES_MULTIPLES, _l("Comptes multiples")),
-        (COMMANDES_FICTIVES, _l("Commandes fictives")),
-        (RETOURS_SYSTEMATIQUES, _l("Retours systématiques")),
-        (VOL_ATTRIBUTION, _l("Vol d'attribution")),
+        (AUTO_PARRAINAGE, gettext_lazy("Auto-parrainage")),
+        (COMPTES_MULTIPLES, gettext_lazy("Comptes multiples")),
+        (COMMANDES_FICTIVES, gettext_lazy("Commandes fictives")),
+        (RETOURS_SYSTEMATIQUES, gettext_lazy("Retours systématiques")),
+        (VOL_ATTRIBUTION, gettext_lazy("Vol d'attribution")),
     ]
 
     apporteur = models.ForeignKey(Apporteur, on_delete=models.CASCADE, related_name="signaux_fraude")

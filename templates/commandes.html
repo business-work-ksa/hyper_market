@@ -31,18 +31,18 @@
   ouvrir la commande sélectionnée, et filtrer.
   {% endcomment %}
   <section class="carte tableau-panneau">
-    {% include "partials/tableau_barre.html" with nom="commande" noms="commandes" titre="Commandes" filtres_id="filtres-commandes" filtres_actifs=filtres.actifs aide="Une commande arrive payée : elle ne se crée ni ne se supprime ici, elle s'accepte, se prépare, s'expédie — ou se refuse, avec son motif." %}
+    {% include "partials/tableau_barre.html" with nom="commande" noms="commandes" titre=_("Commandes") filtres_id="filtres-commandes" filtres_actifs=filtres.actifs aide=_("Une commande arrive payée : elle ne se crée ni ne se supprime ici, elle s'accepte, se prépare, s'expédie — ou se refuse, avec son motif.") %}
   </section>
 
   {% for file in files %}
     {% if file.parts %}
       <section class="carte tableau-panneau" data-tableau
-               data-nom="commande" data-noms="commandes" data-accord="e">
+               data-nom="{% translate "commande" context "ligne de tableau" %}" data-noms="{% translate "commandes" context "ligne de tableau" %}" data-accord="e">
         <header class="carte__entete">
           <h2 class="t-section">{{ file.libelle }}</h2>
           <span class="puce puce--marque">{{ file.nombre }}</span>
         </header>
-        {% include "partials/tableau_barre.html" with nom=file.etat noms="commandes" modifier_possible=1 modifier_libelle="Ouvrir la commande" aide="Sélectionnez une commande pour l'ouvrir et la faire avancer." %}
+        {% include "partials/tableau_barre.html" with nom=file.etat noms="commandes" modifier_possible=1 modifier_libelle=_("Ouvrir la commande") aide=_("Sélectionnez une commande pour l'ouvrir et la faire avancer.") %}
         <div class="carte__corps--serre">
           <div class="tableau-boite">
             <table class="tableau">
@@ -145,6 +145,6 @@
     </section>
   {% endif %}
 
-  {% include "partials/modal_filtres.html" with id="filtres-commandes" formulaire=filtres action=url_commandes titre="Filtrer les commandes" %}
+  {% include "partials/modal_filtres.html" with id="filtres-commandes" formulaire=filtres action=url_commandes titre=_("Filtrer les commandes") %}
 </div>
 {% endblock %}

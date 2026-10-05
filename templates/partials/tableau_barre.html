@@ -36,11 +36,11 @@ elle ne promet simplement pas des gestes qu'elle ne saurait pas tenir.
   {% if creer_url %}
     {% if creer_url|slice:":1" == "#" %}
       <button class="btn btn--primaire" type="button" data-ouvre="{{ creer_url|slice:'1:' }}">
-        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:"Nouveau" }}
+        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:_("Nouveau") }}
       </button>
     {% else %}
       <a class="btn btn--primaire" href="{{ creer_url }}">
-        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:"Nouveau" }}
+        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:_("Nouveau") }}
       </a>
     {% endif %}
   {% endif %}
@@ -50,14 +50,14 @@ elle ne promet simplement pas des gestes qu'elle ne saurait pas tenir.
   {% if modifier_possible %}
     <button class="btn" type="button" data-action="modifier" disabled
             title="{% translate 'Sélectionnez une ligne à modifier.' %}">
-      <svg><use href="#ic-crayon"></use></svg> {{ modifier_libelle|default:"Modifier" }}
+      <svg><use href="#ic-crayon"></use></svg> {{ modifier_libelle|default:_("Modifier") }}
     </button>
   {% endif %}
 
   {% if supprimer_url %}
     <button class="btn btn--danger" type="button" data-action="supprimer" disabled
             title="{% translate 'Sélectionnez au moins une ligne à supprimer.' %}">
-      <svg><use href="#ic-corbeille"></use></svg> {{ supprimer_libelle|default:"Supprimer" }}
+      <svg><use href="#ic-corbeille"></use></svg> {{ supprimer_libelle|default:_("Supprimer") }}
     </button>
   {% endif %}
 
@@ -74,9 +74,9 @@ La ligne d'assistance occupe sa place en permanence, même vide : la faire
 apparaître ferait sauter le tableau de quinze pixels à chaque clic.
 {% endcomment %}
 <div class="tableau-assistance" data-assistance data-selection="0" role="status"
-     data-aide="{{ aide|default:'Sélectionnez une ligne pour agir dessus.' }}">
+     data-aide="{{ aide|default:_('Sélectionnez une ligne pour agir dessus.') }}">
   <svg><use href="#ic-info"></use></svg>
-  <span data-assistance-texte>{{ aide|default:"Sélectionnez une ligne pour agir dessus." }}</span>
+  <span data-assistance-texte>{{ aide|default:_("Sélectionnez une ligne pour agir dessus.") }}</span>
 </div>
 
 {% if supprimer_url %}
@@ -96,7 +96,7 @@ apparaître ferait sauter le tableau de quinze pixels à chaque clic.
         <ul class="liste-visee" data-visees></ul>
         <div data-identifiants hidden></div>
         <p class="t-legende">
-          {{ avertissement_suppression|default:"Cette suppression est définitive." }}
+          {{ avertissement_suppression|default:_("Cette suppression est définitive.") }}
         </p>
       </div>
       <footer class="modale__pied">

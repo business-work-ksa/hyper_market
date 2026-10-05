@@ -56,8 +56,8 @@
   </section>
 
   <section class="carte tableau-panneau" data-tableau
-           data-nom="ingrédient" data-noms="ingrédients">
-    {% include "partials/tableau_barre.html" with nom="ingredient" noms="ingrédients" titre="Ingrédients" creer_url=url_creer creer_libelle="Ajouter un ingrédient" modifier_possible=peut_mouvementer modifier_libelle="Corriger la quantité" supprimer_url=url_retirer supprimer_libelle="Retirer" aide=aide_ingredients %}
+           data-nom="{% translate "ingrédient" context "ligne de tableau" %}" data-noms="{% translate "ingrédients" context "ligne de tableau" %}">
+    {% include "partials/tableau_barre.html" with nom="ingredient" noms="ingrédients" titre=_("Ingrédients") creer_url=url_creer creer_libelle=_("Ajouter un ingrédient") modifier_possible=peut_mouvementer modifier_libelle=_("Corriger la quantité") supprimer_url=url_retirer supprimer_libelle=_("Retirer") aide=aide_ingredients %}
 
     {% if lignes %}
       <div class="tableau-boite">

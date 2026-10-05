@@ -139,12 +139,11 @@
           return;
         }
         if (resultat.etat === "en_attente") {
-          message.textContent =
-            "Réception conservée (" + resultat.enAttente +
-            " opération(s) en attente). Elle partira au retour du réseau.";
+          message.textContent = "{{ _('Réception conservée (%(n)s opération(s) en attente). Elle partira au retour du réseau.')|escapejs }}"
+            .replace("%(n)s", resultat.enAttente);
           formulaire.reset();
         } else {
-          message.textContent = resultat.erreur || "La saisie a été refusée.";
+          message.textContent = resultat.erreur || "{{ _("La saisie a été refusée.")|escapejs }}";
         }
       })
       .finally(function () {

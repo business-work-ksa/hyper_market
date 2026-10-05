@@ -14,8 +14,9 @@ from django import forms
 from apps.accounts.models import validateur_telephone
 from apps.catalog.models import Produit
 from apps.marketplace import metiers
+from django.utils.text import capfirst
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CHAMP = {"class": "champ"}
 CHAMP_GRAND = {"class": "champ champ--grand"}
@@ -51,30 +52,30 @@ class SocleArticleForm(forms.Form):
     """
 
     libelle = forms.CharField(
-        label=_l("Nom de l'article"),
+        label=gettext_lazy("Nom de l'article"),
         max_length=200,
-        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Ciment CIMENCAM 50 kg"}),
+        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": gettext_lazy("Ciment CIMENCAM 50 kg")}),
     )
     sku = forms.CharField(
-        label=_l("Référence"),
+        label=gettext_lazy("Référence"),
         max_length=64,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "QUI-CIM-50"}),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("QUI-CIM-50")}),
     )
     code_barres = forms.CharField(
-        label=_l("Code-barres"), max_length=32, required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Scannez ou laissez vide"}),
+        label=gettext_lazy("Code-barres"), max_length=32, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Scannez ou laissez vide")}),
     )
     prix_vente = forms.DecimalField(
-        label=_l("Prix de vente TTC"), min_value=Decimal("0"), decimal_places=2,
+        label=gettext_lazy("Prix de vente TTC"), min_value=Decimal("0"), decimal_places=2,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     seuil_alerte = forms.DecimalField(
-        label=_l("Seuil d'alerte"), min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
-        help_text=_l("En dessous de combien faut-il recommander ?"),
+        label=gettext_lazy("Seuil d'alerte"), min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
+        help_text=gettext_lazy("En dessous de combien faut-il recommander ?"),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     regime_tva = forms.ChoiceField(
-        label=_l("Régime de TVA"), choices=Produit.REGIMES_TVA, initial=Produit.NORMAL,
+        label=gettext_lazy("Régime de TVA"), choices=Produit.REGIMES_TVA, initial=Produit.NORMAL,
         widget=forms.Select(attrs=CHAMP),
     )
 
@@ -82,52 +83,52 @@ class SocleArticleForm(forms.Form):
     # déclarés ici et retirés dans `__init__` — la même mécanique que les droits
     # côté API : ce qui n'est pas ouvert n'est pas affiché, pas grisé.
     date_peremption = forms.DateField(
-        label=_l("Date de péremption"),
+        label=gettext_lazy("Date de péremption"),
         required=False,
-        help_text=_l("Laissez vide si cet article ne périme pas."),
+        help_text=gettext_lazy("Laissez vide si cet article ne périme pas."),
         widget=forms.DateInput(attrs={**CHAMP, "type": "date"}),
     )
     numero_lot = forms.CharField(
-        label=_l("Numéro de lot"),
+        label=gettext_lazy("Numéro de lot"),
         max_length=64,
         required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Lot du fabricant"}),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Lot du fabricant")}),
     )
     unite = forms.ChoiceField(
-        label=_l("Unité de vente"),
+        label=gettext_lazy("Unité de vente"),
         choices=Produit.UNITES,
         required=False,
         widget=forms.Select(attrs=CHAMP),
     )
     sur_ordonnance = forms.BooleanField(
-        label=_l("Délivré sur ordonnance"),
+        label=gettext_lazy("Délivré sur ordonnance"),
         required=False,
-        help_text=_l("Sera consigné à l'ordonnancier, et retiré de la vente en ligne."),
+        help_text=gettext_lazy("Sera consigné à l'ordonnancier, et retiré de la vente en ligne."),
         widget=forms.CheckboxInput(attrs={"class": "case"}),
     )
     reference_constructeur = forms.CharField(
-        label=_l("Référence constructeur"),
+        label=gettext_lazy("Référence constructeur"),
         max_length=64,
         required=False,
-        help_text=_l("Celle qui est gravée sur la pièce d'origine."),
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "90915-YZZD4"}),
+        help_text=gettext_lazy("Celle qui est gravée sur la pièce d'origine."),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("90915-YZZD4")}),
     )
     suivi_unitaire = forms.BooleanField(
-        label=_l("Suivre chaque exemplaire (numéro de série ou IMEI)"),
+        label=gettext_lazy("Suivre chaque exemplaire (numéro de série ou IMEI)"),
         required=False,
         help_text=(
-            _l("À réserver aux appareils qui en portent un. Un câble n'a pas d'IMEI, "
+            gettext_lazy("À réserver aux appareils qui en portent un. Un câble n'a pas d'IMEI, "
             "et en réclamer un à chaque réception fait abandonner le suivi.")
         ),
         widget=forms.CheckboxInput(attrs={"class": "case"}),
     )
     garantie_mois = forms.IntegerField(
-        label=_l("Garantie (mois)"),
+        label=gettext_lazy("Garantie (mois)"),
         min_value=0,
         max_value=120,
         required=False,
         initial=0,
-        help_text=_l("Zéro si l'article n'est pas garanti. L'échéance sera figée à la vente."),
+        help_text=gettext_lazy("Zéro si l'article n'est pas garanti. L'échéance sera figée à la vente."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
 
@@ -177,7 +178,7 @@ class SocleArticleForm(forms.Form):
         """
         metier = self.metier
 
-        self.fields["libelle"].label = f"Nom {metier.du_article}"
+        self.fields["libelle"].label = _("Nom %(du_article)s") % {"du_article": metier.du_article}
         if metier.exemples:
             self.fields["libelle"].widget.attrs["placeholder"] = metier.exemples[0]
 
@@ -238,12 +239,12 @@ class ArticleForm(SocleArticleForm):
     """
 
     cout_unitaire = forms.DecimalField(
-        label=_l("Coût d'achat unitaire"), min_value=Decimal("0"), decimal_places=2,
-        help_text=_l("Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle."),
+        label=gettext_lazy("Coût d'achat unitaire"), min_value=Decimal("0"), decimal_places=2,
+        help_text=gettext_lazy("Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     quantite = forms.DecimalField(
-        label=_l("Quantité comptée"), min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
+        label=gettext_lazy("Quantité comptée"), min_value=Decimal("0"), initial=Decimal("0"), decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
 
@@ -287,10 +288,10 @@ class ArticleModifierForm(SocleArticleForm):
     """
 
     actif = forms.BooleanField(
-        label=_l("En vente"),
+        label=gettext_lazy("En vente"),
         required=False,
         initial=True,
-        help_text=_l("Décoché, l'article disparaît de la caisse et de la vitrine, et garde son stock."),
+        help_text=gettext_lazy("Décoché, l'article disparaît de la caisse et de la vitrine, et garde son stock."),
         widget=forms.CheckboxInput(attrs={"class": "case"}),
     )
 
@@ -339,12 +340,12 @@ class ExemplairesForm(forms.Form):
     """
 
     numeros = forms.CharField(
-        label=_l("Numéros de série"),
+        label=gettext_lazy("Numéros de série"),
         widget=forms.Textarea(
             attrs={
                 **CHAMP,
                 "rows": 4,
-                "placeholder": "Un numéro par ligne — scannez à la suite",
+                "placeholder": gettext_lazy("Un numéro par ligne — scannez à la suite"),
                 "autocomplete": "off",
                 "spellcheck": "false",
             }
@@ -364,27 +365,27 @@ class EntreeStockForm(forms.Form):
     """Réception fournisseur sur un article existant."""
 
     quantite = forms.DecimalField(
-        label=_l("Quantité reçue"), min_value=Decimal("0.0001"), decimal_places=4,
+        label=gettext_lazy("Quantité reçue"), min_value=Decimal("0.0001"), decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
     )
     cout_unitaire = forms.DecimalField(
-        label=_l("Coût d'achat unitaire"), min_value=Decimal("0"), decimal_places=2,
-        help_text=_l("Le coût moyen pondéré sera recalculé avec cette entrée."),
+        label=gettext_lazy("Coût d'achat unitaire"), min_value=Decimal("0"), decimal_places=2,
+        help_text=gettext_lazy("Le coût moyen pondéré sera recalculé avec cette entrée."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     commentaire = forms.CharField(
-        label=_l("Commentaire"), max_length=255, required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Bon de livraison n° …"}),
+        label=gettext_lazy("Commentaire"), max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Bon de livraison n° …")}),
     )
     numeros_serie = forms.CharField(
-        label=_l("Numéros de série reçus"),
+        label=gettext_lazy("Numéros de série reçus"),
         required=False,
-        help_text=_l("Un par ligne. Facultatifs : ce qui n'est pas nommé reste du stock ordinaire."),
+        help_text=gettext_lazy("Un par ligne. Facultatifs : ce qui n'est pas nommé reste du stock ordinaire."),
         widget=forms.Textarea(
             attrs={
                 **CHAMP,
                 "rows": 4,
-                "placeholder": "Un numéro par ligne — scannez à la suite",
+                "placeholder": gettext_lazy("Un numéro par ligne — scannez à la suite"),
                 "autocomplete": "off",
                 "spellcheck": "false",
             }
@@ -423,20 +424,20 @@ class AtelierForm(forms.Form):
     """Dépôt d'un appareil en réparation."""
 
     motif = forms.CharField(
-        label=_l("Panne constatée"),
+        label=gettext_lazy("Panne constatée"),
         max_length=255,
         widget=forms.TextInput(
-            attrs={**CHAMP, "placeholder": "Écran cassé, ne charge plus, redémarre seul…"}
+            attrs={**CHAMP, "placeholder": gettext_lazy("Écran cassé, ne charge plus, redémarre seul…")}
         ),
     )
 
 
 class SortieAtelierForm(forms.Form):
     resultat = forms.CharField(
-        label=_l("Ce qui a été fait"),
+        label=gettext_lazy("Ce qui a été fait"),
         max_length=255,
         required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Nappe de charge remplacée"}),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Nappe de charge remplacée")}),
     )
 
 
@@ -449,14 +450,14 @@ class TransfertStockForm(forms.Form):
     l'on se trouve, pas d'un dépôt qu'on désigne de loin.
     """
 
-    cible = forms.ChoiceField(label=_l("Vers le dépôt"), widget=forms.Select(attrs=CHAMP))
+    cible = forms.ChoiceField(label=gettext_lazy("Vers le dépôt"), widget=forms.Select(attrs=CHAMP))
     quantite = forms.DecimalField(
-        label=_l("Quantité transférée"), min_value=Decimal("0.0001"), decimal_places=4,
+        label=gettext_lazy("Quantité transférée"), min_value=Decimal("0.0001"), decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
     )
     commentaire = forms.CharField(
-        label=_l("Motif"), max_length=255, required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Réassort du comptoir"}),
+        label=gettext_lazy("Motif"), max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Réassort du comptoir")}),
     )
 
     def __init__(self, *args, depots=None, source=None, **kwargs):
@@ -475,13 +476,13 @@ class DepotForm(forms.Form):
     """Ouverture d'un dépôt supplémentaire (réserve, second point de vente)."""
 
     libelle = forms.CharField(
-        label=_l("Nom du dépôt"), max_length=120,
-        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "Réserve Akwa"}),
+        label=gettext_lazy("Nom du dépôt"), max_length=120,
+        widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": gettext_lazy("Réserve Akwa")}),
     )
-    type = forms.ChoiceField(label=_l("Type"), widget=forms.Select(attrs=CHAMP))
+    type = forms.ChoiceField(label=gettext_lazy("Type"), widget=forms.Select(attrs=CHAMP))
     adresse = forms.CharField(
-        label=_l("Adresse"), max_length=255, required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Facultative"}),
+        label=gettext_lazy("Adresse"), max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Facultative")}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -508,17 +509,17 @@ class MembreEquipeForm(forms.Form):
     """
 
     telephone = forms.CharField(
-        label=_l("Numéro de téléphone"),
+        label=gettext_lazy("Numéro de téléphone"),
         max_length=16,
         validators=[validateur_telephone],
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": "+237699000000"}),
     )
     nom_complet = forms.CharField(
-        label=_l("Nom complet"), max_length=150, required=False,
-        help_text=_l("Ignoré si la personne a déjà un compte."),
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Marie Ekedi"}),
+        label=gettext_lazy("Nom complet"), max_length=150, required=False,
+        help_text=gettext_lazy("Ignoré si la personne a déjà un compte."),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Marie Ekedi")}),
     )
-    role = forms.ChoiceField(label=_l("Rôle"), widget=forms.Select(attrs=CHAMP))
+    role = forms.ChoiceField(label=gettext_lazy("Rôle"), widget=forms.Select(attrs=CHAMP))
 
     def __init__(self, *args, roles=None, boutique=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -558,7 +559,7 @@ class MembreEquipeForm(forms.Form):
 
 
 class ChangementDeRoleForm(forms.Form):
-    role = forms.ChoiceField(label=_l("Rôle"))
+    role = forms.ChoiceField(label=gettext_lazy("Rôle"))
 
     def __init__(self, *args, roles=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -574,17 +575,17 @@ class ChangementDeRoleForm(forms.Form):
 
 class OuvertureCaisseForm(forms.Form):
     fonds_ouverture = forms.DecimalField(
-        label=_l("Fonds de caisse au démarrage"), min_value=Decimal("0"),
+        label=gettext_lazy("Fonds de caisse au démarrage"), min_value=Decimal("0"),
         initial=Decimal("0"), decimal_places=2,
-        help_text=_l("Les espèces présentes dans le tiroir avant la première vente."),
+        help_text=gettext_lazy("Les espèces présentes dans le tiroir avant la première vente."),
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "numeric", "step": "100"}),
     )
 
 
 class FermetureCaisseForm(forms.Form):
     fonds_compte = forms.DecimalField(
-        label=_l("Espèces comptées dans le tiroir"), min_value=Decimal("0"), decimal_places=2,
-        help_text=_l("Comptez avant de regarder le montant théorique."),
+        label=gettext_lazy("Espèces comptées dans le tiroir"), min_value=Decimal("0"), decimal_places=2,
+        help_text=gettext_lazy("Comptez avant de regarder le montant théorique."),
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "numeric", "step": "100"}),
     )
 
@@ -693,21 +694,21 @@ class LienMarketingForm(forms.Form):
     """Création d'un lien court."""
 
     libelle = forms.CharField(
-        label=_l("À quoi sert ce lien"),
+        label=gettext_lazy("À quoi sert ce lien"),
         max_length=120,
         widget=forms.TextInput(
-            attrs={**CHAMP, "placeholder": "Flyer marché central, statut WhatsApp…"}
+            attrs={**CHAMP, "placeholder": gettext_lazy("Flyer marché central, statut WhatsApp…")}
         ),
     )
     article = forms.ChoiceField(
-        label=_l("Vers"), required=False, widget=forms.Select(attrs=CHAMP)
+        label=gettext_lazy("Vers"), required=False, widget=forms.Select(attrs=CHAMP)
     )
     code_apporteur = forms.CharField(
-        label=_l("Code apporteur (facultatif)"),
+        label=gettext_lazy("Code apporteur (facultatif)"),
         max_length=12,
         required=False,
-        help_text=_l("Rattache les commandes venues de ce lien à un apporteur."),
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "HM-XXXXXX"}),
+        help_text=gettext_lazy("Rattache les commandes venues de ce lien à un apporteur."),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("HM-XXXXXX")}),
     )
 
     def __init__(self, *args, boutique=None, **kwargs):
@@ -735,27 +736,27 @@ class FicheForm(forms.Form):
     une invendable.
     """
 
-    variante = forms.ChoiceField(label=_l("Produit fabriqué"), widget=forms.Select(attrs=CHAMP_GRAND))
+    variante = forms.ChoiceField(label=gettext_lazy("Produit fabriqué"), widget=forms.Select(attrs=CHAMP_GRAND))
     rendement = forms.DecimalField(
-        label=_l("Rendement"),
+        label=gettext_lazy("Rendement"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
         initial=Decimal("1"),
-        help_text=_l("Combien d'unités une fiche complète produit. Une fournée, pas une pièce."),
+        help_text=gettext_lazy("Combien d'unités une fiche complète produit. Une fournée, pas une pièce."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     duree_conservation_jours = forms.IntegerField(
-        label=_l("Conservation (jours)"),
+        label=gettext_lazy("Conservation (jours)"),
         min_value=0,
         max_value=3650,
         required=False,
-        help_text=_l("La date de péremption sera calculée à chaque production."),
+        help_text=gettext_lazy("La date de péremption sera calculée à chaque production."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "step": "1"}),
     )
     note = forms.CharField(
-        label=_l("Mode opératoire"),
+        label=gettext_lazy("Mode opératoire"),
         required=False,
-        widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "placeholder": "Pétrissage 12 min, repos 1 h…"}),
+        widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "placeholder": gettext_lazy("Pétrissage 12 min, repos 1 h…")}),
     )
 
     def __init__(self, *args, boutique=None, metier=None, **kwargs):
@@ -771,10 +772,10 @@ class FicheForm(forms.Form):
             .order_by("produit__libelle")[:300]
         )
         self.disponibles = {str(v.pk): v for v in candidats}
-        self.fields["variante"].choices = [("", "Choisir…")] + [
+        self.fields["variante"].choices = [("", _("Choisir…"))] + [
             (cle, str(v)) for cle, v in self.disponibles.items()
         ]
-        self.fields["variante"].label = f"{self.metier.article.capitalize()} fabriqué"
+        self.fields["variante"].label = capfirst(_("%(article)s fabriqué") % {"article": self.metier.article})
 
     def clean_variante(self):
         variante = self.disponibles.get(self.cleaned_data["variante"])
@@ -793,12 +794,12 @@ class IngredientForm(forms.Form):
     production de sortir réellement la marchandise du dépôt.
     """
 
-    ingredient = forms.ChoiceField(label=_l("Ingrédient"), widget=forms.Select(attrs=CHAMP_GRAND))
+    ingredient = forms.ChoiceField(label=gettext_lazy("Ingrédient"), widget=forms.Select(attrs=CHAMP_GRAND))
     quantite = forms.DecimalField(
-        label=_l("Quantité"),
+        label=gettext_lazy("Quantité"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
-        help_text=_l("Pour une fiche complète, dans l'unité de l'ingrédient."),
+        help_text=gettext_lazy("Pour une fiche complète, dans l'unité de l'ingrédient."),
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "0.01"}),
     )
 
@@ -822,7 +823,7 @@ class IngredientForm(forms.Form):
             .order_by("produit__libelle")[:300]
         )
         self.disponibles = {str(v.pk): v for v in candidats}
-        self.fields["ingredient"].choices = [("", "Choisir…")] + [
+        self.fields["ingredient"].choices = [("", _("Choisir…"))] + [
             (cle, str(v)) for cle, v in self.disponibles.items()
         ]
 
@@ -845,14 +846,14 @@ class ProductionForm(forms.Form):
     """
 
     quantite = forms.DecimalField(
-        label=_l("Quantité produite"),
+        label=gettext_lazy("Quantité produite"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP_GRAND, "inputmode": "decimal", "step": "1"}),
     )
     commentaire = forms.CharField(
-        label=_l("Commentaire"), max_length=255, required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Fournée du matin"}),
+        label=gettext_lazy("Commentaire"), max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Fournée du matin")}),
     )
 
 
@@ -865,16 +866,16 @@ class InvenduForm(forms.Form):
     jeté, et sur quel produit.
     """
 
-    variante = forms.ChoiceField(label=_l("Produit"), widget=forms.Select(attrs=CHAMP_GRAND))
+    variante = forms.ChoiceField(label=gettext_lazy("Produit"), widget=forms.Select(attrs=CHAMP_GRAND))
     quantite = forms.DecimalField(
-        label=_l("Quantité jetée"),
+        label=gettext_lazy("Quantité jetée"),
         min_value=Decimal("0.0001"),
         decimal_places=4,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "decimal", "step": "1"}),
     )
     motif = forms.CharField(
-        label=_l("Motif"), max_length=255, required=False,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Invendus du soir"}),
+        label=gettext_lazy("Motif"), max_length=255, required=False,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Invendus du soir")}),
     )
 
     def __init__(self, *args, recettes=None, **kwargs):
@@ -883,7 +884,7 @@ class InvenduForm(forms.Form):
         # sur ce qui est sorti du four, pas sur les bouteilles en rayon — celles-là
         # se régularisent à l'inventaire.
         self.disponibles = {str(r.variante_id): r.variante for r in (recettes or [])}
-        self.fields["variante"].choices = [("", "Choisir…")] + [
+        self.fields["variante"].choices = [("", _("Choisir…"))] + [
             (cle, str(v)) for cle, v in self.disponibles.items()
         ]
 
@@ -908,24 +909,24 @@ class CompatibiliteForm(forms.Form):
     """
 
     marque = forms.CharField(
-        label=_l("Marque"), max_length=60,
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Toyota", "list": "marques-connues"}),
+        label=gettext_lazy("Marque"), max_length=60,
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Toyota"), "list": "marques-connues"}),
     )
     modele = forms.CharField(
-        label=_l("Modèle"), max_length=80, required=False,
-        help_text=_l("Vide si la pièce va sur toute la marque."),
-        widget=forms.TextInput(attrs={**CHAMP, "placeholder": "Corolla", "list": "modeles-connus"}),
+        label=gettext_lazy("Modèle"), max_length=80, required=False,
+        help_text=gettext_lazy("Vide si la pièce va sur toute la marque."),
+        widget=forms.TextInput(attrs={**CHAMP, "placeholder": gettext_lazy("Corolla"), "list": "modeles-connus"}),
     )
     motorisation = forms.CharField(
-        label=_l("Motorisation"), max_length=60, required=False,
+        label=gettext_lazy("Motorisation"), max_length=60, required=False,
         widget=forms.TextInput(attrs={**CHAMP, "placeholder": "1.4 D-4D"}),
     )
     annee_debut = forms.IntegerField(
-        label=_l("De l'année"), min_value=1950, max_value=2100, required=False,
+        label=gettext_lazy("De l'année"), min_value=1950, max_value=2100, required=False,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "2012"}),
     )
     annee_fin = forms.IntegerField(
-        label=_l("À l'année"), min_value=1950, max_value=2100, required=False,
+        label=gettext_lazy("À l'année"), min_value=1950, max_value=2100, required=False,
         widget=forms.NumberInput(attrs={**CHAMP, "inputmode": "numeric", "placeholder": "2018"}),
     )
 
@@ -981,14 +982,14 @@ class DesignationForm(forms.Form):
     pharmacien n'en voit qu'une.
     """
 
-    type = forms.ChoiceField(label=_l("Nature"), widget=forms.Select(attrs=CHAMP))
+    type = forms.ChoiceField(label=gettext_lazy("Nature"), widget=forms.Select(attrs=CHAMP))
     valeur = forms.CharField(
-        label=_l("Désignation"), max_length=120,
+        label=gettext_lazy("Désignation"), max_length=120,
         widget=forms.TextInput(attrs={**CHAMP, "list": "designations-connues"}),
     )
     source = forms.CharField(
-        label=_l("Employée par"), max_length=120, required=False,
-        help_text=_l("Facultatif : le laboratoire ou l'équipementier qui emploie ce nom."),
+        label=gettext_lazy("Employée par"), max_length=120, required=False,
+        help_text=gettext_lazy("Facultatif : le laboratoire ou l'équipementier qui emploie ce nom."),
         widget=forms.TextInput(attrs=CHAMP),
     )
 

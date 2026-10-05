@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from django.utils.translation import gettext_lazy
 
 
 @dataclass(frozen=True)
@@ -54,49 +55,49 @@ PALIERS = (
         niveau=0,
         acheteurs_distincts_min=0,
         code="nouvelle",
-        libelle="Nouvelle boutique",
+        libelle=gettext_lazy("Nouvelle boutique"),
         delai_liberation_jours=7,
         plafond_sequestre=Decimal("150000"),
         livraisons_min=0,
         anciennete_jours_min=0,
         taux_litiges_perdus_max=Decimal("1"),
-        description="Identité vérifiée, aucun historique. Prépaiement plafonné, fonds retenus 7 jours.",
+        description=gettext_lazy("Identité vérifiée, aucun historique. Prépaiement plafonné, fonds retenus 7 jours."),
     ),
     Palier(
         niveau=1,
         acheteurs_distincts_min=8,
         code="confirmee",
-        libelle="Boutique confirmée",
+        libelle=gettext_lazy("Boutique confirmée"),
         delai_liberation_jours=5,
         plafond_sequestre=Decimal("750000"),
         livraisons_min=10,
         anciennete_jours_min=30,
         taux_litiges_perdus_max=Decimal("0.10"),
-        description="Dix livraisons confirmées sur un mois, peu de litiges perdus.",
+        description=gettext_lazy("Dix livraisons confirmées sur un mois, peu de litiges perdus."),
     ),
     Palier(
         niveau=2,
         acheteurs_distincts_min=35,
         code="reconnue",
-        libelle="Boutique reconnue",
+        libelle=gettext_lazy("Boutique reconnue"),
         delai_liberation_jours=3,
         plafond_sequestre=Decimal("3000000"),
         livraisons_min=50,
         anciennete_jours_min=90,
         taux_litiges_perdus_max=Decimal("0.05"),
-        description="Cinquante livraisons confirmées sur un trimestre.",
+        description=gettext_lazy("Cinquante livraisons confirmées sur un trimestre."),
     ),
     Palier(
         niveau=3,
         acheteurs_distincts_min=120,
         code="etablie",
-        libelle="Boutique établie",
+        libelle=gettext_lazy("Boutique établie"),
         delai_liberation_jours=3,
         plafond_sequestre=None,
         livraisons_min=200,
         anciennete_jours_min=180,
         taux_litiges_perdus_max=Decimal("0.03"),
-        description="Deux cents livraisons confirmées sur six mois. Le délai minimal couvre la médiation de 72 h (docs/08, §8).",
+        description=gettext_lazy("Deux cents livraisons confirmées sur six mois. Le délai minimal couvre la médiation de 72 h (docs/08, §8)."),
     ),
 )
 

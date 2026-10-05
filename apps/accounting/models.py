@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from apps.core.models import BaseModel, TenantScopedModel
 from apps.core.uuid7 import uuid7
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CENTIME = Decimal("0.01")
 
@@ -42,7 +42,7 @@ class CompteGeneral(models.Model):
     PASSIF = "passif"
     CHARGE = "charge"
     PRODUIT = "produit"
-    TYPES = [(ACTIF, _l("Actif")), (PASSIF, _l("Passif")), (CHARGE, _l("Charge")), (PRODUIT, _l("Produit"))]
+    TYPES = [(ACTIF, gettext_lazy("Actif")), (PASSIF, gettext_lazy("Passif")), (CHARGE, gettext_lazy("Charge")), (PRODUIT, gettext_lazy("Produit"))]
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     plan = models.ForeignKey(PlanComptable, on_delete=models.CASCADE, related_name="comptes")
@@ -93,7 +93,7 @@ class CompteBoutique(TenantScopedModel):
 class Exercice(TenantScopedModel):
     OUVERT = "ouvert"
     CLOTURE = "cloture"
-    ETATS = [(OUVERT, _l("Ouvert")), (CLOTURE, _l("Clôturé"))]
+    ETATS = [(OUVERT, gettext_lazy("Ouvert")), (CLOTURE, gettext_lazy("Clôturé"))]
 
     debut = models.DateField()
     fin = models.DateField()
@@ -119,13 +119,13 @@ class Journal(TenantScopedModel):
     STOCK = "STK"
     OPERATIONS_DIVERSES = "OD"
     CODES = [
-        (VENTES, _l("Journal des ventes")),
-        (ACHATS, _l("Journal des achats")),
-        (BANQUE, _l("Journal de banque")),
-        (CAISSE, _l("Journal de caisse")),
-        (PAIE, _l("Journal de paie")),
-        (STOCK, _l("Journal des stocks")),
-        (OPERATIONS_DIVERSES, _l("Opérations diverses")),
+        (VENTES, gettext_lazy("Journal des ventes")),
+        (ACHATS, gettext_lazy("Journal des achats")),
+        (BANQUE, gettext_lazy("Journal de banque")),
+        (CAISSE, gettext_lazy("Journal de caisse")),
+        (PAIE, gettext_lazy("Journal de paie")),
+        (STOCK, gettext_lazy("Journal des stocks")),
+        (OPERATIONS_DIVERSES, gettext_lazy("Opérations diverses")),
     ]
 
     code = models.CharField(max_length=8, choices=CODES)
@@ -148,14 +148,14 @@ class EcritureComptable(TenantScopedModel):
     journal = models.ForeignKey(Journal, on_delete=models.PROTECT, related_name="ecritures")
     exercice = models.ForeignKey(Exercice, on_delete=models.PROTECT, related_name="ecritures")
     date_ecriture = models.DateField(default=timezone.localdate, db_index=True)
-    piece = models.CharField(max_length=32, help_text=_l("Séquence continue par journal et exercice."))
+    piece = models.CharField(max_length=32, help_text=gettext_lazy("Séquence continue par journal et exercice."))
     libelle = models.CharField(max_length=255)
     validee = models.BooleanField(default=False, db_index=True)
     contrepassee_par = models.OneToOneField(
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="contrepasse"
     )
     origine_type = models.CharField(
-        max_length=64, blank=True, help_text=_l('Traçabilité descendante : "pos.Ticket", "orders.SousCommande"…')
+        max_length=64, blank=True, help_text=gettext_lazy('Traçabilité descendante : "pos.Ticket", "orders.SousCommande"…')
     )
     origine_id = models.UUIDField(null=True, blank=True)
 
@@ -239,9 +239,9 @@ class LigneEcriture(TenantScopedModel):
 class DeclarationTva(TenantScopedModel):
     BROUILLON = "brouillon"
     DEPOSEE = "deposee"
-    ETATS = [(BROUILLON, _l("Brouillon")), (DEPOSEE, _l("Déposée"))]
+    ETATS = [(BROUILLON, gettext_lazy("Brouillon")), (DEPOSEE, gettext_lazy("Déposée"))]
 
-    periode = models.DateField(help_text=_l("Premier jour du mois déclaré."))
+    periode = models.DateField(help_text=gettext_lazy("Premier jour du mois déclaré."))
     collectee = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))
     deductible = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))
     credit_anterieur = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))

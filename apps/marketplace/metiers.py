@@ -47,6 +47,9 @@ n'active les deux.
 
 from dataclasses import dataclass, field
 
+from django.utils.translation import get_language, pgettext
+from django.utils.translation import gettext_lazy
+
 __all__ = [
     "Metier",
     "METIERS",
@@ -80,18 +83,24 @@ DCI = "dci"
 EQUIVALENCE = "equivalence"
 
 LIBELLES_FONCTIONS = {
-    PEREMPTION: "Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard",
-    LOT: "Numéro de lot à la réception, et stock suivi lot par lot",
-    POIDS_VARIABLE: "Vente au poids ou à la longueur, quantités décimales",
-    DECLINAISONS: "Déclinaisons d'un même modèle : taille, couleur, contenance",
-    RECETTE: "Fiches techniques : produire consomme les ingrédients et calcule le coût de revient",
-    COMPATIBILITE: "Référence constructeur et compatibilité véhicule : marque, modèle, années",
-    ORDONNANCE: "Médicaments sur ordonnance : ordonnancier, et retrait de la vente en ligne",
-    SERIE: "Numéros de série et IMEI suivis exemplaire par exemplaire, de la réception à la vente",
-    GARANTIE: "Garantie : durée, échéance figée à la vente, et passages à l'atelier",
-    DCI: "Dénomination commune internationale : retrouver les équivalents d'un médicament",
-    EQUIVALENCE: "Références équivalentes : la même pièce sous la référence d'un autre fabricant",
+    PEREMPTION: gettext_lazy("Suivi des dates de péremption, et alerte avant qu'il ne soit trop tard"),
+    LOT: gettext_lazy("Numéro de lot à la réception, et stock suivi lot par lot"),
+    POIDS_VARIABLE: gettext_lazy("Vente au poids ou à la longueur, quantités décimales"),
+    DECLINAISONS: gettext_lazy("Déclinaisons d'un même modèle : taille, couleur, contenance"),
+    RECETTE: gettext_lazy("Fiches techniques : produire consomme les ingrédients et calcule le coût de revient"),
+    COMPATIBILITE: gettext_lazy("Référence constructeur et compatibilité véhicule : marque, modèle, années"),
+    ORDONNANCE: gettext_lazy("Médicaments sur ordonnance : ordonnancier, et retrait de la vente en ligne"),
+    SERIE: gettext_lazy("Numéros de série et IMEI suivis exemplaire par exemplaire, de la réception à la vente"),
+    GARANTIE: gettext_lazy("Garantie : durée, échéance figée à la vente, et passages à l'atelier"),
+    DCI: gettext_lazy("Dénomination commune internationale : retrouver les équivalents d'un médicament"),
+    EQUIVALENCE: gettext_lazy("Références équivalentes : la même pièce sous la référence d'un autre fabricant"),
 }
+
+
+def _francais() -> bool:
+    """Les accords (« nouvel », « de la », « l' ») ne valent qu'en français ; ailleurs, la forme
+    neutre traduite par le catalogue."""
+    return (get_language() or "fr").startswith("fr")
 
 
 @dataclass(frozen=True)
@@ -116,7 +125,7 @@ class Metier:
     # pièces détachées — et un logiciel qui écorche la langue du métier ne passe
     # plus pour un logiciel fait pour ce métier.
     feminin: bool = False
-    reception: str = "Réception fournisseur"
+    reception: str = gettext_lazy("Réception fournisseur")
 
     # Valeurs par défaut à la création d'un article
     unite_defaut: str = "U"
@@ -140,6 +149,8 @@ class Metier:
         voyelle prend « nouvel ». Le bouton le plus visible de l'écran du stock
         n'a pas le droit d'être fautif.
         """
+        if not _francais():
+            return pgettext("métier", "Nouveau")
         if self.feminin:
             return "Nouvelle"
         return "Nouvel" if self._commence_par_une_voyelle else "Nouveau"
@@ -151,6 +162,8 @@ class Metier:
         L'élision est faite ici et non dans le gabarit : « Nom du article » est
         exactement le genre de faute qui fait douter du reste du logiciel.
         """
+        if not _francais():
+            return pgettext("métier", "du %(article)s") % {"article": self.article}
         if self._commence_par_une_voyelle:
             return f"de l'{self.article}"
         return f"{'de la' if self.feminin else 'du'} {self.article}"
@@ -163,13 +176,15 @@ class Metier:
         Sans lui, un gabarit qui se rabat sur `du_article` écrit « Modifier de
         l'article », et le premier titre que voit le commerçant est fautif.
         """
+        if not _francais():
+            return pgettext("métier", "le %(article)s") % {"article": self.article}
         if self._commence_par_une_voyelle:
             return f"l'{self.article}"
         return f"{'la' if self.feminin else 'le'} {self.article}"
 
     @property
     def _commence_par_une_voyelle(self) -> bool:
-        return self.article[:1].lower() in "aeiouâéèêîôûy"
+        return str(self.article)[:1].lower() in "aeiouâéèêîôûy"
 
     @property
     def libelles_fonctions(self) -> list[str]:
@@ -184,19 +199,19 @@ class Metier:
 METIERS: dict[str, Metier] = {
     "COMMERCE_GENERAL": Metier(
         code="COMMERCE_GENERAL",
-        libelle="Commerce général & alimentation",
-        resume="Boutique de quartier, épicerie, alimentation générale.",
-        article="article",
-        articles="articles",
+        libelle=gettext_lazy("Commerce général & alimentation"),
+        resume=gettext_lazy("Boutique de quartier, épicerie, alimentation générale."),
+        article=gettext_lazy("article"),
+        articles=gettext_lazy("articles"),
         exemples=("Riz parfumé 5 kg", "Huile de palme 1 L", "Savon de Marseille"),
     ),
     "PHARMACIE": Metier(
         code="PHARMACIE",
-        libelle="Pharmacie & parapharmacie",
-        resume="Officine, dépôt pharmaceutique, parapharmacie.",
-        article="médicament",
-        articles="médicaments",
-        reception="Réception grossiste",
+        libelle=gettext_lazy("Pharmacie & parapharmacie"),
+        resume=gettext_lazy("Officine, dépôt pharmaceutique, parapharmacie."),
+        article=gettext_lazy("médicament"),
+        articles=gettext_lazy("médicaments"),
+        reception=gettext_lazy("Réception grossiste"),
         # Les médicaments essentiels sont exonérés de TVA au Cameroun. Le défaut
         # est donc « exonéré » : c'est le cas le plus fréquent en officine, et
         # un défaut qui oblige à corriger chaque ligne finit par être ignoré.
@@ -206,78 +221,78 @@ METIERS: dict[str, Metier] = {
     ),
     "QUINCAILLERIE": Metier(
         code="QUINCAILLERIE",
-        libelle="Quincaillerie & matériaux",
-        resume="Fer, ciment, outillage, plomberie, électricité.",
-        article="article",
-        articles="articles",
+        libelle=gettext_lazy("Quincaillerie & matériaux"),
+        resume=gettext_lazy("Fer, ciment, outillage, plomberie, électricité."),
+        article=gettext_lazy("article"),
+        articles=gettext_lazy("articles"),
         fonctions=frozenset({POIDS_VARIABLE}),
         exemples=("Ciment CIMENCAM 50 kg", "Fer à béton 12 mm", "Tuyau PVC 100 mm"),
     ),
     "COSMETIQUE": Metier(
         code="COSMETIQUE",
-        libelle="Cosmétique & beauté",
-        resume="Soins, parfums, produits capillaires, salon.",
-        article="produit",
-        articles="produits",
+        libelle=gettext_lazy("Cosmétique & beauté"),
+        resume=gettext_lazy("Soins, parfums, produits capillaires, salon."),
+        article=gettext_lazy("produit"),
+        articles=gettext_lazy("produits"),
         fonctions=frozenset({PEREMPTION, LOT, DECLINAISONS}),
         exemples=("Beurre de karité 500 g", "Huile d'argan 100 ml", "Masque à l'argile"),
     ),
     "RESTAURATION": Metier(
         code="RESTAURATION",
-        libelle="Restauration & snack",
-        resume="Restaurant, snack, bar, traiteur.",
-        article="plat",
-        articles="plats",
-        reception="Réception des denrées",
+        libelle=gettext_lazy("Restauration & snack"),
+        resume=gettext_lazy("Restaurant, snack, bar, traiteur."),
+        article=gettext_lazy("plat"),
+        articles=gettext_lazy("plats"),
+        reception=gettext_lazy("Réception des denrées"),
         fonctions=frozenset({PEREMPTION, RECETTE}),
-        a_venir=("Service à table et commandes en cours",),
+        a_venir=(gettext_lazy("Service à table et commandes en cours"),),
         exemples=("Poulet DG", "Ndolé aux crevettes", "Jus de bissap 50 cl"),
     ),
     "BOULANGERIE": Metier(
         code="BOULANGERIE",
-        libelle="Boulangerie & pâtisserie",
-        resume="Pain, viennoiserie, pâtisserie, production quotidienne.",
-        article="produit",
-        articles="produits",
-        reception="Réception des matières premières",
+        libelle=gettext_lazy("Boulangerie & pâtisserie"),
+        resume=gettext_lazy("Pain, viennoiserie, pâtisserie, production quotidienne."),
+        article=gettext_lazy("produit"),
+        articles=gettext_lazy("produits"),
+        reception=gettext_lazy("Réception des matières premières"),
         fonctions=frozenset({PEREMPTION, POIDS_VARIABLE, RECETTE}),
         exemples=("Baguette 250 g", "Croissant au beurre", "Gâteau d'anniversaire 1 kg"),
     ),
     "MODE": Metier(
         code="MODE",
-        libelle="Mode & prêt-à-porter",
-        resume="Vêtements, chaussures, maroquinerie, friperie.",
-        article="article",
-        articles="articles",
+        libelle=gettext_lazy("Mode & prêt-à-porter"),
+        resume=gettext_lazy("Vêtements, chaussures, maroquinerie, friperie."),
+        article=gettext_lazy("article"),
+        articles=gettext_lazy("articles"),
         fonctions=frozenset({DECLINAISONS}),
         exemples=("Chemise en wax — homme", "Sandales cuir", "Sac à main"),
     ),
     "ELECTRONIQUE": Metier(
         code="ELECTRONIQUE",
-        libelle="Électronique & téléphonie",
-        resume="Téléphones, accessoires, informatique, réparation.",
-        article="appareil",
-        articles="appareils",
+        libelle=gettext_lazy("Électronique & téléphonie"),
+        resume=gettext_lazy("Téléphones, accessoires, informatique, réparation."),
+        article=gettext_lazy("appareil"),
+        articles=gettext_lazy("appareils"),
         fonctions=frozenset({DECLINAISONS, SERIE, GARANTIE}),
         exemples=("Téléphone 64 Go", "Chargeur rapide 25 W", "Écouteurs sans fil"),
     ),
     "PIECES_AUTO": Metier(
         code="PIECES_AUTO",
-        libelle="Pièces détachées auto & moto",
-        resume="Pièces neuves et d'occasion, lubrifiants, pneumatiques.",
-        article="pièce",
-        articles="pièces",
+        libelle=gettext_lazy("Pièces détachées auto & moto"),
+        resume=gettext_lazy("Pièces neuves et d'occasion, lubrifiants, pneumatiques."),
+        article=gettext_lazy("pièce"),
+        articles=gettext_lazy("pièces"),
         feminin=True,
         fonctions=frozenset({COMPATIBILITE, EQUIVALENCE}),
         exemples=("Filtre à huile — Toyota Corolla", "Plaquettes de frein avant", "Huile 15W40 5 L"),
     ),
     "PRODUITS_FRAIS": Metier(
         code="PRODUITS_FRAIS",
-        libelle="Produits frais",
-        resume="Primeur, boucherie, poissonnerie, crémerie.",
-        article="produit",
-        articles="produits",
-        reception="Arrivage",
+        libelle=gettext_lazy("Produits frais"),
+        resume=gettext_lazy("Primeur, boucherie, poissonnerie, crémerie."),
+        article=gettext_lazy("produit"),
+        articles=gettext_lazy("produits"),
+        reception=gettext_lazy("Arrivage"),
         unite_defaut="KG",
         fonctions=frozenset({PEREMPTION, POIDS_VARIABLE}),
         exemples=("Filet de bœuf", "Bar frais", "Tomates fraîches"),

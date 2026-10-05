@@ -110,7 +110,7 @@ indicateur mène à l'écran filtré qui l'explique.
         <span class="t-graphe-total__valeur">{{ graphe.total|fcfa }}<span class="unite">FCFA</span></span>
         <span class="t-legende">{% blocktranslate with nb_mois=nb_mois trimmed %}sur {{ nb_mois }} mois{% endblocktranslate %}</span>
       </p>
-      {% include "plateforme/partials/t_graphe.html" with aria="Loyers encaissés hors taxes, par mois facturé, en francs CFA." vide="Aucun loyer encaissé sur la période." %}
+      {% include "plateforme/partials/t_graphe.html" with aria=_("Loyers encaissés hors taxes, par mois facturé, en francs CFA.") vide=_("Aucun loyer encaissé sur la période.") %}
     </div>
   </section>
   {% endif %}

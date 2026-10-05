@@ -24,7 +24,7 @@ déplie sur place : les filtres restent atteignables, simplement moins jolis.
 <dialog class="modale" id="{{ id }}" aria-labelledby="titre-{{ id }}">
   <form method="get" action="{{ action }}">
     <header class="modale__entete">
-      <h2 class="t-section" id="titre-{{ id }}">{{ titre|default:"Filtres" }}</h2>
+      <h2 class="t-section" id="titre-{{ id }}">{{ titre|default:_("Filtres") }}</h2>
       {% if formulaire.actifs %}
         <span class="puce puce--marque">{% blocktranslate count actifs=formulaire.actifs trimmed %}{{ actifs }} actif{% plural %}{{ actifs }} actifs{% endblocktranslate %}</span>
       {% endif %}

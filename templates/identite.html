@@ -109,8 +109,8 @@
   </div>
 
   <section class="carte tableau-panneau" data-tableau
-           data-nom="lien" data-noms="liens">
-    {% include "partials/tableau_barre.html" with nom="lien" noms="liens" titre="Mes liens marketing" creer_url=url_creer creer_libelle="Créer un lien" modifier_possible=1 modifier_libelle="Renommer" supprimer_url=url_retirer supprimer_libelle="Retirer" filtres_id="filtres-liens" filtres_actifs=filtres.actifs aide="Sélectionnez un lien pour le renommer ou le retirer. Le code, lui, ne change jamais — il est peut-être imprimé." avertissement_suppression="Un lien retiré ne redirige plus, mais n'est pas effacé : son compteur de clics reste lisible, et c'est tout l'intérêt de l'avoir compté." %}
+           data-nom="{% translate "lien" context "ligne de tableau" %}" data-noms="{% translate "liens" context "ligne de tableau" %}">
+    {% include "partials/tableau_barre.html" with nom="lien" noms="liens" titre=_("Mes liens marketing") creer_url=url_creer creer_libelle=_("Créer un lien") modifier_possible=1 modifier_libelle=_("Renommer") supprimer_url=url_retirer supprimer_libelle=_("Retirer") filtres_id="filtres-liens" filtres_actifs=filtres.actifs aide=_("Sélectionnez un lien pour le renommer ou le retirer. Le code, lui, ne change jamais — il est peut-être imprimé.") avertissement_suppression=_("Un lien retiré ne redirige plus, mais n'est pas effacé : son compteur de clics reste lisible, et c'est tout l'intérêt de l'avoir compté.") %}
 
     {% if liens %}
       <div class="tableau-boite">
@@ -229,7 +229,7 @@ changer les rendrait tous muets d'un coup, et personne ne saurait pourquoi.
   </form>
 </dialog>
 
-{% include "partials/modal_filtres.html" with id="filtres-liens" formulaire=filtres action=url_identite titre="Filtrer les liens" %}
+{% include "partials/modal_filtres.html" with id="filtres-liens" formulaire=filtres action=url_identite titre=_("Filtrer les liens") %}
 
 <script>
   // Les pastilles remplissent le sélecteur de couleur. Aucun état intermédiaire :

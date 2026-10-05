@@ -41,8 +41,8 @@
   {% endif %}
 
   <section class="carte tableau-panneau" data-tableau
-           data-nom="accès" data-noms="accès" data-accord="">
-    {% include "partials/tableau_barre.html" with nom="acces" noms="accès" titre="Qui a accès" creer_url=url_creer creer_libelle="Rattacher quelqu'un" modifier_possible=1 modifier_libelle="Gérer l'accès" supprimer_url=url_retirer supprimer_libelle="Retirer l'accès" filtres_id="filtres-equipe" filtres_actifs=filtres.actifs aide="Sélectionnez une personne pour changer son rôle, refaire son mot de passe ou lui retirer l'accès." avertissement_suppression="Retirer un accès ne supprime jamais le compte : la personne a encaissé des ventes et signé des mouvements de stock, et son nom doit rester lisible dans cet historique." %}
+           data-nom="{% translate "accès" context "ligne de tableau" %}" data-noms="{% translate "accès" context "ligne de tableau" %}" data-accord="">
+    {% include "partials/tableau_barre.html" with nom="acces" noms="accès" titre=_("Qui a accès") creer_url=url_creer creer_libelle=_("Rattacher quelqu'un") modifier_possible=1 modifier_libelle=_("Gérer l'accès") supprimer_url=url_retirer supprimer_libelle=_("Retirer l'accès") filtres_id="filtres-equipe" filtres_actifs=filtres.actifs aide=_("Sélectionnez une personne pour changer son rôle, refaire son mot de passe ou lui retirer l'accès.") avertissement_suppression=_("Retirer un accès ne supprime jamais le compte : la personne a encaissé des ventes et signé des mouvements de stock, et son nom doit rester lisible dans cet historique.") %}
 
     <div class="tableau-boite">
       <table class="tableau">
@@ -230,5 +230,5 @@ gestes qu'on fait rarement.
   </div>
 </dialog>
 
-{% include "partials/modal_filtres.html" with id="filtres-equipe" formulaire=filtres action=url_equipe titre="Filtrer l'équipe" %}
+{% include "partials/modal_filtres.html" with id="filtres-equipe" formulaire=filtres action=url_equipe titre=_("Filtrer l'équipe") %}
 {% endblock %}

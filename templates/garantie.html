@@ -176,7 +176,7 @@
   {# ---- Ce qui attend à l'atelier ---------------------------------------- #}
   {% if en_atelier %}
     <section class="carte tableau-panneau">
-      {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre="À l'atelier" aide="Chacun de ces appareils appartient à quelqu'un qui attend. Ouvrez-en un pour le rendre : la couverture a été figée au jour du dépôt." %}
+      {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre=_("À l'atelier") aide=_("Chacun de ces appareils appartient à quelqu'un qui attend. Ouvrez-en un pour le rendre : la couverture a été figée au jour du dépôt.") %}
       <div class="carte__corps colonne" style="gap:10px">
         <p class="t-legende">
           {% translate "Le plus ancien dépôt est en tête — c'est celui dont le client rappelle." %}
@@ -187,7 +187,7 @@
               <a href="{% url 'garantie' %}?numero={{ e.numero|urlencode }}" class="principal">{{ e.numero }}</a>
               <span class="t-muet"> · {{ e.variante.produit.libelle }}</span>
             </span>
-            <span class="t-legende">{{ e.client|default:"Client non nommé" }}</span>
+            <span class="t-legende">{{ e.client|default:_("Client non nommé") }}</span>
           </div>
         {% endfor %}
       </div>
@@ -241,8 +241,8 @@
 
   {# ---- Ventes récentes --------------------------------------------------- #}
   <section class="carte tableau-panneau" data-tableau
-           data-nom="appareil" data-noms="appareils">
-    {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre="Derniers appareils vendus" filtres_id="filtres-exemplaires" filtres_actifs=filtres.actifs aide="Pour le client qui a perdu son ticket et se souvient seulement du jour. Sélectionnez un appareil pour l'ouvrir." %}
+           data-nom="{% translate "appareil" context "ligne de tableau" %}" data-noms="{% translate "appareils" context "ligne de tableau" %}">
+    {% include "partials/tableau_barre.html" with nom="appareil" noms="appareils" titre=_("Derniers appareils vendus") filtres_id="filtres-exemplaires" filtres_actifs=filtres.actifs aide=_("Pour le client qui a perdu son ticket et se souvient seulement du jour. Sélectionnez un appareil pour l'ouvrir.") %}
     <div class="carte__corps--serre">
       {% if ventes %}
         <div class="tableau-boite">
@@ -301,7 +301,7 @@
     </div>
   </section>
 
-  {% include "partials/modal_filtres.html" with id="filtres-exemplaires" formulaire=filtres action=url_garantie conserver=conserver_dans_filtres titre="Filtrer les appareils" aide="La recherche par numéro, en haut de l'écran, ignore ces filtres : elle doit trouver un appareil quel que soit son état." %}
+  {% include "partials/modal_filtres.html" with id="filtres-exemplaires" formulaire=filtres action=url_garantie conserver=conserver_dans_filtres titre=_("Filtrer les appareils") aide=_("La recherche par numéro, en haut de l'écran, ignore ces filtres : elle doit trouver un appareil quel que soit son état.") %}
 </div>
 {% endblock %}
 

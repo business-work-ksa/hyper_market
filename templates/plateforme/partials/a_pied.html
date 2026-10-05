@@ -15,7 +15,7 @@ d'envoi du formulaire — d'où le bouton « Continuer » invisible posé en tê
   {% endif %}
   {% if etape.recapitulatif %}
     <button class="btn btn--primaire a-confirmer" type="submit" name="_confirmer" value="1">
-      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-check"></use></svg>{{ libelle_confirmer|default:"Confirmer" }}
+      <svg class="icone-ligne" aria-hidden="true"><use href="#ic-check"></use></svg>{{ libelle_confirmer|default:_("Confirmer") }}
     </button>
   {% else %}
     <button class="btn btn--primaire" type="submit" name="_continuer" value="1">

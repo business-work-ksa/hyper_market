@@ -39,6 +39,8 @@ from apps.marketplace.models import (
 )
 from apps.plateforme import indicateurs as ind
 from apps.plateforme.acces import contexte_console, exige_console, lecture_journalisee
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 PAR_PAGE = 25
 
@@ -107,7 +109,7 @@ def boutiques(request):
     compteurs = {e: 0 for e in LIBELLES_ETATS}
     for ligne in qs.order_by().values("etat").annotate(n=Count("id")):
         compteurs[ligne["etat"]] = ligne["n"]
-    onglets = [{"code": "", "libelle": "Toutes", "nombre": sum(compteurs.values())}] + [
+    onglets = [{"code": "", "libelle": _("Toutes"), "nombre": sum(compteurs.values())}] + [
         {"code": code, "libelle": f"{libelle}s", "nombre": compteurs[code]}
         for code, libelle in Boutique.ETATS
     ]
@@ -309,11 +311,11 @@ def boutique_activite(request, boutique_id):
 # Les loyers
 # ----------------------------------------------------------------------------
 ONGLETS_LOYERS = [
-    ("", "Toutes"),
-    ("emises", "Émises"),
-    ("payees", "Payées"),
-    ("impayees", "Impayées"),
-    ("echues", "Échues"),
+    ("", gettext_lazy("Toutes")),
+    ("emises", gettext_lazy("Émises")),
+    ("payees", gettext_lazy("Payées")),
+    ("impayees", gettext_lazy("Impayées")),
+    ("echues", gettext_lazy("Échues")),
 ]
 
 
@@ -456,9 +458,9 @@ def rayons(request):
 # Les emplacements premium
 # ----------------------------------------------------------------------------
 ONGLETS_EMPLACEMENTS = [
-    ("en_cours", "En cours"),
-    ("a_venir", "À venir"),
-    ("termines", "Terminés"),
+    ("en_cours", gettext_lazy("En cours")),
+    ("a_venir", gettext_lazy("À venir")),
+    ("termines", gettext_lazy("Terminés")),
 ]
 
 

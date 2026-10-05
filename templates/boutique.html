@@ -128,8 +128,8 @@
     </section>
 
     <section class="carte tableau-panneau" data-tableau
-             data-nom="dépôt" data-noms="dépôts">
-      {% include "partials/tableau_barre.html" with nom="depot" noms="dépôts" titre="Dépôts" creer_url=url_depot_creer creer_libelle="Nouveau dépôt" modifier_possible=peut_administrer modifier_libelle="Renommer" supprimer_url=url_depots_supprimer supprimer_libelle="Fermer" aide="Sélectionnez un dépôt pour le renommer ou le fermer. Le dépôt principal ne se ferme pas : c'est là qu'on encaisse et qu'on reçoit par défaut." avertissement_suppression="Un dépôt qui a déjà reçu de la marchandise est fermé, pas supprimé : son nom reste lisible sur les mouvements qui le citent." %}
+             data-nom="{% translate "dépôt" context "ligne de tableau" %}" data-noms="{% translate "dépôts" context "ligne de tableau" %}">
+      {% include "partials/tableau_barre.html" with nom="depot" noms="dépôts" titre=_("Dépôts") creer_url=url_depot_creer creer_libelle=_("Nouveau dépôt") modifier_possible=peut_administrer modifier_libelle=_("Renommer") supprimer_url=url_depots_supprimer supprimer_libelle=_("Fermer") aide=_("Sélectionnez un dépôt pour le renommer ou le fermer. Le dépôt principal ne se ferme pas : c'est là qu'on encaisse et qu'on reçoit par défaut.") avertissement_suppression=_("Un dépôt qui a déjà reçu de la marchandise est fermé, pas supprimé : son nom reste lisible sur les mouvements qui le citent.") %}
 
       <div class="tableau-boite">
         <table class="tableau">

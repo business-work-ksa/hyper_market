@@ -13,7 +13,7 @@ from django.db import models
 from django.db.models import Max
 
 from apps.core.models import BaseModel, TenantScopedModel
-from django.utils.translation import gettext_lazy as _l
+from django.utils.translation import gettext_lazy
 
 CENTIME = Decimal("0.01")
 
@@ -28,12 +28,12 @@ class Commande(BaseModel):
     CLOTUREE = "cloturee"
     ANNULEE = "annulee"
     ETATS = [
-        (BROUILLON, _l("Brouillon")),
-        (CONFIRMEE, _l("Confirmée")),
-        (PAYEE, _l("Payée")),
-        (LIVREE, _l("Livrée")),
-        (CLOTUREE, _l("Clôturée")),
-        (ANNULEE, _l("Annulée")),
+        (BROUILLON, gettext_lazy("Brouillon")),
+        (CONFIRMEE, gettext_lazy("Confirmée")),
+        (PAYEE, gettext_lazy("Payée")),
+        (LIVREE, gettext_lazy("Livrée")),
+        (CLOTUREE, gettext_lazy("Clôturée")),
+        (ANNULEE, gettext_lazy("Annulée")),
     ]
 
     numero = models.CharField(max_length=32, unique=True)
@@ -61,16 +61,16 @@ class Commande(BaseModel):
     adresse_livraison = models.CharField(
         max_length=255,
         blank=True,
-        help_text=_l("Texte libre : le découpage en zones et tarifs relève du lot 2."),
+        help_text=gettext_lazy("Texte libre : le découpage en zones et tarifs relève du lot 2."),
     )
-    note = models.TextField(blank=True, help_text=_l("Précisions de l'acheteur pour le marchand."))
+    note = models.TextField(blank=True, help_text=gettext_lazy("Précisions de l'acheteur pour le marchand."))
 
     livree_le = models.DateTimeField(null=True, blank=True)
     operation_id = models.UUIDField(
         null=True,
         blank=True,
         unique=True,
-        help_text=_l("Clé d'idempotence du tunnel de commande (ADR-004)."),
+        help_text=gettext_lazy("Clé d'idempotence du tunnel de commande (ADR-004)."),
     )
 
     class Meta:
@@ -97,12 +97,12 @@ class SousCommande(TenantScopedModel):
     LIVREE = "livree"
     ANNULEE = "annulee"
     ETATS = [
-        (EN_ATTENTE, _l("En attente")),
-        (ACCEPTEE, _l("Acceptée")),
-        (PREPAREE, _l("Préparée")),
-        (EXPEDIEE, _l("Expédiée")),
-        (LIVREE, _l("Livrée")),
-        (ANNULEE, _l("Annulée")),
+        (EN_ATTENTE, gettext_lazy("En attente")),
+        (ACCEPTEE, gettext_lazy("Acceptée")),
+        (PREPAREE, gettext_lazy("Préparée")),
+        (EXPEDIEE, gettext_lazy("Expédiée")),
+        (LIVREE, gettext_lazy("Livrée")),
+        (ANNULEE, gettext_lazy("Annulée")),
     ]
 
     # Comment l'acheteur paie **cette part**. Choisi par boutique et non par commande : le plafond
@@ -111,8 +111,8 @@ class SousCommande(TenantScopedModel):
     PREPAYE = "prepaye"
     A_LA_LIVRAISON = "livraison"
     MODES_PAIEMENT = [
-        (PREPAYE, _l("Prépayée — en séquestre jusqu'à la livraison confirmée")),
-        (A_LA_LIVRAISON, _l("Payée à la livraison")),
+        (PREPAYE, gettext_lazy("Prépayée — en séquestre jusqu'à la livraison confirmée")),
+        (A_LA_LIVRAISON, gettext_lazy("Payée à la livraison")),
     ]
 
     commande = models.ForeignKey(Commande, on_delete=models.CASCADE, related_name="sous_commandes")
@@ -205,10 +205,10 @@ class Retour(TenantScopedModel):
     REFUSE = "refuse"
     REMBOURSE = "rembourse"
     ETATS = [
-        (DEMANDE, _l("Demandé")),
-        (ACCEPTE, _l("Accepté")),
-        (REFUSE, _l("Refusé")),
-        (REMBOURSE, _l("Remboursé")),
+        (DEMANDE, gettext_lazy("Demandé")),
+        (ACCEPTE, gettext_lazy("Accepté")),
+        (REFUSE, gettext_lazy("Refusé")),
+        (REMBOURSE, gettext_lazy("Remboursé")),
     ]
 
     sous_commande = models.ForeignKey(
@@ -245,10 +245,10 @@ class Litige(TenantScopedModel):
     INCOMPLETE = "incomplete"
     AUTRE = "autre"
     MOTIFS = [
-        (NON_RECUE, _l("Commande non reçue")),
-        (NON_CONFORME, _l("Article non conforme à l'annonce")),
-        (INCOMPLETE, _l("Commande incomplète")),
-        (AUTRE, _l("Autre")),
+        (NON_RECUE, gettext_lazy("Commande non reçue")),
+        (NON_CONFORME, gettext_lazy("Article non conforme à l'annonce")),
+        (INCOMPLETE, gettext_lazy("Commande incomplète")),
+        (AUTRE, gettext_lazy("Autre")),
     ]
 
     OUVERT = "ouvert"
@@ -257,11 +257,11 @@ class Litige(TenantScopedModel):
     TRANCHE_MARCHAND = "tranche_marchand"
     PARTAGE = "partage"
     ETATS = [
-        (OUVERT, _l("Ouvert")),
-        (EN_INSTRUCTION, _l("En instruction")),
-        (TRANCHE_ACHETEUR, _l("Tranché en faveur de l'acheteur")),
-        (TRANCHE_MARCHAND, _l("Tranché en faveur du marchand")),
-        (PARTAGE, _l("Tranché : remboursement partiel")),
+        (OUVERT, gettext_lazy("Ouvert")),
+        (EN_INSTRUCTION, gettext_lazy("En instruction")),
+        (TRANCHE_ACHETEUR, gettext_lazy("Tranché en faveur de l'acheteur")),
+        (TRANCHE_MARCHAND, gettext_lazy("Tranché en faveur du marchand")),
+        (PARTAGE, gettext_lazy("Tranché : remboursement partiel")),
     ]
     ETATS_OUVERTS = (OUVERT, EN_INSTRUCTION)
     ETATS_CLOS = (TRANCHE_ACHETEUR, TRANCHE_MARCHAND, PARTAGE)
@@ -309,13 +309,13 @@ class AvisCommande(TenantScopedModel):
 
     ENVOYE = "envoye"
     ECHEC = "echec"
-    ETATS = [(ENVOYE, _l("Envoyé")), (ECHEC, _l("Non parti"))]
+    ETATS = [(ENVOYE, gettext_lazy("Envoyé")), (ECHEC, gettext_lazy("Non parti"))]
 
     sous_commande = models.ForeignKey(SousCommande, on_delete=models.CASCADE, related_name="avis")
     destinataire = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+"
     )
-    numero = models.CharField(max_length=20, help_text=_l("Figé à l'envoi."))
+    numero = models.CharField(max_length=20, help_text=gettext_lazy("Figé à l'envoi."))
     etat = models.CharField(max_length=8, choices=ETATS)
     reference = models.CharField(max_length=128, blank=True)
     erreur = models.CharField(max_length=255, blank=True)

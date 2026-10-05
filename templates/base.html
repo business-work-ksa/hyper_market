@@ -10,6 +10,7 @@
 {% include "partials/charte.html" %}
 <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
 {% include "partials/icones_marque.html" %}
+{% include "partials/catalogue_js.html" %}
 <script src="{% static 'js/hors-ligne.js' %}" defer></script>
 {% comment %}
 Chargé partout : les tableaux de données sont le mode d'affichage principal du
@@ -55,32 +56,32 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
     <div class="rail__nav">
       <div class="rail__groupe">
         <p class="t-sur-titre">{% translate "Exploitation" %}</p>
-        {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' 'Tableau de bord' page court='Accueil' %}{% endif %}
-        {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' 'Caisse' page %}{% endif %}
-        {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' 'Stock' page alertes %}{% endif %}
+        {% if 'tableau_de_bord' in droits %}{% nav 'tableau_de_bord' 'ic-tableau' _('Tableau de bord') page court=_('Accueil') %}{% endif %}
+        {% if 'caisse.encaisser' in droits %}{% nav 'caisse' 'ic-caisse' _('Caisse') page %}{% endif %}
+        {% if 'stock.voir' in droits %}{% nav 'stock' 'ic-stock' _('Stock') page alertes %}{% endif %}
         {% comment %}
         L'entrée n'apparaît que pour les métiers qui suivent les péremptions.
         Ailleurs elle n'aurait rien à montrer, et une entrée de navigation qui
         ouvre sur du vide use la confiance dans les autres.
         {% endcomment %}
         {% if metier and 'peremption' in metier.fonctions and 'stock.voir' in droits %}
-          {% nav 'peremptions' 'ic-horloge' 'Péremptions' page peremptions %}
+          {% nav 'peremptions' 'ic-horloge' _('Péremptions') page peremptions %}
         {% endif %}
         {% comment %}
         Même règle pour la production : elle n'apparaît que là où la boutique
         fabrique ce qu'elle vend. Un quincaillier n'a pas de fournée.
         {% endcomment %}
         {% if metier and 'recette' in metier.fonctions and 'stock.voir' in droits %}
-          {% nav 'production' 'ic-production' 'Production' page %}
+          {% nav 'production' 'ic-production' _('Production') page %}
         {% endif %}
-        {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' 'Ventes' page %}{% endif %}
+        {% if 'ventes.voir' in droits %}{% nav 'ventes' 'ic-ventes' _('Ventes') page %}{% endif %}
         {% comment %}
         L'ordonnancier n'existe que là où l'on délivre sur ordonnance. La
         pastille compte ce qui reste à consigner : sans elle, un registre
         incomplet le resterait sans que personne ne le sache.
         {% endcomment %}
         {% if metier and 'ordonnance' in metier.fonctions and 'ventes.voir' in droits %}
-          {% nav 'ordonnancier' 'ic-ordonnance' 'Ordonnancier' page ordonnances_a_consigner %}
+          {% nav 'ordonnancier' 'ic-ordonnance' _('Ordonnancier') page ordonnances_a_consigner %}
         {% endif %}
         {% comment %}
         Même règle pour la garantie : l'entrée n'existe que là où les appareils
@@ -88,21 +89,21 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         c'est-à-dire les clients qui attendent.
         {% endcomment %}
         {% if metier and 'serie' in metier.fonctions and 'ventes.voir' in droits %}
-          {% nav 'garantie' 'ic-garantie' 'Garantie' page appareils_a_l_atelier %}
+          {% nav 'garantie' 'ic-garantie' _('Garantie') page appareils_a_l_atelier %}
         {% endif %}
-        {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' 'Commandes' page commandes_a_traiter %}{% endif %}
+        {% if 'commandes.traiter' in droits %}{% nav 'commandes' 'ic-commandes' _('Commandes') page commandes_a_traiter %}{% endif %}
       </div>
 
       {% if 'comptabilite.voir' in droits or 'boutique.voir' in droits %}
         <div class="rail__groupe rail__groupe--secondaire">
           <p class="t-sur-titre">{% translate "Gestion" %}</p>
-          {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' 'Comptabilité' page court='Compta' %}{% endif %}
+          {% if 'comptabilite.voir' in droits %}{% nav 'comptabilite' 'ic-compta' _('Comptabilité') page court=_('Compta') %}{% endif %}
           {% comment %}
           Les versements : l'argent qui revient à la boutique, bloqué puis disponible. Ouvert à
           qui lit la comptabilité — seul le gérant peut en demander un, l'écran le dit.
           {% endcomment %}
-          {% if 'comptabilite.voir' in droits %}{% nav 'versements_marchand' 'ic-argent' 'Versements' page %}{% endif %}
-          {% if 'boutique.voir' in droits %}{% nav 'boutique' 'ic-boutique' 'Ma boutique' page %}{% endif %}
+          {% if 'comptabilite.voir' in droits %}{% nav 'versements_marchand' 'ic-argent' _('Versements') page %}{% endif %}
+          {% if 'boutique.voir' in droits %}{% nav 'boutique' 'ic-boutique' _('Ma boutique') page %}{% endif %}
         </div>
       {% endif %}
     </div>
@@ -280,12 +281,13 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
       if (enAttente > 0) {
         // « opération » et non « vente » : la file porte désormais aussi les
         // réceptions de marchandise saisies pendant une coupure.
-        texte.textContent =
-          enAttente + " opération" + (enAttente > 1 ? "s" : "") + " en attente d'envoi";
+        texte.textContent = (enAttente > 1
+          ? "{{ _('%(n)s opérations en attente d’envoi')|escapejs }}"
+          : "{{ _('%(n)s opération en attente d’envoi')|escapejs }}").replace("%(n)s", enAttente);
       } else if (horsLigne) {
-        texte.textContent = "Hors ligne — les saisies sont conservées";
+        texte.textContent = "{{ _("Hors ligne — les saisies sont conservées")|escapejs }}";
       } else {
-        texte.textContent = "En ligne";
+        texte.textContent = "{{ _("En ligne")|escapejs }}";
       }
     }
 

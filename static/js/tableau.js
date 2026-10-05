@@ -42,6 +42,14 @@
 (function () {
   "use strict";
 
+  // Traductions : le catalogue de Django (`/jsi18n/`) n'est chargé qu'en anglais. En français,
+  // le texte source est la traduction : les repli rendent la chaîne telle quelle.
+  var gettext = window.gettext || function (s) { return s; };
+  var ngettext = window.ngettext || function (s, p, n) { return n > 1 ? p : s; };
+  var f = window.interpolate || function (modele, valeurs) {
+    return modele.replace(/%\((\w+)\)s/g, function (_, cle) { return valeurs[cle]; });
+  };
+
   var CLIQUABLES = "a, button, input, select, textarea, label, summary";
 
   // Marque-place d'un identifiant dans l'action d'un formulaire de boîte. Un
@@ -82,7 +90,7 @@
     thSel.setAttribute("scope", "col");
     var toutes = document.createElement("input");
     toutes.type = "checkbox";
-    toutes.setAttribute("aria-label", "Tout sélectionner");
+    toutes.setAttribute("aria-label", gettext("Tout sélectionner"));
     thSel.appendChild(toutes);
     enTete.insertBefore(thSel, enTete.firstChild);
 
@@ -93,7 +101,7 @@
       case_.type = "checkbox";
       case_.setAttribute(
         "aria-label",
-        "Sélectionner " + (tr.dataset.libelle || "cette ligne")
+        f(gettext("Sélectionner %(libelle)s"), { libelle: tr.dataset.libelle || gettext("cette ligne") }, true)
       );
       td.appendChild(case_);
       tr.insertBefore(td, tr.firstChild);
@@ -165,24 +173,24 @@
       modifier.disabled = !possible;
       modifier.dataset.cible = url || "";
       modifier.title = possible
-        ? "Modifier « " + choisies[0].dataset.libelle + " »"
+        ? f(gettext("Modifier « %(libelle)s »"), { libelle: choisies[0].dataset.libelle }, true)
         : choisies.length > 1
-        ? "On ne modifie qu'une ligne à la fois : choisissez-en une seule."
+        ? gettext("On ne modifie qu'une ligne à la fois : choisissez-en une seule.")
         : choisies.length === 1
-        ? "Cette ligne ne se modifie pas."
-        : "Sélectionnez une ligne à modifier.";
+        ? gettext("Cette ligne ne se modifie pas.")
+        : gettext("Sélectionnez une ligne à modifier.");
     }
 
     if (supprimer) {
       supprimer.disabled = supprimables.length === 0;
       supprimer.title = supprimables.length
-        ? "Supprimer " +
-          supprimables.length +
-          " " +
-          (supprimables.length > 1 ? mots.noms : mots.nom)
+        ? f(gettext("Supprimer %(n)s %(noms)s"), {
+            n: supprimables.length,
+            noms: supprimables.length > 1 ? mots.noms : mots.nom,
+          }, true)
         : choisies.length
-        ? "Aucune des lignes choisies ne peut être supprimée."
-        : "Sélectionnez au moins une ligne à supprimer.";
+        ? gettext("Aucune des lignes choisies ne peut être supprimée.")
+        : gettext("Sélectionnez au moins une ligne à supprimer.");
     }
 
     if (!assistance || !texte) return;
@@ -200,16 +208,16 @@
         // Le libellé réel du bouton, pas le mot « Modifier » : la barre peut
         // annoncer « Gérer l'accès » ou « Renommer », et la phrase doit
         // désigner le bouton qu'on voit.
-        var verbe = modifier ? modifier.textContent.trim() : "Modifier";
+        var verbe = modifier ? modifier.textContent.trim() : gettext("Modifier");
         suite.push(
           "<b>" +
             echapper(verbe) +
             "</b> " +
-            (ligne.dataset.modifier.charAt(0) === "#" ? "ouvre ses réglages" : "ouvre sa fiche")
+            (ligne.dataset.modifier.charAt(0) === "#" ? gettext("ouvre ses réglages") : gettext("ouvre sa fiche"))
         );
       }
       if (supprimer && !ligne.hasAttribute("data-protege")) {
-        suite.push("<b>" + echapper(supprimer.textContent.trim()) + "</b> s'y applique");
+        suite.push("<b>" + echapper(supprimer.textContent.trim()) + "</b> " + gettext("s'y applique"));
       }
       // La protection empêche ; la note prévient. Les deux se disent, jamais
       // de la même façon.
@@ -224,8 +232,8 @@
       texte.innerHTML =
         "« <b>" +
         echapper(ligne.dataset.libelle || "") +
-        "</b> » sélectionné" +
-        mots.accord +
+        "</b> » " +
+        accorder(gettext("sélectionné"), mots.accord) +
         (suite.length ? " — " + suite.join(", ") + "." : ".");
       return;
     }
@@ -237,15 +245,20 @@
       choisies.length +
       " " +
       mots.noms +
-      "</b> sélectionné" +
-      mots.accord +
-      "s — seule la <b>suppression</b> s'applique à plusieurs lignes" +
+      "</b> " +
+      accorder(gettext("sélectionnés"), mots.accord) +
+      gettext(" — seule la <b>suppression</b> s'applique à plusieurs lignes") +
       (protegees
-        ? ", et " +
-          protegees +
-          (protegees > 1 ? " ne peuvent pas être supprimées" : " ne peut pas être supprimée")
+        ? f(ngettext(", et %(n)s ne peut pas être supprimée", ", et %(n)s ne peuvent pas être supprimées", protegees), { n: protegees }, true)
         : "") +
       ".";
+  }
+
+  // L'accord (« sélectionnée », « sélectionnées ») ne vaut qu'en français : l'anglais n'accorde
+  // pas le participe. `data-accord` porte le « e » du féminin, posé avant le « s » du pluriel.
+  function accorder(participe, accord) {
+    if (!accord || document.documentElement.lang !== "fr") return participe;
+    return /s$/.test(participe) ? participe.slice(0, -1) + accord + "s" : participe + accord;
   }
 
   function echapper(texte) {

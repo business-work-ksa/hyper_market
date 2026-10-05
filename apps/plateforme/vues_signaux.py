@@ -32,6 +32,7 @@ from apps.marketplace.confiance import palier
 from apps.marketplace.models import Boutique
 from apps.plateforme.acces import contexte_console, exige_console
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 PAR_PAGE = 25
 
@@ -61,15 +62,15 @@ class DecisionForm(forms.Form):
             (detecteurs.CONFIRMER, "Confirmer — l'indice est fondé"),
         ],
         widget=forms.RadioSelect,
-        error_messages={"required": "Choisissez : écarter ou confirmer."},
+        error_messages={"required": gettext_lazy("Choisissez : écarter ou confirmer.")},
     )
     motif = forms.CharField(
         min_length=10,
         max_length=280,
         widget=forms.Textarea(attrs={"rows": 3, "class": "champ"}),
         error_messages={
-            "required": "Dites pourquoi : ce motif est inscrit au journal des accès.",
-            "min_length": "Une phrase, au moins : « vérifié par téléphone avec le gérant… »",
+            "required": gettext_lazy("Dites pourquoi : ce motif est inscrit au journal des accès."),
+            "min_length": gettext_lazy("Une phrase, au moins : « vérifié par téléphone avec le gérant… »"),
         },
     )
 

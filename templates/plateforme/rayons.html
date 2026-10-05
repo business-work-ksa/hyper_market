@@ -60,7 +60,7 @@
           <tr>
             <td>
               <span class="t-boutique__noms">
-                <span class="t-boutique__enseigne">{{ r.libelle }}</span>
+                <span class="t-boutique__enseigne">{{ r|traduit }}</span>
                 <span class="t-boutique__raison"><span class="t-boutique__mobile-inline">{{ r.taux_pourcent|pourcent:2 }} · </span>{% if r.parent %}{% blocktranslate with libelle=r.parent.libelle trimmed %}Sous-rayon de {{ libelle }}{% endblocktranslate %}{% else %}{{ r.code }}{% endif %}{% if r.responsable %} · {{ r.responsable.nom_complet }}{% endif %}</span>
                 {% if 'plateforme.commissions' in droits and not r.en_conflit %}
                   <a class="t-lien t-petit t-statut-mobile" href="{% url 'plateforme:rayon_taux' r.pk %}">{% translate "Modifier le taux" %}</a>
@@ -109,7 +109,7 @@
     {% for o in offres %}
       <article class="t-offre">
         <p class="t-sur-titre">{{ o.code }}</p>
-        <h3 class="t-offre__titre">{{ o.libelle }}</h3>
+        <h3 class="t-offre__titre">{{ o|traduit }}</h3>
         <p class="t-offre__prix">{{ o.loyer_mensuel|fcfa }} <span class="unite">{% translate "FCFA / mois HT" %}</span></p>
         <dl class="cles t-offre__cles">
           <dt>{% translate "Commission" %}</dt><dd>{{ o.taux_pourcent|pourcent:2 }}</dd>

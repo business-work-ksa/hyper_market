@@ -92,7 +92,7 @@
 
         {% if bail %}
           <dl class="cles a-cles-bail">
-            <dt>{% translate "Bail" %}</dt><dd>{% blocktranslate with libelle=bail.type_emplacement.libelle get_etat_display=bail.get_etat_display|lower debut=bail.debut|date:"d/m/Y" trimmed %}{{ libelle }} · {{ get_etat_display }} depuis le {{ debut }}{% endblocktranslate %}</dd>
+            <dt>{% translate "Bail" %}</dt><dd>{% blocktranslate with libelle=bail.type_emplacement|traduit get_etat_display=bail.get_etat_display|lower debut=bail.debut|date:"d/m/Y" trimmed %}{{ libelle }} · {{ get_etat_display }} depuis le {{ debut }}{% endblocktranslate %}</dd>
             <dt>{% translate "Loyer" %}</dt><dd>{% blocktranslate with loyer_mensuel=bail.loyer_mensuel|fcfa trimmed %}{{ loyer_mensuel }}&#8239;FCFA HT / mois{% endblocktranslate %}</dd>
             <dt>{% translate "Commission" %}</dt><dd>{{ commission_bail }}</dd>
           </dl>

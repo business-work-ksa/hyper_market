@@ -23,7 +23,7 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
       <span>{{ b.raison_sociale }}</span>
       <span><svg aria-hidden="true"><use href="#ic-lieu"></use></svg>{{ b.ville }}</span>
       <span>{{ metier.libelle }}</span>
-      {% if b.rayon_principal %}<span><svg aria-hidden="true"><use href="#ic-rayons"></use></svg>{{ b.rayon_principal.libelle }}</span>{% endif %}
+      {% if b.rayon_principal %}<span><svg aria-hidden="true"><use href="#ic-rayons"></use></svg>{{ b.rayon_principal|traduit }}</span>{% endif %}
     </p>
   </div>
   <div class="t-fiche__actions">
@@ -55,7 +55,7 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
       {% if bail %}
         <div class="carte__corps">
           <div class="t-bail">
-            <div class="t-bail__chiffre"><span class="t-legende">{% translate "Offre" %}</span><strong>{{ bail.type_emplacement.libelle }}</strong></div>
+            <div class="t-bail__chiffre"><span class="t-legende">{% translate "Offre" %}</span><strong>{{ bail.type_emplacement|traduit }}</strong></div>
             <div class="t-bail__chiffre"><span class="t-legende">{% translate "Loyer mensuel HT" %}</span><strong>{{ bail.loyer_mensuel|fcfa }} <span class="unite">FCFA</span></strong></div>
             <div class="t-bail__chiffre"><span class="t-legende">{% translate "Commission" %}</span><strong>{{ taux_pourcent|pourcent:2 }}</strong></div>
           </div>
@@ -92,7 +92,7 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
       {% if anciens_baux %}
         <footer class="carte__pied t-legende">
           {% blocktranslate count anciens_baux=anciens_baux|length trimmed %}{{ anciens_baux }} autre bail :{% plural %}{{ anciens_baux }} autres baux :{% endblocktranslate %}
-          {% for x in anciens_baux %}{{ x.type_emplacement.libelle }} ({{ x.get_etat_display|lower }}, {{ x.debut|date:"m/Y" }}){% if not forloop.last %} · {% endif %}{% endfor %}
+          {% for x in anciens_baux %}{{ x.type_emplacement|traduit }} ({{ x.get_etat_display|lower }}, {{ x.debut|date:"m/Y" }}){% if not forloop.last %} · {% endif %}{% endfor %}
         </footer>
       {% endif %}
     </section>
@@ -153,7 +153,7 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
                   <td>
                     <span class="t-boutique__noms">
                       <span class="t-boutique__enseigne">{{ e.get_type_display }}</span>
-                      <span class="t-boutique__raison">{{ e.rayon.libelle|default:_("Tout le marché") }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
+                      <span class="t-boutique__raison">{{ e.rayon|traduit|default:_("Tout le marché") }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
                     </span>
                   </td>
                   <td class="chiffre t-cache-etroit">{{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m/Y" }}</td>
@@ -207,7 +207,7 @@ passe par « Voir l'activité », qui demande un motif et laisse une trace.
               <span class="jeton" aria-hidden="true">{{ a.utilisateur.nom_complet|initiales }}</span>
               <span class="t-equipe__corps">
                 <span class="t-equipe__nom">{{ a.utilisateur.nom_complet }}</span>
-                <span class="t-legende">{% blocktranslate with libelle=a.role.libelle depuis=a.depuis|date:"d/m/Y" trimmed %}{{ libelle }} · depuis le {{ depuis }}{% endblocktranslate %}</span>
+                <span class="t-legende">{% blocktranslate with libelle=a.role|traduit depuis=a.depuis|date:"d/m/Y" trimmed %}{{ libelle }} · depuis le {{ depuis }}{% endblocktranslate %}</span>
               </span>
               {% if a.actif %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Actif" %}</span>{% else %}<span class="puce"><svg aria-hidden="true"><use href="#ic-pause"></use></svg>{% translate "Retiré" %}</span>{% endif %}
             </li>

@@ -73,7 +73,7 @@
               <ul>{% for droit in role.droits %}<li>{{ droit }}</li>{% endfor %}</ul>
             </details>
           </div>
-          <span class="puce puce--bon a-personne__puce"><svg aria-hidden="true"><use href="#ic-equipe"></use></svg>{{ role.role.libelle }}</span>
+          <span class="puce puce--bon a-personne__puce"><svg aria-hidden="true"><use href="#ic-equipe"></use></svg>{{ role.role|traduit }}</span>
           <details class="a-retrait"{% if retrait == role.pk %} open{% endif %}>
             <summary class="btn btn--danger a-retrait__bouton"><span class="a-retrait__ouvrir">{% translate "Retirer ce rôle" %}</span><span class="a-retrait__fermer">{% translate "Ne pas retirer" %}</span></summary>
             <form method="post" action="{% url 'plateforme:administrateur_retirer' role.pk %}" class="a-retrait__form" novalidate>
@@ -113,7 +113,7 @@
               <span class="t-legende">{% blocktranslate with telephone=role.utilisateur.telephone depuis=role.depuis|date:"d/m/Y" jusqu_a=role.jusqu_a|date:"d/m/Y"|default:"—" trimmed %}{{ telephone }} · du {{ depuis }} au {{ jusqu_a }} · dernier accès journalisé :{% endblocktranslate %} {% if role.dernier_acces %}{{ role.dernier_acces|date:"d/m/Y H:i" }}{% else %}{% translate "aucun" %}{% endif %}</span>
               {% if role.motif %}<span class="a-personne__motif">« {{ role.motif }} »</span>{% endif %}
             </div>
-            <span class="statut statut--resiliee a-personne__puce">{% blocktranslate with libelle=role.role.libelle trimmed %}{{ libelle }} · révolu{% endblocktranslate %}</span>
+            <span class="statut statut--resiliee a-personne__puce">{% blocktranslate with libelle=role.role|traduit trimmed %}{{ libelle }} · révolu{% endblocktranslate %}</span>
           </li>
         {% endfor %}
       </ul>

@@ -40,6 +40,7 @@ from django.db.models import Prefetch, Q
 
 from apps.catalog.models import Categorie, MediaProduit, Produit, Variante
 from apps.confiance.paliers import expression_identite_verifiee
+from apps.core.bilingue import traduit
 from apps.core.tenancy import contexte_plateforme
 from apps.marketplace.models import Bail, Boutique, Rayon
 
@@ -140,7 +141,9 @@ def articles_en_vitrine(*, recherche: str = "", rayon=None, boutique=None, limit
         if recherche:
             articles = articles.filter(
                 Q(produit__libelle__icontains=recherche)
+                | Q(produit__libelle_en__icontains=recherche)
                 | Q(produit__description__icontains=recherche)
+                | Q(produit__description_en__icontains=recherche)
                 | Q(sku__icontains=recherche)
                 | Q(code_barres__iexact=recherche)
             )
@@ -277,7 +280,9 @@ def rechercher(filtres: Filtres, *, par_page: int = PAR_PAGE) -> Resultat:
             q = filtres.recherche
             portee = portee.filter(
                 Q(produit__libelle__icontains=q)
+                | Q(produit__libelle_en__icontains=q)
                 | Q(produit__description__icontains=q)
+                | Q(produit__description_en__icontains=q)
                 | Q(sku__icontains=q)
                 | Q(code_barres__iexact=q)
             )
@@ -286,7 +291,7 @@ def rechercher(filtres: Filtres, *, par_page: int = PAR_PAGE) -> Resultat:
         par_boutique = dict(base.values_list("boutique_id").annotate(n=Count("id")))
         par_categorie = list(
             base.exclude(produit__categorie=None)
-            .values("produit__categorie__slug", "produit__categorie__libelle")
+            .values("produit__categorie__slug", "produit__categorie__libelle", "produit__categorie__libelle_en")
             .annotate(n=Count("id"))
             .order_by("produit__categorie__libelle")
         )
@@ -317,7 +322,13 @@ def rechercher(filtres: Filtres, *, par_page: int = PAR_PAGE) -> Resultat:
         villes[ville] = villes.get(ville, 0) + n
     facettes = {
         "categories": [
-            {"slug": c["produit__categorie__slug"], "libelle": c["produit__categorie__libelle"], "n": c["n"]}
+            {
+                "slug": c["produit__categorie__slug"],
+                "libelle": traduit(
+                    {"libelle": c["produit__categorie__libelle"], "libelle_en": c["produit__categorie__libelle_en"]}
+                ),
+                "n": c["n"],
+            }
             for c in par_categorie
         ],
         "boutiques": sorted(

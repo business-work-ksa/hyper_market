@@ -12,6 +12,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
+from apps.core.bilingue import Bilingue
 from apps.core.models import BaseModel, TenantScopedModel
 from apps.core.uuid7 import uuid7
 from apps.marketplace.cemac import LIBELLES_OPERATEURS
@@ -21,12 +22,13 @@ from django.utils.translation import gettext_lazy
 from django.utils.translation import gettext as _
 
 
-class Rayon(models.Model):
+class Rayon(Bilingue, models.Model):
     """Rayon du marché. C'est lui qui porte le taux de commission (docs/06, §4.3)."""
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     code = models.SlugField(max_length=48, unique=True)
     libelle = models.CharField(max_length=120)
+    libelle_en = models.CharField(max_length=120, blank=True, verbose_name=gettext_lazy("libellé en anglais"))
     parent = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.PROTECT, related_name="sous_rayons"
     )
@@ -58,7 +60,7 @@ class Rayon(models.Model):
         return self.libelle
 
 
-class TypeEmplacement(models.Model):
+class TypeEmplacement(Bilingue, models.Model):
     """Offre commerciale : Étal, Boutique, Grande surface (grille du docs/03, §1.1)."""
 
     ETAL = "ETAL"
@@ -67,6 +69,7 @@ class TypeEmplacement(models.Model):
 
     code = models.CharField(max_length=32, primary_key=True)
     libelle = models.CharField(max_length=64)
+    libelle_en = models.CharField(max_length=64, blank=True, verbose_name=gettext_lazy("libellé en anglais"))
     loyer_mensuel = models.DecimalField(max_digits=12, decimal_places=2)
     taux_commission_defaut = models.DecimalField(max_digits=5, decimal_places=4)
     quota_utilisateurs = models.PositiveSmallIntegerField(default=1)

@@ -11,18 +11,20 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from apps.core.bilingue import Bilingue
 from apps.core.models import BaseModel, TenantScopedModel
 from apps.core.uuid7 import uuid7
 from django.utils.translation import gettext_lazy
 
 
-class Categorie(models.Model):
+class Categorie(Bilingue, models.Model):
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     rayon = models.ForeignKey("marketplace.Rayon", on_delete=models.PROTECT, related_name="categories")
     parent = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.PROTECT, related_name="enfants"
     )
     libelle = models.CharField(max_length=120)
+    libelle_en = models.CharField(max_length=120, blank=True, verbose_name=gettext_lazy("libellé en anglais"))
     slug = models.SlugField(max_length=140)
 
     class Meta:
@@ -36,12 +38,13 @@ class Categorie(models.Model):
         return f"{self.rayon.libelle} › {self.libelle}"
 
 
-class ProduitReference(models.Model):
+class ProduitReference(Bilingue, models.Model):
     """Fiche produit mutualisée, identifiée par son code-barres (EAN/UPC)."""
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     code_barres = models.CharField(max_length=32, unique=True)
     libelle = models.CharField(max_length=200)
+    libelle_en = models.CharField(max_length=200, blank=True, verbose_name=gettext_lazy("libellé en anglais"))
     marque = models.CharField(max_length=120, blank=True)
     categorie = models.ForeignKey(
         Categorie, null=True, blank=True, on_delete=models.SET_NULL, related_name="references"
@@ -57,7 +60,7 @@ class ProduitReference(models.Model):
         return f"{self.libelle} [{self.code_barres}]"
 
 
-class Produit(TenantScopedModel):
+class Produit(Bilingue, TenantScopedModel):
     """Produit d'une boutique."""
 
     UNITE = "U"
@@ -80,7 +83,14 @@ class Produit(TenantScopedModel):
     )
     sku = models.CharField(max_length=64)
     libelle = models.CharField(max_length=200)
+    libelle_en = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=gettext_lazy("libellé en anglais"),
+        help_text=gettext_lazy("Facultatif : le nom montré aux acheteurs qui lisent le marché en anglais."),
+    )
     description = models.TextField(blank=True)
+    description_en = models.TextField(blank=True, verbose_name=gettext_lazy("description en anglais"))
     categorie = models.ForeignKey(
         Categorie, null=True, blank=True, on_delete=models.PROTECT, related_name="produits"
     )

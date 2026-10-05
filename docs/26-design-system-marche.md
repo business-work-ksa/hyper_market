@@ -125,6 +125,14 @@ Les scripts suivent la même langue. Les fichiers de `static/js/` appellent `get
 seulement hors du français — sans lui, les scripts se rabattent sur le texte source. Les scripts
 écrits dans un gabarit reçoivent leurs textes du gabarit (`"{{ _('…')|escapejs }}"`).
 
+Les **données en base** ont leur propre champ anglais (`apps/core/bilingue.py`) : `libelle_en` sur
+les rayons, catégories, offres, rôles, moyens de paiement et articles, `description_en` sur les
+articles. Le français reste la référence (obligatoire) ; l'anglais est facultatif et, vide, laisse
+place au français. Dans un gabarit : `{{ rayon|traduit }}`, `{{ produit|traduit:"description" }}`
+(filtre chargé partout) ou `rayon.libelle_affiche`. La recherche du marché cherche dans les deux
+langues. Le commerçant saisit nom et description en anglais dans la fiche article (bloc « Pour la
+vitrine »). Les référentiels livrés sont traduits par `initialiser_referentiels` et par migration.
+
 Ce qui est **enregistré** ne se traduit pas : libellés d'écritures comptables, motifs du journal,
 libellés créés à l'ouverture d'une boutique (« Magasin principal »). Ils restent dans la langue du
 jour de l'écriture, quelle que soit celle de la personne qui agit. Une ligne de code marquée

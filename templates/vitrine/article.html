@@ -1,8 +1,8 @@
 {% extends "vitrine/base.html" %}
 {% load i18n hm confiance marche %}
 
-{% block titre %}{{ article.produit.libelle }} — {{ article.boutique.enseigne }}{% endblock %}
-{% block description %}{% blocktranslate with libelle=article.produit.libelle boutique=article.boutique.enseigne ville=article.boutique.ville %}{{ libelle }}, vendu et livré par {{ boutique }} ({{ ville }}) sur HyperMarché.{% endblocktranslate %}{% endblock %}
+{% block titre %}{{ article.produit.libelle_affiche }} — {{ article.boutique.enseigne }}{% endblock %}
+{% block description %}{% blocktranslate with libelle=article.produit.libelle_affiche boutique=article.boutique.enseigne ville=article.boutique.ville %}{{ libelle }}, vendu et livré par {{ boutique }} ({{ ville }}) sur HyperMarché.{% endblocktranslate %}{% endblock %}
 
 {% block contenu %}
 <nav class="mb-6 text-sm" aria-label="{% translate 'Fil d’Ariane' %}">
@@ -11,7 +11,7 @@
     <li aria-hidden="true">{% icone "chevron" "size-3.5" %}</li>
     <li><a class="hover:text-ink" href="{% url 'vitrine_boutique' article.boutique.slug %}">{{ article.boutique.enseigne }}</a></li>
     <li aria-hidden="true">{% icone "chevron" "size-3.5" %}</li>
-    <li class="truncate font-semibold text-ink" aria-current="page">{{ article.produit.libelle|truncatechars:40 }}</li>
+    <li class="truncate font-semibold text-ink" aria-current="page">{{ article.produit.libelle_affiche|truncatechars:40 }}</li>
   </ol>
 </nav>
 
@@ -21,9 +21,9 @@
   <div class="lg:sticky lg:top-40 lg:self-start" data-apparition>
     <div class="vignette rounded-3xl shadow-sm" style="--teinte:{{ article.boutique.enseigne|teinte }}">
       {% if photo %}
-        <img src="{{ photo.fichier.url }}" alt="{{ photo.alt|default:article.produit.libelle }}" width="900" height="900" decoding="async" fetchpriority="high">
+        <img src="{{ photo.fichier.url }}" alt="{{ photo.alt|default:article.produit.libelle_affiche }}" width="900" height="900" decoding="async" fetchpriority="high">
       {% else %}
-        <span class="vignette-monogramme text-5xl sm:text-[5rem]" aria-hidden="true">{{ article.produit.libelle|monogramme }}</span>
+        <span class="vignette-monogramme text-5xl sm:text-[5rem]" aria-hidden="true">{{ article.produit.libelle_affiche|monogramme }}</span>
       {% endif %}
     </div>
   </div>
@@ -37,7 +37,7 @@
         {{ article.boutique.enseigne }}
         {% if article.vendeur_identite_verifiee %}{% translate "Identité vérifiée" as verifiee %}{% icone "check" "size-4 text-success-ink" verifiee %}{% endif %}
       </a>
-      <h1 class="text-2xl font-extrabold sm:text-3xl">{{ article.produit.libelle }}</h1>
+      <h1 class="text-2xl font-extrabold sm:text-3xl">{{ article.produit.libelle_affiche }}</h1>
       {% if article.attributs %}
         <ul class="flex flex-wrap gap-2" role="list">
           {% for cle, valeur in article.attributs.items %}<li class="badge badge-neutre">{{ cle }} : {{ valeur }}</li>{% endfor %}
@@ -72,10 +72,10 @@
       </div>
     </div>
 
-    {% if article.produit.description %}
+    {% if article.produit.description_affiche %}
       <section class="flex flex-col gap-2" data-apparition aria-labelledby="description-titre">
         <h2 class="text-lg font-bold" id="description-titre">{% translate "Description" %}</h2>
-        <p class="leading-relaxed text-ink-muted">{{ article.produit.description|linebreaksbr }}</p>
+        <p class="leading-relaxed text-ink-muted">{{ article.produit.description_affiche|linebreaksbr }}</p>
       </section>
     {% endif %}
 

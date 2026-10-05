@@ -17,7 +17,7 @@
     <span class="monogramme monogramme--grand" aria-hidden="true">{{ boutique.enseigne|initiales }}</span>
     <div class="pile-sm" style="gap:3px;min-width:0">
       <h2 class="entete-page__titre">{% blocktranslate with periode=facture.periode|date:"F Y" trimmed %}Loyer de {{ periode }}{% endblocktranslate %}</h2>
-      <p class="t-legende">{{ boutique.enseigne }} · {{ facture.bail.type_emplacement.libelle }}</p>
+      <p class="t-legende">{{ boutique.enseigne }} · {{ facture.bail.type_emplacement|traduit }}</p>
     </div>
     <div class="a-transition">
       {% if facture.etat == 'payee' %}

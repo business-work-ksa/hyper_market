@@ -539,3 +539,37 @@ class TableauDeBordVideTest(PersonnagesMixin, TestCase):
         self.assertContains(reponse, "Rien n'attend")
         # Aucune coordonnée à virgule : le navigateur rejetterait silencieusement le SVG.
         self.assertIsNone(re.search(r'(?:x|y|width|height)="\d+,\d', reponse.content.decode()))
+
+
+class ClesPoseesTest(TestCase):
+    """L'écran technique dit quelles clés sont posées — oui ou non, jamais leur valeur (docs/28)."""
+
+    def lignes(self):
+        from apps.plateforme.vues_tableau import cles_posees
+
+        return {l["nom"]: l for l in cles_posees()}
+
+    def test_aucune_valeur_n_est_affichee(self):
+        from django.test import override_settings
+
+        secret = "cle-tres-secrete-123"
+        with override_settings(
+            PAIEMENTS_OPERATEURS={"MTN_MOMO": {"cle_abonnement_collecte": secret, "utilisateur_api_collecte": secret,
+                                               "cle_api_collecte": secret}},
+            WHATSAPP={}, PAIEMENTS_SIMULES=False, URL_PUBLIQUE="https://exemple.cm",
+        ):
+            lignes = self.lignes()
+        self.assertNotIn(secret, repr(lignes))
+        self.assertTrue(lignes["MTN_MOMO (collecte)"]["bon"])
+        self.assertIsNone(lignes["WHATSAPP"]["bon"], "une clé facultative absente n'est pas une faute")
+
+    def test_le_simulateur_avec_des_cles_reelles_est_une_faute(self):
+        from django.test import override_settings
+
+        with override_settings(
+            PAIEMENTS_OPERATEURS={"ORANGE_MONEY": {"id_client": "a", "secret_client": "b", "cle_marchand": "c"}},
+            PAIEMENTS_SIMULES=True, URL_PUBLIQUE="",
+        ):
+            lignes = self.lignes()
+        self.assertIs(lignes["PAIEMENTS_SIMULES"]["bon"], False)
+        self.assertIs(lignes["URL_PUBLIQUE"]["bon"], False, "Orange sans URL publique ne démarre pas")

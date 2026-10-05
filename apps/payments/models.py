@@ -17,13 +17,15 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
+from apps.core.bilingue import Bilingue
+
 from apps.core.models import BaseModel, TenantScopedModel
 from django.utils.translation import gettext_lazy
 
 CENTIME = Decimal("0.01")
 
 
-class Prestataire(models.Model):
+class Prestataire(Bilingue, models.Model):
     MTN_MOMO = "MTN_MOMO"
     ORANGE_MONEY = "ORANGE_MONEY"
     CAMTEL = "CAMTEL"
@@ -33,6 +35,7 @@ class Prestataire(models.Model):
 
     code = models.CharField(max_length=24, primary_key=True)
     libelle = models.CharField(max_length=64)
+    libelle_en = models.CharField(max_length=64, blank=True, verbose_name=gettext_lazy("libellé en anglais"))
     actif = models.BooleanField(default=True)
     taux_frais = models.DecimalField(
         max_digits=5, decimal_places=4, default=Decimal("0.016"), help_text=gettext_lazy("1,6 % par défaut.")

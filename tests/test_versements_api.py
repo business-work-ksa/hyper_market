@@ -34,10 +34,10 @@ CLES_VERSEMENT = {
 class EnvoiParApiTest(SocleVersement):
     def setUp(self):
         super().setUp()
-        for code, libelle, frais, prefixes in PRESTATAIRES:
+        for code, libelle, libelle_en, frais, prefixes in PRESTATAIRES:
             Prestataire.objects.update_or_create(
                 code=code,
-                defaults={"libelle": libelle, "taux_frais": Decimal(frais), "prefixes_numero": prefixes},
+                defaults={"libelle": libelle, "libelle_en": libelle_en, "taux_frais": Decimal(frais), "prefixes_numero": prefixes},
             )
         self.disponible()
         self.compte()

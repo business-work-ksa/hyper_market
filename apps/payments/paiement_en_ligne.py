@@ -167,11 +167,11 @@ def payer_commande(commande, *, numero: str, url_retour: str = "") -> Transactio
     except PrestataireNonConfigure as exc:
         journal.error("Paiement en ligne impossible : %s", exc)
         raise PaiementImpossible(
-            _("Le paiement %(libelle)s n'est pas encore ouvert sur HyperMarché. Choisissez le paiement à la livraison, ou réessayez plus tard.") % {"libelle": prestataire.libelle}
+            _("Le paiement %(libelle)s n'est pas encore ouvert sur HyperMarché. Choisissez le paiement à la livraison, ou réessayez plus tard.") % {"libelle": prestataire.libelle_affiche}
         ) from exc
     except PaiementIndisponible as exc:
         raise PaiementImpossible(
-            _('%(libelle)s ne répond pas en ce moment. Réessayez dans quelques minutes.') % {"libelle": prestataire.libelle}
+            _('%(libelle)s ne répond pas en ce moment. Réessayez dans quelques minutes.') % {"libelle": prestataire.libelle_affiche}
         ) from exc
 
 

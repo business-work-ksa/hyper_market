@@ -380,10 +380,10 @@ class OffreForm(FormulaireEtape):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.offres = {o.code: o for o in TypeEmplacement.objects.order_by("ordre")}
-        self.fields["offre"].choices = [(c, o.libelle) for c, o in self.offres.items()]
+        self.fields["offre"].choices = [(c, o.libelle_affiche) for c, o in self.offres.items()]
         self.rayons = {str(r.pk): r for r in Rayon.objects.filter(ouvert=True).order_by("ordre", "libelle")}
         self.fields["rayon"].choices = [("", "— Choisir un rayon —")] + [
-            (pk, f"{r.libelle} · {_chiffre(r.taux_commission * CENT)} %") for pk, r in self.rayons.items()
+            (pk, f"{r.libelle_affiche} · {_chiffre(r.taux_commission * CENT)} %") for pk, r in self.rayons.items()
         ]
         self.fields["debut"].initial = timezone.localdate()
         self.fields["loyer_mensuel"].pastille = "de l'offre"
@@ -477,7 +477,7 @@ class TypeEmplacementForm(FormulaireEtape):
         super().__init__(*args, **kwargs)
         self.rayons = {str(r.pk): r for r in Rayon.objects.order_by("ordre", "libelle")}
         self.fields["rayon"].choices = [("", "— Choisir un rayon —")] + [
-            (pk, r.libelle) for pk, r in self.rayons.items()
+            (pk, r.libelle_affiche) for pk, r in self.rayons.items()
         ]
         # Par défaut, le rayon de la boutique choisie : c'est presque toujours là qu'elle veut
         # être vue.

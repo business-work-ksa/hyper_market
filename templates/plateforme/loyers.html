@@ -94,7 +94,7 @@
                 <span class="monogramme" aria-hidden="true">{{ f.bail.boutique.enseigne|initiales }}</span>
                 <span class="t-boutique__noms">
                   <span class="t-boutique__enseigne">{{ f.bail.boutique.enseigne }}</span>
-                  <span class="t-boutique__raison">{{ f.bail.type_emplacement.libelle }}<span class="t-boutique__mobile-inline"> · {{ f.periode|date:"m/Y" }}</span></span>
+                  <span class="t-boutique__raison">{{ f.bail.type_emplacement|traduit }}<span class="t-boutique__mobile-inline"> · {{ f.periode|date:"m/Y" }}</span></span>
                   <span class="statut statut--{{ f.statut }} t-statut-mobile">{{ f.statut_libelle }}</span>
                 </span>
               </a>

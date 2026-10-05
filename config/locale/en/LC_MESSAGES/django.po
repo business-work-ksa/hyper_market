@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: HyperMarché marché\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 10:34+0100\n"
+"POT-Creation-Date: 2026-10-05 11:16+0100\n"
 "PO-Revision-Date: 2026-10-01 10:00+0100\n"
 "Last-Translator: Équipe HyperMarché\n"
 "Language-Team: English\n"
@@ -16,7 +16,7 @@ msgstr ""
 
 #: apps/accounting/models.py:45 apps/affiliation/models.py:38
 #: apps/affiliation/models.py:135 apps/backoffice/filtres.py:180
-#: apps/marketplace/models.py:208 templates/equipe.html:78
+#: apps/marketplace/models.py:211 templates/equipe.html:78
 #: templates/identite.html:77 templates/identite.html:147
 #: templates/plateforme/boutique.html:53
 #: templates/plateforme/boutique.html:212
@@ -31,7 +31,7 @@ msgstr "Liability"
 msgid "Charge"
 msgstr "Expense"
 
-#: apps/accounting/models.py:45 apps/backoffice/forms.py:869
+#: apps/accounting/models.py:45 apps/backoffice/forms.py:892
 msgid "Produit"
 msgstr "Income"
 
@@ -81,7 +81,7 @@ msgid "Traçabilité descendante : \"pos.Ticket\", \"orders.SousCommande\"…"
 msgstr "Downward traceability: \"pos.Ticket\", \"orders.SousCommande\"…"
 
 #: apps/accounting/models.py:242 apps/inventory/models.py:159
-#: apps/marketplace/models.py:208 apps/orders/models.py:31
+#: apps/marketplace/models.py:211 apps/orders/models.py:31
 #: apps/pos/models.py:174 templates/comptabilite.html:132
 msgid "Brouillon"
 msgstr "Draft"
@@ -153,19 +153,19 @@ msgstr "comptabiliser_reglement_cahier expects a credit book payment."
 msgid "Moyen de règlement « %(moyen)s » sans compte de trésorerie associé."
 msgstr "Payment method “%(moyen)s” has no linked cash account."
 
-#: apps/accounts/models.py:54
+#: apps/accounts/models.py:55
 msgid "téléphone"
 msgstr "phone"
 
-#: apps/accounts/models.py:63
+#: apps/accounts/models.py:64
 msgid "Code de parrainage, immuable pour la vie du compte."
 msgstr "Referral code, unchangeable for the life of the account."
 
-#: apps/accounts/models.py:67
+#: apps/accounts/models.py:68
 msgid "accès à l'administration"
 msgstr "administration access"
 
-#: apps/accounts/models.py:101 apps/plateforme/formulaires.py:446
+#: apps/accounts/models.py:102 apps/plateforme/formulaires.py:446
 #: apps/plateforme/vues_assistants.py:327
 #: templates/plateforme/activite.html:69
 #: templates/plateforme/assistants/boutique_recapitulatif.html:31
@@ -176,21 +176,28 @@ msgstr "administration access"
 msgid "Boutique"
 msgstr "Shop"
 
-#: apps/accounts/models.py:101
+#: apps/accounts/models.py:102
 msgid "Plateforme"
 msgstr "Platform"
 
-#: apps/accounts/models.py:150
+#: apps/accounts/models.py:118 apps/catalog/models.py:27
+#: apps/catalog/models.py:47 apps/catalog/models.py:89
+#: apps/marketplace/models.py:31 apps/marketplace/models.py:72
+#: apps/payments/models.py:38
+msgid "libellé en anglais"
+msgstr "English label"
+
+#: apps/accounts/models.py:152
 msgid "prévenir des commandes sur WhatsApp"
 msgstr "notify of orders on WhatsApp"
 
-#: apps/accounts/models.py:195 apps/plateforme/formulaires.py:572
+#: apps/accounts/models.py:197 apps/plateforme/formulaires.py:572
 msgid ""
 "Pourquoi cette personne exploite le marché. Utile le jour où on se le "
 "demande."
 msgstr "Why this person runs the market. Useful the day someone asks."
 
-#: apps/accounts/models.py:220
+#: apps/accounts/models.py:222
 #, python-format
 msgid ""
 "« %(libelle)s » est un rôle de boutique. Un rôle de boutique se porte par "
@@ -199,87 +206,87 @@ msgstr ""
 "“%(libelle)s” is a shop role. A shop role is held through a membership, "
 "which names the shop."
 
-#: apps/accounts/models.py:281
+#: apps/accounts/models.py:283
 msgid "Carte nationale d'identité"
 msgstr "National identity card"
 
-#: apps/accounts/models.py:282
+#: apps/accounts/models.py:284
 msgid "Passeport"
 msgstr "Passport"
 
-#: apps/accounts/models.py:283
+#: apps/accounts/models.py:285
 msgid "Carte consulaire"
 msgstr "Consular card"
 
-#: apps/accounts/models.py:284
+#: apps/accounts/models.py:286
 msgid "Titre de séjour"
 msgstr "Residence permit"
 
-#: apps/accounts/models.py:285
+#: apps/accounts/models.py:287
 msgid "RCCM — immatriculation ou déclaration d'entreprenant"
 msgstr "RCCM — registration or sole trader declaration"
 
-#: apps/accounts/models.py:286
+#: apps/accounts/models.py:288
 msgid "Numéro d'identifiant unique (NIU)"
 msgstr "Unique identification number (NIU)"
 
-#: apps/accounts/models.py:287
+#: apps/accounts/models.py:289
 msgid "Numéro d'identification fiscale (NIF)"
 msgstr "Tax identification number (NIF)"
 
-#: apps/accounts/models.py:288
+#: apps/accounts/models.py:290
 msgid "Appel de vérification du téléphone"
 msgstr "Phone verification call"
 
-#: apps/accounts/models.py:298
+#: apps/accounts/models.py:300
 msgid "Original vu en présentiel"
 msgstr "Original seen in person"
 
-#: apps/accounts/models.py:299
+#: apps/accounts/models.py:301
 msgid "Original vu en visio"
 msgstr "Original seen by video call"
 
-#: apps/accounts/models.py:300
+#: apps/accounts/models.py:302
 msgid "Document reçu, puis supprimé"
 msgstr "Document received, then deleted"
 
-#: apps/accounts/models.py:301
+#: apps/accounts/models.py:303
 #: templates/plateforme/verification_dossier.html:135
 msgid "Appel de vérification"
 msgstr "Verification call"
 
-#: apps/accounts/models.py:307 apps/orders/models.py:100
+#: apps/accounts/models.py:309 apps/orders/models.py:100
 #: apps/vitrine/chaines.py:15 templates/plateforme/versement.html:48
 #: templates/verification.html:66
 msgid "En attente"
 msgstr "Pending"
 
-#: apps/accounts/models.py:307 apps/inventory/models.py:159
+#: apps/accounts/models.py:309 apps/inventory/models.py:159
 #: templates/inventaire.html:120
 msgid "Validé"
 msgstr "Approved"
 
-#: apps/accounts/models.py:307 apps/marketplace/models.py:512
+#: apps/accounts/models.py:309 apps/marketplace/models.py:515
 #: templates/verification.html:65
 msgid "Rejeté"
 msgstr "Rejected"
 
-#: apps/accounts/models.py:316
+#: apps/accounts/models.py:318
 msgid ""
 "La personne dont c'est la pièce (le gérant). Vide pour une pièce de "
 "boutique."
 msgstr ""
 "The person whose document it is (the manager). Empty for a shop document."
 
-#: apps/accounts/models.py:324
+#: apps/accounts/models.py:326
 msgid "La boutique pour laquelle la pièce a été présentée."
 msgstr "The shop for which the document was presented."
 
-#: apps/accounts/models.py:330
+#: apps/accounts/models.py:332
 msgid "empreinte du numéro"
 msgstr "number fingerprint"
 
-#: apps/accounts/models.py:331
+#: apps/accounts/models.py:333
 msgid ""
 "HMAC-SHA256 du numéro normalisé : compare sans révéler. Le numéro lui-même "
 "n'est pas gardé."
@@ -287,35 +294,35 @@ msgstr ""
 "HMAC-SHA256 of the normalised number: compares without revealing. The number"
 " itself is not kept."
 
-#: apps/accounts/models.py:334
+#: apps/accounts/models.py:336
 msgid "fin du numéro"
 msgstr "end of number"
 
-#: apps/accounts/models.py:334
+#: apps/accounts/models.py:336
 msgid "Les quatre derniers caractères, pour l'affichage masqué."
 msgstr "The last four characters, for masked display."
 
-#: apps/accounts/models.py:337
+#: apps/accounts/models.py:339
 msgid "pays émetteur"
 msgstr "issuing country"
 
-#: apps/accounts/models.py:337
+#: apps/accounts/models.py:339
 msgid "Code ISO à deux lettres."
 msgstr "Two-letter ISO code."
 
-#: apps/accounts/models.py:340
+#: apps/accounts/models.py:342
 msgid "date d'expiration"
 msgstr "expiry date"
 
-#: apps/accounts/models.py:340
+#: apps/accounts/models.py:342
 msgid "Vide : pièce sans échéance (RCCM, NIU)."
 msgstr "Empty: document without expiry (RCCM, NIU)."
 
-#: apps/accounts/models.py:345
+#: apps/accounts/models.py:347
 msgid "nom tel qu'il figure"
 msgstr "name as it appears"
 
-#: apps/accounts/models.py:346
+#: apps/accounts/models.py:348
 msgid ""
 "Recopié de la pièce, pas du compte : c'est à lui qu'on compare le titulaire "
 "du compte de versement."
@@ -323,15 +330,15 @@ msgstr ""
 "Copied from the document, not from the account: it is what the payout "
 "account holder is compared with."
 
-#: apps/accounts/models.py:349
+#: apps/accounts/models.py:351
 msgid "mode de vérification"
 msgstr "verification method"
 
-#: apps/accounts/models.py:354
+#: apps/accounts/models.py:356
 msgid "empreinte SHA-256"
 msgstr "SHA-256 fingerprint"
 
-#: apps/accounts/models.py:355
+#: apps/accounts/models.py:357
 msgid ""
 "Du document reçu, s'il y en a eu un : la preuve qu'on a vu celui-là, sans le"
 " garder."
@@ -339,7 +346,7 @@ msgstr ""
 "Of the received document, if there was one: proof that this one was seen, "
 "without keeping it."
 
-#: apps/accounts/models.py:360
+#: apps/accounts/models.py:362
 msgid ""
 "Chemin de la copie dans le stockage persistant désigné. Vide par défaut, et "
 "c'est voulu."
@@ -347,11 +354,11 @@ msgstr ""
 "Path of the copy in the designated persistent storage. Empty by default, and"
 " that is intentional."
 
-#: apps/accounts/models.py:365
+#: apps/accounts/models.py:367
 msgid "déclaré par"
 msgstr "declared by"
 
-#: apps/accounts/models.py:369
+#: apps/accounts/models.py:371
 msgid "vérifié par"
 msgstr "verified by"
 
@@ -426,12 +433,12 @@ msgstr "Earned"
 msgid "Payable"
 msgstr "Payable"
 
-#: apps/affiliation/models.py:211 apps/marketplace/models.py:282
+#: apps/affiliation/models.py:211 apps/marketplace/models.py:285
 #: apps/orders/models.py:33 templates/plateforme/loyer_encaisser.html:24
 msgid "Payée"
 msgstr "Paid"
 
-#: apps/affiliation/models.py:212 apps/marketplace/models.py:282
+#: apps/affiliation/models.py:212 apps/marketplace/models.py:285
 #: apps/orders/models.py:36 apps/orders/models.py:105
 #: apps/vitrine/chaines.py:20 templates/plateforme/loyer_encaisser.html:26
 msgid "Annulée"
@@ -660,8 +667,8 @@ msgstr "What sits on the shelf ties up cash."
 msgid "Nom ou téléphone"
 msgstr "Name or phone"
 
-#: apps/backoffice/filtres.py:177 apps/backoffice/forms.py:522
-#: apps/backoffice/forms.py:562 apps/plateforme/formulaires.py:564
+#: apps/backoffice/filtres.py:177 apps/backoffice/forms.py:545
+#: apps/backoffice/forms.py:585 apps/plateforme/formulaires.py:564
 #: templates/equipe.html:53 templates/equipe.html:198
 msgid "Rôle"
 msgstr "Role"
@@ -670,7 +677,7 @@ msgstr "Role"
 msgid "Accès"
 msgstr "Access"
 
-#: apps/backoffice/filtres.py:180 apps/marketplace/models.py:513
+#: apps/backoffice/filtres.py:180 apps/marketplace/models.py:516
 #: templates/equipe.html:81 templates/identite.html:149
 #: templates/plateforme/boutique.html:212
 msgid "Retiré"
@@ -768,7 +775,7 @@ msgstr "Warranty"
 msgid "En cours"
 msgstr "In progress"
 
-#: apps/backoffice/filtres.py:260 apps/payments/models.py:71
+#: apps/backoffice/filtres.py:260 apps/payments/models.py:74
 #: templates/garantie.html:69
 msgid "Expirée"
 msgstr "Expired"
@@ -865,88 +872,110 @@ msgstr "Item name"
 msgid "Ciment CIMENCAM 50 kg"
 msgstr "Ciment CIMENCAM 50 kg"
 
-#: apps/backoffice/forms.py:60 templates/inventaire.html:59
+#: apps/backoffice/forms.py:62
+msgid "Nom en anglais"
+msgstr "Name in English"
+
+#: apps/backoffice/forms.py:65
+msgid "Facultatif. Montré aux acheteurs qui lisent le marché en anglais."
+msgstr "Optional. Shown to buyers who read the market in English."
+
+#: apps/backoffice/forms.py:69 templates/vitrine/article.html:78
+msgid "Description"
+msgstr "Description"
+
+#: apps/backoffice/forms.py:71
+msgid ""
+"Ce que l'acheteur doit savoir avant de commander : contenance, usage, "
+"origine."
+msgstr "What the buyer needs to know before ordering: size, use, origin."
+
+#: apps/backoffice/forms.py:75
+msgid "Description en anglais"
+msgstr "Description in English"
+
+#: apps/backoffice/forms.py:80 templates/inventaire.html:59
 #: templates/plateforme/partials/s_preuve_pic_prepaiement.html:4
 #: templates/plateforme/versement.html:115 templates/stock.html:109
 msgid "Référence"
 msgstr "Reference"
 
-#: apps/backoffice/forms.py:62
+#: apps/backoffice/forms.py:82
 msgid "QUI-CIM-50"
 msgstr "QUI-CIM-50"
 
-#: apps/backoffice/forms.py:65
+#: apps/backoffice/forms.py:85
 msgid "Code-barres"
 msgstr "Barcode"
 
-#: apps/backoffice/forms.py:66
+#: apps/backoffice/forms.py:86
 msgid "Scannez ou laissez vide"
 msgstr "Scan or leave empty"
 
-#: apps/backoffice/forms.py:69
+#: apps/backoffice/forms.py:89
 msgid "Prix de vente TTC"
 msgstr "Selling price incl. tax"
 
-#: apps/backoffice/forms.py:73 templates/stock_entree.html:69
+#: apps/backoffice/forms.py:93 templates/stock_entree.html:69
 msgid "Seuil d'alerte"
 msgstr "Alert threshold"
 
-#: apps/backoffice/forms.py:74
+#: apps/backoffice/forms.py:94
 msgid "En dessous de combien faut-il recommander ?"
 msgstr "Below how many should you reorder?"
 
-#: apps/backoffice/forms.py:78
+#: apps/backoffice/forms.py:98
 msgid "Régime de TVA"
 msgstr "VAT regime"
 
-#: apps/backoffice/forms.py:86
+#: apps/backoffice/forms.py:106
 msgid "Date de péremption"
 msgstr "Expiry date"
 
-#: apps/backoffice/forms.py:88
+#: apps/backoffice/forms.py:108
 msgid "Laissez vide si cet article ne périme pas."
 msgstr "Leave empty if this item does not expire."
 
-#: apps/backoffice/forms.py:92
+#: apps/backoffice/forms.py:112
 msgid "Numéro de lot"
 msgstr "Batch number"
 
-#: apps/backoffice/forms.py:95
+#: apps/backoffice/forms.py:115
 msgid "Lot du fabricant"
 msgstr "Manufacturer's batch"
 
-#: apps/backoffice/forms.py:98
+#: apps/backoffice/forms.py:118
 msgid "Unité de vente"
 msgstr "Sales unit"
 
-#: apps/backoffice/forms.py:104
+#: apps/backoffice/forms.py:124
 msgid "Délivré sur ordonnance"
 msgstr "Dispensed on prescription"
 
-#: apps/backoffice/forms.py:106
+#: apps/backoffice/forms.py:126
 msgid "Sera consigné à l'ordonnancier, et retiré de la vente en ligne."
 msgstr ""
 "Will be recorded in the prescription register, and withdrawn from online "
 "sale."
 
-#: apps/backoffice/forms.py:110 templates/article.html:187
+#: apps/backoffice/forms.py:130 templates/article.html:187
 #: templates/vitrine/article.html:93
 msgid "Référence constructeur"
 msgstr "Manufacturer reference"
 
-#: apps/backoffice/forms.py:113 templates/article.html:188
+#: apps/backoffice/forms.py:133 templates/article.html:188
 msgid "Celle qui est gravée sur la pièce d'origine."
 msgstr "The one engraved on the original part."
 
-#: apps/backoffice/forms.py:114
+#: apps/backoffice/forms.py:134
 msgid "90915-YZZD4"
 msgstr "90915-YZZD4"
 
-#: apps/backoffice/forms.py:117
+#: apps/backoffice/forms.py:137
 msgid "Suivre chaque exemplaire (numéro de série ou IMEI)"
 msgstr "Track each unit (serial number or IMEI)"
 
-#: apps/backoffice/forms.py:120
+#: apps/backoffice/forms.py:140
 msgid ""
 "À réserver aux appareils qui en portent un. Un câble n'a pas d'IMEI, et en "
 "réclamer un à chaque réception fait abandonner le suivi."
@@ -954,37 +983,37 @@ msgstr ""
 "Reserve for devices that carry one. A cable has no IMEI, and demanding one "
 "at every receipt makes people abandon tracking."
 
-#: apps/backoffice/forms.py:126
+#: apps/backoffice/forms.py:146
 msgid "Garantie (mois)"
 msgstr "Warranty (months)"
 
-#: apps/backoffice/forms.py:131
+#: apps/backoffice/forms.py:151
 msgid "Zéro si l'article n'est pas garanti. L'échéance sera figée à la vente."
 msgstr "Zero if the item has no warranty. The expiry will be fixed at sale."
 
-#: apps/backoffice/forms.py:181
+#: apps/backoffice/forms.py:201
 #, python-format
 msgid "Nom %(du_article)s"
 msgstr "Name of %(du_article)s"
 
-#: apps/backoffice/forms.py:226
+#: apps/backoffice/forms.py:246
 msgid "Cette référence existe déjà dans votre boutique."
 msgstr "This reference already exists in your shop."
 
-#: apps/backoffice/forms.py:242 apps/backoffice/forms.py:372
+#: apps/backoffice/forms.py:262 apps/backoffice/forms.py:395
 msgid "Coût d'achat unitaire"
 msgstr "Unit purchase cost"
 
-#: apps/backoffice/forms.py:243
+#: apps/backoffice/forms.py:263
 msgid ""
 "Ce que vous payez au fournisseur. C'est lui qui donne votre marge réelle."
 msgstr "What you pay the supplier. It is what gives your real margin."
 
-#: apps/backoffice/forms.py:247
+#: apps/backoffice/forms.py:267
 msgid "Quantité comptée"
 msgstr "Counted quantity"
 
-#: apps/backoffice/forms.py:264
+#: apps/backoffice/forms.py:284
 msgid ""
 "Ce métier suit les péremptions : indiquez la date, ou saisissez une quantité"
 " nulle et faites une réception ensuite."
@@ -992,16 +1021,16 @@ msgstr ""
 "This trade tracks expiry dates: enter the date, or enter a zero quantity and"
 " record a receipt afterwards."
 
-#: apps/backoffice/forms.py:273
+#: apps/backoffice/forms.py:293
 msgid "Le coût d'achat dépasse le prix de vente : vous vendriez à perte."
 msgstr ""
 "The purchase cost exceeds the selling price: you would sell at a loss."
 
-#: apps/backoffice/forms.py:291
+#: apps/backoffice/forms.py:311
 msgid "En vente"
 msgstr "On sale"
 
-#: apps/backoffice/forms.py:294
+#: apps/backoffice/forms.py:314
 msgid ""
 "Décoché, l'article disparaît de la caisse et de la vitrine, et garde son "
 "stock."
@@ -1009,45 +1038,45 @@ msgstr ""
 "Unticked, the item disappears from the till and the market, and keeps its "
 "stock."
 
-#: apps/backoffice/forms.py:343
+#: apps/backoffice/forms.py:366
 msgid "Numéros de série"
 msgstr "Serial numbers"
 
-#: apps/backoffice/forms.py:348 apps/backoffice/forms.py:388
+#: apps/backoffice/forms.py:371 apps/backoffice/forms.py:411
 msgid "Un numéro par ligne — scannez à la suite"
 msgstr "One number per line — scan one after another"
 
-#: apps/backoffice/forms.py:360
+#: apps/backoffice/forms.py:383
 msgid "Aucun numéro lisible dans cette saisie."
 msgstr "No readable number in this entry."
 
-#: apps/backoffice/forms.py:368
+#: apps/backoffice/forms.py:391
 msgid "Quantité reçue"
 msgstr "Quantity received"
 
-#: apps/backoffice/forms.py:373
+#: apps/backoffice/forms.py:396
 msgid "Le coût moyen pondéré sera recalculé avec cette entrée."
 msgstr "The weighted average cost will be recalculated with this receipt."
 
-#: apps/backoffice/forms.py:377 apps/backoffice/forms.py:855
+#: apps/backoffice/forms.py:400 apps/backoffice/forms.py:878
 #: templates/production.html:117
 msgid "Commentaire"
 msgstr "Comment"
 
-#: apps/backoffice/forms.py:378
+#: apps/backoffice/forms.py:401
 msgid "Bon de livraison n° …"
 msgstr "Delivery note no. …"
 
-#: apps/backoffice/forms.py:381
+#: apps/backoffice/forms.py:404
 msgid "Numéros de série reçus"
 msgstr "Serial numbers received"
 
-#: apps/backoffice/forms.py:383
+#: apps/backoffice/forms.py:406
 msgid ""
 "Un par ligne. Facultatifs : ce qui n'est pas nommé reste du stock ordinaire."
 msgstr "One per line. Optional: what is not named stays ordinary stock."
 
-#: apps/backoffice/forms.py:418
+#: apps/backoffice/forms.py:441
 #, python-format
 msgid ""
 "%(len)s numéros pour %(quantite)s reçus : corrigez la quantité ou retirez "
@@ -1056,31 +1085,31 @@ msgstr ""
 "%(len)s numbers for %(quantite)s received: fix the quantity or remove the "
 "extra numbers."
 
-#: apps/backoffice/forms.py:427
+#: apps/backoffice/forms.py:450
 msgid "Panne constatée"
 msgstr "Fault found"
 
-#: apps/backoffice/forms.py:430
+#: apps/backoffice/forms.py:453
 msgid "Écran cassé, ne charge plus, redémarre seul…"
 msgstr "Cracked screen, won't charge, restarts by itself…"
 
-#: apps/backoffice/forms.py:437
+#: apps/backoffice/forms.py:460
 msgid "Ce qui a été fait"
 msgstr "What was done"
 
-#: apps/backoffice/forms.py:440
+#: apps/backoffice/forms.py:463
 msgid "Nappe de charge remplacée"
 msgstr "Charging cable replaced"
 
-#: apps/backoffice/forms.py:453
+#: apps/backoffice/forms.py:476
 msgid "Vers le dépôt"
 msgstr "To warehouse"
 
-#: apps/backoffice/forms.py:455
+#: apps/backoffice/forms.py:478
 msgid "Quantité transférée"
 msgstr "Quantity transferred"
 
-#: apps/backoffice/forms.py:459 apps/backoffice/forms.py:877
+#: apps/backoffice/forms.py:482 apps/backoffice/forms.py:900
 #: apps/plateforme/formulaires.py:569 apps/plateforme/formulaires.py:598
 #: apps/plateforme/formulaires.py:639 templates/commande.html:231
 #: templates/commande.html:272 templates/plateforme/partials/v_compte.html:29
@@ -1090,90 +1119,90 @@ msgstr "Quantity transferred"
 msgid "Motif"
 msgstr "Reason"
 
-#: apps/backoffice/forms.py:460
+#: apps/backoffice/forms.py:483
 msgid "Réassort du comptoir"
 msgstr "Counter restock"
 
-#: apps/backoffice/forms.py:471
+#: apps/backoffice/forms.py:494
 msgid "Ce dépôt n'existe pas dans votre boutique."
 msgstr "This warehouse does not exist in your shop."
 
-#: apps/backoffice/forms.py:479 templates/boutique.html:244
+#: apps/backoffice/forms.py:502 templates/boutique.html:244
 msgid "Nom du dépôt"
 msgstr "Warehouse name"
 
-#: apps/backoffice/forms.py:480 templates/boutique.html:245
+#: apps/backoffice/forms.py:503 templates/boutique.html:245
 msgid "Réserve Akwa"
 msgstr "Akwa storeroom"
 
-#: apps/backoffice/forms.py:482 templates/article.html:274
+#: apps/backoffice/forms.py:505 templates/article.html:274
 #: templates/boutique.html:141 templates/boutique.html:248
 msgid "Type"
 msgstr "Type"
 
-#: apps/backoffice/forms.py:484 templates/boutique.html:142
+#: apps/backoffice/forms.py:507 templates/boutique.html:142
 #: templates/boutique.html:254 templates/vitrine/commande.html:196
 msgid "Adresse"
 msgstr "Address"
 
-#: apps/backoffice/forms.py:485 templates/boutique.html:255
+#: apps/backoffice/forms.py:508 templates/boutique.html:255
 msgid "Facultative"
 msgstr "Optional"
 
-#: apps/backoffice/forms.py:512 apps/plateforme/formulaires.py:106
+#: apps/backoffice/forms.py:535 apps/plateforme/formulaires.py:106
 #: templates/connexion.html:103
 msgid "Numéro de téléphone"
 msgstr "Phone number"
 
-#: apps/backoffice/forms.py:518 apps/plateforme/formulaires.py:113
+#: apps/backoffice/forms.py:541 apps/plateforme/formulaires.py:113
 msgid "Nom complet"
 msgstr "Full name"
 
-#: apps/backoffice/forms.py:519
+#: apps/backoffice/forms.py:542
 msgid "Ignoré si la personne a déjà un compte."
 msgstr "Ignored if the person already has an account."
 
-#: apps/backoffice/forms.py:520 apps/plateforme/formulaires.py:116
+#: apps/backoffice/forms.py:543 apps/plateforme/formulaires.py:116
 msgid "Marie Ekedi"
 msgstr "Marie Ekedi"
 
-#: apps/backoffice/forms.py:536
+#: apps/backoffice/forms.py:559
 msgid "Ce rôle ne peut pas être attribué dans une boutique."
 msgstr "This role cannot be assigned in a shop."
 
-#: apps/backoffice/forms.py:555
+#: apps/backoffice/forms.py:578
 msgid "Cette personne fait déjà partie de votre équipe."
 msgstr "This person is already part of your team."
 
-#: apps/backoffice/forms.py:557 apps/plateforme/formulaires.py:181
+#: apps/backoffice/forms.py:580 apps/plateforme/formulaires.py:181
 msgid "Le nom est obligatoire pour un nouveau compte."
 msgstr "A name is required for a new account."
 
-#: apps/backoffice/forms.py:572 apps/backoffice/vues_equipe.py:281
+#: apps/backoffice/forms.py:595 apps/backoffice/vues_equipe.py:281
 msgid "Rôle inconnu."
 msgstr "Unknown role."
 
-#: apps/backoffice/forms.py:578
+#: apps/backoffice/forms.py:601
 msgid "Fonds de caisse au démarrage"
 msgstr "Opening float"
 
-#: apps/backoffice/forms.py:580
+#: apps/backoffice/forms.py:603
 msgid "Les espèces présentes dans le tiroir avant la première vente."
 msgstr "The cash in the drawer before the first sale."
 
-#: apps/backoffice/forms.py:587
+#: apps/backoffice/forms.py:610
 msgid "Espèces comptées dans le tiroir"
 msgstr "Cash counted in the drawer"
 
-#: apps/backoffice/forms.py:588
+#: apps/backoffice/forms.py:611
 msgid "Comptez avant de regarder le montant théorique."
 msgstr "Count before looking at the expected amount."
 
-#: apps/backoffice/forms.py:630
+#: apps/backoffice/forms.py:653
 msgid "Caractère"
 msgstr "Character"
 
-#: apps/backoffice/forms.py:665
+#: apps/backoffice/forms.py:688
 #, python-format
 msgid ""
 "Ce fichier pèse %(valeur)s Mo. Un logo doit rester sous 3 Mo — au-delà, il "
@@ -1182,7 +1211,7 @@ msgstr ""
 "This file weighs %(valeur)s MB. A logo must stay under 3 MB — beyond that, "
 "it slows down every page of your shop."
 
-#: apps/backoffice/forms.py:676
+#: apps/backoffice/forms.py:699
 #, python-format
 msgid ""
 "Cette image fait %(largeur)s × %(hauteur)s pixels. Un logo n'a pas besoin de"
@@ -1191,86 +1220,86 @@ msgstr ""
 "This image is %(largeur)s × %(hauteur)s pixels. A logo does not need to "
 "exceed 5000 × 5000; shrink it before uploading."
 
-#: apps/backoffice/forms.py:687
+#: apps/backoffice/forms.py:710
 msgid "Couleur illisible : attendu un code de la forme #1E88E5."
 msgstr "Unreadable colour: expected a code like #1E88E5."
 
-#: apps/backoffice/forms.py:697 templates/identite.html:219
+#: apps/backoffice/forms.py:720 templates/identite.html:219
 msgid "À quoi sert ce lien"
 msgstr "What this link is for"
 
-#: apps/backoffice/forms.py:700 templates/identite.html:221
+#: apps/backoffice/forms.py:723 templates/identite.html:221
 msgid "Flyer marché central, statut WhatsApp…"
 msgstr "Central market flyer, WhatsApp status…"
 
-#: apps/backoffice/forms.py:704 templates/identite.html:123
+#: apps/backoffice/forms.py:727 templates/identite.html:123
 #: templates/versements.html:37 templates/versements.html:81
 msgid "Vers"
 msgstr "To"
 
-#: apps/backoffice/forms.py:707
+#: apps/backoffice/forms.py:730
 msgid "Code apporteur (facultatif)"
 msgstr "Referrer code (optional)"
 
-#: apps/backoffice/forms.py:710
+#: apps/backoffice/forms.py:733
 msgid "Rattache les commandes venues de ce lien à un apporteur."
 msgstr "Links orders coming from this link to a referrer."
 
-#: apps/backoffice/forms.py:711
+#: apps/backoffice/forms.py:734
 msgid "HM-XXXXXX"
 msgstr "HM-XXXXXX"
 
-#: apps/backoffice/forms.py:739
+#: apps/backoffice/forms.py:762
 msgid "Produit fabriqué"
 msgstr "Manufactured product"
 
-#: apps/backoffice/forms.py:741 templates/fiche.html:34
+#: apps/backoffice/forms.py:764 templates/fiche.html:34
 #: templates/fiches.html:24 templates/fiches.html:114
 #: templates/production.html:49
 msgid "Rendement"
 msgstr "Yield"
 
-#: apps/backoffice/forms.py:745
+#: apps/backoffice/forms.py:768
 msgid ""
 "Combien d'unités une fiche complète produit. Une fournée, pas une pièce."
 msgstr "How many units a full recipe produces. A batch, not a single piece."
 
-#: apps/backoffice/forms.py:749 templates/fiches.html:119
+#: apps/backoffice/forms.py:772 templates/fiches.html:119
 msgid "Conservation (jours)"
 msgstr "Shelf life (days)"
 
-#: apps/backoffice/forms.py:753
+#: apps/backoffice/forms.py:776
 msgid "La date de péremption sera calculée à chaque production."
 msgstr "The expiry date will be calculated at each production run."
 
-#: apps/backoffice/forms.py:757 templates/fiche.html:145
+#: apps/backoffice/forms.py:780 templates/fiche.html:145
 #: templates/fiches.html:125
 msgid "Mode opératoire"
 msgstr "Method"
 
-#: apps/backoffice/forms.py:759
+#: apps/backoffice/forms.py:782
 msgid "Pétrissage 12 min, repos 1 h…"
 msgstr "Kneading 12 min, rest 1 h…"
 
-#: apps/backoffice/forms.py:775 apps/backoffice/forms.py:826
-#: apps/backoffice/forms.py:887
+#: apps/backoffice/forms.py:798 apps/backoffice/forms.py:849
+#: apps/backoffice/forms.py:910
 msgid "Choisir…"
 msgstr "Choose…"
 
-#: apps/backoffice/forms.py:778
+#: apps/backoffice/forms.py:801
 #, python-format
 msgid "%(article)s fabriqué"
 msgstr "%(article)s produced"
 
-#: apps/backoffice/forms.py:784
+#: apps/backoffice/forms.py:807
 msgid "Cet article n'existe pas dans votre boutique, ou il a déjà une fiche."
 msgstr "This item does not exist in your shop, or it already has a recipe."
 
-#: apps/backoffice/forms.py:797 templates/fiche.html:67
+#: apps/backoffice/forms.py:820 templates/fiche.html:67
 msgid "Ingrédient"
 msgstr "Ingredient"
 
-#: apps/backoffice/forms.py:799 templates/article.html:277
+#: apps/backoffice/forms.py:822 templates/article.html:277
 #: templates/commande.html:50 templates/fiche.html:68
 #: templates/peremptions.html:56 templates/peremptions.html:94
 #: templates/plateforme/litige.html:52 templates/production.html:115
@@ -1280,11 +1309,11 @@ msgstr "Ingredient"
 msgid "Quantité"
 msgstr "Quantity"
 
-#: apps/backoffice/forms.py:802
+#: apps/backoffice/forms.py:825
 msgid "Pour une fiche complète, dans l'unité de l'ingrédient."
 msgstr "For a full recipe, in the ingredient's unit."
 
-#: apps/backoffice/forms.py:834
+#: apps/backoffice/forms.py:857
 msgid ""
 "Cet ingrédient n'est pas disponible : il est déjà dans la fiche, c'est le "
 "produit fabriqué lui-même, ou il n'existe pas ici."
@@ -1292,96 +1321,96 @@ msgstr ""
 "This ingredient is not available: it is already in the recipe, it is the "
 "manufactured product itself, or it does not exist here."
 
-#: apps/backoffice/forms.py:849
+#: apps/backoffice/forms.py:872
 msgid "Quantité produite"
 msgstr "Quantity produced"
 
-#: apps/backoffice/forms.py:856
+#: apps/backoffice/forms.py:879
 msgid "Fournée du matin"
 msgstr "Morning batch"
 
-#: apps/backoffice/forms.py:871
+#: apps/backoffice/forms.py:894
 msgid "Quantité jetée"
 msgstr "Quantity thrown away"
 
-#: apps/backoffice/forms.py:878
+#: apps/backoffice/forms.py:901
 msgid "Invendus du soir"
 msgstr "Evening unsold items"
 
-#: apps/backoffice/forms.py:894
+#: apps/backoffice/forms.py:917
 msgid "Ce produit n'est pas fabriqué dans votre boutique."
 msgstr "This product is not manufactured in your shop."
 
-#: apps/backoffice/forms.py:912 templates/article.html:153
+#: apps/backoffice/forms.py:935 templates/article.html:153
 #: templates/article.html:448
 msgid "Marque"
 msgstr "Brand"
 
-#: apps/backoffice/forms.py:913 templates/article.html:449
+#: apps/backoffice/forms.py:936 templates/article.html:449
 #: templates/stock.html:66
 msgid "Toyota"
 msgstr "Toyota"
 
-#: apps/backoffice/forms.py:916 templates/article.html:154
+#: apps/backoffice/forms.py:939 templates/article.html:154
 #: templates/article.html:452 templates/stock.html:69
 msgid "Modèle"
 msgstr "Model"
 
-#: apps/backoffice/forms.py:917 apps/catalog/models.py:214
+#: apps/backoffice/forms.py:940 apps/catalog/models.py:224
 #: templates/article.html:454
 msgid "Vide si la pièce va sur toute la marque."
 msgstr "Empty if the part fits the whole brand."
 
-#: apps/backoffice/forms.py:918 templates/article.html:453
+#: apps/backoffice/forms.py:941 templates/article.html:453
 #: templates/stock.html:71
 msgid "Corolla"
 msgstr "Corolla"
 
-#: apps/backoffice/forms.py:921 templates/article.html:155
+#: apps/backoffice/forms.py:944 templates/article.html:155
 #: templates/article.html:457
 msgid "Motorisation"
 msgstr "Engine"
 
-#: apps/backoffice/forms.py:925 templates/article.html:461
+#: apps/backoffice/forms.py:948 templates/article.html:461
 msgid "De l'année"
 msgstr "From year"
 
-#: apps/backoffice/forms.py:929 templates/article.html:465
+#: apps/backoffice/forms.py:952 templates/article.html:465
 msgid "À l'année"
 msgstr "To year"
 
-#: apps/backoffice/forms.py:953
+#: apps/backoffice/forms.py:976
 msgid "L'année de fin précède l'année de début."
 msgstr "The end year is before the start year."
 
-#: apps/backoffice/forms.py:967
+#: apps/backoffice/forms.py:990
 msgid "Cette compatibilité est déjà déclarée."
 msgstr "This compatibility is already declared."
 
-#: apps/backoffice/forms.py:985 templates/article.html:72
+#: apps/backoffice/forms.py:1008 templates/article.html:72
 #: templates/article.html:376
 msgid "Nature"
 msgstr "Type"
 
-#: apps/backoffice/forms.py:987 templates/article.html:73
+#: apps/backoffice/forms.py:1010 templates/article.html:73
 #: templates/article.html:384
 msgid "Désignation"
 msgstr "Name"
 
-#: apps/backoffice/forms.py:991 templates/article.html:74
+#: apps/backoffice/forms.py:1014 templates/article.html:74
 #: templates/article.html:388
 msgid "Employée par"
 msgstr "Used by"
 
-#: apps/backoffice/forms.py:992
+#: apps/backoffice/forms.py:1015
 msgid "Facultatif : le laboratoire ou l'équipementier qui emploie ce nom."
 msgstr "Optional: the laboratory or manufacturer that uses this name."
 
-#: apps/backoffice/forms.py:1022
+#: apps/backoffice/forms.py:1045
 msgid "Une désignation vide ne rapproche rien de rien."
 msgstr "An empty name matches nothing at all."
 
-#: apps/backoffice/forms.py:1034
+#: apps/backoffice/forms.py:1057
 msgid "Cet article porte déjà cette désignation."
 msgstr "This item already has this name."
 
@@ -1419,7 +1448,7 @@ msgstr ""
 "This account is not linked to any active shop. Ask your manager to add you "
 "to the team."
 
-#: apps/backoffice/views.py:674 apps/backoffice/views.py:1573
+#: apps/backoffice/views.py:674 apps/backoffice/views.py:1582
 msgid "Requête illisible."
 msgstr "Unreadable request."
 
@@ -1427,7 +1456,7 @@ msgstr "Unreadable request."
 msgid "Le panier est vide."
 msgstr "The cart is empty."
 
-#: apps/backoffice/views.py:686 apps/backoffice/views.py:1583
+#: apps/backoffice/views.py:686 apps/backoffice/views.py:1592
 msgid "Aucun dépôt configuré."
 msgstr "No warehouse configured."
 
@@ -1450,7 +1479,7 @@ msgstr "Select one %(article)s to edit or remove it."
 msgid "article"
 msgstr "item"
 
-#: apps/backoffice/views.py:1041 apps/backoffice/views.py:1547
+#: apps/backoffice/views.py:1041 apps/backoffice/views.py:1556
 #, python-format
 msgid "%(n)s exemplaire nommé."
 msgid_plural "%(n)s exemplaires nommés."
@@ -1505,54 +1534,54 @@ msgstr[1] "%(n)s names removed."
 msgid "« %(libelle)s » ajouté à votre stock."
 msgstr "“%(libelle)s” added to your stock."
 
-#: apps/backoffice/views.py:1380
+#: apps/backoffice/views.py:1383
 #, python-format
 msgid "« %(element)s » mis à jour."
 msgstr "“%(element)s” updated."
 
-#: apps/backoffice/views.py:1450
+#: apps/backoffice/views.py:1459
 msgid "Aucun article à supprimer."
 msgstr "No item to delete."
 
-#: apps/backoffice/views.py:1464
+#: apps/backoffice/views.py:1473
 #, python-format
 msgid "%(n)s article supprimé : "
 msgid_plural "%(n)s articles supprimés : "
 msgstr[0] "%(n)s item deleted: "
 msgstr[1] "%(n)s items deleted: "
 
-#: apps/backoffice/views.py:1471
+#: apps/backoffice/views.py:1480
 #, python-format
 msgid "%(n)s article retiré de la vente (l'historique le garde) : "
 msgid_plural "%(n)s articles retirés de la vente (l'historique les garde) : "
 msgstr[0] "%(n)s item withdrawn from sale (its history is kept): "
 msgstr[1] "%(n)s items withdrawn from sale (their history is kept): "
 
-#: apps/backoffice/views.py:1486
+#: apps/backoffice/views.py:1495
 #, python-format
 msgid "%(debut)s et %(n)s autre."
 msgid_plural "%(debut)s et %(n)s autres."
 msgstr[0] "%(debut)s and %(n)s other."
 msgstr[1] "%(debut)s and %(n)s others."
 
-#: apps/backoffice/views.py:1577
+#: apps/backoffice/views.py:1586
 msgid "Article introuvable."
 msgstr "Item not found."
 
-#: apps/backoffice/views.py:1670
+#: apps/backoffice/views.py:1679
 msgid "Un transfert demande au moins deux dépôts."
 msgstr "A transfer requires at least two warehouses."
 
-#: apps/backoffice/views.py:1693
+#: apps/backoffice/views.py:1702
 #, python-format
 msgid "%(element)s unité(s) transférée(s) vers « %(libelle)s »."
 msgstr "%(element)s unit(s) transferred to “%(libelle)s”."
 
-#: apps/backoffice/views.py:1755
+#: apps/backoffice/views.py:1764
 msgid "Aucune quantité saisie : l'inventaire n'a pas été enregistré."
 msgstr "No quantity entered: the stock count was not saved."
 
-#: apps/backoffice/views.py:1761
+#: apps/backoffice/views.py:1770
 #, python-format
 msgid ""
 "Inventaire validé : %(comptees)s article(s) comptés, %(len)s écart(s) "
@@ -1561,50 +1590,50 @@ msgstr ""
 "Stock count approved: %(comptees)s item(s) counted, %(len)s difference(s) "
 "adjusted."
 
-#: apps/backoffice/views.py:1790
+#: apps/backoffice/views.py:1799
 msgid "Aucun dépôt n'est ouvert : créez-en un avant d'encaisser."
 msgstr "No warehouse is open: create one before taking payments."
 
-#: apps/backoffice/views.py:1802
+#: apps/backoffice/views.py:1811
 #, python-format
 msgid "Caisse ouverte sur « %(libelle)s »."
 msgstr "Till opened at “%(libelle)s”."
 
-#: apps/backoffice/views.py:1812
+#: apps/backoffice/views.py:1821
 msgid "Caisse fermée, aucun écart."
 msgstr "Till closed, no difference."
 
-#: apps/backoffice/views.py:1816
+#: apps/backoffice/views.py:1825
 #, python-format
 msgid "Caisse fermée avec un %(signe)s de %(abs)s FCFA."
 msgstr "Till closed with a %(signe)s of %(abs)s FCFA."
 
-#: apps/backoffice/views.py:2250
+#: apps/backoffice/views.py:2259
 msgid "Un dépôt sans nom ne se distingue pas des autres."
 msgstr "A warehouse without a name cannot be told apart from the others."
 
-#: apps/backoffice/views.py:2260
+#: apps/backoffice/views.py:2269
 #, python-format
 msgid "Dépôt renommé en « %(libelle)s »."
 msgstr "Warehouse renamed to “%(libelle)s”."
 
-#: apps/backoffice/views.py:2279
+#: apps/backoffice/views.py:2288
 msgid "Aucun dépôt à fermer."
 msgstr "No warehouse to close."
 
-#: apps/backoffice/views.py:2298
+#: apps/backoffice/views.py:2307
 #, python-format
 msgid "Dépôt supprimé : %(enumerer)s"
 msgstr "Warehouse deleted: %(enumerer)s"
 
-#: apps/backoffice/views.py:2302
+#: apps/backoffice/views.py:2311
 #, python-format
 msgid ""
 "Dépôt fermé (son historique de mouvements reste lisible) : %(enumerer)s"
 msgstr ""
 "Warehouse closed (its movement history remains readable): %(enumerer)s"
 
-#: apps/backoffice/views.py:2307
+#: apps/backoffice/views.py:2316
 #, python-format
 msgid ""
 "« %(nom)s » est le dépôt principal : désignez-en un autre avant de le "
@@ -1612,7 +1641,7 @@ msgid ""
 msgstr ""
 "“%(nom)s” is the main warehouse: designate another one before closing it."
 
-#: apps/backoffice/views.py:2354
+#: apps/backoffice/views.py:2363
 #, python-format
 msgid ""
 "Votre emplacement autorise %(quota)s dépôt(s). Passez à une offre supérieure"
@@ -1621,7 +1650,7 @@ msgstr ""
 "Your stall allows %(quota)s warehouse(s). Upgrade to a higher plan to open "
 "another one."
 
-#: apps/backoffice/views.py:2369
+#: apps/backoffice/views.py:2378
 #, python-format
 msgid "Dépôt « %(libelle)s » ouvert."
 msgstr "Warehouse “%(libelle)s” opened."
@@ -1646,7 +1675,7 @@ msgstr "In escrow — release scheduled"
 msgid "En séquestre — livraison à confirmer"
 msgstr "In escrow — delivery to be confirmed"
 
-#: apps/backoffice/vues_commandes.py:139 apps/payments/models.py:139
+#: apps/backoffice/vues_commandes.py:139 apps/payments/models.py:142
 #: templates/plateforme/partials/l_sequestre.html:8
 msgid "Libéré"
 msgstr "Released"
@@ -1977,43 +2006,52 @@ msgstr ""
 "Payout of %(montant_lisible)s FCFA requested, to %(libelle_operateur)s "
 "%(numero)s. The platform carries it out and will give you the reference."
 
-#: apps/catalog/models.py:67
+#: apps/catalog/models.py:70
 msgid "Unité"
 msgstr "Unit"
 
-#: apps/catalog/models.py:67
+#: apps/catalog/models.py:70
 msgid "Kilogramme"
 msgstr "Kilogram"
 
-#: apps/catalog/models.py:67
+#: apps/catalog/models.py:70
 msgid "Litre"
 msgstr "Litre"
 
-#: apps/catalog/models.py:67
+#: apps/catalog/models.py:70
 msgid "Mètre"
 msgstr "Metre"
 
-#: apps/catalog/models.py:73
+#: apps/catalog/models.py:76
 msgid "Taux normal (19,25 %)"
 msgstr "Standard rate (19.25 %)"
 
-#: apps/catalog/models.py:74
+#: apps/catalog/models.py:77
 msgid "Exonéré"
 msgstr "Exempt"
 
-#: apps/catalog/models.py:75
+#: apps/catalog/models.py:78
 msgid "Hors champ"
 msgstr "Out of scope"
 
-#: apps/catalog/models.py:92
+#: apps/catalog/models.py:90
+msgid ""
+"Facultatif : le nom montré aux acheteurs qui lisent le marché en anglais."
+msgstr "Optional: the name shown to buyers who read the market in English."
+
+#: apps/catalog/models.py:93
+msgid "description en anglais"
+msgstr "English description"
+
+#: apps/catalog/models.py:102
 msgid "Ne se délivre que sur ordonnance, et ne se vend pas en ligne."
 msgstr "Dispensed only on prescription, and not sold online."
 
-#: apps/catalog/models.py:95
+#: apps/catalog/models.py:105
 msgid "Le produit peut être poussé par les revendeurs affiliés."
 msgstr "The product can be promoted by affiliated resellers."
 
-#: apps/catalog/models.py:101
+#: apps/catalog/models.py:111
 msgid ""
 "Part du HT laissée au revendeur (0.10 = 10 %). Prise sur la marge du "
 "marchand."
@@ -2021,66 +2059,66 @@ msgstr ""
 "Share of the amount excl. tax left to the reseller (0.10 = 10 %). Taken from"
 " the merchant's margin."
 
-#: apps/catalog/models.py:133
+#: apps/catalog/models.py:143
 msgid "Ex. {\"taille\": \"42\", \"couleur\": \"noir\"}"
 msgstr "E.g. {\"taille\": \"42\", \"couleur\": \"noir\"}"
 
-#: apps/catalog/models.py:144
+#: apps/catalog/models.py:154
 msgid "Référence d'origine du fabricant. Ex. 90915-YZZD4."
 msgstr "Manufacturer's original reference. E.g. 90915-YZZD4."
 
-#: apps/catalog/models.py:152
+#: apps/catalog/models.py:162
 msgid ""
 "Chaque exemplaire porte un numéro de série ou un IMEI, suivi "
 "individuellement."
 msgstr "Each unit carries a serial number or an IMEI, tracked individually."
 
-#: apps/catalog/models.py:156
+#: apps/catalog/models.py:166
 msgid ""
 "Durée de garantie offerte à l'acheteur, en mois. Zéro : aucune garantie."
 msgstr "Warranty period offered to the buyer, in months. Zero: no warranty."
 
-#: apps/catalog/models.py:217
+#: apps/catalog/models.py:227
 msgid "Ex. 1.4 D-4D. Vide si indifférent."
 msgstr "E.g. 1.4 D-4D. Empty if it doesn't matter."
 
-#: apps/catalog/models.py:304
+#: apps/catalog/models.py:314
 msgid "Dénomination commune internationale"
 msgstr "International non-proprietary name"
 
-#: apps/catalog/models.py:305
+#: apps/catalog/models.py:315
 msgid "Référence d'un autre fabricant"
 msgstr "Another manufacturer's reference"
 
-#: apps/catalog/models.py:306
+#: apps/catalog/models.py:316
 msgid "Autre nom commercial"
 msgstr "Other trade name"
 
-#: apps/catalog/models.py:316
+#: apps/catalog/models.py:326
 msgid "La désignation telle qu'elle est écrite sur la boîte ou la pièce."
 msgstr "The name as written on the box or the part."
 
-#: apps/catalog/models.py:321
+#: apps/catalog/models.py:331
 msgid "Qui l'emploie : un laboratoire, un équipementier. Ex. Mann, Bosch."
 msgstr "Who uses it: a laboratory, a manufacturer. E.g. Mann, Bosch."
 
-#: apps/catalog/models.py:385
+#: apps/catalog/models.py:395
 msgid "Le produit fini que cette fiche fabrique."
 msgstr "The finished product this recipe makes."
 
-#: apps/catalog/models.py:392
+#: apps/catalog/models.py:402
 msgid "Combien d'unités une exécution de la fiche produit. Ex. 40 baguettes."
 msgstr "How many units one run of the recipe produces. E.g. 40 baguettes."
 
-#: apps/catalog/models.py:397
+#: apps/catalog/models.py:407
 msgid "Nombre de jours de conservation. Vide si le produit ne périme pas."
 msgstr "Number of days of shelf life. Empty if the product does not expire."
 
-#: apps/catalog/models.py:399
+#: apps/catalog/models.py:409
 msgid "Mode opératoire, tour de main, température."
 msgstr "Method, technique, temperature."
 
-#: apps/catalog/models.py:428
+#: apps/catalog/models.py:438
 msgid ""
 "Quantité pour le rendement complet de la fiche, dans l'unité de "
 "l'ingrédient."
@@ -2589,11 +2627,11 @@ msgstr "weighted average cost"
 msgid "Verrou optimiste."
 msgstr "Optimistic lock."
 
-#: apps/inventory/models.py:101 apps/marketplace/models.py:321
+#: apps/inventory/models.py:101 apps/marketplace/models.py:324
 msgid "Entrée"
 msgstr "Receipt"
 
-#: apps/inventory/models.py:102 apps/marketplace/models.py:321
+#: apps/inventory/models.py:102 apps/marketplace/models.py:324
 msgid "Sortie"
 msgstr "Issue"
 
@@ -3014,64 +3052,64 @@ msgstr "Greengrocer, butcher, fishmonger, dairy."
 msgid "Arrivage"
 msgstr "Delivery"
 
-#: apps/marketplace/models.py:37
+#: apps/marketplace/models.py:39
 msgid "Part du montant HT revenant à la plateforme (0.05 = 5 %)."
 msgstr "Share of the amount excl. tax going to the platform (0.05 = 5 %)."
 
-#: apps/marketplace/models.py:45
+#: apps/marketplace/models.py:47
 msgid "Responsable de rayon (category manager) côté plateforme."
 msgstr "Aisle manager (category manager) on the platform side."
 
-#: apps/marketplace/models.py:49
+#: apps/marketplace/models.py:51
 msgid "Un rayon fermé n'accepte plus de nouvelles boutiques (arbitrage A8)."
 msgstr "A closed aisle no longer accepts new shops (decision A8)."
 
-#: apps/marketplace/models.py:75
+#: apps/marketplace/models.py:78
 msgid "Ex. [\"catalogue\", \"stock\", \"caisse\", \"comptabilite\"]"
 msgstr "E.g. [\"catalogue\", \"stock\", \"caisse\", \"comptabilite\"]"
 
-#: apps/marketplace/models.py:99 templates/plateforme/boutique_etat.html:43
+#: apps/marketplace/models.py:102 templates/plateforme/boutique_etat.html:43
 #: templates/plateforme/verifications.html:125
 #: templates/plateforme/verifications.html:136
 msgid "Candidature"
 msgstr "Application"
 
-#: apps/marketplace/models.py:100 templates/plateforme/boutique_etat.html:43
+#: apps/marketplace/models.py:103 templates/plateforme/boutique_etat.html:43
 #: templates/plateforme/boutique_etat.html:44
 #: templates/plateforme/verifications.html:161
 msgid "Active"
 msgstr "Active"
 
-#: apps/marketplace/models.py:101 templates/plateforme/boutique_etat.html:44
+#: apps/marketplace/models.py:104 templates/plateforme/boutique_etat.html:44
 #: templates/plateforme/partials/t_signal.html:4
 msgid "Suspendue"
 msgstr "Suspended"
 
-#: apps/marketplace/models.py:102 templates/plateforme/boutique_etat.html:45
+#: apps/marketplace/models.py:105 templates/plateforme/boutique_etat.html:45
 msgid "Résiliée"
 msgstr "Terminated"
 
-#: apps/marketplace/models.py:111
+#: apps/marketplace/models.py:114
 msgid "IGS — impôt général synthétique (CA ≤ 50 M)"
 msgstr "IGS — general synthetic tax (turnover ≤ 50 M)"
 
-#: apps/marketplace/models.py:112
+#: apps/marketplace/models.py:115
 msgid "Réel simplifié (CA 50-100 M)"
 msgstr "Simplified real regime (turnover 50-100 M)"
 
-#: apps/marketplace/models.py:113
+#: apps/marketplace/models.py:116
 msgid "Réel normal (CA > 100 M)"
 msgstr "Standard real regime (turnover > 100 M)"
 
-#: apps/marketplace/models.py:117
+#: apps/marketplace/models.py:120
 msgid "Nom commercial affiché aux acheteurs."
 msgstr "Trade name shown to buyers."
 
-#: apps/marketplace/models.py:123
+#: apps/marketplace/models.py:126
 msgid "métier"
 msgstr "trade"
 
-#: apps/marketplace/models.py:125
+#: apps/marketplace/models.py:128
 msgid ""
 "Ce que la boutique vend. Détermine le vocabulaire des écrans, les valeurs "
 "par défaut et les fonctions activées (apps/marketplace/metiers.py)."
@@ -3079,23 +3117,23 @@ msgstr ""
 "What the shop sells. Determines the screens' vocabulary, default values and "
 "enabled features (apps/marketplace/metiers.py)."
 
-#: apps/marketplace/models.py:129 apps/plateforme/formulaires.py:298
+#: apps/marketplace/models.py:132 apps/plateforme/formulaires.py:298
 msgid "RCCM"
 msgstr "RCCM"
 
-#: apps/marketplace/models.py:130 apps/plateforme/formulaires.py:305
+#: apps/marketplace/models.py:133 apps/plateforme/formulaires.py:305
 msgid "NIU"
 msgstr "NIU"
 
-#: apps/marketplace/models.py:208
+#: apps/marketplace/models.py:211
 msgid "Résilié"
 msgstr "Terminated"
 
-#: apps/marketplace/models.py:219
+#: apps/marketplace/models.py:222
 msgid "Négocié au contrat ; prime sur le taux du rayon."
 msgstr "Negotiated in the contract; takes precedence over the aisle's rate."
 
-#: apps/marketplace/models.py:225
+#: apps/marketplace/models.py:228
 msgid ""
 "Obligatoire dès que le taux négocié s'écarte de celui de l'offre. Une faveur"
 " commerciale est légitime ; une faveur sans raison écrite ne l'est pas."
@@ -3103,7 +3141,7 @@ msgstr ""
 "Mandatory as soon as the negotiated rate differs from the plan's. A "
 "commercial favour is legitimate; a favour without a written reason is not."
 
-#: apps/marketplace/models.py:269
+#: apps/marketplace/models.py:272
 #, python-format
 msgid ""
 "Le taux négocié (%(taux_commission)s) s'écarte de celui de l'offre "
@@ -3114,67 +3152,67 @@ msgstr ""
 "(%(reference)s). Say why: the exception is legitimate, leaving it "
 "unexplained is not."
 
-#: apps/marketplace/models.py:282
+#: apps/marketplace/models.py:285
 msgid "Émise"
 msgstr "Issued"
 
-#: apps/marketplace/models.py:282
+#: apps/marketplace/models.py:285
 msgid "Impayée"
 msgstr "Unpaid"
 
-#: apps/marketplace/models.py:285
+#: apps/marketplace/models.py:288
 msgid "Premier jour du mois facturé."
 msgstr "First day of the billed month."
 
-#: apps/marketplace/models.py:348
+#: apps/marketplace/models.py:351
 msgid "Tête de gondole"
 msgstr "End-cap"
 
-#: apps/marketplace/models.py:349
+#: apps/marketplace/models.py:352
 msgid "Bandeau de rayon"
 msgstr "Aisle banner"
 
-#: apps/marketplace/models.py:350
+#: apps/marketplace/models.py:353
 msgid "Page d'accueil"
 msgstr "Home page"
 
-#: apps/marketplace/models.py:413
+#: apps/marketplace/models.py:416
 msgid "Ce que la validation a corrigé, et pourquoi. Montré au commerçant."
 msgstr "What the validation corrected, and why. Shown to the merchant."
 
-#: apps/marketplace/models.py:459
+#: apps/marketplace/models.py:462
 msgid "À quoi sert ce lien : « Flyer marché », « Statut WhatsApp »…"
 msgstr "What this link is for: “Market flyer”, “WhatsApp status”…"
 
-#: apps/marketplace/models.py:468
+#: apps/marketplace/models.py:471
 msgid "Vide : le lien ouvre la vitrine de la boutique."
 msgstr "Empty: the link opens the shop's storefront."
 
-#: apps/marketplace/models.py:473
+#: apps/marketplace/models.py:476
 msgid "Facultatif : rattache les commandes issues de ce lien à un apporteur."
 msgstr "Optional: links orders from this link to a referrer."
 
-#: apps/marketplace/models.py:510
+#: apps/marketplace/models.py:513
 msgid "En attente de vérification"
 msgstr "Awaiting verification"
 
-#: apps/marketplace/models.py:511 templates/verification.html:64
+#: apps/marketplace/models.py:514 templates/verification.html:64
 msgid "Vérifié"
 msgstr "Verified"
 
-#: apps/marketplace/models.py:520
+#: apps/marketplace/models.py:523
 msgid "Numéro Mobile Money au format international, ou IBAN / RIB."
 msgstr "Mobile Money number in international format, or IBAN / RIB."
 
-#: apps/marketplace/models.py:523
+#: apps/marketplace/models.py:526
 msgid "Nom du titulaire tel qu'il est enregistré chez l'opérateur."
 msgstr "Holder's name as registered with the operator."
 
-#: apps/marketplace/models.py:534
+#: apps/marketplace/models.py:537
 msgid "Fin du délai de carence après vérification."
 msgstr "End of the waiting period after verification."
 
-#: apps/marketplace/models.py:536
+#: apps/marketplace/models.py:539
 msgid "Motif du rejet ou du retrait."
 msgstr "Reason for rejection or withdrawal."
 
@@ -3231,7 +3269,7 @@ msgstr "Accepted"
 msgid "Refusé"
 msgstr "Refused"
 
-#: apps/orders/models.py:211 apps/payments/models.py:140
+#: apps/orders/models.py:211 apps/payments/models.py:143
 #: templates/commande.html:274 templates/plateforme/versement.html:136
 msgid "Remboursé"
 msgstr "Refunded"
@@ -3321,94 +3359,94 @@ msgstr "This return has already been decided."
 msgid "Aucun adaptateur enregistré pour « %(code)s »."
 msgstr "No adapter registered for “%(code)s”."
 
-#: apps/payments/models.py:38
+#: apps/payments/models.py:41
 msgid "1,6 % par défaut."
 msgstr "1.6 % by default."
 
-#: apps/payments/models.py:41
+#: apps/payments/models.py:44
 msgid "Ex. [\"67\", \"650\", \"651\"] pour le routage automatique."
 msgstr "E.g. [\"67\", \"650\", \"651\"] for automatic routing."
 
-#: apps/payments/models.py:58
+#: apps/payments/models.py:61
 msgid "Encaissement"
 msgstr "Collection"
 
-#: apps/payments/models.py:59
+#: apps/payments/models.py:62
 msgid "Versement"
 msgstr "Payout"
 
-#: apps/payments/models.py:60
+#: apps/payments/models.py:63
 msgid "Remboursement"
 msgstr "Refund"
 
-#: apps/payments/models.py:68
+#: apps/payments/models.py:71
 msgid "Initiée"
 msgstr "Initiated"
 
-#: apps/payments/models.py:69
+#: apps/payments/models.py:72
 msgid "Réussie"
 msgstr "Successful"
 
-#: apps/payments/models.py:70
+#: apps/payments/models.py:73
 msgid "Échouée"
 msgstr "Failed"
 
-#: apps/payments/models.py:86
+#: apps/payments/models.py:89
 msgid "Unicité globale : protection principale contre le double débit."
 msgstr "Global uniqueness: main protection against double debit."
 
-#: apps/payments/models.py:138 apps/payments/models.py:244
+#: apps/payments/models.py:141 apps/payments/models.py:247
 #: templates/plateforme/versement.html:133 templates/versements.html:12
 msgid "Bloqué"
 msgstr "Blocked"
 
-#: apps/payments/models.py:141
+#: apps/payments/models.py:144
 msgid "Libéré en partie, remboursé en partie"
 msgstr "Partly released, partly refunded"
 
-#: apps/payments/models.py:150
+#: apps/payments/models.py:153
 msgid "Code de remise saisi à la livraison"
 msgstr "Handover code entered at delivery"
 
-#: apps/payments/models.py:151
+#: apps/payments/models.py:154
 msgid "Confirmée par l'acheteur"
 msgstr "Confirmed by the buyer"
 
-#: apps/payments/models.py:152
+#: apps/payments/models.py:155
 msgid "Réputée confirmée, sans réclamation 7 jours après l'expédition"
 msgstr "Deemed confirmed, no claim 7 days after shipping"
 
-#: apps/payments/models.py:167
+#: apps/payments/models.py:170
 msgid "Part nette du marchand."
 msgstr "Merchant's net share."
 
-#: apps/payments/models.py:174
+#: apps/payments/models.py:177
 msgid "Ce qui, sur la part du marchand, revient à l'acheteur."
 msgstr "What goes back to the buyer from the merchant's share."
 
-#: apps/payments/models.py:180
+#: apps/payments/models.py:183
 msgid "Total à rendre à l'acheteur, commission annulée comprise."
 msgstr "Total to return to the buyer, including cancelled commission."
 
-#: apps/payments/models.py:244 templates/plateforme/versement.html:134
+#: apps/payments/models.py:247 templates/plateforme/versement.html:134
 #: templates/versements.html:17
 msgid "Disponible"
 msgstr "Available"
 
-#: apps/payments/models.py:273
+#: apps/payments/models.py:276
 msgid "Solde du compartiment après le mouvement."
 msgstr "Compartment balance after the movement."
 
-#: apps/payments/models.py:321 templates/plateforme/versements.html:24
+#: apps/payments/models.py:324 templates/plateforme/versements.html:24
 #: templates/plateforme/versements.html:31
 msgid "À exécuter"
 msgstr "To carry out"
 
-#: apps/payments/models.py:321
+#: apps/payments/models.py:324
 msgid "Exécuté"
 msgstr "Carried out"
 
-#: apps/payments/models.py:321 apps/pos/models.py:174
+#: apps/payments/models.py:324 apps/pos/models.py:174
 msgid "Annulé"
 msgstr "Cancelled"
 
@@ -4721,6 +4759,54 @@ msgstr "Serverless functions: non-persistent connections, database cache."
 msgid "Durée de vie d'une connexion à la base."
 msgstr "Lifetime of a database connection."
 
+#: apps/plateforme/vues_tableau.py:507
+msgid "posée"
+msgstr "set"
+
+#: apps/plateforme/vues_tableau.py:507
+msgid "absente"
+msgstr "missing"
+
+#: apps/plateforme/vues_tableau.py:512
+msgid "Adresse de retour et de notification des opérateurs."
+msgstr "Return and notification address for operators."
+
+#: apps/plateforme/vues_tableau.py:514
+msgid "Sans elle, la tâche quotidienne (libérations, relances) ne tourne pas."
+msgstr "Without it, the daily task (releases, reminders) does not run."
+
+#: apps/plateforme/vues_tableau.py:516
+msgid "Empreinte des numéros de pièces. À ne jamais changer une fois posée."
+msgstr "Fingerprint of ID numbers. Never change it once set."
+
+#: apps/plateforme/vues_tableau.py:517
+msgid "Paiement en ligne par MTN Mobile Money."
+msgstr "Online payment via MTN Mobile Money."
+
+#: apps/plateforme/vues_tableau.py:518
+msgid "Versements automatiques aux commerçants."
+msgstr "Automatic payouts to merchants."
+
+#: apps/plateforme/vues_tableau.py:519
+msgid "Paiement en ligne par Orange Money."
+msgstr "Online payment via Orange Money."
+
+#: apps/plateforme/vues_tableau.py:520
+msgid "Avis automatique des commandes à l'équipe."
+msgstr "Automatic order alerts to the team."
+
+#: apps/plateforme/vues_tableau.py:521
+msgid "activé"
+msgstr "on"
+
+#: apps/plateforme/vues_tableau.py:521
+msgid "désactivé"
+msgstr "off"
+
+#: apps/plateforme/vues_tableau.py:523
+msgid "Jamais en même temps que des clés réelles."
+msgstr "Never together with real keys."
+
 #: apps/plateforme/vues_verifications.py:211
 #, python-format
 msgid ""
@@ -5057,8 +5143,8 @@ msgstr ""
 msgid "Pour aller plus loin"
 msgstr "Going further"
 
-#: templates/aide.html:98 templates/article_nouveau.html:83
-#: templates/article_nouveau.html:87 templates/plateforme/signal.html:79
+#: templates/aide.html:98 templates/article_nouveau.html:92
+#: templates/article_nouveau.html:96 templates/plateforme/signal.html:79
 msgid "Le"
 msgstr "The"
 
@@ -5380,7 +5466,7 @@ msgstr ""
 
 #: templates/article.html:330 templates/article.html:360
 #: templates/article.html:398 templates/article.html:432
-#: templates/article.html:471 templates/article_modifier.html:66
+#: templates/article.html:471 templates/article_modifier.html:75
 #: templates/boutique.html:259 templates/caisse.html:86
 #: templates/equipe.html:173 templates/fiche.html:175 templates/fiche.html:201
 #: templates/fiches.html:92 templates/fiches.html:134
@@ -5427,7 +5513,7 @@ msgstr ""
 "seller believes they searched."
 
 #: templates/article.html:399 templates/article.html:472
-#: templates/article_modifier.html:65 templates/article_nouveau.html:65
+#: templates/article_modifier.html:74 templates/article_nouveau.html:74
 #: templates/boutique.html:260 templates/fiche.html:202
 #: templates/fiches.html:135
 msgid "Enregistrer"
@@ -5461,19 +5547,23 @@ msgstr "Edit %(l_article)s"
 msgid "Retour à la fiche"
 msgstr "Back to the item"
 
-#: templates/article_modifier.html:53
+#: templates/article_modifier.html:26 templates/article_nouveau.html:25
+msgid "Pour la vitrine : description, nom et description en anglais"
+msgstr "For the storefront: description, English name and description"
+
+#: templates/article_modifier.html:62
 msgid "Disponibilité"
 msgstr "Availability"
 
-#: templates/article_modifier.html:73
+#: templates/article_modifier.html:82
 msgid "Ce qui ne se corrige pas ici"
 msgstr "What cannot be corrected here"
 
-#: templates/article_modifier.html:82
+#: templates/article_modifier.html:91
 msgid "La quantité et le coût d'achat"
 msgstr "Quantity and purchase cost"
 
-#: templates/article_modifier.html:82
+#: templates/article_modifier.html:91
 #, python-format
 msgid ""
 "ne sont pas des attributs de %(du_article)s : ce sont des mouvements. Ils se"
@@ -5482,23 +5572,23 @@ msgstr ""
 "are not attributes of %(du_article)s: they are movements. They are corrected"
 " through a"
 
-#: templates/article_modifier.html:85
+#: templates/article_modifier.html:94
 msgid "entrée de stock"
 msgstr "stock receipt"
 
-#: templates/article_modifier.html:85
+#: templates/article_modifier.html:94
 msgid "ou par un"
 msgstr "or a"
 
-#: templates/article_modifier.html:86
+#: templates/article_modifier.html:95
 msgid "inventaire"
 msgstr "stock count"
 
-#: templates/article_modifier.html:86
+#: templates/article_modifier.html:95
 msgid ", qui laissent tous deux une trace datée dans le journal."
 msgstr ", both of which leave a dated trace in the log."
 
-#: templates/article_modifier.html:90
+#: templates/article_modifier.html:99
 msgid ""
 "Un écran de fiche qui les proposerait donnerait le moyen d'écrire du stock "
 "sans passer par son journal — et le coût moyen pondéré cesserait d'être "
@@ -5508,19 +5598,19 @@ msgstr ""
 "going through its log — and the weighted average cost would stop being "
 "verifiable."
 
-#: templates/article_modifier.html:98
+#: templates/article_modifier.html:107
 msgid "Retirer cet article"
 msgstr "Remove this item"
 
-#: templates/article_modifier.html:103
+#: templates/article_modifier.html:112
 msgid "Décochez"
 msgstr "Untick"
 
-#: templates/article_modifier.html:103
+#: templates/article_modifier.html:112
 msgid "« En vente »"
 msgstr "“On sale”"
 
-#: templates/article_modifier.html:103
+#: templates/article_modifier.html:112
 msgid ""
 "ci-contre : l'article disparaît de la caisse et de la vitrine, garde son "
 "stock, et son libellé reste lisible sur les tickets et les écritures qui le "
@@ -5529,7 +5619,7 @@ msgstr ""
 "opposite: the item disappears from the till and the market, keeps its stock,"
 " and its label stays readable on the receipts and entries that mention it."
 
-#: templates/article_modifier.html:109
+#: templates/article_modifier.html:118
 msgid ""
 "Cet article n'a encore aucune histoire : ni mouvement de stock, ni "
 "exemplaire suivi. Il peut donc être"
@@ -5537,15 +5627,15 @@ msgstr ""
 "This item has no history yet: no stock movement, no tracked unit. It can "
 "therefore be"
 
-#: templates/article_modifier.html:110
+#: templates/article_modifier.html:119
 msgid "réellement supprimé"
 msgstr "truly deleted"
 
-#: templates/article_modifier.html:111
+#: templates/article_modifier.html:120
 msgid "depuis la liste du stock, sans laisser de trace."
 msgstr "from the stock list, without leaving a trace."
 
-#: templates/article_modifier.html:113
+#: templates/article_modifier.html:122
 msgid "Aller à la liste"
 msgstr "Go to the list"
 
@@ -5553,24 +5643,24 @@ msgstr "Go to the list"
 msgid "Article et stock initial"
 msgstr "Item and opening stock"
 
-#: templates/article_nouveau.html:67
+#: templates/article_nouveau.html:76
 msgid "Enregistrer et ajouter le suivant"
 msgstr "Save and add the next one"
 
-#: templates/article_nouveau.html:75
+#: templates/article_nouveau.html:84
 msgid "Pendant l'installation"
 msgstr "During setup"
 
-#: templates/article_nouveau.html:78
+#: templates/article_nouveau.html:87
 msgid "Saisissez les"
 msgstr "Enter the"
 
-#: templates/article_nouveau.html:78
+#: templates/article_nouveau.html:87
 #, python-format
 msgid "20 à 60 références qui font 80 %% de votre chiffre d'affaires"
 msgstr "20 to 60 references that make up 80%% of your turnover"
 
-#: templates/article_nouveau.html:78
+#: templates/article_nouveau.html:87
 #, python-format
 msgid ""
 ", pas tout le magasin. Quarante %(articles)s bien tenus valent mieux que "
@@ -5579,11 +5669,11 @@ msgstr ""
 ", not the whole shop. Forty well-kept %(articles)s are better than four "
 "hundred abandoned after a week."
 
-#: templates/article_nouveau.html:83
+#: templates/article_nouveau.html:92
 msgid "coût d'achat"
 msgstr "purchase cost"
 
-#: templates/article_nouveau.html:83
+#: templates/article_nouveau.html:92
 msgid ""
 "est ce qui rend votre marge calculable. Sans lui, la plateforme sait ce que "
 "vous vendez, pas ce que vous gagnez."
@@ -5591,20 +5681,20 @@ msgstr ""
 "is what makes your margin calculable. Without it, the platform knows what "
 "you sell, not what you earn."
 
-#: templates/article_nouveau.html:87
+#: templates/article_nouveau.html:96
 msgid "seuil d'alerte"
 msgstr "alert threshold"
 
-#: templates/article_nouveau.html:87
+#: templates/article_nouveau.html:96
 msgid ""
 "répond à une seule question : en dessous de combien faut-il recommander ?"
 msgstr "answers a single question: below how many should you reorder?"
 
-#: templates/article_nouveau.html:93
+#: templates/article_nouveau.html:102
 msgid "Dépôt de destination :"
 msgstr "Destination warehouse:"
 
-#: templates/article_nouveau.html:93
+#: templates/article_nouveau.html:102
 msgid ""
 ". L'entrée est valorisée au coût saisi et enregistrée au journal du stock."
 msgstr ""
@@ -13473,10 +13563,6 @@ msgid ""
 msgstr ""
 "Paid online, your money stays in escrow until you confirm delivery. Never "
 "pay to a personal number."
-
-#: templates/vitrine/article.html:78
-msgid "Description"
-msgstr "Description"
 
 #: templates/vitrine/article.html:94
 msgid ""

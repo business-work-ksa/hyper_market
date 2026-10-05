@@ -82,7 +82,7 @@ pouvoir le lire chez ses concurrents.
                 <span class="monogramme" aria-hidden="true">{{ l.b.enseigne|initiales }}</span>
                 <span class="t-boutique__noms">
                   <span class="t-boutique__enseigne">{{ l.b.enseigne }}</span>
-                  <span class="t-boutique__raison">{{ l.b.rayon_principal.libelle|default:_("Sans rayon") }} · {{ l.b.ville }}</span>
+                  <span class="t-boutique__raison">{{ l.b.rayon_principal|traduit|default:_("Sans rayon") }} · {{ l.b.ville }}</span>
                   <span class="t-statut-mobile">{% include "plateforme/partials/t_signal.html" %}</span>
                 </span>
               </a>

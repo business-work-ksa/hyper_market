@@ -71,7 +71,7 @@
                   </span>
                 </span>
               </td>
-              <td class="t-2">{{ membre.role.libelle }}</td>
+              <td class="t-2">{{ membre.role|traduit }}</td>
               <td>
                 {% if membre.actif %}
                   <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Actif" %}</span>
@@ -131,7 +131,7 @@
     <div class="carte__corps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
       {% for role in roles_detail %}
         <div class="colonne" style="gap:6px">
-          <span class="puce puce--marque" style="align-self:flex-start">{{ role.libelle }}</span>
+          <span class="puce puce--marque" style="align-self:flex-start">{{ role|traduit }}</span>
           <span class="t-legende">
             {% for libelle in role.droits %}{{ libelle }}{% if not forloop.last %} · {% endif %}{% empty %}{% translate "Aucun droit sur cette boutique." %}{% endfor %}
           </span>
@@ -196,7 +196,7 @@ gestes qu'on fait rarement.
       <div class="groupe-champ">
         <label for="role-membre">{% translate "Rôle" %}</label>
         <select class="champ" id="role-membre" name="role">
-          {% for role in roles %}<option value="{{ role.code }}">{{ role.libelle }}</option>{% endfor %}
+          {% for role in roles %}<option value="{{ role.code }}">{{ role|traduit }}</option>{% endfor %}
         </select>
       </div>
       <p class="t-legende">

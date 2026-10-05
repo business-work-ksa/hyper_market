@@ -113,7 +113,7 @@ class AssistantBoutique(Assistant):
                 "cartes_offres": [
                     {
                         "valeur": o.code,
-                        "titre": o.libelle,
+                        "titre": o.libelle_affiche,
                         "prix": _montant(o.loyer_mensuel),
                         "suffixe": _("HT / mois"),
                         "lignes": [
@@ -148,7 +148,7 @@ class AssistantBoutique(Assistant):
         if offre["derogation"]:
             commission += f" — dérogation (offre : {pourcent(o.taux_commission_defaut)})"
         lignes_offre = [
-            ("Offre", o.libelle),
+            ("Offre", o.libelle_affiche),
             ("Rayon principal", offre["rayon_objet"].libelle),
             ("Début du bail", _date(offre["debut"])),
             ("Loyer mensuel HT", _montant(offre["loyer_mensuel"])),
@@ -289,7 +289,7 @@ class AssistantEmplacement(Assistant):
                     {
                         "valeur": str(b.pk),
                         "titre": b.enseigne,
-                        "texte": " · ".join(filter(None, [b.rayon_principal.libelle if b.rayon_principal else "", b.ville])),
+                        "texte": " · ".join(filter(None, [b.rayon_principal.libelle_affiche if b.rayon_principal else "", b.ville])),
                         "monogramme": b.enseigne,
                     }
                     for b in actives
@@ -442,7 +442,7 @@ class AssistantAdministrateur(Assistant):
         )
         messages.success(
             self.request,
-            _('%(nom_complet)s est nommé : %(lower)s. Accès à la console et groupe de permissions posés — jamais le superutilisateur.') % {"nom_complet": role.utilisateur.nom_complet, "lower": role.role.libelle.lower()},
+            _('%(nom_complet)s est nommé : %(lower)s. Accès à la console et groupe de permissions posés — jamais le superutilisateur.') % {"nom_complet": role.utilisateur.nom_complet, "lower": role.role.libelle_affiche.lower()},
         )
         return redirect(f"{reverse('plateforme:administrateurs')}#role-{role.pk}")
 
@@ -527,7 +527,7 @@ def retirer_administrateur(request, role_id):
                 if acces_retire
                 else " Il garde l'accès que lui ouvrent ses autres rôles."
             )
-            messages.success(request, _('Rôle retiré à %(nom_complet)s (%(libelle)s).%(suite)s') % {"nom_complet": role.utilisateur.nom_complet, "libelle": role.role.libelle, "suite": suite})
+            messages.success(request, _('Rôle retiré à %(nom_complet)s (%(libelle)s).%(suite)s') % {"nom_complet": role.utilisateur.nom_complet, "libelle": role.role.libelle_affiche, "suite": suite})
             return redirect("plateforme:administrateurs")
     return _page_administrateurs(request, retrait=role.pk, formulaire_retrait=formulaire, status=400)
 

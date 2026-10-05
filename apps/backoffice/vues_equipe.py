@@ -66,7 +66,7 @@ def _detail_des_roles(roles) -> list[dict]:
     return [
         {
             "code": role.code,
-            "libelle": role.libelle,
+            "libelle": role.libelle_affiche,
             "droits": [LIBELLES[d] for d in sorted(droits_du_role(role.code))],
         }
         for role in roles
@@ -299,7 +299,7 @@ def equipe_role(request, appartenance_id):
         messages.error(request, _('%(nom_complet)s a déjà ce rôle.') % {"nom_complet": membre.utilisateur.nom_complet})
         return redirect("equipe")
 
-    ancien = membre.role.libelle
+    ancien = membre.role.libelle_affiche
     membre.role = nouveau
     membre.save(update_fields=["role"])
     messages.success(

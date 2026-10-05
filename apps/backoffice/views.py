@@ -1312,6 +1312,9 @@ def _creer_article(donnees, boutique, depot, utilisateur) -> Variante:
         boutique=boutique,
         sku=donnees["sku"],
         libelle=donnees["libelle"],
+        libelle_en=donnees.get("libelle_en") or "",
+        description=donnees.get("description") or "",
+        description_en=donnees.get("description_en") or "",
         regime_tva=donnees["regime_tva"],
         unite=donnees.get("unite") or boutique.metier_choisi.unite_defaut,
         # Faux partout sauf en officine : la case n'y est même pas affichée
@@ -1403,12 +1406,18 @@ def _appliquer_les_corrections(variante, donnees, depot) -> None:
     """
     produit = variante.produit
     produit.libelle = donnees["libelle"]
+    produit.libelle_en = donnees.get("libelle_en") or ""
+    produit.description = donnees.get("description") or ""
+    produit.description_en = donnees.get("description_en") or ""
     produit.regime_tva = donnees["regime_tva"]
     produit.unite = donnees.get("unite") or produit.unite
     produit.sur_ordonnance = bool(donnees.get("sur_ordonnance"))
     produit.actif = bool(donnees.get("actif"))
     produit.save(
-        update_fields=["libelle", "regime_tva", "unite", "sur_ordonnance", "actif", "modifie_le"]
+        update_fields=[
+            "libelle", "libelle_en", "description", "description_en",
+            "regime_tva", "unite", "sur_ordonnance", "actif", "modifie_le",
+        ]
     )
 
     variante.sku = donnees["sku"]
@@ -2326,7 +2335,7 @@ def _droits_par_role(fiche) -> list[dict]:
         codes.append(appartenance.role_id)
         vus.append(
             {
-                "libelle": appartenance.role.libelle,
+                "libelle": appartenance.role.libelle_affiche,
                 "droits": [LIBELLES[d] for d in sorted(droits_du_role(appartenance.role_id))],
             }
         )

@@ -23,7 +23,7 @@ logo. La confiance publique vient juste après son nom : des faits vérifiables,
     <div class="flex flex-1 flex-col gap-2" data-apparition>
       <h1 class="text-3xl font-extrabold sm:text-4xl" id="boutique-titre">{{ boutique.enseigne }}</h1>
       <p class="text-ink-muted">
-        {{ boutique.ville }}{% if boutique.rayon_principal %} · {{ boutique.rayon_principal.libelle }}{% endif %}
+        {{ boutique.ville }}{% if boutique.rayon_principal %} · {{ boutique.rayon_principal.libelle_affiche }}{% endif %}
         · {% blocktranslate count n=nombre %}{{ n }} article en vitrine{% plural %}{{ n }} articles en vitrine{% endblocktranslate %}
       </p>
     </div>

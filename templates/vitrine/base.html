@@ -123,7 +123,7 @@ rendu, pour éviter l'éclair de la mauvaise couleur.
         </li>
         <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}" {% if request.resolver_match.url_name == "vitrine_catalogue" and not rayon_courant and not recherche %}aria-current="page"{% endif %}>{% translate "Tout le marché" %}</a></li>
         {% for r in rayons %}
-          <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}" {% if rayon_courant and rayon_courant.code == r.code %}aria-current="page"{% endif %}>{{ r.libelle }}</a></li>
+          <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}" {% if rayon_courant and rayon_courant.code == r.code %}aria-current="page"{% endif %}>{{ r.libelle_affiche }}</a></li>
         {% endfor %}
       </ul>
       {% include "marche/megamenu.html" %}

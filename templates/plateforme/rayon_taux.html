@@ -1,12 +1,12 @@
 {% extends "plateforme/base.html" %}
 {% load i18n %}
 {% load static %}
-{% block titre %}{% blocktranslate with libelle=rayon.libelle trimmed %}Taux du rayon · {{ libelle }}{% endblocktranslate %}{% endblock %}
+{% block titre %}{% blocktranslate with libelle=rayon|traduit trimmed %}Taux du rayon · {{ libelle }}{% endblocktranslate %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-assistants.css' %}">{% endblock %}
 {% block fil %}
   <nav class="fil" aria-label="Fil d'Ariane">
     <a href="{% url 'plateforme:rayons' %}">{% translate "Rayons et commissions" %}</a><span class="fil__sep" aria-hidden="true">/</span>
-    <span>{{ rayon.libelle }}</span>
+    <span>{{ rayon|traduit }}</span>
   </nav>
 {% endblock %}
 {% block entete %}{% translate "Fixer le taux du rayon" %}{% endblock %}
@@ -16,7 +16,7 @@
   <header class="a-fiche-tete">
     <span class="kpi__icone kpi__icone--or a-fiche-tete__icone" aria-hidden="true"><svg><use href="#ic-rayons"></use></svg></span>
     <div class="pile-sm" style="gap:3px;min-width:0">
-      <h2 class="entete-page__titre">{{ rayon.libelle }}</h2>
+      <h2 class="entete-page__titre">{{ rayon|traduit }}</h2>
       <p class="t-legende">{% translate "Commission actuelle :" %} <strong>{{ ancien }}</strong> {% translate "du montant HT des ventes en ligne" %}</p>
     </div>
   </header>

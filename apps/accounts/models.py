@@ -11,6 +11,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
+from apps.core.bilingue import Bilingue
 from apps.core.uuid7 import uuid7
 from django.utils.translation import gettext_lazy
 from django.utils.translation import gettext as _
@@ -93,7 +94,7 @@ class Utilisateur(AbstractBaseUser, PermissionsMixin):
         return qs.exists()
 
 
-class Role(models.Model):
+class Role(Bilingue, models.Model):
     """Rôle applicatif. La portée distingue les rôles de boutique des rôles plateforme."""
 
     BOUTIQUE = "boutique"
@@ -114,6 +115,7 @@ class Role(models.Model):
 
     code = models.CharField(max_length=32, primary_key=True)
     libelle = models.CharField(max_length=64)
+    libelle_en = models.CharField(max_length=64, blank=True, verbose_name=gettext_lazy("libellé en anglais"))
     portee = models.CharField(max_length=16, choices=PORTEES, default=BOUTIQUE)
     permissions = models.JSONField(default=list, blank=True)
 

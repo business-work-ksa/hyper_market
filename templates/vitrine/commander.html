@@ -101,7 +101,7 @@
           </div>
           {% for ligne in groupe.lignes %}
             <div class="flex items-baseline justify-between gap-3 text-sm">
-              <span class="min-w-0 truncate">{{ ligne.article.produit.libelle }} <span class="text-ink-muted">× {{ ligne.quantite }}</span></span>
+              <span class="min-w-0 truncate">{{ ligne.article.produit.libelle_affiche }} <span class="text-ink-muted">× {{ ligne.quantite }}</span></span>
               <span class="chiffre shrink-0 font-semibold">{{ ligne.total|fcfa }} FCFA</span>
             </div>
           {% endfor %}

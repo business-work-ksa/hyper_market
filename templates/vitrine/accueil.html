@@ -89,7 +89,7 @@ visiteur de passage décide de rester.
             <img class="size-full object-cover transition-transform duration-700 ease-sortie group-hover:scale-105" src="{% illustration_rayon r.code %}" alt="" width="800" height="500" loading="lazy" decoding="async">
           </span>
           <span class="flex items-center justify-between gap-2 px-4 py-3">
-            <span class="text-sm font-bold leading-snug">{{ r.libelle }}</span>
+            <span class="text-sm font-bold leading-snug">{{ r.libelle_affiche }}</span>
             {% icone "fleche" "size-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-1 group-hover:text-brand" %}
           </span>
         </a>
@@ -158,7 +158,7 @@ visiteur de passage décide de rester.
           <span class="jeton size-12 text-base" style="--teinte:{{ b.enseigne|teinte }}" aria-hidden="true">{{ b.enseigne|initiales }}</span>
           <span class="flex min-w-0 flex-1 flex-col">
             <span class="truncate font-bold">{{ b.enseigne }}</span>
-            <span class="truncate text-sm text-ink-muted">{{ b.ville }}{% if b.rayon_principal %} · {{ b.rayon_principal.libelle }}{% endif %}</span>
+            <span class="truncate text-sm text-ink-muted">{{ b.ville }}{% if b.rayon_principal %} · {{ b.rayon_principal.libelle_affiche }}{% endif %}</span>
           </span>
           {% icone "chevron" "size-5 text-ink-muted" %}
         </a>

@@ -12,7 +12,7 @@
   <div class="absolute inset-0 -z-10 bg-gradient-to-r from-bg via-bg/85 to-bg/10"></div>
   <div class="flex min-h-[9rem] flex-col justify-center gap-1 px-5 py-8 sm:min-h-[11rem] sm:px-8">
     <p class="sur-titre">{% if recherche %}{% translate "Recherche" %}{% elif rayon_courant %}{% translate "Rayon" %}{% else %}{% translate "Catalogue" %}{% endif %}</p>
-    <h1 class="max-w-xl text-3xl sm:text-4xl" id="catalogue-titre">{% if recherche %}« {{ recherche }} »{% elif rayon_courant %}{{ rayon_courant.libelle }}{% else %}{% translate "Tout le marché" %}{% endif %}</h1>
+    <h1 class="max-w-xl text-3xl sm:text-4xl" id="catalogue-titre">{% if recherche %}« {{ recherche }} »{% elif rayon_courant %}{{ rayon_courant.libelle_affiche }}{% else %}{% translate "Tout le marché" %}{% endif %}</h1>
   </div>
 </section>
 

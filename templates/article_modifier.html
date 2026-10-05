@@ -22,6 +22,15 @@
 
       {% include "partials/champ.html" with champ=formulaire.libelle %}
 
+      <details class="bloc-repli"{% if formulaire.libelle_en.value or formulaire.description.value or formulaire.description_en.value or formulaire.description.errors %} open{% endif %}>
+        <summary>{% translate "Pour la vitrine : description, nom et description en anglais" %}</summary>
+        <div class="colonne" style="gap:14px;margin-top:12px">
+          {% include "partials/champ.html" with champ=formulaire.description %}
+          {% include "partials/champ.html" with champ=formulaire.libelle_en %}
+          {% include "partials/champ.html" with champ=formulaire.description_en %}
+        </div>
+      </details>
+
       <div class="duo" style="gap:14px">
         {% include "partials/champ.html" with champ=formulaire.sku %}
         {% include "partials/champ.html" with champ=formulaire.code_barres %}

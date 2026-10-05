@@ -231,7 +231,7 @@ def gouvernance(aujourdhui) -> dict:
         {"utilisateur": u, "niveau": "Superadministrateur", "acces": acces.get(u.pk, 0)}
         for u in superadmins
     ] + [
-        {"utilisateur": r.utilisateur, "niveau": r.role.libelle, "acces": acces.get(r.utilisateur_id, 0),
+        {"utilisateur": r.utilisateur, "niveau": r.role.libelle_affiche, "acces": acces.get(r.utilisateur_id, 0),
          "depuis": r.depuis}
         for r in roles
     ]
@@ -478,6 +478,49 @@ def reglages_sensibles() -> list[dict]:
          "bon": None, "aide": _("Fonctions sans serveur : connexions non persistantes, cache en base.")},
         {"nom": "CONN_MAX_AGE", "valeur": f"{settings.DATABASES['default'].get('CONN_MAX_AGE', 0)} s",
          "bon": None, "aide": _("Durée de vie d'une connexion à la base.")},
+        *cles_posees(),
+    ]
+
+
+def cles_posees() -> list[dict]:
+    """Quelles clés sont posées dans l'hébergeur — **oui ou non**, jamais leur valeur (docs/28).
+
+    Une clé absente n'est pas une faute en soi : sans clés MTN, la vitrine propose le paiement à la
+    livraison. Une seule combinaison est une faute franche : le simulateur allumé **avec** des clés
+    réelles, parce qu'un acheteur doit toujours savoir si son argent bouge vraiment.
+    """
+    operateurs = getattr(settings, "PAIEMENTS_OPERATEURS", {}) or {}
+    mtn = operateurs.get("MTN_MOMO", {})
+    orange = operateurs.get("ORANGE_MONEY", {})
+
+    def complet(dico, *cles):
+        return all(dico.get(c) for c in cles)
+
+    collecte = complet(mtn, "cle_abonnement_collecte", "utilisateur_api_collecte", "cle_api_collecte")
+    versement = complet(mtn, "cle_abonnement_versement", "utilisateur_api_versement", "cle_api_versement")
+    orange_ok = complet(orange, "id_client", "secret_client", "cle_marchand")
+    whatsapp = complet(getattr(settings, "WHATSAPP", {}) or {}, "jeton", "numero_id", "gabarit_commande")
+    simules = bool(getattr(settings, "PAIEMENTS_SIMULES", False))
+    reelles = collecte or versement or orange_ok
+
+    def ligne(nom, pose, aide, *, obligatoire=False):
+        return {"nom": nom, "valeur": _("posée") if pose else _("absente"),
+                "bon": True if pose else (False if obligatoire else None), "aide": aide}
+
+    return [
+        ligne("URL_PUBLIQUE", bool(getattr(settings, "URL_PUBLIQUE", "")),
+              _("Adresse de retour et de notification des opérateurs."), obligatoire=reelles),
+        ligne("CRON_SECRET", bool(os.environ.get("CRON_SECRET")),
+              _("Sans elle, la tâche quotidienne (libérations, relances) ne tourne pas."), obligatoire=True),
+        ligne("KYC_CLE_NUMEROS", bool(getattr(settings, "KYC_CLE_NUMEROS", "")),
+              _("Empreinte des numéros de pièces. À ne jamais changer une fois posée.")),
+        ligne("MTN_MOMO (collecte)", collecte, _("Paiement en ligne par MTN Mobile Money.")),
+        ligne("MTN_MOMO (versements)", versement, _("Versements automatiques aux commerçants.")),
+        ligne("ORANGE_MONEY", orange_ok, _("Paiement en ligne par Orange Money.")),
+        ligne("WHATSAPP", whatsapp, _("Avis automatique des commandes à l'équipe.")),
+        {"nom": "PAIEMENTS_SIMULES", "valeur": _("activé") if simules else _("désactivé"),
+         "bon": False if (simules and reelles) else (None if simules else True),
+         "aide": _("Jamais en même temps que des clés réelles.")},
     ]
 
 

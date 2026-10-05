@@ -21,7 +21,7 @@ une courbe — c'est tout ce qu'il faut pour décider d'un appel.
       {% if ligne.endormie %}<span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "Endormie" %}</span>{% endif %}
     </div>
     <p class="t-fiche__meta">
-      <span>{{ b.rayon_principal.libelle|default:_("Sans rayon") }}</span>
+      <span>{{ b.rayon_principal|traduit|default:_("Sans rayon") }}</span>
       <span><svg aria-hidden="true"><use href="#ic-lieu"></use></svg>{{ b.ville }}</span>
       <span>{% blocktranslate with fenetre=fenetre trimmed %}{{ fenetre }} derniers jours{% endblocktranslate %}</span>
     </p>

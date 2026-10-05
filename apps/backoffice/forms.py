@@ -56,6 +56,26 @@ class SocleArticleForm(forms.Form):
         max_length=200,
         widget=forms.TextInput(attrs={**CHAMP_GRAND, "placeholder": gettext_lazy("Ciment CIMENCAM 50 kg")}),
     )
+    # La vitrine se lit en français ou en anglais (`apps/core/bilingue.py`) : le nom anglais est
+    # facultatif, et l'acheteur anglophone lit le nom français tant qu'il n'est pas saisi.
+    libelle_en = forms.CharField(
+        label=gettext_lazy("Nom en anglais"),
+        max_length=200,
+        required=False,
+        help_text=gettext_lazy("Facultatif. Montré aux acheteurs qui lisent le marché en anglais."),
+        widget=forms.TextInput(attrs={**CHAMP, "lang": "en", "placeholder": "Cement CIMENCAM 50 kg"}),  # i18n: non
+    )
+    description = forms.CharField(
+        label=gettext_lazy("Description"),
+        required=False,
+        help_text=gettext_lazy("Ce que l'acheteur doit savoir avant de commander : contenance, usage, origine."),
+        widget=forms.Textarea(attrs={**CHAMP, "rows": 3}),
+    )
+    description_en = forms.CharField(
+        label=gettext_lazy("Description en anglais"),
+        required=False,
+        widget=forms.Textarea(attrs={**CHAMP, "rows": 3, "lang": "en"}),
+    )
     sku = forms.CharField(
         label=gettext_lazy("Référence"),
         max_length=64,
@@ -308,6 +328,9 @@ class ArticleModifierForm(SocleArticleForm):
         niveau = variante.niveaux.first()
         return {
             "libelle": variante.produit.libelle,
+            "libelle_en": variante.produit.libelle_en,
+            "description": variante.produit.description,
+            "description_en": variante.produit.description_en,
             "sku": variante.sku,
             "code_barres": variante.code_barres,
             "prix_vente": nombre_court(variante.prix_vente),
@@ -525,7 +548,7 @@ class MembreEquipeForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.boutique = boutique
         self.roles = {r.code: r for r in (roles or [])}
-        self.fields["role"].choices = [(code, r.libelle) for code, r in self.roles.items()]
+        self.fields["role"].choices = [(code, r.libelle_affiche) for code, r in self.roles.items()]
 
     def clean_telephone(self):
         return self.cleaned_data["telephone"].strip().replace(" ", "")
@@ -564,7 +587,7 @@ class ChangementDeRoleForm(forms.Form):
     def __init__(self, *args, roles=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.roles = {r.code: r for r in (roles or [])}
-        self.fields["role"].choices = [(code, r.libelle) for code, r in self.roles.items()]
+        self.fields["role"].choices = [(code, r.libelle_affiche) for code, r in self.roles.items()]
 
     def clean_role(self):
         role = self.roles.get(self.cleaned_data["role"])

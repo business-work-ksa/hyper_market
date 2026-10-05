@@ -1797,3 +1797,11 @@ body.vitrine > .vitrine__zone { flex: 1 0 auto; width: 100%; }
 .choix-langue__option:focus-visible { outline: 2px solid var(--marque); outline-offset: 2px; }
 .portail__langue { display: flex; justify-content: flex-end; }
 @media (max-width: 520px) { .bandeau__actions .choix-langue__option { min-width: 30px; padding: 0 6px; } }
+
+/* ---------------------------------------------------------------------------
+   Bloc repliable d'un formulaire (champs facultatifs : description, anglais…)
+   --------------------------------------------------------------------------- */
+.bloc-repli { border: 1px solid var(--filet); border-radius: var(--r-md); padding: 10px 14px; background: var(--surface); }
+.bloc-repli > summary { cursor: pointer; font-weight: 600; color: var(--encre-2); list-style-position: inside; }
+.bloc-repli > summary:focus-visible { outline: 2px solid var(--marque); outline-offset: 3px; border-radius: var(--r-xs); }
+.bloc-repli[open] > summary { color: var(--encre); }

@@ -184,7 +184,7 @@ class FiltresEquipeForm(FiltreForm):
     def __init__(self, donnees=None, *, roles=None, **kwargs):
         super().__init__(donnees, **kwargs)
         self.fields["role"].choices = [("", "Tous les rôles")] + [
-            (r.code, r.libelle) for r in (roles or [])
+            (r.code, r.libelle_affiche) for r in (roles or [])
         ]
 
 

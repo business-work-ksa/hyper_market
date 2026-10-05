@@ -105,7 +105,7 @@
             </td>
             <td class="t-cache-etroit">{{ b.ville }}</td>
             <td class="t-cache-moyen t-metier">{{ b.metier_libelle }}</td>
-            <td class="t-cache-etroit">{{ b.rayon_principal.libelle|default:"—" }}</td>
+            <td class="t-cache-etroit">{{ b.rayon_principal|traduit|default:"—" }}</td>
             <td class="t-cache-etroit">{{ b.offre_libelle|default:"—" }}</td>
             <td class="num t-cache-etroit">{% if b.loyer is not None %}{{ b.loyer|fcfa }}{% else %}<span class="t-muet">—</span>{% endif %}</td>
             <td><span class="statut statut--{{ b.etat }}">{{ b.get_etat_display }}</span></td>

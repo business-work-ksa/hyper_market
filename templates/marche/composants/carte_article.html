@@ -19,9 +19,9 @@ qu'il ajoute (« Ajouter … au panier ») ; la coche « Identité vérifiée »
 <article class="carte carte-interactive group relative flex flex-col overflow-hidden" data-apparition style="--delai:{{ rang|default:0|delai }}">
   <div class="vignette rounded-none" style="--teinte:{{ article.boutique.enseigne|teinte }}">
     {% if photo %}
-      <img src="{{ photo.fichier.url }}" alt="{{ photo.alt|default:article.produit.libelle }}" loading="lazy" decoding="async" width="480" height="480">
+      <img src="{{ photo.fichier.url }}" alt="{{ photo.alt|default:article.produit.libelle_affiche }}" loading="lazy" decoding="async" width="480" height="480">
     {% else %}
-      <span class="vignette-monogramme transition-transform duration-500 ease-sortie group-hover:scale-110" aria-hidden="true">{{ article.produit.libelle|monogramme }}</span>
+      <span class="vignette-monogramme transition-transform duration-500 ease-sortie group-hover:scale-110" aria-hidden="true">{{ article.produit.libelle_affiche|monogramme }}</span>
     {% endif %}
   </div>
   <div class="flex flex-1 flex-col gap-1.5 p-3.5 sm:p-4">
@@ -30,7 +30,7 @@ qu'il ajoute (« Ajouter … au panier ») ; la coche « Identité vérifiée »
       {% if article.vendeur_identite_verifiee %}{% translate "Identité vérifiée" as verifiee %}{% icone "check" "size-3.5 text-success-ink" verifiee %}{% endif %}
     </p>
     <h3 class="line-clamp-2 text-sm font-semibold leading-snug sm:text-base">
-      <a class="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none after:focus-visible:rounded-2xl after:focus-visible:ring-2 after:focus-visible:ring-focus" href="{% url 'vitrine_article' article.pk %}">{{ article.produit.libelle }}</a>
+      <a class="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none after:focus-visible:rounded-2xl after:focus-visible:ring-2 after:focus-visible:ring-focus" href="{% url 'vitrine_article' article.pk %}">{{ article.produit.libelle_affiche }}</a>
     </h3>
     {% if article.attributs %}
       <p class="truncate text-xs text-ink-muted">{% for cle, valeur in article.attributs.items %}{{ valeur }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
@@ -41,7 +41,7 @@ qu'il ajoute (« Ajouter … au panier ») ; la coche « Identité vérifiée »
         {% csrf_token %}
         <input type="hidden" name="suite" value="{{ request.get_full_path }}">
         <button class="btn btn-accent btn-sm btn-icone sm:aspect-auto sm:px-3" type="submit"
-                aria-label="{% blocktranslate with libelle=article.produit.libelle %}Ajouter {{ libelle }} au panier{% endblocktranslate %}">
+                aria-label="{% blocktranslate with libelle=article.produit.libelle_affiche %}Ajouter {{ libelle }} au panier{% endblocktranslate %}">
           {% icone "plus" "size-4" %}<span class="hidden sm:inline">{% translate "Ajouter" %}</span>
         </button>
       </form>

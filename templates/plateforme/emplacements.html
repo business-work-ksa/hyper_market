@@ -62,7 +62,7 @@
             <td>
               <span class="t-boutique__noms">
                 <span class="t-boutique__enseigne">{{ e.get_type_display }}</span>
-                <span class="t-boutique__raison">{{ e.rayon.libelle|default:_("Tout le marché") }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
+                <span class="t-boutique__raison">{{ e.rayon|traduit|default:_("Tout le marché") }}<span class="t-boutique__mobile-inline"> · {{ e.debut|date:"d/m" }} → {{ e.fin|date:"d/m" }}</span></span>
                 <span class="t-boutique__mobile">{% if e.boutique_occupante %}<a class="t-lien" href="{% url 'plateforme:boutique' e.boutique_occupante.pk %}">{{ e.boutique_occupante.enseigne }}</a>{% else %}{% translate "Libre" %}{% endif %}</span>
               </span>
             </td>

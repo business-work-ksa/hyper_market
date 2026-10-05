@@ -163,6 +163,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
+            # `|traduit` : les données en base dans la langue de la page (`apps/core/bilingue.py`).
+            "builtins": ["apps.core.templatetags.bilingue"],
         },
     },
 ]

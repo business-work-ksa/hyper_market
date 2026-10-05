@@ -34,9 +34,9 @@
           <ul class="divide-y divide-line" role="list">
             {% for ligne in groupe.lignes %}
               <li class="grid grid-cols-[3.5rem_1fr] gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-[4rem_1fr_auto_auto] sm:items-center sm:px-6">
-                <span class="vignette size-14 rounded-xl sm:size-16" style="--teinte:{{ groupe.boutique.enseigne|teinte }}" aria-hidden="true"><span class="text-lg font-extrabold">{{ ligne.article.produit.libelle|monogramme }}</span></span>
+                <span class="vignette size-14 rounded-xl sm:size-16" style="--teinte:{{ groupe.boutique.enseigne|teinte }}" aria-hidden="true"><span class="text-lg font-extrabold">{{ ligne.article.produit.libelle_affiche|monogramme }}</span></span>
                 <div class="min-w-0">
-                  <a class="line-clamp-2 font-semibold hover:text-brand" href="{% url 'vitrine_article' ligne.article.pk %}">{{ ligne.article.produit.libelle }}</a>
+                  <a class="line-clamp-2 font-semibold hover:text-brand" href="{% url 'vitrine_article' ligne.article.pk %}">{{ ligne.article.produit.libelle_affiche }}</a>
                   <p class="text-sm text-ink-muted">{% blocktranslate with prix=ligne.article.prix_vente|fcfa %}{{ prix }} FCFA l'unité{% endblocktranslate %}</p>
                 </div>
                 <form method="post" action="{% url 'vitrine_panier_modifier' ligne.article.pk %}" class="col-span-2 flex items-center gap-2 sm:col-span-1">
@@ -44,7 +44,7 @@
                   <div class="quantite">
                     <button type="button" data-pas="-1" aria-label="{% translate 'Retirer un' %}">{% icone "moins" "size-4" %}</button>
                     <input type="number" name="quantite" value="{{ ligne.quantite }}" min="0" max="99" inputmode="numeric"
-                           aria-label="{% blocktranslate with libelle=ligne.article.produit.libelle %}Quantité de {{ libelle }}{% endblocktranslate %}">
+                           aria-label="{% blocktranslate with libelle=ligne.article.produit.libelle_affiche %}Quantité de {{ libelle }}{% endblocktranslate %}">
                     <button type="button" data-pas="1" aria-label="{% translate 'Ajouter un' %}">{% icone "plus" "size-4" %}</button>
                   </div>
                   <button class="btn btn-outline btn-sm" type="submit">{% translate "Mettre à jour" %}</button>
@@ -55,7 +55,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="quantite" value="0">
                     <button class="btn btn-ghost btn-sm text-error-ink" type="submit"
-                            aria-label="{% blocktranslate with libelle=ligne.article.produit.libelle %}Retirer {{ libelle }} du panier{% endblocktranslate %}">{% icone "corbeille" "size-4" %}<span class="sm:sr-only">{% translate "Retirer" %}</span></button>
+                            aria-label="{% blocktranslate with libelle=ligne.article.produit.libelle_affiche %}Retirer {{ libelle }} du panier{% endblocktranslate %}">{% icone "corbeille" "size-4" %}<span class="sm:sr-only">{% translate "Retirer" %}</span></button>
                   </form>
                 </div>
               </li>

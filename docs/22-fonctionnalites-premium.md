@@ -199,6 +199,27 @@ deuxième semaine, on demande « et ça a donné quoi ? », et il n'y a pas de r
 | Le franc | Direct pour la plateforme, et à la marge la plus élevée de tout le modèle. |
 | Réutilise | Le modèle existe. Il faut un compteur et un écran. |
 
+**État (livré).** La vitrine montre ce qui est vendu, et compte ce que ça produit
+(`apps/vitrine/mise_en_avant.py`, `apps/marketplace/mesures.py`) :
+
+* **où** — la page d'accueil (« À la une », trois commerçants au plus le même jour), le bandeau en
+  tête d'un rayon et la tête de gondole (une rangée de ses articles avant la grille, sans doublon
+  dans la grille). Rien dans une recherche : l'acheteur a dit ce qu'il voulait. Chaque bloc porte
+  la mention **« Sponsorisé »** ;
+* **quoi** — un compteur par emplacement et par jour (`MesureEmplacement`) : *affichages* (pages
+  rendues, hors robots, aperçus de liens et préchargement), *clics* (passage par
+  `/marche/en-avant/<id>/`, qui ne redirige que vers la vitrine), *commandes* et *montant*
+  attribués au dernier clic sur un emplacement **du même commerçant**, dans les sept jours ;
+* **qui voit quoi** — le commerçant, dans *Ma boutique → Mise en avant* : tout, jour par jour, avec
+  le taux de clic et le coût par clic ; la console : affichages et clics, **pas** les commandes
+  attribuées, qui sont des ventes de la boutique (ADR-012) ;
+* **à la vente** — on ne vend plus une place que la vitrine ne montrerait pas : capacité vérifiée
+  jour par jour (un bandeau et une tête de gondole par rayon, trois sur l'accueil), et refus d'un
+  rayon fermé.
+
+Ce qui manque encore : la vente en libre-service par le commerçant (aujourd'hui, l'exploitant vend
+depuis la console), et un export des chiffres pour la facture de renouvellement.
+
 ### 4.2 — Les avis clients adossés à un achat prouvé
 
 Il n'y en a aucun aujourd'hui. Or l'étude de marché (docs/02) place la **défiance** comme premier

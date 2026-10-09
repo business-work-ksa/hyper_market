@@ -475,8 +475,10 @@ class TypeEmplacementForm(FormulaireEtape):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rayons = {str(r.pk): r for r in Rayon.objects.order_by("ordre", "libelle")}
-        self.fields["rayon"].choices = [("", "— Choisir un rayon —")] + [
+        # Seuls les rayons ouverts : un rayon fermé n'apparaît pas sur la vitrine, et un emplacement
+        # qui s'y trouverait serait payé sans jamais être vu (`services.vendre_emplacement`).
+        self.rayons = {str(r.pk): r for r in Rayon.objects.filter(ouvert=True).order_by("ordre", "libelle")}
+        self.fields["rayon"].choices = [("", _("— Choisir un rayon —"))] + [
             (pk, r.libelle_affiche) for pk, r in self.rayons.items()
         ]
         # Par défaut, le rayon de la boutique choisie : c'est presque toujours là qu'elle veut

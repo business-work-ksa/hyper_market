@@ -20,12 +20,12 @@ Les refus métier sont des `ValidationError` (une saisie à corriger) ; les refu
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -345,11 +345,24 @@ def vendre_emplacement(*, par, boutique, type_emplacement: str, rayon, debut: da
         raise ValidationError({"rayon": _("Une tête de gondole ou un bandeau se place dans un rayon : choisissez-le.")})
     if type_emplacement not in TYPES_A_RAYON:
         rayon = None
+    if rayon is not None and not rayon.ouvert:
+        raise ValidationError({
+            "rayon": _("Ce rayon est fermé : il n'apparaît pas sur la vitrine, l'emplacement y serait payé sans être vu.")
+        })
     if fin <= debut:
         raise ValidationError({"fin": _("La fin doit venir après le début.")})
     tarif = Decimal(tarif)
     if tarif <= 0:
         raise ValidationError({"tarif": MESSAGE_TARIF_NUL})
+    complet = jour_complet(type_emplacement, rayon, debut, fin)
+    if complet is not None:
+        jour, occupants = complet
+        raise ValidationError({
+            "debut": _(
+                "Cet emplacement est déjà vendu le %(jour)s (%(occupants)s) : la vitrine ne montrerait "
+                "pas un occupant de plus. Choisissez une autre période ou un autre rayon."
+            ) % {"jour": f"{jour:%d/%m/%Y}", "occupants": ", ".join(occupants)}
+        })
 
     emplacement = EmplacementPremium.objects.create(
         rayon=rayon,
@@ -371,6 +384,38 @@ def vendre_emplacement(*, par, boutique, type_emplacement: str, rayon, debut: da
         ),
     )
     return emplacement
+
+
+def jour_complet(type_emplacement: str, rayon, debut: date, fin: date):
+    """Le premier jour de la période où l'emplacement a déjà autant d'occupants que la vitrine en
+    montre (`EmplacementPremium.CAPACITES`), avec leurs noms ; `None` s'il reste de la place.
+
+    Vérifié jour par jour, pas « une période qui chevauche » : trois occupants successifs de la page
+    d'accueil ne la remplissent pas tous en même temps. Un verrou consultatif, propre à
+    l'emplacement (type et rayon), sérialise deux ventes simultanées : verrouiller les lignes
+    existantes ne suffirait pas, puisque la vente concurrente est justement une ligne qui n'existe
+    pas encore. Il se lève avec la transaction.
+    """
+    capacite = EmplacementPremium.CAPACITES.get(type_emplacement, 1)
+    if connection.vendor == "postgresql":
+        with connection.cursor() as curseur:
+            curseur.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                [f"emplacement:{type_emplacement}:{getattr(rayon, 'pk', '') or ''}"],
+            )
+    existants = EmplacementPremium.objects.filter(
+        type=type_emplacement, debut__lte=fin, fin__gte=debut, boutique_occupante__isnull=False
+    )
+    if type_emplacement in TYPES_A_RAYON:
+        existants = existants.filter(rayon=rayon)
+    existants = list(existants.select_related("boutique_occupante"))
+    jour = debut
+    while jour <= fin:
+        ce_jour = [e for e in existants if e.couvre(jour)]
+        if len(ce_jour) >= capacite:
+            return jour, [e.boutique_occupante.enseigne for e in ce_jour]
+        jour += timedelta(days=1)
+    return None
 
 
 MESSAGE_TARIF_NUL = (

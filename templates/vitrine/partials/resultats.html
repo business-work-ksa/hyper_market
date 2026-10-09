@@ -24,6 +24,8 @@ recharge sans quitter la page. `data-titre-resultats` donne au script le titre d
   </ul>
 {% endif %}
 
+{% if en_avant %}{% include "marche/en_avant_rayon.html" %}{% endif %}
+
 {% if articles %}
   <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4" data-grille>
     {% for article in articles %}

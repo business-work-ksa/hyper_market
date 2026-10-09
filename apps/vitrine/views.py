@@ -39,6 +39,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.cache import patch_vary_headers
 from django.utils.functional import SimpleLazyObject
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -50,6 +51,8 @@ from apps.orders.services import CommandeInvalide, PrepaiementRefuse, passer_com
 from apps.payments import paiement_en_ligne
 from apps.payments import sequestre as sequestre_service
 from apps.payments.models import Sequestre, Transaction
+from apps.marketplace.models import EmplacementPremium
+from apps.vitrine import mise_en_avant
 from apps.vitrine import panier as panier_service
 from apps.vitrine.catalogue import (
     Filtres,
@@ -102,6 +105,8 @@ def _contexte(request, page: str, **extra) -> dict:
 # ---------------------------------------------------------------------------
 def accueil(request):
     articles = articles_en_vitrine(limite=12)
+    a_la_une = mise_en_avant.pour_accueil()
+    mise_en_avant.compter_affichages(request, a_la_une)
     return render(
         request,
         "vitrine/accueil.html",
@@ -110,6 +115,7 @@ def accueil(request):
             "accueil",
             articles=articles,
             boutiques=boutiques_en_vitrine()[:6],
+            a_la_une=a_la_une,
         ),
     )
 
@@ -134,6 +140,16 @@ def catalogue(request):
     # fragment, pas la page ; « suite » ne rend que les cartes de la page suivante. `Vary`
     # empêche un cache de servir le fragment à qui demande la page.
     fragment = request.headers.get("X-Fragment")
+    # Bandeau et tête de gondole du rayon : en tête de la première page d'un rayon parcouru, pas
+    # dans une recherche (l'acheteur a dit ce qu'il voulait) ni dans la suite d'une liste.
+    if filtres.rayon is not None and filtres.page == 1 and not filtres.recherche and fragment != "suite":
+        en_avant = mise_en_avant.pour_rayon(filtres.rayon)
+        mise_en_avant.compter_affichages(request, en_avant.values())
+        contexte["en_avant"] = en_avant
+        # Les articles de la tête de gondole ne se répètent pas juste en dessous, dans la grille.
+        if en_avant["gondole"]:
+            deja = {a.pk for a in en_avant["gondole"].articles}
+            contexte["articles"] = [a for a in contexte["articles"] if a.pk not in deja]
     gabarit = {
         "1": "vitrine/partials/catalogue_corps.html",
         "suite": "vitrine/partials/cartes.html",
@@ -164,6 +180,24 @@ def _url_page(request, page) -> str:
     params = request.GET.copy()
     params["page"] = str(page)
     return f"{request.path}?{params.urlencode()}"
+
+
+def mise_en_avant_clic(request, emplacement_id):
+    """Compte le clic sur un lien d'emplacement premium, puis mène à la page visée.
+
+    `vers` ne peut viser que la vitrine elle-même : une adresse de redirection ouverte sur
+    l'extérieur servirait à maquiller des liens d'hameçonnage derrière le nom du marché.
+    """
+    vers = request.GET.get("vers") or ""
+    if not (
+        vers.startswith("/marche/")
+        and url_has_allowed_host_and_scheme(vers, allowed_hosts={request.get_host()})
+    ):
+        vers = reverse("vitrine_accueil")
+    emplacement = EmplacementPremium.objects.filter(pk=emplacement_id).first()
+    if emplacement is not None:
+        mise_en_avant.compter_clic(request, emplacement)
+    return redirect(vers)
 
 
 def _puces_actives(request, filtres, facettes) -> list[dict]:
@@ -338,6 +372,7 @@ def commander(request):
         else:
             panier_service.vider(request.session)
             _memoriser(request, commande)
+            mise_en_avant.attribuer_commande(request, commande)
             return redirect("vitrine_commande", identifiant=commande.pk)
 
     for groupe in groupes:

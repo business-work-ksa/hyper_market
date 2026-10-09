@@ -1,0 +1,5 @@
+{% load i18n marche %}{% comment %}
+La mention d'une mise en avant payée (`apps/vitrine/mise_en_avant.py`). Toujours visible, jamais
+en petits caractères : une place achetée qui se ferait passer pour une recommandation tromperait
+l'acheteur. Le `title` dit pourquoi l'emplacement est là.
+{% endcomment %}<span class="badge badge-neutre" title="{% translate 'Ce commerçant a payé cette place sur le marché. Le classement des autres articles n’en dépend pas.' %}">{% icone "info" "size-3.5" %}{% translate "Sponsorisé" %}</span>

@@ -1,0 +1,36 @@
+{% load i18n hm marche %}{% comment %}
+En tête d'un rayon : le bandeau (la carte d'un commerçant) et la tête de gondole (une rangée de ses
+articles), chacun loué à la semaine (`EmplacementPremium`). Rendu dans le fragment du catalogue :
+changer de rayon change aussi ce qui est mis en avant.
+
+Paramètre : en_avant ({"bandeau": MiseEnAvant|None, "gondole": MiseEnAvant|None}).
+{% endcomment %}
+{% with bandeau=en_avant.bandeau gondole=en_avant.gondole %}
+{% if bandeau %}
+  <aside class="carte mb-5 flex flex-col gap-4 overflow-hidden p-4 sm:flex-row sm:items-center sm:p-5" aria-label="{% translate 'Commerçant mis en avant dans ce rayon' %}"
+         style="background:linear-gradient(110deg, color-mix(in oklab, {{ bandeau.boutique.enseigne|teinte }} 14%, transparent), transparent 70%)">
+    <span class="jeton size-14 shrink-0 text-lg" style="--teinte:{{ bandeau.boutique.enseigne|teinte }}" aria-hidden="true">{{ bandeau.boutique.enseigne|initiales }}</span>
+    <div class="flex min-w-0 flex-1 flex-col gap-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <p class="font-display text-xl font-extrabold">{{ bandeau.boutique.enseigne }}</p>
+        {% include "marche/composants/sponsorise.html" %}
+      </div>
+      <p class="text-sm text-ink-muted">{{ bandeau.boutique.ville }}{% if bandeau.articles %} · {% blocktranslate count n=bandeau.articles|length %}{{ n }} article à découvrir{% plural %}{{ n }} articles à découvrir{% endblocktranslate %}{% endif %}</p>
+    </div>
+    <a class="btn btn-primary btn-md shrink-0" href="{{ bandeau.lien_boutique }}">{% translate "Voir la boutique" %}{% icone "fleche" "size-4" %}</a>
+  </aside>
+{% endif %}
+{% if gondole and gondole.articles %}
+  <section class="mb-6 rounded-2xl border border-accent/30 bg-accent-soft/40 p-3 sm:p-4" aria-labelledby="gondole-titre">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+      <h2 class="text-base font-bold" id="gondole-titre">{% blocktranslate with enseigne=gondole.boutique.enseigne %}En tête de gondole : {{ enseigne }}{% endblocktranslate %}</h2>
+      {% include "marche/composants/sponsorise.html" %}
+    </div>
+    <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+      {% for article in gondole.articles %}
+        {% include "marche/composants/carte_article.html" with rang=forloop.counter0 %}
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+{% endwith %}

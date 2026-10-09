@@ -27,6 +27,7 @@ from django.utils import timezone
 from apps.accounts.models import Appartenance, DossierKyc
 from apps.confiance.paliers import carte_confiance
 from apps.core.models import AccesPlateforme
+from apps.marketplace import mesures
 from apps.marketplace.gouvernance import boutiques_de
 from apps.marketplace.metiers import metier_de
 from apps.marketplace.models import (
@@ -484,7 +485,12 @@ def emplacements(request):
         .order_by(*ordre),
         PAR_PAGE,
     ).get_page(request.GET.get("page"))
+    # Affichages et clics : la mesure du produit que la plateforme vend. Les commandes attribuées
+    # ne sont pas reprises ici — ce sont des ventes de la boutique, que la console ne lit pas sans
+    # suivi journalisé (ADR-012) ; le commerçant les voit dans son back-office.
+    bilans = {b.emplacement.pk: b for b in mesures.bilans(page.object_list)}
     for e in page.object_list:
+        e.bilan = bilans.get(e.pk)
         e.statut = ind.etat_emplacement(e, aujourdhui)
         e.duree = (e.fin - e.debut).days + 1
         e.restant = (e.fin - aujourdhui).days if e.statut == "en_cours" else None

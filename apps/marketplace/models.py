@@ -352,6 +352,10 @@ class EmplacementPremium(BaseModel):
         (BANDEAU_RAYON, gettext_lazy("Bandeau de rayon")),
         (ACCUEIL, gettext_lazy("Page d'accueil")),
     ]
+    # Combien d'occupants un même emplacement montre **le même jour** : un bandeau de rayon et une
+    # tête de gondole n'en montrent qu'un par rayon, la page d'accueil trois. Vendre au-delà, ce
+    # serait encaisser une place que la vitrine n'affichera pas (`plateforme.services`).
+    CAPACITES = {TETE_DE_GONDOLE: 1, BANDEAU_RAYON: 1, ACCUEIL: 3}
 
     rayon = models.ForeignKey(
         Rayon, null=True, blank=True, on_delete=models.CASCADE, related_name="emplacements_premium"
@@ -386,6 +390,46 @@ class EmplacementPremium(BaseModel):
 
     def __str__(self):
         return f"{self.get_type_display()} {self.debut:%d/%m} → {self.fin:%d/%m}"
+
+    def couvre(self, jour) -> bool:
+        """Début et fin **inclus** : l'emplacement est montré jusqu'au soir du dernier jour."""
+        return self.debut <= jour <= self.fin
+
+
+class MesureEmplacement(models.Model):
+    """Ce qu'un emplacement premium a produit, jour par jour (docs/22, §4.1).
+
+    Le commerçant paie une semaine de visibilité ; la deuxième semaine, il demande « et ça a donné
+    quoi ? ». Ces quatre compteurs sont la réponse :
+
+    * **affichages** — pages de la vitrine où l'emplacement a été montré (pas des personnes : une
+      même personne qui recharge compte deux fois, un robot d'indexation ne compte pas) ;
+    * **clics** — ouvertures de la boutique ou d'un article **depuis** l'emplacement ;
+    * **commandes** et **montant** — commandes passées chez l'occupant dans les sept jours qui
+      suivent un clic, par la même session d'acheteur (dernier clic, `apps/vitrine/mise_en_avant.py`).
+
+    Une ligne par emplacement et par jour, incrémentée en place : aucune donnée sur l'acheteur
+    n'est gardée ici, seulement des nombres.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
+    emplacement = models.ForeignKey(EmplacementPremium, on_delete=models.CASCADE, related_name="mesures")
+    jour = models.DateField()
+    affichages = models.PositiveIntegerField(default=0)
+    clics = models.PositiveIntegerField(default=0)
+    commandes = models.PositiveIntegerField(default=0)
+    montant = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+
+    class Meta:
+        verbose_name = "mesure d'emplacement"
+        verbose_name_plural = "mesures d'emplacement"
+        ordering = ["jour"]
+        constraints = [
+            models.UniqueConstraint(fields=["emplacement", "jour"], name="une_mesure_par_emplacement_et_jour")
+        ]
+
+    def __str__(self):
+        return f"{self.emplacement} · {self.jour:%d/%m}"
 
 
 class IdentiteVisuelle(TenantScopedModel):

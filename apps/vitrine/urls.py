@@ -16,6 +16,8 @@ urlpatterns = [
     path("design-system/", views.design_system, name="vitrine_design_system"),
     path("article/<uuid:identifiant>/", views.article, name="vitrine_article"),
     path("boutique/<slug:slug>/", views.boutique, name="vitrine_boutique"),
+    # Le passage compté d'un lien d'emplacement premium, puis la page visée (`mise_en_avant.py`).
+    path("en-avant/<uuid:emplacement_id>/", views.mise_en_avant_clic, name="vitrine_mise_en_avant"),
 
     path("panier/", views.panier, name="vitrine_panier"),
     path("panier/ajouter/<uuid:identifiant>/", views.panier_ajouter, name="vitrine_panier_ajouter"),

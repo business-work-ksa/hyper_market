@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load i18n hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Mise en avant — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Mise en avant sur le marché" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'boutique' %}">{% translate "Retour à ma boutique" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  {% if bilans %}
+    <section class="tuiles" aria-label="{% translate 'Depuis votre premier emplacement' %}">
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-oeil"></use></svg><span class="t-sur-titre">{% translate "Affichages" %}</span></div>
+        <p class="tuile__valeur">{{ total_affichages }}</p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Pages du marché qui ont montré votre emplacement" %}</span></p>
+      </article>
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-hausse"></use></svg><span class="t-sur-titre">{% translate "Clics" %}</span></div>
+        <p class="tuile__valeur">{{ total_clics }}</p>
+        <p class="tuile__note"><span class="t-muet">{% translate "Visites de votre boutique ou de vos articles depuis l'emplacement" %}</span></p>
+      </article>
+      <article class="tuile">
+        <div class="tuile__libelle"><svg><use href="#ic-commandes"></use></svg><span class="t-sur-titre">{% translate "Commandes attribuées" %}</span></div>
+        <p class="tuile__valeur">{{ total_commandes }}</p>
+        <p class="tuile__note"><span class="t-muet">{% blocktranslate with montant=total_montant|fcfa trimmed %}{{ montant }} FCFA, dans les 7 jours après un clic{% endblocktranslate %}</span></p>
+      </article>
+    </section>
+
+    {% for b in bilans %}
+      <section class="carte">
+        <header class="carte__entete">
+          <div class="pile-sm" style="gap:2px">
+            <h2 class="t-section">{{ b.emplacement.get_type_display }}{% if b.emplacement.rayon %} · {{ b.emplacement.rayon|traduit }}{% endif %}</h2>
+            <span class="t-legende">{% blocktranslate with debut=b.emplacement.debut|date:"d/m/Y" fin=b.emplacement.fin|date:"d/m/Y" tarif=b.emplacement.tarif|fcfa trimmed %}Du {{ debut }} au {{ fin }} · {{ tarif }} FCFA HT{% endblocktranslate %}</span>
+          </div>
+          {% if b.statut == EN_COURS %}
+            <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "En cours" %}</span>
+          {% elif b.statut == A_VENIR %}
+            <span class="puce"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "À venir" %}</span>
+          {% else %}
+            <span class="puce"><svg aria-hidden="true"><use href="#ic-info"></use></svg>{% translate "Terminé" %}</span>
+          {% endif %}
+        </header>
+        <div class="carte__corps colonne" style="gap:14px">
+          <dl class="chiffres-mise-en-avant">
+            <div><dt>{% translate "Affichages" %}</dt><dd class="chiffre">{{ b.affichages }}</dd></div>
+            <div><dt>{% translate "Clics" %}</dt><dd class="chiffre">{{ b.clics }}</dd></div>
+            <div><dt>{% translate "Taux de clic" %}</dt><dd class="chiffre">{% if b.taux_clic is not None %}{{ b.taux_clic }} %{% else %}—{% endif %}</dd></div>
+            <div><dt>{% translate "Coût par clic" %}</dt><dd class="chiffre">{% if b.cout_par_clic is not None %}{{ b.cout_par_clic|fcfa }} FCFA{% else %}—{% endif %}</dd></div>
+            <div><dt>{% translate "Commandes attribuées" %}</dt><dd class="chiffre">{{ b.commandes }}{% if b.commandes %} · {{ b.montant|fcfa }} FCFA{% endif %}</dd></div>
+          </dl>
+          {% if b.statut == A_VENIR %}
+            <p class="t-legende">{% translate "Les chiffres apparaîtront dès le premier jour de l'emplacement." %}</p>
+          {% elif b.jours %}
+            <details class="bloc-repli">
+              <summary>{% translate "Jour par jour" %}</summary>
+              <div class="tableau-boite" style="margin-top:10px">
+                <table class="tableau">
+                  <thead>
+                    <tr>
+                      <th scope="col">{% translate "Jour" %}</th>
+                      <th scope="col" class="num">{% translate "Affichages" %}</th>
+                      <th scope="col" class="num">{% translate "Clics" %}</th>
+                      <th scope="col" class="num">{% translate "Commandes" %}</th>
+                      <th scope="col" class="num">{% translate "Montant" %}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for j in b.jours %}
+                      <tr>
+                        <td>{{ j.jour|date:"D d/m" }}</td>
+                        <td class="num">{{ j.affichages }}</td>
+                        <td class="num">{{ j.clics }}</td>
+                        <td class="num">{{ j.commandes }}</td>
+                        <td class="num">{{ j.montant|fcfa }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          {% else %}
+            <p class="t-legende">{% translate "Aucun affichage compté pour l'instant." %}</p>
+          {% endif %}
+        </div>
+      </section>
+    {% endfor %}
+
+    <div class="bandeau-info">
+      <svg><use href="#ic-info"></use></svg>
+      <span>
+        {% blocktranslate trimmed %}Un <strong>affichage</strong> est une page du marché qui a montré votre emplacement : une même
+        personne qui revient compte plusieurs fois ; les robots et les aperçus de liens ne comptent pas.
+        Une <strong>commande attribuée</strong> est passée chez vous dans les sept jours suivant un clic sur
+        votre emplacement, depuis le même téléphone ou ordinateur. Certains de ces acheteurs seraient venus
+        de toute façon : c'est une indication, pas une preuve.{% endblocktranslate %}
+      </span>
+    </div>
+  {% else %}
+    <section class="carte">
+      <div class="carte__corps colonne" style="gap:12px">
+        <h2 class="t-section">{% translate "Vous n'avez encore loué aucun emplacement" %}</h2>
+        <p class="t-2">
+          {% blocktranslate trimmed %}Trois places se louent à la semaine sur le marché : la <strong>page d'accueil</strong>,
+          le <strong>bandeau</strong> en tête d'un rayon et la <strong>tête de gondole</strong>, où vos articles passent
+          avant les autres. Chaque emplacement est signalé « Sponsorisé » aux acheteurs, et vous en voyez ici
+          les affichages, les clics et les commandes qui ont suivi.{% endblocktranslate %}
+        </p>
+        <p class="t-2">{% translate "Pour en louer un, contactez l'équipe HyperMarché." %}</p>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

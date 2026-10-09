@@ -22,7 +22,8 @@ from apps.core.bilingue import traduit
 from apps.core.tenancy import contexte_boutique
 from apps.marketplace.models import Rayon, TypeEmplacement
 from apps.payments.models import Prestataire
-from tests.test_backoffice_gestion import BaseGestionTest, NouvelArticleTest
+from tests import test_backoffice_gestion
+from tests.test_backoffice_gestion import BaseGestionTest
 from tests.test_vitrine import SocleVitrine
 
 
@@ -93,7 +94,7 @@ class VitrineBilingueTest(SocleVitrine):
 
 
 class ArticleBilingueTest(BaseGestionTest):
-    DONNEES = NouvelArticleTest.DONNEES
+    DONNEES = test_backoffice_gestion.NouvelArticleTest.DONNEES
 
     def test_le_commercant_saisit_l_anglais_et_la_description(self):
         self.client.post(
@@ -123,3 +124,21 @@ class ReferentielsBilinguesTest(TestCase):
         self.assertEqual(
             Prestataire.objects.get(code=Prestataire.PAIEMENT_LIVRAISON).libelle_en, "Cash on delivery"
         )
+
+
+class PourcentsDansLesScriptsTest(BaseGestionTest):
+    """Un texte de script qui porte une variable (`%(n)s`) sort tel quel, dans les deux langues.
+
+    `{{ _("… %(n)s …") }}` affichait « %%(n)s » : Django double le `%` à l'exécution, pas à
+    l'extraction, et la traduction n'était jamais trouvée. Ces textes passent par
+    `{% translate … as … %}`, qui rétablit le `%`.
+    """
+
+    def test_le_compteur_hors_ligne_et_la_caisse(self):
+        for langue, attendu in (("fr", "opérations en attente d’envoi"), ("en", "operations waiting to be sent")):
+            self.client.cookies["hm_langue"] = langue
+            for nom in ("tableau_de_bord", "caisse"):
+                with self.subTest(langue=langue, page=nom):
+                    contenu = self.client.get(reverse(nom)).content.decode()
+                    self.assertNotIn("%%(", contenu)
+                    self.assertIn(attendu, contenu)

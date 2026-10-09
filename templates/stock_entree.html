@@ -139,7 +139,7 @@
           return;
         }
         if (resultat.etat === "en_attente") {
-          message.textContent = "{{ _('Réception conservée (%(n)s opération(s) en attente). Elle partira au retour du réseau.')|escapejs }}"
+          message.textContent = "{% translate 'Réception conservée (%(n)s opération(s) en attente). Elle partira au retour du réseau.' as t_js_1 %}{{ t_js_1|escapejs }}"
             .replace("%(n)s", resultat.enAttente);
           formulaire.reset();
         } else {

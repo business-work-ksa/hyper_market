@@ -6,6 +6,7 @@ from apps.marketplace.models import (
     EmplacementPremium,
     EtatDesLieux,
     FactureLoyer,
+    MesureEmplacement,
     Rayon,
     TypeEmplacement,
 )
@@ -64,7 +65,21 @@ class EtatDesLieuxAdmin(admin.ModelAdmin):
     list_filter = ("type",)
 
 
+class MesureEmplacementInline(admin.TabularInline):
+    """Les compteurs jour par jour, en lecture : ils ne se corrigent pas à la main."""
+
+    model = MesureEmplacement
+    extra = 0
+    can_delete = False
+    fields = ("jour", "affichages", "clics", "commandes", "montant")
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(EmplacementPremium)
 class EmplacementPremiumAdmin(admin.ModelAdmin):
+    inlines = [MesureEmplacementInline]
     list_display = ("type", "rayon", "debut", "fin", "tarif", "boutique_occupante")
     list_filter = ("type", "rayon")

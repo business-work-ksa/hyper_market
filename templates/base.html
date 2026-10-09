@@ -282,8 +282,8 @@ back-office, et un script par écran finirait par diverger d'un écran à l'autr
         // « opération » et non « vente » : la file porte désormais aussi les
         // réceptions de marchandise saisies pendant une coupure.
         texte.textContent = (enAttente > 1
-          ? "{{ _('%(n)s opérations en attente d’envoi')|escapejs }}"
-          : "{{ _('%(n)s opération en attente d’envoi')|escapejs }}").replace("%(n)s", enAttente);
+          ? "{% translate '%(n)s opérations en attente d’envoi' as t_js_1 %}{{ t_js_1|escapejs }}"
+          : "{% translate '%(n)s opération en attente d’envoi' as t_js_2 %}{{ t_js_2|escapejs }}").replace("%(n)s", enAttente);
       } else if (horsLigne) {
         texte.textContent = "{{ _("Hors ligne — les saisies sont conservées")|escapejs }}";
       } else {

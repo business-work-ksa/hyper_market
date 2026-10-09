@@ -148,20 +148,20 @@
   // Les textes de l'écran, traduits par le gabarit : ce script est écrit dans la page, il ne passe
   // pas par le catalogue JavaScript. `texte()` y glisse les valeurs (%(nom)s).
   var TEXTES = {
-    unite: "{{ _("%(prix)s FCFA l'unité")|escapejs }}",
+    unite: "{% translate "%(prix)s FCFA l'unité" as t_js_1 %}{{ t_js_1|escapejs }}",
     retirerUn: "{{ _("Retirer un")|escapejs }}",
     ajouterUn: "{{ _("Ajouter un")|escapejs }}",
-    serieCourt: "{{ _("N° de série %(n)s")|escapejs }}",
-    serieLong: "{{ _("Numéro de série %(n)s — %(libelle)s")|escapejs }}",
-    enStock: "{{ _("%(stock)s en stock")|escapejs }}",
+    serieCourt: "{% translate "N° de série %(n)s" as t_js_2 %}{{ t_js_2|escapejs }}",
+    serieLong: "{% translate "Numéro de série %(n)s — %(libelle)s" as t_js_3 %}{{ t_js_3|escapejs }}",
+    enStock: "{% translate "%(stock)s en stock" as t_js_4 %}{{ t_js_4|escapejs }}",
     ordonnance: "{{ _("Ordonnance")|escapejs }}",
     numeroSerie: "{{ _("Numéro de série")|escapejs }}",
-    horsLigne: "{{ _("Hors ligne : catalogue du %(date)s à %(heure)s. Les quantités affichées peuvent avoir bougé.")|escapejs }}",
-    serieManquante: "{{ _("Saisissez le numéro de série de chaque « %(libelle)s » avant d'encaisser.")|escapejs }}",
+    horsLigne: "{% translate "Hors ligne : catalogue du %(date)s à %(heure)s. Les quantités affichées peuvent avoir bougé." as t_js_5 %}{{ t_js_5|escapejs }}",
+    serieManquante: "{% translate "Saisissez le numéro de série de chaque « %(libelle)s » avant d'encaisser." as t_js_6 %}{{ t_js_6|escapejs }}",
     ordonnanceManquante: "{{ _("Indiquez le prescripteur et la date de l'ordonnance avant d'encaisser.")|escapejs }}",
     encaissement: "{{ _("Encaissement…")|escapejs }}",
-    encaisse: "{{ _("Ticket %(numero)s encaissé — %(total)s FCFA.")|escapejs }}",
-    conservee: "{{ _("Vente conservée (%(n)s en attente). Elle partira au retour du réseau.")|escapejs }}",
+    encaisse: "{% translate "Ticket %(numero)s encaissé — %(total)s FCFA." as t_js_7 %}{{ t_js_7|escapejs }}",
+    conservee: "{% translate "Vente conservée (%(n)s en attente). Elle partira au retour du réseau." as t_js_8 %}{{ t_js_8|escapejs }}",
     echec: "{{ _("L'encaissement a échoué.")|escapejs }}",
     encaisser: "{{ _("Encaisser")|escapejs }}",
   };

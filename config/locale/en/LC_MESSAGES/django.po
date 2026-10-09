@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: HyperMarché marché\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-05 11:16+0100\n"
+"POT-Creation-Date: 2026-10-09 23:03+0100\n"
 "PO-Revision-Date: 2026-10-01 10:00+0100\n"
 "Last-Translator: Équipe HyperMarché\n"
 "Language-Team: English\n"
@@ -191,7 +191,7 @@ msgstr "English label"
 msgid "prévenir des commandes sur WhatsApp"
 msgstr "notify of orders on WhatsApp"
 
-#: apps/accounts/models.py:197 apps/plateforme/formulaires.py:572
+#: apps/accounts/models.py:197 apps/plateforme/formulaires.py:574
 msgid ""
 "Pourquoi cette personne exploite le marché. Utile le jour où on se le "
 "demande."
@@ -266,7 +266,7 @@ msgstr "Pending"
 msgid "Validé"
 msgstr "Approved"
 
-#: apps/accounts/models.py:309 apps/marketplace/models.py:515
+#: apps/accounts/models.py:309 apps/marketplace/models.py:559
 #: templates/verification.html:65
 msgid "Rejeté"
 msgstr "Rejected"
@@ -638,7 +638,7 @@ msgstr "Negative stock"
 #: apps/backoffice/filtres.py:159 apps/backoffice/filtres.py:242
 #: apps/backoffice/filtres.py:288 templates/article.html:212
 #: templates/article.html:276 templates/base.html:171
-#: templates/boutique.html:140 templates/caisse_session.html:31
+#: templates/boutique.html:144 templates/caisse_session.html:31
 #: templates/garantie.html:219 templates/peremptions.html:54
 #: templates/peremptions.html:92 templates/stock.html:110
 msgid "Dépôt"
@@ -668,7 +668,7 @@ msgid "Nom ou téléphone"
 msgstr "Name or phone"
 
 #: apps/backoffice/filtres.py:177 apps/backoffice/forms.py:545
-#: apps/backoffice/forms.py:585 apps/plateforme/formulaires.py:564
+#: apps/backoffice/forms.py:585 apps/plateforme/formulaires.py:566
 #: templates/equipe.html:53 templates/equipe.html:198
 msgid "Rôle"
 msgstr "Role"
@@ -677,7 +677,7 @@ msgstr "Role"
 msgid "Accès"
 msgstr "Access"
 
-#: apps/backoffice/filtres.py:180 apps/marketplace/models.py:516
+#: apps/backoffice/filtres.py:180 apps/marketplace/models.py:560
 #: templates/equipe.html:81 templates/identite.html:149
 #: templates/plateforme/boutique.html:212
 msgid "Retiré"
@@ -689,14 +689,14 @@ msgstr "Purpose or code"
 
 #: apps/backoffice/filtres.py:197 apps/backoffice/filtres.py:217
 #: apps/backoffice/filtres.py:257 apps/backoffice/filtres.py:300
-#: templates/article.html:211 templates/boutique.html:50
+#: templates/article.html:211 templates/boutique.html:54
 #: templates/commande.html:25 templates/commande.html:273
 #: templates/commandes.html:118 templates/fiches.html:27
 #: templates/garantie.html:59 templates/identite.html:125
 #: templates/plateforme/boutique.html:108
 #: templates/plateforme/boutique.html:149
 #: templates/plateforme/boutiques.html:89
-#: templates/plateforme/emplacements.html:56
+#: templates/plateforme/emplacements.html:58
 #: templates/plateforme/loyers.html:85
 #: templates/plateforme/partials/l_sequestre.html:7 templates/stock.html:122
 #: templates/versements.html:82
@@ -767,8 +767,9 @@ msgstr "IMEI or number"
 msgid "Garantie"
 msgstr "Warranty"
 
-#: apps/backoffice/filtres.py:260 apps/plateforme/vues_boutiques.py:461
-#: templates/garantie.html:165 templates/plateforme/emplacements.html:29
+#: apps/backoffice/filtres.py:260 apps/plateforme/vues_boutiques.py:462
+#: templates/garantie.html:165 templates/mise_en_avant.html:40
+#: templates/plateforme/emplacements.html:29
 #: templates/plateforme/litiges.html:22 templates/plateforme/litiges.html:39
 #: templates/plateforme/partials/t_statut_emplacement.html:3
 #: templates/verification.html:105
@@ -834,8 +835,8 @@ msgstr "Receipt, customer or prescriber"
 msgid "Consignation"
 msgstr "Recording"
 
-#: apps/backoffice/filtres.py:342 apps/plateforme/vues_boutiques.py:112
-#: apps/plateforme/vues_boutiques.py:314 templates/plateforme/activite.html:49
+#: apps/backoffice/filtres.py:342 apps/plateforme/vues_boutiques.py:113
+#: apps/plateforme/vues_boutiques.py:315 templates/plateforme/activite.html:49
 #: templates/plateforme/boutiques.html:53
 #: templates/plateforme/boutiques.html:60 templates/plateforme/journal.html:38
 #: templates/vitrine/partials/filtres.html:14
@@ -852,7 +853,7 @@ msgstr "To complete"
 msgid "Consignées"
 msgstr "Recorded"
 
-#: apps/backoffice/filtres.py:345 templates/boutique.html:47
+#: apps/backoffice/filtres.py:345 templates/boutique.html:51
 msgid "Depuis le"
 msgstr "Since"
 
@@ -1110,8 +1111,8 @@ msgid "Quantité transférée"
 msgstr "Quantity transferred"
 
 #: apps/backoffice/forms.py:482 apps/backoffice/forms.py:900
-#: apps/plateforme/formulaires.py:569 apps/plateforme/formulaires.py:598
-#: apps/plateforme/formulaires.py:639 templates/commande.html:231
+#: apps/plateforme/formulaires.py:571 apps/plateforme/formulaires.py:600
+#: apps/plateforme/formulaires.py:641 templates/commande.html:231
 #: templates/commande.html:272 templates/plateforme/partials/v_compte.html:29
 #: templates/plateforme/signal.html:67 templates/plateforme/signal.html:80
 #: templates/plateforme/suivi.html:30 templates/plateforme/versement.html:100
@@ -1127,25 +1128,25 @@ msgstr "Counter restock"
 msgid "Ce dépôt n'existe pas dans votre boutique."
 msgstr "This warehouse does not exist in your shop."
 
-#: apps/backoffice/forms.py:502 templates/boutique.html:244
+#: apps/backoffice/forms.py:502 templates/boutique.html:248
 msgid "Nom du dépôt"
 msgstr "Warehouse name"
 
-#: apps/backoffice/forms.py:503 templates/boutique.html:245
+#: apps/backoffice/forms.py:503 templates/boutique.html:249
 msgid "Réserve Akwa"
 msgstr "Akwa storeroom"
 
 #: apps/backoffice/forms.py:505 templates/article.html:274
-#: templates/boutique.html:141 templates/boutique.html:248
+#: templates/boutique.html:145 templates/boutique.html:252
 msgid "Type"
 msgstr "Type"
 
-#: apps/backoffice/forms.py:507 templates/boutique.html:142
-#: templates/boutique.html:254 templates/vitrine/commande.html:196
+#: apps/backoffice/forms.py:507 templates/boutique.html:146
+#: templates/boutique.html:258 templates/vitrine/commande.html:196
 msgid "Adresse"
 msgstr "Address"
 
-#: apps/backoffice/forms.py:508 templates/boutique.html:255
+#: apps/backoffice/forms.py:508 templates/boutique.html:259
 msgid "Facultative"
 msgstr "Optional"
 
@@ -3176,43 +3177,43 @@ msgstr "Aisle banner"
 msgid "Page d'accueil"
 msgstr "Home page"
 
-#: apps/marketplace/models.py:416
+#: apps/marketplace/models.py:460
 msgid "Ce que la validation a corrigé, et pourquoi. Montré au commerçant."
 msgstr "What the validation corrected, and why. Shown to the merchant."
 
-#: apps/marketplace/models.py:462
+#: apps/marketplace/models.py:506
 msgid "À quoi sert ce lien : « Flyer marché », « Statut WhatsApp »…"
 msgstr "What this link is for: “Market flyer”, “WhatsApp status”…"
 
-#: apps/marketplace/models.py:471
+#: apps/marketplace/models.py:515
 msgid "Vide : le lien ouvre la vitrine de la boutique."
 msgstr "Empty: the link opens the shop's storefront."
 
-#: apps/marketplace/models.py:476
+#: apps/marketplace/models.py:520
 msgid "Facultatif : rattache les commandes issues de ce lien à un apporteur."
 msgstr "Optional: links orders from this link to a referrer."
 
-#: apps/marketplace/models.py:513
+#: apps/marketplace/models.py:557
 msgid "En attente de vérification"
 msgstr "Awaiting verification"
 
-#: apps/marketplace/models.py:514 templates/verification.html:64
+#: apps/marketplace/models.py:558 templates/verification.html:64
 msgid "Vérifié"
 msgstr "Verified"
 
-#: apps/marketplace/models.py:523
+#: apps/marketplace/models.py:567
 msgid "Numéro Mobile Money au format international, ou IBAN / RIB."
 msgstr "Mobile Money number in international format, or IBAN / RIB."
 
-#: apps/marketplace/models.py:526
+#: apps/marketplace/models.py:570
 msgid "Nom du titulaire tel qu'il est enregistré chez l'opérateur."
 msgstr "Holder's name as registered with the operator."
 
-#: apps/marketplace/models.py:537
+#: apps/marketplace/models.py:581
 msgid "Fin du délai de carence après vérification."
 msgstr "End of the waiting period after verification."
 
-#: apps/marketplace/models.py:539
+#: apps/marketplace/models.py:583
 msgid "Motif du rejet ou du retrait."
 msgstr "Reason for rejection or withdrawal."
 
@@ -3869,7 +3870,7 @@ msgstr "Enter the account's initial password."
 msgid "Les deux saisies ne sont pas identiques."
 msgstr "The two entries do not match."
 
-#: apps/plateforme/formulaires.py:238 templates/boutique.html:24
+#: apps/plateforme/formulaires.py:238 templates/boutique.html:28
 msgid "Enseigne"
 msgstr "Shop name"
 
@@ -3885,7 +3886,7 @@ msgstr "Quincaillerie Ateba"
 msgid "L'enseigne est obligatoire : c'est le nom que verront les acheteurs."
 msgstr "The shop name is required: it is the name buyers will see."
 
-#: apps/plateforme/formulaires.py:245 templates/boutique.html:25
+#: apps/plateforme/formulaires.py:245 templates/boutique.html:29
 #: templates/plateforme/boutique.html:180
 msgid "Raison sociale"
 msgstr "Company name"
@@ -3902,12 +3903,12 @@ msgstr "Ets Ateba et Fils SARL"
 msgid "La raison sociale est obligatoire : elle figure sur le bail."
 msgstr "The company name is required: it appears on the lease."
 
-#: apps/plateforme/formulaires.py:252 templates/boutique.html:30
+#: apps/plateforme/formulaires.py:252 templates/boutique.html:34
 #: templates/plateforme/boutiques.html:85
 msgid "Métier"
 msgstr "Trade"
 
-#: apps/plateforme/formulaires.py:258 templates/boutique.html:28
+#: apps/plateforme/formulaires.py:258 templates/boutique.html:32
 #: templates/plateforme/boutique.html:185
 #: templates/plateforme/boutiques.html:51
 #: templates/plateforme/boutiques.html:84
@@ -3935,12 +3936,12 @@ msgstr "Trade and personal property credit register number."
 msgid "Numéro identifiant unique, attribué par l'administration fiscale."
 msgstr "Unique identification number, assigned by the tax authority."
 
-#: apps/plateforme/formulaires.py:312 templates/boutique.html:34
+#: apps/plateforme/formulaires.py:312 templates/boutique.html:38
 #: templates/plateforme/boutique.html:183
 msgid "Régime fiscal"
 msgstr "Tax regime"
 
-#: apps/plateforme/formulaires.py:334 templates/boutique.html:44
+#: apps/plateforme/formulaires.py:334 templates/boutique.html:48
 #: templates/plateforme/boutique.html:58
 #: templates/plateforme/boutiques.html:58
 #: templates/plateforme/boutiques.html:87
@@ -3962,12 +3963,12 @@ msgstr ""
 msgid "Début du bail"
 msgstr "Lease start"
 
-#: apps/plateforme/formulaires.py:344 apps/plateforme/formulaires.py:508
+#: apps/plateforme/formulaires.py:344 apps/plateforme/formulaires.py:510
 msgid "La date de début est obligatoire."
 msgstr "The start date is required."
 
-#: apps/plateforme/formulaires.py:344 apps/plateforme/formulaires.py:508
-#: apps/plateforme/formulaires.py:514
+#: apps/plateforme/formulaires.py:344 apps/plateforme/formulaires.py:510
+#: apps/plateforme/formulaires.py:516
 msgid "Date invalide."
 msgstr "Invalid date."
 
@@ -3979,7 +3980,7 @@ msgstr "Monthly rent excl. tax"
 msgid "En francs CFA. Vide : le loyer de l'offre."
 msgstr "In CFA francs. Empty: the plan's rent."
 
-#: apps/plateforme/formulaires.py:355 templates/boutique.html:46
+#: apps/plateforme/formulaires.py:355 templates/boutique.html:50
 #: templates/plateforme/boutique.html:82
 msgid "Dépôt de garantie"
 msgstr "Security deposit"
@@ -4041,48 +4042,52 @@ msgstr "Aisle"
 msgid "Pour une tête de gondole ou un bandeau. Ignoré pour la page d'accueil."
 msgstr "For an end-cap or a banner. Ignored for the home page."
 
-#: apps/plateforme/formulaires.py:499 apps/plateforme/services.py:345
+#: apps/plateforme/formulaires.py:481
+msgid "— Choisir un rayon —"
+msgstr "— Choose an aisle —"
+
+#: apps/plateforme/formulaires.py:501 apps/plateforme/services.py:345
 msgid ""
 "Une tête de gondole ou un bandeau se place dans un rayon : choisissez-le."
 msgstr "An end-cap or a banner is placed in an aisle: choose it."
 
-#: apps/plateforme/formulaires.py:506
+#: apps/plateforme/formulaires.py:508
 msgid "Premier jour"
 msgstr "First day"
 
-#: apps/plateforme/formulaires.py:511
+#: apps/plateforme/formulaires.py:513
 msgid "Dernier jour"
 msgstr "Last day"
 
-#: apps/plateforme/formulaires.py:512
+#: apps/plateforme/formulaires.py:514
 msgid "Inclus. L'emplacement est compté jusqu'au soir de ce jour."
 msgstr "Inclusive. The placement is counted until the evening of that day."
 
-#: apps/plateforme/formulaires.py:514
+#: apps/plateforme/formulaires.py:516
 msgid "La date de fin est obligatoire."
 msgstr "The end date is required."
 
-#: apps/plateforme/formulaires.py:528 apps/plateforme/services.py:349
+#: apps/plateforme/formulaires.py:530 apps/plateforme/services.py:353
 msgid "La fin doit venir après le début."
 msgstr "The end must come after the start."
 
-#: apps/plateforme/formulaires.py:536
+#: apps/plateforme/formulaires.py:538
 msgid "Tarif HT de la période"
 msgstr "Price excl. tax for the period"
 
-#: apps/plateforme/formulaires.py:540
+#: apps/plateforme/formulaires.py:542
 msgid "En francs CFA, pour toute la période."
 msgstr "In CFA francs, for the whole period."
 
-#: apps/plateforme/formulaires.py:541
+#: apps/plateforme/formulaires.py:543
 msgid "Le tarif est obligatoire."
 msgstr "The price is required."
 
-#: apps/plateforme/formulaires.py:541
+#: apps/plateforme/formulaires.py:543
 msgid "Saisissez un montant en francs."
 msgstr "Enter an amount in francs."
 
-#: apps/plateforme/formulaires.py:549
+#: apps/plateforme/formulaires.py:551
 msgid ""
 "Un emplacement ne se cède jamais à zéro, même à une boutique de l'exploitant"
 " : saisissez son prix."
@@ -4090,64 +4095,64 @@ msgstr ""
 "A stall is never given away for free, even to an operator's own shop: enter "
 "its price."
 
-#: apps/plateforme/formulaires.py:575
+#: apps/plateforme/formulaires.py:577
 msgid "Le motif est obligatoire : un auditeur le relira."
 msgstr "The reason is required: an auditor will read it."
 
-#: apps/plateforme/formulaires.py:576
+#: apps/plateforme/formulaires.py:578
 msgid "Une phrase, s'il vous plaît : un auditeur doit pouvoir la comprendre."
 msgstr "One sentence, please: an auditor must be able to understand it."
 
-#: apps/plateforme/formulaires.py:587 apps/plateforme/services.py:418
+#: apps/plateforme/formulaires.py:589 apps/plateforme/services.py:463
 msgid "Ce compte porte déjà ce rôle."
 msgstr "This account already has this role."
 
-#: apps/plateforme/formulaires.py:603
+#: apps/plateforme/formulaires.py:605
 msgid "Le motif est obligatoire : cette décision sera relue."
 msgstr "The reason is required: this decision will be reviewed."
 
-#: apps/plateforme/formulaires.py:604
+#: apps/plateforme/formulaires.py:606
 msgid ""
 "Une phrase, s'il vous plaît : elle sera relue, peut-être par le commerçant."
 msgstr "One sentence, please: it will be reviewed, perhaps by the merchant."
 
-#: apps/plateforme/formulaires.py:623
+#: apps/plateforme/formulaires.py:625
 msgid "Nouveau taux (%)"
 msgstr "New rate (%)"
 
-#: apps/plateforme/formulaires.py:630
+#: apps/plateforme/formulaires.py:632
 msgid "En pourcent : « 5 » pour 5 %, « 7,5 » pour 7,5 %. De 0 à 30 %."
 msgstr "As a percentage: “5” for 5 %, “7.5” for 7.5 %. From 0 to 30 %."
 
-#: apps/plateforme/formulaires.py:632
+#: apps/plateforme/formulaires.py:634
 msgid "Saisissez le nouveau taux."
 msgstr "Enter the new rate."
 
-#: apps/plateforme/formulaires.py:633
+#: apps/plateforme/formulaires.py:635
 msgid "Saisissez un nombre : « 5 » pour 5 %."
 msgstr "Enter a number: “5” for 5 %."
 
-#: apps/plateforme/formulaires.py:634
+#: apps/plateforme/formulaires.py:636
 #, python-format
 msgid ""
 "Au plus 30 %% : c'est la borne du rayon. Un « 0,05 » voulait-il dire 5 %% ?"
 msgstr "At most 30 %%: that is the aisle's limit. Did “0.05” mean 5 %%?"
 
-#: apps/plateforme/formulaires.py:635
+#: apps/plateforme/formulaires.py:637
 msgid "Un taux ne peut pas être négatif."
 msgstr "A rate cannot be negative."
 
-#: apps/plateforme/formulaires.py:642
+#: apps/plateforme/formulaires.py:644
 msgid ""
 "Le taux d'un rayon gouverne la rentabilité de toutes ses boutiques. Dites "
 "pourquoi."
 msgstr "An aisle's rate governs the profitability of all its shops. Say why."
 
-#: apps/plateforme/formulaires.py:645
+#: apps/plateforme/formulaires.py:647
 msgid "Le motif est obligatoire : ce changement sera relu."
 msgstr "The reason is required: this change will be reviewed."
 
-#: apps/plateforme/formulaires.py:646
+#: apps/plateforme/formulaires.py:648
 msgid "Une phrase, s'il vous plaît : ce changement sera relu."
 msgstr "One sentence, please: this change will be reviewed."
 
@@ -4301,21 +4306,39 @@ msgstr ""
 msgid "Type d'emplacement inconnu."
 msgstr "Unknown placement type."
 
-#: apps/plateforme/services.py:404
+#: apps/plateforme/services.py:350
+msgid ""
+"Ce rayon est fermé : il n'apparaît pas sur la vitrine, l'emplacement y "
+"serait payé sans être vu."
+msgstr ""
+"This aisle is closed: it does not appear on the market, the placement would "
+"be paid for without being seen."
+
+#: apps/plateforme/services.py:362
+#, python-format
+msgid ""
+"Cet emplacement est déjà vendu le %(jour)s (%(occupants)s) : la vitrine ne "
+"montrerait pas un occupant de plus. Choisissez une autre période ou un autre"
+" rayon."
+msgstr ""
+"This placement is already sold on %(jour)s (%(occupants)s): the market would"
+" not show one more occupant. Choose another period or another aisle."
+
+#: apps/plateforme/services.py:449
 msgid "Choisissez l'un des deux rôles d'exploitation."
 msgstr "Choose one of the two operating roles."
 
-#: apps/plateforme/services.py:445
+#: apps/plateforme/services.py:490
 msgid "Ce rôle est déjà retiré."
 msgstr "This role has already been removed."
 
-#: apps/plateforme/services.py:448
+#: apps/plateforme/services.py:493
 msgid ""
 "On ne se retire pas soi-même son rôle : demandez-le à un autre "
 "superadministrateur."
 msgstr "You cannot remove your own role: ask another superadministrator."
 
-#: apps/plateforme/services.py:531
+#: apps/plateforme/services.py:576
 msgid ""
 "Cette candidature n'a aucun bail à activer : ouvrez-la par l'assistant."
 msgstr ""
@@ -4349,7 +4372,7 @@ msgstr[1] "%(n)s warehouses"
 msgid "Modules : %(modules)s"
 msgstr "Modules: %(modules)s"
 
-#: apps/plateforme/vues_assistants.py:163 templates/boutique.html:20
+#: apps/plateforme/vues_assistants.py:163 templates/boutique.html:24
 msgid "Identité"
 msgstr "Identity"
 
@@ -4511,29 +4534,29 @@ msgstr ""
 "Aisle “%(rayon)s”: commission %(pourcent)s → %(pourcent2)s. Recorded in the "
 "log."
 
-#: apps/plateforme/vues_boutiques.py:315
+#: apps/plateforme/vues_boutiques.py:316
 msgid "Émises"
 msgstr "Issued"
 
-#: apps/plateforme/vues_boutiques.py:316
+#: apps/plateforme/vues_boutiques.py:317
 msgid "Payées"
 msgstr "Paid"
 
-#: apps/plateforme/vues_boutiques.py:317
+#: apps/plateforme/vues_boutiques.py:318
 msgid "Impayées"
 msgstr "Unpaid"
 
-#: apps/plateforme/vues_boutiques.py:318
+#: apps/plateforme/vues_boutiques.py:319
 msgid "Échues"
 msgstr "Overdue"
 
-#: apps/plateforme/vues_boutiques.py:462
+#: apps/plateforme/vues_boutiques.py:463 templates/mise_en_avant.html:42
 #: templates/plateforme/emplacements.html:34
 #: templates/plateforme/partials/t_statut_emplacement.html:3
 msgid "À venir"
 msgstr "Upcoming"
 
-#: apps/plateforme/vues_boutiques.py:463
+#: apps/plateforme/vues_boutiques.py:464
 msgid "Terminés"
 msgstr "Finished"
 
@@ -4715,7 +4738,7 @@ msgstr "Open a shop"
 
 #: apps/plateforme/vues_tableau.py:206 templates/plateforme/base.html:77
 #: templates/plateforme/emplacements.html:17
-#: templates/plateforme/emplacements.html:99
+#: templates/plateforme/emplacements.html:103
 msgid "Vendre un emplacement"
 msgstr "Sell a placement"
 
@@ -5028,52 +5051,52 @@ msgstr "Notes for the trader"
 msgid "Horaire, étage, autre numéro…"
 msgstr "Time, floor, other number…"
 
-#: apps/vitrine/views.py:148
+#: apps/vitrine/views.py:164
 msgid "Pertinence"
 msgstr "Relevance"
 
-#: apps/vitrine/views.py:149
+#: apps/vitrine/views.py:165
 msgid "Prix croissant"
 msgstr "Price: low to high"
 
-#: apps/vitrine/views.py:150
+#: apps/vitrine/views.py:166
 msgid "Prix décroissant"
 msgstr "Price: high to low"
 
-#: apps/vitrine/views.py:151
+#: apps/vitrine/views.py:167
 msgid "Nouveautés"
 msgstr "Newest"
 
-#: apps/vitrine/views.py:183
+#: apps/vitrine/views.py:217
 #, python-format
 msgid "Dès %(prix)s FCFA"
 msgstr "From %(prix)s FCFA"
 
-#: apps/vitrine/views.py:185
+#: apps/vitrine/views.py:219
 #, python-format
 msgid "Jusqu'à %(prix)s FCFA"
 msgstr "Up to %(prix)s FCFA"
 
-#: apps/vitrine/views.py:187 templates/marche/composants/carte_article.html:30
+#: apps/vitrine/views.py:221 templates/marche/composants/carte_article.html:33
 #: templates/marche/composants/confiance.html:16
 #: templates/marche/composants/confiance.html:24
 #: templates/vitrine/article.html:38
 msgid "Identité vérifiée"
 msgstr "Verified identity"
 
-#: apps/vitrine/views.py:266
+#: apps/vitrine/views.py:300
 msgid "Cet article n'est plus disponible."
 msgstr "This item is no longer available."
 
-#: apps/vitrine/views.py:270
+#: apps/vitrine/views.py:304
 msgid "Ajouté à votre panier."
 msgstr "Added to your cart."
 
-#: apps/vitrine/views.py:316 templates/vitrine/panier.html:11
+#: apps/vitrine/views.py:350 templates/vitrine/panier.html:11
 msgid "Votre panier est vide."
 msgstr "Your cart is empty."
 
-#: apps/vitrine/views.py:332
+#: apps/vitrine/views.py:366
 msgid ""
 "Le prépaiement n'est plus possible chez une boutique de votre panier : "
 "relisez la commande, puis envoyez-la à nouveau."
@@ -5081,18 +5104,18 @@ msgstr ""
 "Advance payment is no longer possible with one shop in your cart: review the"
 " order, then send it again."
 
-#: apps/vitrine/views.py:574
+#: apps/vitrine/views.py:609
 #, python-format
 msgid "Le paiement n'a pas abouti : %(motif)s"
 msgstr "The payment did not go through: %(motif)s"
 
-#: apps/vitrine/views.py:631
+#: apps/vitrine/views.py:666
 #, python-format
 msgid ""
 "Merci : la réception de votre commande chez %(boutique)s est confirmée."
 msgstr "Thank you: receipt of your order from %(boutique)s is confirmed."
 
-#: apps/vitrine/views.py:671
+#: apps/vitrine/views.py:706
 msgid ""
 "Votre réclamation est enregistrée. L'argent de cette commande reste en "
 "séquestre, et la plateforme l'examine sous 72 heures."
@@ -5467,7 +5490,7 @@ msgstr ""
 #: templates/article.html:330 templates/article.html:360
 #: templates/article.html:398 templates/article.html:432
 #: templates/article.html:471 templates/article_modifier.html:75
-#: templates/boutique.html:259 templates/caisse.html:86
+#: templates/boutique.html:263 templates/caisse.html:86
 #: templates/equipe.html:173 templates/fiche.html:175 templates/fiche.html:201
 #: templates/fiches.html:92 templates/fiches.html:134
 #: templates/identite.html:200 templates/identite.html:228
@@ -5496,7 +5519,7 @@ msgstr ""
 "it, and those that will come later. No need to declare the pairs one by one."
 
 #: templates/article.html:361 templates/fiche.html:176
-#: templates/marche/composants/carte_article.html:45
+#: templates/marche/composants/carte_article.html:48
 msgid "Ajouter"
 msgstr "Add"
 
@@ -5514,7 +5537,7 @@ msgstr ""
 
 #: templates/article.html:399 templates/article.html:472
 #: templates/article_modifier.html:74 templates/article_nouveau.html:74
-#: templates/boutique.html:260 templates/fiche.html:202
+#: templates/boutique.html:264 templates/fiche.html:202
 #: templates/fiches.html:135
 msgid "Enregistrer"
 msgstr "Save"
@@ -5713,7 +5736,7 @@ msgid "Accueil"
 msgstr "Home"
 
 #: templates/base.html:100 templates/commandes.html:35
-#: templates/plateforme/activite.html:72
+#: templates/mise_en_avant.html:67 templates/plateforme/activite.html:72
 msgid "Commandes"
 msgstr "Orders"
 
@@ -5790,13 +5813,13 @@ msgstr "It's not me"
 
 #: templates/base.html:297
 #, python-format
-msgid "%(n)s opérations en attente d’envoi"
-msgstr "%(n)s operations waiting to be sent"
+msgid "%%(n)s opérations en attente d’envoi"
+msgstr "%%(n)s operations waiting to be sent"
 
 #: templates/base.html:298
 #, python-format
-msgid "%(n)s opération en attente d’envoi"
-msgstr "%(n)s operation waiting to be sent"
+msgid "%%(n)s opération en attente d’envoi"
+msgstr "%%(n)s operation waiting to be sent"
 
 #: templates/base.html:300
 msgid "Hors ligne — les saisies sont conservées"
@@ -5807,36 +5830,40 @@ msgstr "Offline — entries are kept"
 msgid "Ma boutique — %(enseigne)s"
 msgstr "My shop — %(enseigne)s"
 
-#: templates/boutique.html:21 templates/verification.html:6
+#: templates/boutique.html:9
+msgid "Mise en avant"
+msgstr "Promotion"
+
+#: templates/boutique.html:25 templates/verification.html:6
 msgid "Vérification"
 msgstr "Verification"
 
-#: templates/boutique.html:41
+#: templates/boutique.html:45
 msgid "Emplacement loué"
 msgstr "Rented stall"
 
-#: templates/boutique.html:45
+#: templates/boutique.html:49
 msgid "Loyer mensuel"
 msgstr "Monthly rent"
 
-#: templates/boutique.html:48 templates/plateforme/boutique.html:81
+#: templates/boutique.html:52 templates/plateforme/boutique.html:81
 msgid "Préavis"
 msgstr "Notice period"
 
-#: templates/boutique.html:48 templates/plateforme/boutique.html:81
+#: templates/boutique.html:52 templates/plateforme/boutique.html:81
 #, python-format
 msgid "%(preavis_jours)s jours"
 msgstr "%(preavis_jours)s days"
 
-#: templates/boutique.html:54
+#: templates/boutique.html:58
 msgid "Aucun bail actif."
 msgstr "No active lease."
 
-#: templates/boutique.html:61
+#: templates/boutique.html:65
 msgid "Ce que votre métier change"
 msgstr "What your trade changes"
 
-#: templates/boutique.html:75
+#: templates/boutique.html:79
 msgid ""
 "Aucune fonction particulière : le commerce général est le socle, et tous les"
 " autres métiers en sont des variantes."
@@ -5844,57 +5871,57 @@ msgstr ""
 "No specific feature: general retail is the foundation, and all other trades "
 "are variants of it."
 
-#: templates/boutique.html:90
+#: templates/boutique.html:94
 msgid "Prévu pour ce métier,"
 msgstr "Planned for this trade,"
 
-#: templates/boutique.html:90
+#: templates/boutique.html:94
 msgid "pas encore disponible"
 msgstr "not available yet"
 
-#: templates/boutique.html:102 templates/equipe.html:6
+#: templates/boutique.html:106 templates/equipe.html:6
 #: templates/plateforme/boutique.html:202
 msgid "Équipe"
 msgstr "Team"
 
-#: templates/boutique.html:104 templates/identite.html:6
+#: templates/boutique.html:108 templates/identite.html:6
 msgid "Mon identité"
 msgstr "My identity"
 
-#: templates/boutique.html:105
+#: templates/boutique.html:109
 msgid "Gérer l'équipe"
 msgstr "Manage the team"
 
-#: templates/boutique.html:133
+#: templates/boutique.html:137
 msgctxt "ligne de tableau"
 msgid "dépôt"
 msgstr "warehouse"
 
-#: templates/boutique.html:133
+#: templates/boutique.html:137
 msgctxt "ligne de tableau"
 msgid "dépôts"
 msgstr "warehouses"
 
-#: templates/boutique.html:134 templates/plateforme/rayons.html:117
+#: templates/boutique.html:138 templates/plateforme/rayons.html:117
 msgid "Dépôts"
 msgstr "Warehouses"
 
-#: templates/boutique.html:134 templates/depot_nouveau.html:6
+#: templates/boutique.html:138 templates/depot_nouveau.html:6
 msgid "Nouveau dépôt"
 msgstr "New warehouse"
 
-#: templates/boutique.html:134 templates/identite.html:114
+#: templates/boutique.html:138 templates/identite.html:114
 #: templates/identite.html:229
 msgid "Renommer"
 msgstr "Rename"
 
-#: templates/boutique.html:134 templates/equipe.html:209
+#: templates/boutique.html:138 templates/equipe.html:209
 #: templates/marche/composants/modale.html:24
 #: templates/marche/megamenu.html:74 templates/vitrine/catalogue.html:27
 msgid "Fermer"
 msgstr "Close"
 
-#: templates/boutique.html:134
+#: templates/boutique.html:138
 msgid ""
 "Sélectionnez un dépôt pour le renommer ou le fermer. Le dépôt principal ne "
 "se ferme pas : c'est là qu'on encaisse et qu'on reçoit par défaut."
@@ -5902,7 +5929,7 @@ msgstr ""
 "Select a warehouse to rename or close it. The main warehouse cannot be "
 "closed: it is where payments are taken and goods received by default."
 
-#: templates/boutique.html:134
+#: templates/boutique.html:138
 msgid ""
 "Un dépôt qui a déjà reçu de la marchandise est fermé, pas supprimé : son nom"
 " reste lisible sur les mouvements qui le citent."
@@ -5910,59 +5937,59 @@ msgstr ""
 "A warehouse that has already received goods is closed, not deleted: its name"
 " stays readable on the movements that mention it."
 
-#: templates/boutique.html:156
+#: templates/boutique.html:160
 msgid "Principal"
 msgstr "Main"
 
-#: templates/boutique.html:157 templates/plateforme/rayons.html:75
+#: templates/boutique.html:161 templates/plateforme/rayons.html:75
 msgid "Fermé"
 msgstr "Closed"
 
-#: templates/boutique.html:166
+#: templates/boutique.html:170
 #, python-format
 msgid "%(depots)s / %(quota_depots)s dépôts"
 msgstr "%(depots)s / %(quota_depots)s warehouses"
 
-#: templates/boutique.html:169
+#: templates/boutique.html:173
 #, python-format
 msgid "Votre emplacement autorise encore %(depots_restants)s dépôt."
 msgid_plural "Votre emplacement autorise encore %(depots_restants)s dépôts."
 msgstr[0] "Your stall still allows %(depots_restants)s warehouse."
 msgstr[1] "Your stall still allows %(depots_restants)s warehouses."
 
-#: templates/boutique.html:171
+#: templates/boutique.html:175
 msgid "Votre emplacement n'autorise pas de dépôt supplémentaire."
 msgstr "Your stall does not allow another warehouse."
 
-#: templates/boutique.html:187
+#: templates/boutique.html:191
 msgid "Ce que chaque rôle peut faire"
 msgstr "What each role can do"
 
-#: templates/boutique.html:188
+#: templates/boutique.html:192
 msgid "Droits appliqués"
 msgstr "Permissions applied"
 
-#: templates/boutique.html:200 templates/equipe.html:137
+#: templates/boutique.html:204 templates/equipe.html:137
 msgid "Aucun droit sur cette boutique."
 msgstr "No permissions on this shop."
 
-#: templates/boutique.html:209
+#: templates/boutique.html:213
 msgid "Vos données"
 msgstr "Your data"
 
-#: templates/boutique.html:212
+#: templates/boutique.html:216
 msgid "Vos données vous appartiennent :"
 msgstr "Your data belongs to you:"
 
-#: templates/boutique.html:212
+#: templates/boutique.html:216
 msgid "export intégral et gratuit"
 msgstr "full, free export"
 
-#: templates/boutique.html:212
+#: templates/boutique.html:216
 msgid "à tout moment, y compris en cas de résiliation de votre emplacement."
 msgstr "at any time, including if your stall lease ends."
 
-#: templates/boutique.html:216
+#: templates/boutique.html:220
 msgid ""
 "L'archive contient votre catalogue, votre stock valorisé, chaque mouvement "
 "avec son coût, vos ventes et votre journal comptable — en CSV, lisibles par "
@@ -5972,11 +5999,11 @@ msgstr ""
 "its cost, your sales and your accounting journal — in CSV, readable by any "
 "spreadsheet."
 
-#: templates/boutique.html:223
+#: templates/boutique.html:227
 msgid "Exporter mes données"
 msgstr "Export my data"
 
-#: templates/boutique.html:240
+#: templates/boutique.html:244
 msgid "Modifier «"
 msgstr "Edit “"
 
@@ -6020,7 +6047,7 @@ msgstr "Search for an item"
 msgid "Ordonnance"
 msgstr "Prescription"
 
-#: templates/caisse.html:70 templates/caisse.html:159
+#: templates/caisse.html:70
 #, python-format
 msgid "%(stock)s en stock"
 msgstr "%(stock)s in stock"
@@ -6080,10 +6107,10 @@ msgstr "Take payment"
 msgid "La vente sort le stock et génère les écritures comptables."
 msgstr "The sale releases the stock and generates the accounting entries."
 
-#: templates/caisse.html:154 templates/vitrine/panier.html:41
+#: templates/caisse.html:154
 #, python-format
-msgid "%(prix)s FCFA l'unité"
-msgstr "%(prix)s FCFA each"
+msgid "%%(prix)s FCFA l'unité"
+msgstr "%%(prix)s FCFA each"
 
 #: templates/caisse.html:155 templates/vitrine/article.html:62
 #: templates/vitrine/panier.html:46
@@ -6097,28 +6124,33 @@ msgstr "Add one"
 
 #: templates/caisse.html:157
 #, python-format
-msgid "N° de série %(n)s"
-msgstr "Serial no. %(n)s"
+msgid "N° de série %%(n)s"
+msgstr "Serial no. %%(n)s"
 
 #: templates/caisse.html:158
 #, python-format
-msgid "Numéro de série %(n)s — %(libelle)s"
-msgstr "Serial number %(n)s — %(libelle)s"
+msgid "Numéro de série %%(n)s — %%(libelle)s"
+msgstr "Serial number %%(n)s — %%(libelle)s"
+
+#: templates/caisse.html:159
+#, python-format
+msgid "%%(stock)s en stock"
+msgstr "%%(stock)s in stock"
 
 #: templates/caisse.html:162
 #, python-format
 msgid ""
-"Hors ligne : catalogue du %(date)s à %(heure)s. Les quantités affichées "
+"Hors ligne : catalogue du %%(date)s à %%(heure)s. Les quantités affichées "
 "peuvent avoir bougé."
 msgstr ""
-"Offline: catalogue from %(date)s at %(heure)s. The quantities shown may have"
-" changed."
+"Offline: catalogue from %%(date)s at %%(heure)s. The quantities shown may "
+"have changed."
 
 #: templates/caisse.html:163
 #, python-format
 msgid ""
-"Saisissez le numéro de série de chaque « %(libelle)s » avant d'encaisser."
-msgstr "Enter the serial number of each “%(libelle)s” before taking payment."
+"Saisissez le numéro de série de chaque « %%(libelle)s » avant d'encaisser."
+msgstr "Enter the serial number of each “%%(libelle)s” before taking payment."
 
 #: templates/caisse.html:164
 msgid "Indiquez le prescripteur et la date de l'ordonnance avant d'encaisser."
@@ -6130,13 +6162,13 @@ msgstr "Taking payment…"
 
 #: templates/caisse.html:166
 #, python-format
-msgid "Ticket %(numero)s encaissé — %(total)s FCFA."
-msgstr "Receipt %(numero)s paid — %(total)s FCFA."
+msgid "Ticket %%(numero)s encaissé — %%(total)s FCFA."
+msgstr "Receipt %%(numero)s paid — %%(total)s FCFA."
 
 #: templates/caisse.html:167
 #, python-format
-msgid "Vente conservée (%(n)s en attente). Elle partira au retour du réseau."
-msgstr "Sale kept (%(n)s pending). It will go out when the network returns."
+msgid "Vente conservée (%%(n)s en attente). Elle partira au retour du réseau."
+msgstr "Sale kept (%%(n)s pending). It will go out when the network returns."
 
 #: templates/caisse.html:168
 msgid "L'encaissement a échoué."
@@ -6815,6 +6847,7 @@ msgid "Nouveau dépôt — %(enseigne)s"
 msgstr "New warehouse — %(enseigne)s"
 
 #: templates/depot_nouveau.html:9 templates/equipe.html:10
+#: templates/mise_en_avant.html:8
 msgid "Retour à ma boutique"
 msgstr "Back to my shop"
 
@@ -7111,8 +7144,8 @@ msgstr "Correct the quantity"
 msgid "Coût moyen"
 msgstr "Average cost"
 
-#: templates/fiche.html:71 templates/versements.html:83
-#: templates/versements.html:120
+#: templates/fiche.html:71 templates/mise_en_avant.html:68
+#: templates/versements.html:83 templates/versements.html:120
 msgid "Montant"
 msgstr "Amount"
 
@@ -7623,7 +7656,9 @@ msgstr "Link"
 msgid "Usage"
 msgstr "Purpose"
 
-#: templates/identite.html:124
+#: templates/identite.html:124 templates/mise_en_avant.html:21
+#: templates/mise_en_avant.html:50 templates/mise_en_avant.html:66
+#: templates/plateforme/emplacements.html:57
 msgid "Clics"
 msgstr "Clicks"
 
@@ -7757,7 +7792,20 @@ msgstr "Approve the stock count"
 msgid "Inventaires précédents"
 msgstr "Previous stock counts"
 
-#: templates/marche/composants/carte_article.html:44
+#: templates/marche/a_la_une.html:11
+msgid "Mis en avant cette semaine"
+msgstr "Featured this week"
+
+#: templates/marche/a_la_une.html:12
+msgid "À la une du marché"
+msgstr "Featured on the market"
+
+#: templates/marche/a_la_une.html:37 templates/marche/en_avant_rayon.html:20
+#: templates/vitrine/article.html:101
+msgid "Voir la boutique"
+msgstr "View the shop"
+
+#: templates/marche/composants/carte_article.html:47
 #, python-format
 msgid "Ajouter %(libelle)s au panier"
 msgstr "Add %(libelle)s to cart"
@@ -7802,6 +7850,18 @@ msgid "%(n)s livraison confirmée"
 msgid_plural "%(n)s livraisons confirmées"
 msgstr[0] "%(n)s confirmed delivery"
 msgstr[1] "%(n)s confirmed deliveries"
+
+#: templates/marche/composants/sponsorise.html:5
+msgid ""
+"Ce commerçant a payé cette place sur le marché. Le classement des autres "
+"articles n’en dépend pas."
+msgstr ""
+"This merchant paid for this spot on the market. The ranking of other items "
+"does not depend on it."
+
+#: templates/marche/composants/sponsorise.html:5
+msgid "Sponsorisé"
+msgstr "Sponsored"
 
 #: templates/marche/design_system.html:171
 msgid ""
@@ -7998,7 +8058,7 @@ msgstr ""
 "aligned from sm."
 
 #: templates/marche/design_system.html:270
-#: templates/vitrine/partials/resultats.html:41
+#: templates/vitrine/partials/resultats.html:43
 msgid "Rien ne correspond à cette recherche."
 msgstr "Nothing matches this search."
 
@@ -8008,7 +8068,7 @@ msgstr "Try another word, or browse an aisle."
 
 #: templates/marche/design_system.html:270 templates/plateforme/loyers.html:33
 #: templates/vitrine/boutique.html:52
-#: templates/vitrine/partials/resultats.html:55
+#: templates/vitrine/partials/resultats.html:57
 msgid "Voir tout le marché"
 msgstr "See the whole market"
 
@@ -8049,6 +8109,22 @@ msgstr ""
 "The skeleton follows the real grid (2 → 3 → 4 columns): nothing jumps when "
 "the content arrives."
 
+#: templates/marche/en_avant_rayon.html:10
+msgid "Commerçant mis en avant dans ce rayon"
+msgstr "Merchant featured in this aisle"
+
+#: templates/marche/en_avant_rayon.html:18
+#, python-format
+msgid "%(n)s article à découvrir"
+msgid_plural "%(n)s articles à découvrir"
+msgstr[0] "%(n)s item to discover"
+msgstr[1] "%(n)s items to discover"
+
+#: templates/marche/en_avant_rayon.html:26
+#, python-format
+msgid "En tête de gondole : %(enseigne)s"
+msgstr "On the end-cap: %(enseigne)s"
+
 #: templates/marche/megamenu.html:35
 #: templates/vitrine/partials/resultats.html:6
 #, python-format
@@ -8083,6 +8159,113 @@ msgstr "No traders yet: open the first stall."
 #: templates/marche/megamenu.html:73 templates/vitrine/base.html:111
 msgid "Rayons du marché"
 msgstr "Market aisles"
+
+#: templates/mise_en_avant.html:4
+#, python-format
+msgid "Mise en avant — %(enseigne)s"
+msgstr "Promotion — %(enseigne)s"
+
+#: templates/mise_en_avant.html:5
+msgid "Mise en avant sur le marché"
+msgstr "Promotion on the market"
+
+#: templates/mise_en_avant.html:14
+msgid "Depuis votre premier emplacement"
+msgstr "Since your first placement"
+
+#: templates/mise_en_avant.html:16 templates/mise_en_avant.html:49
+#: templates/mise_en_avant.html:65 templates/plateforme/emplacements.html:56
+msgid "Affichages"
+msgstr "Impressions"
+
+#: templates/mise_en_avant.html:18
+msgid "Pages du marché qui ont montré votre emplacement"
+msgstr "Market pages that showed your placement"
+
+#: templates/mise_en_avant.html:23
+msgid "Visites de votre boutique ou de vos articles depuis l'emplacement"
+msgstr "Visits to your shop or items from the placement"
+
+#: templates/mise_en_avant.html:26 templates/mise_en_avant.html:53
+msgid "Commandes attribuées"
+msgstr "Attributed orders"
+
+#: templates/mise_en_avant.html:28
+#, python-format
+msgid "%(montant)s FCFA, dans les 7 jours après un clic"
+msgstr "%(montant)s FCFA, within 7 days of a click"
+
+#: templates/mise_en_avant.html:37
+#, python-format
+msgid "Du %(debut)s au %(fin)s · %(tarif)s FCFA HT"
+msgstr "From %(debut)s to %(fin)s · %(tarif)s FCFA excl. tax"
+
+#: templates/mise_en_avant.html:44
+#: templates/plateforme/partials/t_statut_emplacement.html:3
+msgid "Terminé"
+msgstr "Done"
+
+#: templates/mise_en_avant.html:51
+msgid "Taux de clic"
+msgstr "Click-through rate"
+
+#: templates/mise_en_avant.html:52
+msgid "Coût par clic"
+msgstr "Cost per click"
+
+#: templates/mise_en_avant.html:56
+msgid "Les chiffres apparaîtront dès le premier jour de l'emplacement."
+msgstr "Figures will appear from the placement's first day."
+
+#: templates/mise_en_avant.html:59
+msgid "Jour par jour"
+msgstr "Day by day"
+
+#: templates/mise_en_avant.html:64
+msgid "Jour"
+msgstr "Day"
+
+#: templates/mise_en_avant.html:86
+msgid "Aucun affichage compté pour l'instant."
+msgstr "No impressions counted yet."
+
+#: templates/mise_en_avant.html:95
+msgid ""
+"Un <strong>affichage</strong> est une page du marché qui a montré votre "
+"emplacement : une même personne qui revient compte plusieurs fois ; les "
+"robots et les aperçus de liens ne comptent pas. Une <strong>commande "
+"attribuée</strong> est passée chez vous dans les sept jours suivant un clic "
+"sur votre emplacement, depuis le même téléphone ou ordinateur. Certains de "
+"ces acheteurs seraient venus de toute façon : c'est une indication, pas une "
+"preuve."
+msgstr ""
+"An <strong>impression</strong> is a market page that showed your placement: "
+"the same person coming back counts several times; robots and link previews "
+"do not count. An <strong>attributed order</strong> is placed with you within"
+" seven days of a click on your placement, from the same phone or computer. "
+"Some of these buyers would have come anyway: it is an indication, not proof."
+
+#: templates/mise_en_avant.html:105
+msgid "Vous n'avez encore loué aucun emplacement"
+msgstr "You have not rented any placement yet"
+
+#: templates/mise_en_avant.html:107
+msgid ""
+"Trois places se louent à la semaine sur le marché : la <strong>page "
+"d'accueil</strong>, le <strong>bandeau</strong> en tête d'un rayon et la "
+"<strong>tête de gondole</strong>, où vos articles passent avant les autres. "
+"Chaque emplacement est signalé « Sponsorisé » aux acheteurs, et vous en "
+"voyez ici les affichages, les clics et les commandes qui ont suivi."
+msgstr ""
+"Three spots are rented by the week on the market: the <strong>home "
+"page</strong>, the <strong>banner</strong> at the top of an aisle and the "
+"<strong>end-cap</strong>, where your items come before the others. Each "
+"placement is marked “Sponsored” to buyers, and here you see its impressions,"
+" clicks and the orders that followed."
+
+#: templates/mise_en_avant.html:112
+msgid "Pour en louer un, contactez l'équipe HyperMarché."
+msgstr "To rent one, contact the HyperMarché team."
 
 #: templates/ordonnancier.html:5
 #, python-format
@@ -9005,13 +9188,16 @@ msgstr ""
 
 #: templates/plateforme/assistants/emplacement_type.html:13
 msgid ""
-"La vitrine n'affiche pas encore les emplacements premium, et rien n'en "
-"mesure les impressions (docs/22, §4.1) : la vente est enregistrée et comptée"
-" dans la recette du marché ; dites-le à l'acheteur."
+"L'emplacement paraît sur la vitrine dès son premier jour, avec la mention « "
+"Sponsorisé ». Une seule tête de gondole et un seul bandeau par rayon, trois "
+"commerçants sur l'accueil : une place déjà prise est refusée. Le commerçant "
+"suit ses affichages, ses clics et les commandes qui ont suivi dans <em>Ma "
+"boutique → Mise en avant</em>."
 msgstr ""
-"The market does not display premium placements yet, and nothing measures "
-"their impressions (docs/22, §4.1): the sale is recorded and counted in the "
-"market's revenue; tell the buyer."
+"The placement appears on the market from its first day, marked “Sponsored”. "
+"Only one end-cap and one banner per aisle, three merchants on the home page:"
+" a spot already taken is refused. The merchant follows their impressions, "
+"clicks and the orders that followed in <em>My shop → Promotion</em>."
 
 #: templates/plateforme/base.html:37
 msgid "Navigation de la console"
@@ -9212,7 +9398,7 @@ msgid "Vendre"
 msgstr "Sell"
 
 #: templates/plateforme/boutique.html:156
-#: templates/plateforme/emplacements.html:65 templates/vitrine/base.html:124
+#: templates/plateforme/emplacements.html:67 templates/vitrine/base.html:124
 #: templates/vitrine/base.html:159 templates/vitrine/catalogue.html:15
 msgid "Tout le marché"
 msgstr "The whole market"
@@ -9562,56 +9748,56 @@ msgstr "%(a_venir_30)s in the next 30 days"
 msgid "Aucun dans les 30 jours"
 msgstr "None in the next 30 days"
 
-#: templates/plateforme/emplacements.html:66
-#: templates/plateforme/emplacements.html:75
+#: templates/plateforme/emplacements.html:68
+#: templates/plateforme/emplacements.html:77
 msgid "Libre"
 msgstr "Free"
 
-#: templates/plateforme/emplacements.html:79
+#: templates/plateforme/emplacements.html:81
 #, python-format
 msgid "%(duree)s jour"
 msgid_plural "%(duree)s jours"
 msgstr[0] "%(duree)s day"
 msgstr[1] "%(duree)s days"
 
-#: templates/plateforme/emplacements.html:79
+#: templates/plateforme/emplacements.html:81
 #, python-format
 msgid "· encore %(restant)s j"
 msgstr "· %(restant)s d left"
 
-#: templates/plateforme/emplacements.html:79
+#: templates/plateforme/emplacements.html:81
 #, python-format
 msgid "· dans %(dans)s j"
 msgstr "· in %(dans)s d"
 
-#: templates/plateforme/emplacements.html:89
+#: templates/plateforme/emplacements.html:93
 #, python-format
 msgid "%(nb)s emplacement"
 msgid_plural "%(nb)s emplacements"
 msgstr[0] "%(nb)s placement"
 msgstr[1] "%(nb)s placements"
 
-#: templates/plateforme/emplacements.html:95
+#: templates/plateforme/emplacements.html:99
 msgid "Aucun emplacement en cours"
 msgstr "No current placement"
 
-#: templates/plateforme/emplacements.html:95
+#: templates/plateforme/emplacements.html:99
 msgid "La vitrine n'affiche aucune mise en avant payante aujourd'hui."
 msgstr "The market shows no paid promotion today."
 
-#: templates/plateforme/emplacements.html:96
+#: templates/plateforme/emplacements.html:100
 msgid "Rien de réservé"
 msgstr "Nothing booked"
 
-#: templates/plateforme/emplacements.html:96
+#: templates/plateforme/emplacements.html:100
 msgid "Aucun emplacement ne commence dans les semaines à venir."
 msgstr "No placement starts in the coming weeks."
 
-#: templates/plateforme/emplacements.html:97
+#: templates/plateforme/emplacements.html:101
 msgid "Aucun emplacement terminé"
 msgstr "No finished placement"
 
-#: templates/plateforme/emplacements.html:97
+#: templates/plateforme/emplacements.html:101
 msgid "L'historique des ventes apparaîtra ici."
 msgstr "Sales history will appear here."
 
@@ -10717,10 +10903,6 @@ msgstr "Sold today"
 #, python-format
 msgid "Il y a %(jours)s j"
 msgstr "%(jours)s d ago"
-
-#: templates/plateforme/partials/t_statut_emplacement.html:3
-msgid "Terminé"
-msgstr "Done"
 
 #: templates/plateforme/partials/v_compte.html:18
 #: templates/plateforme/versement.html:37 templates/versements.html:38
@@ -12765,10 +12947,10 @@ msgstr ""
 #: templates/stock_entree.html:144
 #, python-format
 msgid ""
-"Réception conservée (%(n)s opération(s) en attente). Elle partira au retour "
-"du réseau."
+"Réception conservée (%%(n)s opération(s) en attente). Elle partira au retour"
+" du réseau."
 msgstr ""
-"Receipt kept (%(n)s operation(s) pending). It will go out when the network "
+"Receipt kept (%%(n)s operation(s) pending). It will go out when the network "
 "returns."
 
 #: templates/stock_entree.html:148
@@ -13017,8 +13199,8 @@ msgstr "Looking for the printer…"
 
 #: templates/ticket.html:192
 #, python-format
-msgid "Ticket envoyé à « %(appareil)s »."
-msgstr "Receipt sent to “%(appareil)s”."
+msgid "Ticket envoyé à « %%(appareil)s »."
+msgstr "Receipt sent to “%%(appareil)s”."
 
 #: templates/ticket.html:199
 msgid "Aucune imprimante sélectionnée."
@@ -13026,8 +13208,8 @@ msgstr "No printer selected."
 
 #: templates/ticket.html:200
 #, python-format
-msgid "Impression impossible : %(raison)s."
-msgstr "Printing failed: %(raison)s."
+msgid "Impression impossible : %%(raison)s."
+msgstr "Printing failed: %%(raison)s."
 
 #: templates/ticket.html:201
 msgid "liaison interrompue"
@@ -13432,23 +13614,23 @@ msgstr "Handover code"
 msgid "Parcourir les rayons"
 msgstr "Browse the aisles"
 
-#: templates/vitrine/accueil.html:107
+#: templates/vitrine/accueil.html:109
 msgid "Sélection du jour"
 msgstr "Today's picks"
 
-#: templates/vitrine/accueil.html:108
+#: templates/vitrine/accueil.html:110
 msgid "Au marché aujourd'hui"
 msgstr "In the market today"
 
-#: templates/vitrine/accueil.html:110
+#: templates/vitrine/accueil.html:112
 msgid "Voir tout"
 msgstr "See all"
 
-#: templates/vitrine/accueil.html:119
+#: templates/vitrine/accueil.html:121
 msgid "Aucun article en vitrine pour le moment."
 msgstr "No items on display yet."
 
-#: templates/vitrine/accueil.html:120
+#: templates/vitrine/accueil.html:122
 msgid ""
 "Les commerçants installent leurs étals : revenez dans quelques jours, ou "
 "ouvrez le vôtre."
@@ -13456,23 +13638,23 @@ msgstr ""
 "Traders are setting up their stalls: come back in a few days, or open your "
 "own."
 
-#: templates/vitrine/accueil.html:121 templates/vitrine/base.html:164
+#: templates/vitrine/accueil.html:123 templates/vitrine/base.html:164
 msgid "Espace commerçant"
 msgstr "Trader area"
 
-#: templates/vitrine/accueil.html:129
+#: templates/vitrine/accueil.html:131
 msgid "Acheter sans risque"
 msgstr "Buy without risk"
 
-#: templates/vitrine/accueil.html:130
+#: templates/vitrine/accueil.html:132
 msgid "Votre argent attend votre confirmation."
 msgstr "Your money waits for your confirmation."
 
-#: templates/vitrine/accueil.html:132
+#: templates/vitrine/accueil.html:134
 msgid "Vous commandez"
 msgstr "You order"
 
-#: templates/vitrine/accueil.html:132
+#: templates/vitrine/accueil.html:134
 msgid ""
 "Chez un ou plusieurs commerçants, en un seul panier. Rien n'est débité à "
 "l'envoi."
@@ -13480,11 +13662,11 @@ msgstr ""
 "From one or several traders, in a single cart. Nothing is charged when you "
 "send it."
 
-#: templates/vitrine/accueil.html:133
+#: templates/vitrine/accueil.html:135
 msgid "Vous payez, protégé"
 msgstr "You pay, protected"
 
-#: templates/vitrine/accueil.html:133
+#: templates/vitrine/accueil.html:135
 msgid ""
 "Par MTN MoMo ou Orange Money. L'argent reste en séquestre chez notre "
 "partenaire agréé."
@@ -13492,11 +13674,11 @@ msgstr ""
 "With MTN MoMo or Orange Money. The money stays in escrow with our licensed "
 "partner."
 
-#: templates/vitrine/accueil.html:134
+#: templates/vitrine/accueil.html:136
 msgid "Vous recevez, puis confirmez"
 msgstr "You receive, then confirm"
 
-#: templates/vitrine/accueil.html:134
+#: templates/vitrine/accueil.html:136
 msgid ""
 "Vous donnez votre code de remise au livreur quand vous avez la marchandise "
 "en main. Le commerçant est payé ensuite."
@@ -13504,19 +13686,19 @@ msgstr ""
 "You give your handover code to the courier once the goods are in your hands."
 " The trader is paid after that."
 
-#: templates/vitrine/accueil.html:153
+#: templates/vitrine/accueil.html:155
 msgid "Qui vend ici"
 msgstr "Who sells here"
 
-#: templates/vitrine/accueil.html:154
+#: templates/vitrine/accueil.html:156
 msgid "Les commerçants du marché"
 msgstr "The market's traders"
 
-#: templates/vitrine/accueil.html:177
+#: templates/vitrine/accueil.html:179
 msgid "Vous tenez un commerce ?"
 msgstr "Do you run a shop?"
 
-#: templates/vitrine/accueil.html:178
+#: templates/vitrine/accueil.html:180
 msgid ""
 "Caisse, stock, comptabilité et vitrine en ligne, dans un seul outil qui "
 "marche même sans réseau."
@@ -13524,7 +13706,7 @@ msgstr ""
 "Till, stock, accounting and an online storefront, in a single tool that "
 "works even without network."
 
-#: templates/vitrine/accueil.html:180
+#: templates/vitrine/accueil.html:182
 msgid "Ouvrir mon espace commerçant"
 msgstr "Open my trader area"
 
@@ -13575,10 +13757,6 @@ msgstr ""
 #: templates/vitrine/article.html:100
 msgid "Vendu par"
 msgstr "Sold by"
-
-#: templates/vitrine/article.html:101
-msgid "Voir la boutique"
-msgstr "View the shop"
 
 #: templates/vitrine/article.html:110
 msgid ""
@@ -14176,6 +14354,11 @@ msgstr "Browse the market"
 msgid "livre sa part lui-même"
 msgstr "delivers their part themselves"
 
+#: templates/vitrine/panier.html:41
+#, python-format
+msgid "%(prix)s FCFA l'unité"
+msgstr "%(prix)s FCFA each"
+
 #: templates/vitrine/panier.html:48
 #, python-format
 msgid "Quantité de %(libelle)s"
@@ -14251,31 +14434,31 @@ msgstr "Active filters"
 msgid "Retirer le filtre %(f)s"
 msgstr "Remove the %(f)s filter"
 
-#: templates/vitrine/partials/resultats.html:35
+#: templates/vitrine/partials/resultats.html:37
 msgid "Voir plus d'articles"
 msgstr "Show more items"
 
-#: templates/vitrine/partials/resultats.html:42
+#: templates/vitrine/partials/resultats.html:44
 msgid ""
 "Essayez un autre mot, une orthographe plus courte, ou parcourez un rayon."
 msgstr "Try another word, a shorter spelling, or browse an aisle."
 
-#: templates/vitrine/partials/resultats.html:44
+#: templates/vitrine/partials/resultats.html:46
 msgid "Aucun article avec ces filtres."
 msgstr "No items match these filters."
 
-#: templates/vitrine/partials/resultats.html:45
+#: templates/vitrine/partials/resultats.html:47
 msgid "Élargissez la fourchette de prix ou retirez un filtre."
 msgstr "Widen the price range or remove a filter."
 
-#: templates/vitrine/partials/resultats.html:47
+#: templates/vitrine/partials/resultats.html:49
 msgid "Ce rayon est encore vide."
 msgstr "This aisle is still empty."
 
-#: templates/vitrine/partials/resultats.html:48
+#: templates/vitrine/partials/resultats.html:50
 msgid "Les commerçants de ce rayon n'ont rien mis en vitrine pour l'instant."
 msgstr "The traders in this aisle have nothing on display yet."
 
-#: templates/vitrine/partials/resultats.html:51
+#: templates/vitrine/partials/resultats.html:53
 msgid "Effacer les filtres"
 msgstr "Clear filters"

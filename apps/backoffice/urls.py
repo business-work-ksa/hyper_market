@@ -7,6 +7,7 @@ from apps.backoffice import (
     vues_commandes,
     vues_equipe,
     vues_identite,
+    vues_mise_en_avant,
     vues_ordonnancier,
     vues_production,
     vues_rapport,
@@ -89,6 +90,7 @@ urlpatterns = [
     path("boutique/depots/<uuid:depot_id>/modifier/", views.depot_modifier, name="depot_modifier"),
 
     path("boutique/identite/", vues_identite.identite, name="identite"),
+    path("boutique/mise-en-avant/", vues_mise_en_avant.mise_en_avant, name="mise_en_avant"),
     path("boutique/identite/liens/", vues_identite.lien_creer, name="lien_creer"),
     path("boutique/identite/liens/retirer/", vues_identite.liens_retirer, name="liens_retirer"),
     path("boutique/identite/liens/<uuid:lien_id>/modifier/", vues_identite.lien_modifier, name="lien_modifier"),

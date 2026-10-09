@@ -5,6 +5,10 @@
 {% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Ma boutique — {{ enseigne }}{% endblocktranslate %}{% endblock %}
 {% block entete %}{% translate "Ma boutique" %}{% endblock %}
 
+{% block actions_entete %}
+  <a class="btn" href="{% url 'mise_en_avant' %}"><svg><use href="#ic-hausse"></use></svg> {% translate "Mise en avant" %}</a>
+{% endblock %}
+
 {% block contenu %}
 <div class="colonne">
   {% comment %}

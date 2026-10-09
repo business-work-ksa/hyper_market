@@ -53,6 +53,8 @@
           <th scope="col" class="t-cache-etroit">{% translate "Boutique" %}</th>
           <th scope="col" class="t-cache-etroit">{% translate "Période" %}</th>
           <th scope="col" class="num">{% translate "Tarif" %}</th>
+          <th scope="col" class="num t-cache-etroit">{% translate "Affichages" %}</th>
+          <th scope="col" class="num t-cache-etroit">{% translate "Clics" %}</th>
           <th scope="col" class="t-cache-moyen">{% translate "État" %}</th>
         </tr>
       </thead>
@@ -79,6 +81,8 @@
               <span class="t-legende t-sous-statut">{% blocktranslate count duree=e.duree trimmed %}{{ duree }} jour{% plural %}{{ duree }} jours{% endblocktranslate %}{% if e.restant is not None %} {% blocktranslate with restant=e.restant trimmed %}· encore {{ restant }} j{% endblocktranslate %}{% elif e.dans is not None %} {% blocktranslate with dans=e.dans trimmed %}· dans {{ dans }} j{% endblocktranslate %}{% endif %}</span>
             </td>
             <td class="num principal">{{ e.tarif|fcfa }}</td>
+            <td class="num t-cache-etroit">{{ e.bilan.affichages|default:0 }}</td>
+            <td class="num t-cache-etroit">{{ e.bilan.clics|default:0 }}{% if e.bilan.taux_clic is not None %}<span class="t-legende t-sous-statut">{{ e.bilan.taux_clic }} %</span>{% endif %}</td>
             <td class="t-cache-moyen">{% include "plateforme/partials/t_statut_emplacement.html" %}</td>
           </tr>
         {% endfor %}

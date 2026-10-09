@@ -189,7 +189,7 @@ tel quel dans la page (docs/19, §8).
 
       window.Imprimante.imprimer(donnees, parseInt(largeur.value, 10))
         .then(function () {
-          etat.textContent = "{{ _('Ticket envoyé à « %(appareil)s ».')|escapejs }}".replace("%(appareil)s", window.Imprimante.appareil());
+          etat.textContent = "{% translate 'Ticket envoyé à « %(appareil)s ».' as t_js_1 %}{{ t_js_1|escapejs }}".replace("%(appareil)s", window.Imprimante.appareil());
         })
         .catch(function (erreur) {
           // Un refus de la boîte de sélection n'est pas une panne : c'est un
@@ -197,7 +197,7 @@ tel quel dans la page (docs/19, §8).
           etat.textContent =
             erreur && erreur.name === "NotFoundError"
               ? "{{ _('Aucune imprimante sélectionnée.')|escapejs }}"
-              : "{{ _('Impression impossible : %(raison)s.')|escapejs }}".replace(
+              : "{% translate 'Impression impossible : %(raison)s.' as t_js_2 %}{{ t_js_2|escapejs }}".replace(
                   "%(raison)s", erreur && erreur.message ? erreur.message : "{{ _('liaison interrompue')|escapejs }}"
                 );
         })

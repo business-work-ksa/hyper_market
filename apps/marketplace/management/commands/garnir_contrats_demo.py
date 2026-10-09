@@ -25,6 +25,7 @@ from apps.marketplace.models import (
     Boutique,
     EmplacementPremium,
     FactureLoyer,
+    MesureEmplacement,
     Rayon,
     TypeEmplacement,
 )
@@ -99,7 +100,9 @@ class Command(BaseCommand):
         plan = [
             # (slug, type, début relatif, durée en jours, tarif)
             ("bella-cosmetiques", EmplacementPremium.ACCUEIL, -10, 28, "60000"),
-            ("boulangerie-bonapriso", EmplacementPremium.TETE_DE_GONDOLE, -4, 14, "25000"),
+            # Le commerçant de démonstration (Quincaillerie Ateba) : son écran « Mise en avant » a
+            # ainsi des chiffres à montrer, dans un rayon ouvert.
+            ("quincaillerie-ateba", EmplacementPremium.TETE_DE_GONDOLE, -4, 14, "25000"),
             ("pharmacie-du-wouri", EmplacementPremium.BANDEAU_RAYON, 6, 21, "35000"),
             ("auto-pieces-ndokoti", EmplacementPremium.TETE_DE_GONDOLE, -60, 14, "25000"),
         ]
@@ -109,16 +112,41 @@ class Command(BaseCommand):
             if boutique is None:
                 continue
             debut = aujourdhui + timedelta(days=decalage)
-            EmplacementPremium.objects.create(
-                rayon=boutique.rayon_principal,
+            emplacement = EmplacementPremium.objects.create(
+                # La page d'accueil est celle de tout le marché : elle n'a pas de rayon.
+                rayon=None if type_ == EmplacementPremium.ACCUEIL else boutique.rayon_principal,
                 type=type_,
                 debut=debut,
                 fin=debut + timedelta(days=duree),
                 tarif=Decimal(tarif),
                 boutique_occupante=boutique,
             )
+            self._mesures_de_demo(emplacement, aujourdhui)
             n += 1
         return n
+
+    def _mesures_de_demo(self, emplacement, aujourdhui) -> None:
+        """Des compteurs de démonstration pour les jours déjà écoulés, pour que l'écran « Mise en
+        avant » ait quelque chose à montrer. Déterministes (pas de hasard) : deux chargements de la
+        démo montrent les mêmes chiffres. Jamais lancé hors de la démonstration."""
+        jour = emplacement.debut
+        rang = 0
+        while jour <= min(emplacement.fin, aujourdhui - timedelta(days=1)):
+            affichages = 140 + (rang * 37) % 90
+            clics = 6 + (rang * 5) % 9
+            commandes = 1 if rang % 3 == 0 else 0
+            MesureEmplacement.objects.update_or_create(
+                emplacement=emplacement,
+                jour=jour,
+                defaults={
+                    "affichages": affichages,
+                    "clics": clics,
+                    "commandes": commandes,
+                    "montant": Decimal("12500") * commandes,
+                },
+            )
+            jour += timedelta(days=1)
+            rang += 1
 
     def _candidature(self) -> bool:
         """Une boutique en attente de validation : c'est le geste quotidien de l'exploitant."""

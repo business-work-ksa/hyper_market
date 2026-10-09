@@ -8,6 +8,9 @@ Elle nomme toujours le commerçant : sur une place de marché, savoir qui vend e
 de premier plan — c'est lui qui livrera. Le stock n'y figure pas : l'afficher à l'unité près
 publierait le rythme des ventes d'un marchand à ses concurrents.
 
+Mise en avant payée (`article.lien_mise_en_avant`, tête de gondole) : le lien passe par le
+compteur de clics, et la section qui l'entoure porte la mention « Sponsorisé ».
+
 Toute la carte est cliquable (lien étiré sur le titre), sauf le bouton d'ajout, posé au-dessus.
 Photo : chargement différé (`loading="lazy"`), dimensions déclarées (pas de saut de mise en page).
 Sans photo, le monogramme de l'article sur la teinte de son commerçant — aucun octet d'image.
@@ -30,12 +33,12 @@ qu'il ajoute (« Ajouter … au panier ») ; la coche « Identité vérifiée »
       {% if article.vendeur_identite_verifiee %}{% translate "Identité vérifiée" as verifiee %}{% icone "check" "size-3.5 text-success-ink" verifiee %}{% endif %}
     </p>
     <h3 class="line-clamp-2 text-sm font-semibold leading-snug sm:text-base">
-      <a class="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none after:focus-visible:rounded-2xl after:focus-visible:ring-2 after:focus-visible:ring-focus" href="{% url 'vitrine_article' article.pk %}">{{ article.produit.libelle_affiche }}</a>
+      <a class="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none after:focus-visible:rounded-2xl after:focus-visible:ring-2 after:focus-visible:ring-focus" href="{% if article.lien_mise_en_avant %}{{ article.lien_mise_en_avant }}{% else %}{% url 'vitrine_article' article.pk %}{% endif %}">{{ article.produit.libelle_affiche }}</a>
     </h3>
     {% if article.attributs %}
       <p class="truncate text-xs text-ink-muted">{% for cle, valeur in article.attributs.items %}{{ valeur }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
     {% endif %}
-    <div class="mt-auto flex items-end justify-between gap-2 pt-2">
+    <div class="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
       <p class="prix text-base sm:text-lg">{{ article.prix_vente|fcfa }}<span class="devise">FCFA</span></p>
       <form class="relative z-10" method="post" action="{% url 'vitrine_panier_ajouter' article.pk %}">
         {% csrf_token %}

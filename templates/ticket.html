@@ -1,0 +1,211 @@
+{% load i18n static hm %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{% blocktranslate with numero=ticket.numero enseigne=boutique.enseigne trimmed %}Ticket {{ numero }} — {{ enseigne }}{% endblocktranslate %}</title>
+<link rel="stylesheet" href="{% static 'css/hypermarche.css' %}">
+{% include "partials/icones_marque.html" %}
+{% include "partials/catalogue_js.html" %}
+<style>
+  /* Bande de 80 mm : la largeur des imprimantes thermiques courantes.
+     Tout est en monospace pour que les colonnes s'alignent sans tableau. */
+  :root { color-scheme: light; }
+  body { background: var(--surface-creuse); padding: 22px 14px 44px; }
+
+  .bande {
+    width: 80mm; max-width: 100%; margin: 0 auto;
+    background: #FFFFFF; color: #14140F;
+    padding: 16px 14px 20px;
+    border-radius: var(--r-md);
+    box-shadow: var(--ombre-2);
+    font-family: var(--mono);
+    font-size: 12px; line-height: 1.45;
+  }
+  .bande__entete { text-align: center; }
+  .bande__enseigne { font-family: var(--sans); font-size: 16px; font-weight: 680; letter-spacing: -0.015em; }
+  .bande__legal { font-size: 10.5px; line-height: 1.5; margin-top: 5px; }
+
+  .sep { border: none; border-top: 1px dashed #B9B6AA; margin: 11px 0; }
+
+  .lgn { display: flex; justify-content: space-between; gap: 10px; }
+  .lgn--art { flex-direction: column; gap: 1px; margin-bottom: 7px; }
+  .lgn--art .detail { display: flex; justify-content: space-between; gap: 10px; }
+  .lgn--art .nom { font-weight: 650; }
+  .total { font-family: var(--sans); font-size: 15px; font-weight: 700; }
+  .pied { text-align: center; font-size: 10.5px; margin-top: 12px; line-height: 1.6; }
+
+  .actions { width: 80mm; max-width: 100%; margin: 16px auto 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .actions .btn { flex: 1 1 46%; }
+  .reglage { width: 80mm; max-width: 100%; margin: 10px auto 0; display: flex; align-items: center; gap: 8px; }
+  .etat-impression { width: 80mm; max-width: 100%; margin: 8px auto 0; text-align: center; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .bande { width: auto; box-shadow: none; border-radius: 0; padding: 0; }
+    .actions, .reglage, .etat-impression { display: none; }
+    @page { margin: 4mm; }
+  }
+</style>
+</head>
+<body>
+{% include "partials/icones.html" %}
+
+<article class="bande">
+  <header class="bande__entete">
+    <p class="bande__enseigne">{{ boutique.enseigne }}</p>
+    <p class="bande__legal">
+      {{ boutique.raison_sociale }}<br>
+      {% if boutique.rccm %}RCCM {{ boutique.rccm }}<br>{% endif %}
+      {% if boutique.niu %}NIU {{ boutique.niu }}<br>{% endif %}
+      {{ boutique.ville }}{% if boutique.telephone %} · {{ boutique.telephone }}{% endif %}
+    </p>
+  </header>
+
+  <hr class="sep">
+
+  <div class="lgn"><span>{% translate "Ticket" %}</span><span>{{ ticket.numero }}</span></div>
+  <div class="lgn"><span>{% translate "Date" %}</span><span>{{ ticket.cloture_le|date:"d/m/Y H:i" }}</span></div>
+  <div class="lgn"><span>{% translate "Caissier" %}</span><span>{{ ticket.session.caissier.nom_complet|truncatechars:20 }}</span></div>
+  {% if ticket.client_nom %}
+    <div class="lgn"><span>{% translate "Client" %}</span><span>{{ ticket.client_nom|truncatechars:20 }}</span></div>
+  {% endif %}
+
+  <hr class="sep">
+
+  {% for ligne in lignes %}
+    <div class="lgn--art">
+      <span class="nom">{{ ligne.libelle }}</span>
+      <span class="detail">
+        <span>{{ ligne.quantite|quantite }} × {{ ligne.pu_ttc|fcfa }}</span>
+        <span>{{ ligne.total_ttc|fcfa }}</span>
+      </span>
+      {% if ligne.remise %}
+        <span class="detail"><span>{% translate "Remise" %}</span><span>-{{ ligne.remise|fcfa }}</span></span>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <hr class="sep">
+
+  {% if assujetti_tva %}
+    <div class="lgn"><span>{% translate "Total hors taxes" %}</span><span>{{ ticket.total_ht|fcfa }}</span></div>
+    <div class="lgn"><span>TVA 19,25 %</span><span>{{ ticket.total_tva|fcfa }}</span></div>
+  {% endif %}
+  <div class="lgn total"><span>TOTAL</span><span>{{ ticket.total_ttc|fcfa }} FCFA</span></div>
+
+  <hr class="sep">
+
+  {% for reglement in reglements %}
+    <div class="lgn">
+      <span>{{ reglement.get_moyen_display }}</span>
+      <span>{{ reglement.montant|fcfa }}</span>
+    </div>
+  {% endfor %}
+
+  <p class="pied">
+    {% if not assujetti_tva %}
+      {% translate "TVA non applicable — régime de l'impôt général synthétique." %}<br>
+    {% endif %}
+    {% translate "Merci de votre visite." %}<br>
+    {% translate "Conservez ce ticket pour tout échange." %}
+  </p>
+</article>
+
+<div class="actions">
+  <button class="btn btn--primaire" type="button" id="bobine" hidden>{% translate "Imprimer sur la bobine" %}</button>
+  <button class="btn" type="button" onclick="window.print()">{% translate "Imprimer (navigateur)" %}</button>
+  <button class="btn" type="button" id="partager" hidden>{% translate "Partager" %}</button>
+  <a class="btn" href="{% url 'ventes' %}">{% translate "Retour aux ventes" %}</a>
+</div>
+
+<div class="reglage" id="reglage-bobine" hidden>
+  <label class="t-legende" for="largeur-bobine">{% translate "Largeur de bobine" %}</label>
+  <select class="champ champ--compact" id="largeur-bobine">
+    <option value="32">{% translate "58 mm — 32 colonnes" %}</option>
+    <option value="48">{% translate "80 mm — 48 colonnes" %}</option>
+  </select>
+</div>
+
+<p class="t-legende etat-impression" id="etat-impression" role="status"></p>
+
+{% comment %}
+Le ruban se construit à partir de ces données, pas en grattant la page : un
+changement de gabarit ne doit pas casser silencieusement l'impression.
+
+`{# … #}` est **mono-ligne** en Django : écrit sur plusieurs lignes, il s'affiche
+tel quel dans la page (docs/19, §8).
+{% endcomment %}
+<script type="application/json" id="ticket-donnees">{{ ticket_json|safe }}</script>
+<script src="{% static 'js/imprimante.js' %}"></script>
+<script>
+  // Sans imprimante, le partage natif envoie le ticket par WhatsApp — le canal
+  // réel du commerce ici. Le bouton n'apparaît que si l'appareil sait le faire.
+  (function () {
+    var bouton = document.getElementById("partager");
+    if (!navigator.share) return;
+    bouton.hidden = false;
+    bouton.addEventListener("click", function () {
+      navigator.share({
+        title: "{% filter escapejs %}{% blocktranslate with numero=ticket.numero enseigne=boutique.enseigne trimmed %}Ticket {{ numero }} — {{ enseigne }}{% endblocktranslate %}{% endfilter %}",
+        text: "{% filter escapejs %}{% blocktranslate with total=ticket.total_ttc|fcfa enseigne=boutique.enseigne trimmed %}Votre ticket de {{ total }} FCFA chez {{ enseigne }}.{% endblocktranslate %}{% endfilter %}",
+        url: window.location.href,
+      }).catch(function () {});
+    });
+  })();
+
+  // Impression thermique directe. Web Bluetooth exige un contexte sécurisé et
+  // un geste de l'utilisateur : le bouton, jamais le chargement de la page.
+  (function () {
+    var bouton = document.getElementById("bobine");
+    var reglage = document.getElementById("reglage-bobine");
+    var largeur = document.getElementById("largeur-bobine");
+    var etat = document.getElementById("etat-impression");
+
+    if (!window.Imprimante || !window.Imprimante.disponible()) {
+      etat.textContent =
+        "{{ _("Impression directe indisponible sur cet appareil : utilisez l'impression du navigateur ou le partage.")|escapejs }}";
+      return;
+    }
+
+    bouton.hidden = false;
+    reglage.hidden = false;
+
+    try {
+      var memorisee = localStorage.getItem("hm-largeur-bobine");
+      if (memorisee) largeur.value = memorisee;
+    } catch (e) {}
+
+    largeur.addEventListener("change", function () {
+      try { localStorage.setItem("hm-largeur-bobine", largeur.value); } catch (e) {}
+    });
+
+    var donnees = JSON.parse(document.getElementById("ticket-donnees").textContent);
+
+    bouton.addEventListener("click", function () {
+      bouton.disabled = true;
+      etat.textContent = "{{ _("Recherche de l'imprimante…")|escapejs }}";
+
+      window.Imprimante.imprimer(donnees, parseInt(largeur.value, 10))
+        .then(function () {
+          etat.textContent = "{% translate 'Ticket envoyé à « %(appareil)s ».' as t_js_1 %}{{ t_js_1|escapejs }}".replace("%(appareil)s", window.Imprimante.appareil());
+        })
+        .catch(function (erreur) {
+          // Un refus de la boîte de sélection n'est pas une panne : c'est un
+          // choix. On ne l'annonce pas comme une erreur.
+          etat.textContent =
+            erreur && erreur.name === "NotFoundError"
+              ? "{{ _('Aucune imprimante sélectionnée.')|escapejs }}"
+              : "{% translate 'Impression impossible : %(raison)s.' as t_js_2 %}{{ t_js_2|escapejs }}".replace(
+                  "%(raison)s", erreur && erreur.message ? erreur.message : "{{ _('liaison interrompue')|escapejs }}"
+                );
+        })
+        .finally(function () {
+          bouton.disabled = false;
+        });
+    });
+  })();
+</script>
+</body>
+</html>

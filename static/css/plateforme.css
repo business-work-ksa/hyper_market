@@ -1,0 +1,377 @@
+/* =====================================================================
+   HyperMarché — console de la plateforme
+   Chargée après hypermarche.css, dont elle réutilise tous les jetons.
+
+   La console est une autre pièce que le back-office d'une boutique : même
+   typographie, mêmes composants, mais un rail sombre et un sceau doré, pour
+   qu'on ne confonde jamais « je regarde le marché » et « je suis chez un
+   commerçant » (ADR-012).
+
+   Sections :
+     1. Jetons propres à la console
+     2. Coquille : rail sombre, bandeau, tiroir mobile
+     3. Composants partagés : en-tête de page, indicateurs, statuts, files,
+        barres de part, grilles, fil d'Ariane, clés/valeurs, onglets
+     4. Assistant pas à pas
+     5. Petits écrans
+   Les styles propres à un écran vont dans plateforme-tableaux.css ou
+   plateforme-assistants.css, chargés par le gabarit qui en a besoin.
+   ===================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 1. Jetons                                                           */
+/* ------------------------------------------------------------------ */
+:root {
+  --console-rail:        #0E1A16;
+  --console-rail-haut:   #15241F;
+  --console-rail-filet:  #22332D;
+  --console-rail-encre:  #E7ECE8;
+  --console-rail-muet:   #8FA39A;
+  --console-rail-actif:  rgba(217, 164, 65, 0.14);
+  --console-or:          #D9A441;
+  --console-or-encre:    #1B1405;
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Coquille                                                         */
+/* ------------------------------------------------------------------ */
+.console__rail {
+  background: var(--console-rail);
+  border-right-color: var(--console-rail-filet);
+  color: var(--console-rail-encre);
+}
+.console__rail .rail__marque,
+.console__rail .rail__pied { border-color: var(--console-rail-filet); }
+.console__rail .t-sur-titre { color: var(--console-rail-muet); }
+.console__rail .rail__nom { color: #fff; }
+.console__rail .lien { color: var(--console-rail-muet); white-space: nowrap; }
+.console__rail .lien > span:not(.lien__pastille) { overflow: hidden; text-overflow: ellipsis; }
+.console__rail .lien:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.console__rail .lien--actif { background: var(--console-rail-actif); color: var(--console-or); }
+.console__rail .lien--actif::before { background: var(--console-or); }
+.console__rail .lien__pastille { background: var(--console-or); color: var(--console-or-encre); }
+.console__rail .compte:hover { background: rgba(255, 255, 255, 0.05); }
+
+.console__sceau {
+  background: linear-gradient(145deg, #E6B85A, #B07B10);
+  color: var(--console-or-encre);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 4px 14px rgba(217, 164, 65, 0.25);
+}
+.console__piece {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--console-or);
+}
+.console__jeton { background: var(--console-rail-haut); color: var(--console-or); }
+.console__niveau {
+  display: inline-flex; align-self: flex-start;
+  font-size: 10.5px; font-weight: 620; letter-spacing: 0.02em;
+  padding: 2px 7px; border-radius: var(--r-pilule);
+  background: var(--console-rail-haut); color: var(--console-rail-muet);
+}
+.console__niveau--super { background: var(--console-rail-actif); color: var(--console-or); }
+.console__recours { font-size: 12.5px; }
+.console__recours svg { width: 15px; height: 15px; }
+.console__tronque { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.console__bandeau { backdrop-filter: saturate(1.4) blur(8px); background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.console__menu { display: none; }
+.console__zone { max-width: 1440px; }
+
+/* Le rappel du suivi ouvert : il doit se voir en permanence, parce que chaque écran
+   consulté pendant qu'il est allumé écrit une ligne au journal. */
+.console__suivi {
+  display: inline-flex; align-items: center; gap: 8px;
+  max-width: 340px; height: 30px; padding: 0 4px 0 11px;
+  border-radius: var(--r-pilule);
+  background: var(--or-teinte); color: var(--or);
+  font-size: 12px; font-weight: 600;
+}
+.console__suivi-point {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--or); flex-shrink: 0;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--or) 60%, transparent);
+  animation: console-pouls 2.4s ease-out infinite;
+}
+.console__suivi-fermer {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 15px; line-height: 1;
+  color: inherit; background: transparent; border: 0; cursor: pointer;
+}
+.console__suivi-fermer:hover { background: color-mix(in srgb, var(--or) 16%, transparent); }
+@keyframes console-pouls {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--or) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.console__succes { background: var(--bon-teinte); border-color: transparent; }
+.console__succes svg { color: var(--bon); }
+
+/* ------------------------------------------------------------------ */
+/* 3. Composants partagés                                              */
+/* ------------------------------------------------------------------ */
+
+/* ---- Fil d'Ariane, au-dessus du titre du bandeau ---- */
+.fil { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--encre-muette); }
+.fil a { color: var(--encre-2); }
+.fil a:hover { color: var(--marque); }
+.fil__sep { opacity: 0.6; }
+
+/* ---- En-tête de page : titre, phrase, actions ---- */
+.entete-page {
+  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.entete-page__texte { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin-right: auto; }
+.entete-page__titre { font-size: 24px; font-weight: 660; letter-spacing: -0.024em; line-height: 1.15; }
+.entete-page__phrase { color: var(--encre-2); max-width: 70ch; }
+.entete-page__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Indicateur (KPI) : la tuile du back-office, en plus expressif ---- */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.kpi {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--filet);
+  border-radius: var(--r-lg);
+  padding: 16px 18px 15px;
+  box-shadow: var(--ombre-1);
+  display: flex; flex-direction: column; gap: 8px;
+  min-width: 0;
+  transition: border-color var(--t-rapide), box-shadow var(--t-normal), transform var(--t-normal);
+}
+a.kpi:hover { border-color: var(--filet-fort); box-shadow: var(--ombre-2); transform: translateY(-1px); }
+.kpi__tete { display: flex; align-items: center; gap: 9px; color: var(--encre-2); font-size: 12.5px; font-weight: 560; }
+.kpi__icone {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--marque-teinte); color: var(--marque);
+}
+.kpi__icone svg { width: 16px; height: 16px; }
+.kpi__icone--or { background: var(--or-teinte); color: var(--or); }
+.kpi__icone--alerte { background: var(--alerte-teinte); color: #8A6408; }
+.kpi__icone--critique { background: var(--critique-teinte); color: var(--critique); }
+.kpi__icone--bon { background: var(--bon-teinte); color: var(--bon); }
+.kpi__valeur { font-size: 28px; font-weight: 660; letter-spacing: -0.028em; line-height: 1.08; }
+.kpi__pied { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--encre-2); min-height: 18px; }
+.kpi__trace { position: absolute; right: 14px; bottom: 12px; width: 92px; height: 30px; color: var(--serie); opacity: 0.9; }
+
+/* ---- Statut d'une boutique : toujours une icône et un mot (docs/19, §2.2) ---- */
+.statut {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 9px 0 7px;
+  border-radius: var(--r-pilule);
+  font-size: 11.5px; font-weight: 620; white-space: nowrap;
+  background: var(--surface-creuse); color: var(--encre-2);
+}
+.statut::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.statut--candidature { background: var(--or-teinte); color: var(--or); }
+.statut--active      { background: var(--bon-teinte); color: #0A7A0A; }
+.statut--suspendue   { background: var(--alerte-teinte); color: #8A6408; }
+.statut--resiliee    { background: var(--surface-creuse); color: var(--encre-muette); }
+.statut--impayee     { background: var(--critique-teinte); color: var(--critique); }
+
+/* ---- File d'attente : ce qui attend un geste ---- */
+.file { display: flex; flex-direction: column; }
+.file__ligne {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--filet);
+  transition: background var(--t-rapide);
+}
+.file__ligne:first-child { border-top: 0; }
+a.file__ligne:hover { background: var(--survol); }
+.file__corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.file__titre { font-weight: 580; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file__fleche { width: 16px; height: 16px; color: var(--encre-muette); flex-shrink: 0; }
+
+/* ---- Barre de part : une grandeur relative, horizontale ---- */
+.part { display: flex; flex-direction: column; gap: 6px; }
+.part__tete { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.part__tete > :last-child { margin-left: auto; }
+.part__piste { height: 8px; border-radius: var(--r-pilule); background: var(--surface-creuse); overflow: hidden; }
+.part__rempli { height: 100%; border-radius: var(--r-pilule); background: var(--serie); min-width: 2px; }
+
+/* ---- Grilles ---- */
+.grille-console { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.grille-console > * { min-width: 0; }
+.col-4 { grid-column: span 4; } .col-5 { grid-column: span 5; } .col-6 { grid-column: span 6; }
+.col-7 { grid-column: span 7; } .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
+.bloc + .bloc { margin-top: 18px; }
+
+/* ---- Clés et valeurs ---- */
+.cles { display: grid; grid-template-columns: minmax(120px, max-content) minmax(0, 1fr); gap: 9px 18px; margin: 0; }
+.cles dt { color: var(--encre-muette); font-size: 12.5px; }
+.cles dd { margin: 0; font-weight: 540; min-width: 0; overflow-wrap: anywhere; }
+
+/* ---- Onglets (liens, pas du JavaScript : chaque onglet a son adresse) ---- */
+.onglets { display: flex; gap: 2px; border-bottom: 1px solid var(--filet); margin-bottom: 16px; overflow-x: auto; }
+.onglet {
+  padding: 9px 13px; font-weight: 560; color: var(--encre-2); white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.onglet:hover { color: var(--encre); }
+.onglet[aria-current="page"] { color: var(--marque); border-bottom-color: var(--marque); }
+.onglet__compte { margin-left: 5px; font-size: 11px; color: var(--encre-muette); }
+
+/* ---- Avatar d'une boutique ---- */
+.monogramme {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 680; letter-spacing: -0.02em;
+  background: var(--marque-teinte); color: var(--marque);
+}
+.monogramme--grand { width: 56px; height: 56px; border-radius: 14px; font-size: 19px; }
+
+/* ---- Bandeau de héros du tableau de bord ---- */
+.heros-console {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+  background: var(--console-rail);
+  color: var(--console-rail-encre);
+  margin-bottom: 18px;
+}
+.heros-console::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(520px 260px at 92% -10%, rgba(217, 164, 65, 0.22), transparent 65%),
+    radial-gradient(420px 240px at 0% 120%, rgba(47, 169, 142, 0.20), transparent 60%);
+}
+.heros-console > * { position: relative; z-index: 1; }
+.heros-console__salut { font-size: 22px; font-weight: 650; letter-spacing: -0.022em; color: #fff; }
+.heros-console__phrase { color: var(--console-rail-muet); margin-top: 4px; }
+.heros-console .btn { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.14); color: #fff; }
+.heros-console .btn:hover { background: rgba(255, 255, 255, 0.14); }
+.heros-console .btn--primaire { background: var(--console-or); border-color: var(--console-or); color: var(--console-or-encre); }
+.heros-console .btn--primaire:hover { background: #E6B85A; }
+
+/* ------------------------------------------------------------------ */
+/* 4. Assistant pas à pas                                              */
+/* ------------------------------------------------------------------ */
+.assistant { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 22px; align-items: start; }
+.assistant__principal { display: flex; flex-direction: column; gap: 16px; min-width: 0; max-width: 760px; }
+
+.etapes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(var(--entete) + 22px); }
+.etape {
+  position: relative;
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border-radius: var(--r-sm);
+  color: var(--encre-muette);
+}
+.etape:not(:last-child)::after {
+  content: ""; position: absolute; left: 25px; top: 38px; bottom: -8px;
+  width: 2px; border-radius: 2px; background: var(--filet);
+}
+.etape__numero {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 12.5px; font-weight: 680;
+  border: 2px solid var(--filet-fort); background: var(--surface);
+  position: relative; z-index: 1;
+}
+.etape__numero svg { width: 14px; height: 14px; }
+.etape__texte { display: flex; flex-direction: column; gap: 1px; padding-top: 4px; min-width: 0; }
+.etape__titre { font-weight: 600; font-size: 13.5px; }
+.etape__aide { font-size: 12px; }
+.etape--faite { color: var(--encre-2); }
+.etape--faite .etape__numero { background: var(--marque); border-color: var(--marque); color: var(--marque-encre); }
+.etape--faite:not(:last-child)::after { background: var(--marque); }
+a.etape:hover { background: var(--survol); }
+.etape--courante { color: var(--encre); background: var(--actif); }
+.etape--courante .etape__numero { border-color: var(--marque); color: var(--marque); box-shadow: 0 0 0 4px var(--marque-teinte); }
+
+.progression { height: 4px; border-radius: var(--r-pilule); background: var(--surface-creuse); overflow: hidden; }
+.progression__rempli { height: 100%; background: linear-gradient(90deg, var(--marque), var(--console-or)); border-radius: inherit; transition: width var(--t-normal); }
+
+.assistant__pied { display: flex; align-items: center; gap: 10px; }
+.assistant__pied .btn--primaire { margin-left: auto; }
+
+.choix-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.choix-carte { position: relative; display: block; cursor: pointer; }
+.choix-carte input { position: absolute; opacity: 0; pointer-events: none; }
+.choix-carte__corps {
+  display: flex; flex-direction: column; gap: 6px; height: 100%;
+  padding: 14px 15px; border-radius: var(--r-md);
+  border: 1.5px solid var(--filet); background: var(--surface);
+  transition: border-color var(--t-rapide), box-shadow var(--t-rapide), background var(--t-rapide);
+}
+.choix-carte:hover .choix-carte__corps { border-color: var(--filet-fort); }
+.choix-carte input:checked + .choix-carte__corps {
+  border-color: var(--marque); background: color-mix(in srgb, var(--marque-teinte) 55%, var(--surface));
+  box-shadow: 0 0 0 3px var(--marque-teinte);
+}
+.choix-carte input:focus-visible + .choix-carte__corps { outline: 2px solid var(--marque); outline-offset: 2px; }
+.choix-carte__titre { font-weight: 640; }
+.choix-carte__prix { font-size: 19px; font-weight: 660; letter-spacing: -0.02em; }
+
+.recap { display: flex; flex-direction: column; }
+.recap__section { padding: 14px 16px; border-top: 1px solid var(--filet); }
+.recap__section:first-child { border-top: 0; }
+.recap__tete { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.recap__tete a { margin-left: auto; font-size: 12.5px; }
+
+/* ------------------------------------------------------------------ */
+/* 5. Petits écrans                                                    */
+/* ------------------------------------------------------------------ */
+@media (max-width: 1080px) {
+  .col-4, .col-5, .col-6, .col-7, .col-8 { grid-column: span 12; }
+  .assistant { grid-template-columns: minmax(0, 1fr); }
+  .etapes { position: static; flex-direction: row; overflow-x: auto; gap: 4px; }
+  .etape { flex: 1; min-width: 150px; }
+  .etape::after { display: none; }
+}
+
+@media (max-width: 860px) {
+  /* Le back-office transforme son rail en barre d'onglets en bas d'écran. La console en a
+     trop d'entrées pour cela : elle en fait un tiroir. */
+  .console .rail.console__rail {
+    position: fixed; top: 0; bottom: 0; left: 0; right: auto;
+    width: min(300px, 86vw); height: 100vh; z-index: 60;
+    flex-direction: column; padding: 0;
+    border-top: 0; border-right: 1px solid var(--console-rail-filet);
+    transform: translateX(-102%);
+    transition: transform var(--t-normal);
+    box-shadow: var(--ombre-3);
+  }
+  .console .console__rail--ouvert { transform: none; }
+  .console .console__rail .rail__marque,
+  .console .console__rail .rail__pied,
+  .console .console__rail .rail__groupe .t-sur-titre { display: flex; }
+  .console .console__rail .rail__groupe .t-sur-titre { display: block; }
+  .console .console__rail .rail__nav { display: block; padding: 12px 10px; }
+  .console .console__rail .rail__groupe { display: block; margin: 0; }
+  .console .console__rail .rail__groupe + .rail__groupe { margin-top: 18px !important; }
+  .console .console__rail .lien {
+    flex-direction: row; font-size: 14px; padding: 10px; text-align: left; min-width: 0; gap: 11px;
+  }
+  .console .console__rail .lien svg { width: 18px; height: 18px; }
+  .console .console__rail .lien__pastille { position: static; margin: 0 0 0 auto; }
+  .console__voile { position: fixed; inset: 0; z-index: 55; background: rgba(5, 10, 8, 0.45); }
+  .console__menu { display: inline-flex; }
+  .console .zone { padding: 14px 14px 40px; }
+  .console__suivi { max-width: 150px; }
+  .entete-page__titre { font-size: 20px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpi__valeur { font-size: 22px; }
+  .kpi__trace { display: none; }
+  .cles { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .cles dd { margin-bottom: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console__suivi-point { animation: none; }
+  .console .rail.console__rail { transition: none; }
+}
+
+/* Le rail est collant et haut d'un écran : sur une page longue, la colonne sombre s'arrêtait à la
+   première hauteur d'écran dès qu'on imprimait ou capturait la page entière. Le fond de la coquille
+   prolonge la colonne ; au-delà de 860 px seulement, là où le rail est une colonne. */
+@media (min-width: 861px) {
+  .console__coquille {
+    background: linear-gradient(to right, var(--console-rail) var(--rail), transparent var(--rail));
+  }
+}

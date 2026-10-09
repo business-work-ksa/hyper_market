@@ -1,0 +1,11 @@
+{% load i18n hm %}
+{# Les montants d'un séquestre, tels que le registre les a constatés. #}
+<dl class="cles">
+  <dt>{% translate "Payé par l'acheteur" %}</dt><dd class="chiffre">{{ s.montant_encaisse|fcfa }} FCFA</dd>
+  <dt>{% translate "Commission retenue (TTC)" %}</dt><dd class="chiffre">{{ s.commission|fcfa }} FCFA</dd>
+  <dt>{% translate "Part du marchand" %}</dt><dd class="chiffre">{{ s.montant|fcfa }} FCFA</dd>
+  <dt>{% translate "État" %}</dt><dd>{{ s.get_etat_display }}{% if s.confirmation %} · {{ s.get_confirmation_display|lower }}{% endif %}</dd>
+  {% if s.montant_libere %}<dt>{% translate "Libéré" %}</dt><dd class="chiffre">{{ s.montant_libere|fcfa }} FCFA{% if s.libere_le %} {% blocktranslate with libere_le=s.libere_le|date:"d/m/Y" trimmed %}le {{ libere_le }}{% endblocktranslate %}{% endif %}</dd>{% endif %}
+  {% if s.rembourse_acheteur %}<dt>{% translate "Remboursement ordonné" %}</dt><dd class="chiffre">{{ s.rembourse_acheteur|fcfa }} FCFA{% if s.rembourse_le %} {% blocktranslate with rembourse_le=s.rembourse_le|date:"d/m/Y" trimmed %}le {{ rembourse_le }}{% endblocktranslate %}{% endif %}</dd>{% endif %}
+  {% if s.essais_code_echoues %}<dt>{% translate "Codes erronés" %}</dt><dd>{{ s.essais_code_echoues }}{% if s.code_verrouille_le %} {% blocktranslate with code_verrouille_le=s.code_verrouille_le|date:"d/m/Y H:i" trimmed %}— verrouillé le {{ code_verrouille_le }}{% endblocktranslate %}{% endif %}</dd>{% endif %}
+</dl>

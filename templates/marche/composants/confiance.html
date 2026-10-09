@@ -1,0 +1,30 @@
+{% load i18n marche %}{% comment %}
+Composant — Faits de confiance d'un commerçant (docs/26, §4.8 ; docs/23)
+
+Paramètres : confiance (dictionnaire de la balise `faits_confiance`), disposition « puces » (page
+de la boutique) ou « liste » (colonne de la fiche article).
+
+Des faits qu'on peut vérifier, pas des étoiles qu'on fabrique : identité attestée à quatre yeux,
+palier, ancienneté, livraisons confirmées **par les acheteurs**. « Identité vérifiée » n'apparaît
+que si elle l'est.
+Accessibilité : une vraie liste (`ul`/`li`) — un lecteur d'écran annonce « liste, 4 éléments » ;
+les icônes sont décoratives, chaque fait est écrit en toutes lettres.
+{% endcomment %}
+{% translate confiance.palier.libelle as palier %}
+{% if disposition == "puces" %}
+  <ul class="flex flex-wrap gap-2" role="list">
+    {% if confiance.identite_verifiee %}<li class="badge badge-succes">{% icone "check" %}{% translate "Identité vérifiée" %}</li>{% endif %}
+    <li class="badge badge-marque">{% icone "garantie" %}{{ palier }}</li>
+    {% if confiance.depuis_date %}<li class="badge badge-neutre">{% icone "horloge" %}{% blocktranslate with date=confiance.depuis_date|date:"F Y" %}Sur HyperMarché depuis {{ date }}{% endblocktranslate %}</li>{% endif %}
+    <li class="badge badge-neutre">{% icone "camion" %}{% if confiance.livraisons %}{% blocktranslate count n=confiance.livraisons %}{{ n }} livraison confirmée par les acheteurs{% plural %}{{ n }} livraisons confirmées par les acheteurs{% endblocktranslate %}{% else %}{% translate "Pas encore de livraison confirmée" %}{% endif %}</li>
+    {% if confiance.litiges_aucun %}<li class="badge badge-neutre">{% icone "check" %}{% translate "Aucun litige perdu" %}</li>{% elif confiance.litiges_taux %}<li class="badge badge-neutre">{% icone "check" %}{% blocktranslate with taux=confiance.litiges_taux %}Moins de {{ taux }} de litiges perdus{% endblocktranslate %}</li>{% endif %}
+  </ul>
+{% else %}
+  <ul class="flex flex-col gap-2.5 text-sm" role="list">
+    {% if confiance.identite_verifiee %}<li class="flex items-center gap-2.5 font-semibold text-success-ink">{% icone "check" "size-4" %}{% translate "Identité vérifiée" %}</li>{% endif %}
+    <li class="flex items-center gap-2.5">{% icone "garantie" "size-4 text-ink-muted" %}{{ palier }}</li>
+    {% if confiance.depuis_date %}<li class="flex items-center gap-2.5">{% icone "horloge" "size-4 text-ink-muted" %}{% blocktranslate with date=confiance.depuis_date|date:"F Y" %}Sur HyperMarché depuis {{ date }}{% endblocktranslate %}</li>{% endif %}
+    <li class="flex items-center gap-2.5">{% icone "camion" "size-4 text-ink-muted" %}{% if confiance.livraisons %}{% blocktranslate count n=confiance.livraisons %}{{ n }} livraison confirmée{% plural %}{{ n }} livraisons confirmées{% endblocktranslate %}{% else %}{% translate "Pas encore de livraison confirmée" %}{% endif %}</li>
+    {% if confiance.litiges_aucun %}<li class="flex items-center gap-2.5">{% icone "check" "size-4 text-ink-muted" %}{% translate "Aucun litige perdu" %}</li>{% elif confiance.litiges_taux %}<li class="flex items-center gap-2.5">{% icone "check" "size-4 text-ink-muted" %}{% blocktranslate with taux=confiance.litiges_taux %}Moins de {{ taux }} de litiges perdus{% endblocktranslate %}</li>{% endif %}
+  </ul>
+{% endif %}

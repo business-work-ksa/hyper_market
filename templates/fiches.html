@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Fiches techniques — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Fiches techniques" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'production' %}">{% translate "Production du jour" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="carte tableau-panneau" data-tableau
+           data-nom="{% translate "fiche" context "ligne de tableau" %}" data-noms="{% translate "fiches" context "ligne de tableau" %}" data-accord="e">
+    {% include "partials/tableau_barre.html" with nom="fiche" noms="fiches" titre=_("Mes fiches") creer_url=url_creer creer_libelle=_("Ouvrir une fiche") modifier_possible=peut_mouvementer modifier_libelle=_("Modifier") supprimer_url=url_supprimer supprimer_libelle=_("Supprimer") aide=_("Sélectionnez une fiche pour corriger son rendement, sa conservation ou son mode opératoire. Ouvrez-la pour en changer les ingrédients.") avertissement_suppression=_("Une fiche qui a déjà servi explique des fournées inscrites au journal du stock : elle est retirée de la production, pas effacée.") %}
+
+    {% if fiches %}
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">{{ metier.article|capfirst }}</th>
+              <th scope="col" class="num">{% translate "Rendement" %}</th>
+              <th scope="col" class="num">{% translate "Ingrédients" %}</th>
+              <th scope="col">{% translate "Conservation" %}</th>
+              <th scope="col">{% translate "État" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in fiches %}
+              <tr data-id="{{ f.pk }}" data-libelle="{{ f.variante }}"
+                  data-ouvrir="{% url 'fiche' recette_id=f.pk %}"
+                  {% if peut_mouvementer %}data-modifier="#modale-fiche"{% endif %}
+                  data-champs='{"rendement": "{{ f.rendement|quantite }}", "duree_conservation_jours": "{{ f.duree_conservation_jours|default_if_none:"" }}", "note": "{{ f.note|escapejs }}"}'
+                  {% if not f.actif %}data-note="Déjà retirée de la production."{% endif %}>
+                <td class="principal">
+                  <a href="{% url 'fiche' recette_id=f.pk %}">{{ f.variante }}</a>
+                </td>
+                <td class="num t-2">{{ f.rendement|quantite }}</td>
+                <td class="num t-2">{{ f.lignes.count }}</td>
+                <td class="t-2">
+                  {% if f.duree_conservation_jours %}{{ f.duree_conservation_jours }} j{% else %}<span class="t-muet">—</span>{% endif %}
+                </td>
+                <td>
+                  {% if f.actif %}
+                    <span class="puce puce--marque"><svg><use href="#ic-check"></use></svg>{% translate "En service" %}</span>
+                  {% else %}
+                    <span class="puce"><svg><use href="#ic-verrou"></use></svg>{% translate "Retirée" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="vide">
+        <svg><use href="#ic-production"></use></svg>
+        <p class="t-2">{% translate "Aucune fiche technique." %}</p>
+        <p class="t-legende">
+          {% blocktranslate trimmed %}Une fiche dit ce qu'il faut pour fabriquer un produit, et combien une
+          exécution en produit. C'est elle qui permet à une production de sortir
+          réellement les ingrédients du stock et de calculer ce que le produit
+          fini a coûté.{% endblocktranslate %}
+        </p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+{% if formulaire %}
+  {# ---- Ouvrir une fiche ------------------------------------------------ #}
+  <dialog class="modale" id="modale-nouvelle-fiche">
+    <form method="post" action="{% url 'fiche_creer' %}" novalidate>
+      {% csrf_token %}
+      <header class="modale__entete"><h2 class="t-section">{% translate "Ouvrir une fiche" %}</h2></header>
+      <div class="modale__corps colonne" style="gap:16px">
+        {% include "partials/champ.html" with champ=formulaire.variante %}
+        <div class="duo">
+          {% include "partials/champ.html" with champ=formulaire.rendement %}
+          {% include "partials/champ.html" with champ=formulaire.duree_conservation_jours %}
+        </div>
+        {% include "partials/champ.html" with champ=formulaire.note %}
+        <p class="t-legende">
+          {% blocktranslate trimmed %}Le produit fabriqué n'est pas créé ici : c'est un article ordinaire de
+          votre stock, avec son prix et son coût moyen. La fiche explique
+          seulement{% endblocktranslate %} <strong>{% translate "d'où il vient" %}</strong>.
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Ouvrir la fiche" %}</button>
+      </footer>
+    </form>
+  </dialog>
+
+  {# ---- Modifier une fiche ---------------------------------------------- #}
+  {% comment %}
+  Le produit fabriqué n'est pas modifiable : une fiche explique d'où vient un
+  article précis, et la rattacher à un autre réécrirait l'explication de toutes
+  les fournées déjà passées.
+  {% endcomment %}
+  <dialog class="modale" id="modale-fiche">
+    <form method="post" data-action-modele="{% url 'fiche_modifier' '00000000-0000-0000-0000-000000000000' %}">
+      {% csrf_token %}
+      <header class="modale__entete">
+        <h2 class="t-section">{% translate "Fiche de «" %} <span data-cible-libelle></span> »</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        <div class="duo" style="gap:14px">
+          <div class="groupe-champ">
+            <label for="rendement-fiche">{% translate "Rendement" %}</label>
+            <input class="champ" id="rendement-fiche" name="rendement" inputmode="decimal">
+            <span class="t-legende">{% translate "Une fournée, pas une pièce." %}</span>
+          </div>
+          <div class="groupe-champ">
+            <label for="conservation-fiche">{% translate "Conservation (jours)" %}</label>
+            <input class="champ" id="conservation-fiche" name="duree_conservation_jours" inputmode="numeric">
+            <span class="t-legende">{% translate "Vide si le produit ne périme pas." %}</span>
+          </div>
+        </div>
+        <div class="groupe-champ">
+          <label for="note-fiche">{% translate "Mode opératoire" %}</label>
+          <textarea class="champ" id="note-fiche" name="note" rows="3"></textarea>
+        </div>
+        <p class="t-legende">
+          {% blocktranslate trimmed %}Les ingrédients se modifient sur la fiche elle-même : ouvrez-la depuis
+          la liste.{% endblocktranslate %}
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
+      </footer>
+    </form>
+  </dialog>
+{% endif %}
+{% endblock %}

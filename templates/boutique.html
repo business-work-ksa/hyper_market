@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Ma boutique — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Ma boutique" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'mise_en_avant' %}"><svg><use href="#ic-hausse"></use></svg> {% translate "Mise en avant" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  {% comment %}
+  L'emplacement loué vivait seul dans une rangée `.duo` : la moitié droite de
+  l'écran restait vide. Il rejoint l'identité, en colonne, face à ce que le
+  métier change ; `duo--libre` laisse chaque colonne à sa hauteur.
+  {% endcomment %}
+  <div class="duo duo--libre">
+    <div class="colonne">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">{% translate "Identité" %}</h2>
+        <a class="btn" href="{% url 'verification' %}"><svg class="icone-ligne" aria-hidden="true"><use href="#ic-bouclier"></use></svg>{% translate "Vérification" %}</a>
+      </header>
+      <div class="carte__corps colonne" style="gap:14px">
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Enseigne" %}</span><strong>{{ boutique.enseigne }}</strong></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Raison sociale" %}</span><span>{{ boutique.raison_sociale }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">RCCM</span><span class="chiffre">{{ boutique.rccm|default:"—" }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">NIU</span><span class="chiffre">{{ boutique.niu|default:"—" }}</span></div>
+        <div class="rangee rangee--espace"><span class="t-2">{% translate "Ville" %}</span><span>{{ boutique.ville }}</span></div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">{% translate "Métier" %}</span>
+          <span class="puce puce--marque">{{ metier.libelle }}</span>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">{% translate "Régime fiscal" %}</span>
+          <span class="puce puce--marque">{{ boutique.get_regime_fiscal_display }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">{% translate "Emplacement loué" %}</h2></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        {% if bail %}
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Offre" %}</span><strong>{{ bail.type_emplacement|traduit }}</strong></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Loyer mensuel" %}</span><span class="chiffre">{{ bail.loyer_mensuel|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Dépôt de garantie" %}</span><span class="chiffre">{{ bail.depot_garantie|fcfa }} FCFA</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Depuis le" %}</span><span class="chiffre">{{ bail.debut|date:"d/m/Y" }}</span></div>
+          <div class="rangee rangee--espace"><span class="t-2">{% translate "Préavis" %}</span><span>{% blocktranslate with preavis_jours=bail.preavis_jours trimmed %}{{ preavis_jours }} jours{% endblocktranslate %}</span></div>
+          <div class="rangee rangee--espace">
+            <span class="t-2">{% translate "État" %}</span>
+            <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{{ bail.get_etat_display }}</span>
+          </div>
+        {% else %}
+          <div class="vide"><svg><use href="#ic-boutique"></use></svg><p class="t-2">{% translate "Aucun bail actif." %}</p></div>
+        {% endif %}
+      </div>
+    </section>
+    </div>
+
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">{% translate "Ce que votre métier change" %}</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        <p class="t-2">{{ metier.resume }}</p>
+        {% if metier.libelles_fonctions %}
+          <ul class="colonne" style="gap:8px">
+            {% for fonction in metier.libelles_fonctions %}
+              <li class="rangee" style="gap:8px;align-items:flex-start">
+                <svg class="icone-ligne" style="color:var(--bon);margin-top:3px"><use href="#ic-check"></use></svg>
+                <span class="t-2">{{ fonction }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="t-legende">
+            {% blocktranslate trimmed %}Aucune fonction particulière : le commerce général est le socle, et
+            tous les autres métiers en sont des variantes.{% endblocktranslate %}
+          </p>
+        {% endif %}
+        {% if metier.a_venir %}
+          {% comment %}
+          Ce qui est annoncé comme à venir est annoncé comme tel. Lister une
+          fonction non écrite au milieu des autres donnerait au commerçant
+          l'impression d'un suivi qu'il n'a pas — et une pharmacie paie cher ce
+          genre de malentendu.
+          {% endcomment %}
+          <div class="bandeau-info" role="note" style="margin-top:4px">
+            <svg><use href="#ic-info"></use></svg>
+            <span>
+              {% translate "Prévu pour ce métier," %} <strong>{% translate "pas encore disponible" %}</strong> :
+              {% for a in metier.a_venir %}{{ a|lower }}{% if not forloop.last %} ; {% endif %}{% endfor %}.
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="duo duo--libre">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">{% translate "Équipe" %}</h2>
+        {% if 'boutique.administrer' in droits %}
+          <a class="btn" href="{% url 'identite' %}">{% translate "Mon identité" %}</a>
+          <a class="btn" href="{% url 'equipe' %}">{% translate "Gérer l'équipe" %}</a>
+        {% endif %}
+      </header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <tbody>
+              {% for a in equipe %}
+                <tr>
+                  <td>
+                    <span class="rangee" style="gap:10px">
+                      <span class="jeton">{{ a.utilisateur.nom_complet|initiales }}</span>
+                      <span class="pile-sm">
+                        <span class="principal">{{ a.utilisateur.nom_complet }}</span>
+                        <span class="t-legende chiffre">{{ a.utilisateur.telephone }}</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td class="num"><span class="puce puce--marque">{{ a.role|traduit }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte tableau-panneau" data-tableau
+             data-nom="{% translate "dépôt" context "ligne de tableau" %}" data-noms="{% translate "dépôts" context "ligne de tableau" %}">
+      {% include "partials/tableau_barre.html" with nom="depot" noms="dépôts" titre=_("Dépôts") creer_url=url_depot_creer creer_libelle=_("Nouveau dépôt") modifier_possible=peut_administrer modifier_libelle=_("Renommer") supprimer_url=url_depots_supprimer supprimer_libelle=_("Fermer") aide=_("Sélectionnez un dépôt pour le renommer ou le fermer. Le dépôt principal ne se ferme pas : c'est là qu'on encaisse et qu'on reçoit par défaut.") avertissement_suppression=_("Un dépôt qui a déjà reçu de la marchandise est fermé, pas supprimé : son nom reste lisible sur les mouvements qui le citent.") %}
+
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Dépôt" %}</th>
+              <th scope="col">{% translate "Type" %}</th>
+              <th scope="col">{% translate "Adresse" %}</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in depots %}
+              <tr data-id="{{ d.pk }}" data-libelle="{{ d.libelle }}"
+                  data-modifier="#modale-depot"
+                  data-champs='{"libelle": "{{ d.libelle|escapejs }}", "type": "{{ d.type }}", "adresse": "{{ d.adresse|escapejs }}"}'
+                  {% if d.principal %}data-protege="C'est le dépôt principal : il ne se ferme pas."{% endif %}>
+                <td class="principal">{{ d.libelle }}</td>
+                <td class="t-2">{{ d.get_type_display }}</td>
+                <td class="t-2">{{ d.adresse|default:"—"|truncatechars:34 }}</td>
+                <td class="num">
+                  {% if d.principal %}<span class="puce puce--marque">{% translate "Principal" %}</span>{% endif %}
+                  {% if not d.actif %}<span class="puce">{% translate "Fermé" %}</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="tableau-pied">
+        <span>{% blocktranslate with depots=depots|length quota_depots=quota_depots trimmed %}{{ depots }} / {{ quota_depots }} dépôts{% endblocktranslate %}</span>
+        <span class="t-legende">
+          {% if depots_restants %}
+            {% blocktranslate count depots_restants=depots_restants trimmed %}Votre emplacement autorise encore {{ depots_restants }} dépôt.{% plural %}Votre emplacement autorise encore {{ depots_restants }} dépôts.{% endblocktranslate %}
+          {% else %}
+            {% translate "Votre emplacement n'autorise pas de dépôt supplémentaire." %}
+          {% endif %}
+        </span>
+      </footer>
+    </section>
+  </div>
+
+  {% comment %}
+  Ce que chaque rôle voit, écrit à l'écran plutôt que laissé dans le code : un
+  gérant qui confie sa caisse doit pouvoir vérifier lui-même que la marge est
+  fermée à son caissier, sans avoir à croire quiconque sur parole.
+  {% endcomment %}
+  <div class="duo duo--libre{% if not 'exporter' in droits %} duo--plein{% endif %}">
+    <section class="carte">
+      <header class="carte__entete">
+        <h2 class="t-section">{% translate "Ce que chaque rôle peut faire" %}</h2>
+        <span class="puce"><svg><use href="#ic-verrou"></use></svg>{% translate "Droits appliqués" %}</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:16px">
+        {% for role in droits_par_role %}
+          <div class="colonne" style="gap:7px">
+            <span class="puce puce--marque" style="align-self:flex-start">{{ role|traduit }}</span>
+            {% for libelle in role.droits %}
+              <span class="rangee" style="gap:8px">
+                <svg class="icone-ligne" style="color:var(--bon)"><use href="#ic-check"></use></svg>
+                <span class="t-2">{{ libelle }}</span>
+              </span>
+            {% empty %}
+              <span class="t-legende">{% translate "Aucun droit sur cette boutique." %}</span>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if 'exporter' in droits %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">{% translate "Vos données" %}</h2></header>
+        <div class="carte__corps colonne" style="gap:12px">
+          <p class="t-2">
+            {% translate "Vos données vous appartiennent :" %} <strong>{% translate "export intégral et gratuit" %}</strong> {% blocktranslate trimmed %}à tout
+            moment, y compris en cas de résiliation de votre emplacement.{% endblocktranslate %}
+          </p>
+          <p class="t-2">
+            {% blocktranslate trimmed %}L'archive contient votre catalogue, votre stock valorisé, chaque mouvement avec son
+            coût, vos ventes et votre journal comptable — en CSV, lisibles par n'importe quel
+            tableur.{% endblocktranslate %}
+          </p>
+        </div>
+        <footer class="carte__pied">
+          <a class="btn btn--primaire btn--bloc" href="{% url 'export_donnees' %}">
+            {% translate "Exporter mes données" %}
+          </a>
+        </footer>
+      </section>
+    {% endif %}
+  </div>
+</div>
+
+{# ---- Renommer un dépôt ------------------------------------------------- #}
+{% comment %}
+Le caractère « principal » n'est pas dans cette boîte : le déplacer d'un clic
+ferait basculer les réceptions et les caisses sans que personne ne s'en aperçoive.
+{% endcomment %}
+<dialog class="modale" id="modale-depot">
+  <form method="post" data-action-modele="{% url 'depot_modifier' '00000000-0000-0000-0000-000000000000' %}">
+    {% csrf_token %}
+    <header class="modale__entete">
+      <h2 class="t-section">{% translate "Modifier «" %} <span data-cible-libelle></span> »</h2>
+    </header>
+    <div class="modale__corps colonne" style="gap:14px">
+      <div class="groupe-champ">
+        <label for="libelle-depot">{% translate "Nom du dépôt" %}</label>
+        <input class="champ" id="libelle-depot" name="libelle" maxlength="120" placeholder="{% translate 'Réserve Akwa' %}">
+      </div>
+      <div class="groupe-champ">
+        <label for="type-depot">{% translate "Type" %}</label>
+        <select class="champ" id="type-depot" name="type">
+          {% for code, libelle in types_depot %}<option value="{{ code }}">{{ libelle }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="groupe-champ">
+        <label for="adresse-depot">{% translate "Adresse" %}</label>
+        <input class="champ" id="adresse-depot" name="adresse" maxlength="255" placeholder="{% translate 'Facultative' %}">
+      </div>
+    </div>
+    <footer class="modale__pied">
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+      <button class="btn btn--primaire" type="submit">{% translate "Enregistrer" %}</button>
+    </footer>
+  </form>
+</dialog>
+{% endblock %}

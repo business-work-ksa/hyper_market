@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with libelle=variante.produit.libelle enseigne=boutique.enseigne trimmed %}Modifier {{ libelle }} — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% blocktranslate with l_article=metier.l_article trimmed %}Modifier {{ l_article }}{% endblocktranslate %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'article' variante.pk %}">{% translate "Retour à la fiche" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{{ variante.produit.libelle }}</h2>
+      <span class="puce chiffre">{{ variante.sku }}</span>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+
+      {% include "partials/champ.html" with champ=formulaire.libelle %}
+
+      <details class="bloc-repli"{% if formulaire.libelle_en.value or formulaire.description.value or formulaire.description_en.value or formulaire.description.errors %} open{% endif %}>
+        <summary>{% translate "Pour la vitrine : description, nom et description en anglais" %}</summary>
+        <div class="colonne" style="gap:14px;margin-top:12px">
+          {% include "partials/champ.html" with champ=formulaire.description %}
+          {% include "partials/champ.html" with champ=formulaire.libelle_en %}
+          {% include "partials/champ.html" with champ=formulaire.description_en %}
+        </div>
+      </details>
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.sku %}
+        {% include "partials/champ.html" with champ=formulaire.code_barres %}
+      </div>
+
+      <div class="duo" style="gap:14px">
+        {% include "partials/champ.html" with champ=formulaire.prix_vente %}
+        {% include "partials/champ.html" with champ=formulaire.seuil_alerte %}
+      </div>
+
+      {% include "partials/champ.html" with champ=formulaire.regime_tva %}
+
+      {% comment %}
+      Les champs du métier, dans l'ordre que le formulaire décide — même boucle
+      que l'écran de création, pour la même raison : un champ ajouté au
+      formulaire et oublié ici serait invisible et pourtant validé.
+      {% endcomment %}
+      {% if formulaire.champs_de_metier %}
+        <div class="colonne" style="gap:14px;padding-top:4px">
+          <p class="t-sur-titre">{{ metier.libelle }}</p>
+          {% for champ in formulaire.champs_de_metier %}
+            {% include "partials/champ.html" with champ=champ %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="colonne" style="gap:14px;padding-top:4px">
+        <p class="t-sur-titre">{% translate "Disponibilité" %}</p>
+        {% include "partials/champ.html" with champ=formulaire.actif %}
+      </div>
+
+      {% if formulaire.non_field_errors %}
+        <div class="bandeau-info bandeau-info--alerte">
+          <svg><use href="#ic-alerte"></use></svg>
+          <span>{{ formulaire.non_field_errors|join:" " }}</span>
+        </div>
+      {% endif %}
+
+      <div class="rangee" style="gap:9px">
+        <button class="btn btn--primaire btn--grand" type="submit">{% translate "Enregistrer" %}</button>
+        <a class="btn btn--grand" href="{% url 'article' variante.pk %}">{% translate "Annuler" %}</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="colonne">
+    <div class="carte">
+      <header class="carte__entete"><h2 class="t-section">{% translate "Ce qui ne se corrige pas ici" %}</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        {% comment %}
+        Dire pourquoi un champ manque vaut mieux que de le griser : le
+        commerçant qui cherche « la quantité » doit apprendre où elle se
+        corrige, pas conclure que l'écran est cassé.
+        {% endcomment %}
+        <p class="t-2">
+          <strong>{% translate "La quantité et le coût d'achat" %}</strong> {% blocktranslate with du_article=metier.du_article trimmed %}ne sont pas des
+          attributs de {{ du_article }} : ce sont des mouvements. Ils se
+          corrigent par une{% endblocktranslate %}
+          <a href="{% url 'entree_stock' variante.pk %}">{% translate "entrée de stock" %}</a> {% blocktranslate trimmed %}ou
+          par un{% endblocktranslate %} <a href="{% url 'inventaire' %}">{% translate "inventaire" %}</a>{% blocktranslate trimmed %}, qui laissent
+          tous deux une trace datée dans le journal.{% endblocktranslate %}
+        </p>
+        <p class="t-2">
+          {% blocktranslate trimmed %}Un écran de fiche qui les proposerait donnerait le moyen d'écrire du
+          stock sans passer par son journal — et le coût moyen pondéré cesserait
+          d'être vérifiable.{% endblocktranslate %}
+        </p>
+      </div>
+    </div>
+
+    <div class="carte">
+      <header class="carte__entete"><h2 class="t-section">{% translate "Retirer cet article" %}</h2></header>
+      <div class="carte__corps colonne" style="gap:12px">
+        {% if empeche_la_suppression %}
+          <p class="t-2">{{ empeche_la_suppression }}</p>
+          <p class="t-legende">
+            {% translate "Décochez" %} <strong>{% translate "« En vente »" %}</strong> {% blocktranslate trimmed %}ci-contre : l'article
+            disparaît de la caisse et de la vitrine, garde son stock, et son
+            libellé reste lisible sur les tickets et les écritures qui le citent.{% endblocktranslate %}
+          </p>
+        {% else %}
+          <p class="t-2">
+            {% blocktranslate trimmed %}Cet article n'a encore aucune histoire : ni mouvement de stock, ni
+            exemplaire suivi. Il peut donc être{% endblocktranslate %} <strong>{% translate "réellement supprimé" %}</strong>
+            {% translate "depuis la liste du stock, sans laisser de trace." %}
+          </p>
+          <a class="btn" href="{% url 'stock' %}">{% translate "Aller à la liste" %}</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

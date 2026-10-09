@@ -1,0 +1,121 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% load static hm %}
+{% block titre %}{% translate "Santé technique" %}{% endblock %}
+{% block entete %}{% translate "Santé technique" %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Réservé au superadministrateur. Aucun secret : ni adresse de base, ni clé, ni jeton — seulement
+des états (oui / non, nombre, version). Cet écran finira en capture dans une discussion ; il doit
+pouvoir y finir sans dommage.
+{% endcomment %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">{% translate "Gouvernance · superadministrateur" %}</p>
+    <h2 class="entete-page__titre">{% translate "Santé technique" %}</h2>
+    <p class="entete-page__phrase">{% translate "Ce qui doit être vrai en production, vérifié à l'instant sur la base réelle." %}</p>
+  </div>
+  <div class="entete-page__actions">
+    {% if alertes %}
+      <span class="puce puce--critique t-puce-grande"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% blocktranslate count alertes=alertes trimmed %}{{ alertes }} point à corriger{% plural %}{{ alertes }} points à corriger{% endblocktranslate %}</span>
+    {% else %}
+      <span class="puce puce--bon t-puce-grande"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Tout est en ordre" %}</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grille-console">
+  <section class="carte col-7">
+    <header class="carte__entete">
+      <h2 class="t-section">{% translate "Barrière 3 — sécurité au niveau ligne" %}</h2>
+      {% if not rls.verifiable %}
+        <span class="puce"><svg aria-hidden="true"><use href="#ic-info"></use></svg>{% translate "Non vérifiable" %}</span>
+      {% elif rls.defaillantes or rls.oubliees or rls.contourne %}
+        <span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% translate "Défaillante" %}</span>
+      {% else %}
+        <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "En place" %}</span>
+      {% endif %}
+    </header>
+    <div class="carte__corps colonne">
+      {% if rls.verifiable %}
+        <div class="t-sante">
+          <div class="t-sante__chiffre"><strong>{{ rls.protegees }}</strong><span class="t-legende">{% blocktranslate with attendues=rls.attendues trimmed %}sur {{ attendues }} tables scopées protégées{% endblocktranslate %}</span></div>
+          <div class="t-sante__chiffre">
+            {% if rls.contourne %}<strong class="t-critique">{% translate "Oui" %}</strong>{% else %}<strong>{% translate "Non" %}</strong>{% endif %}
+            <span class="t-legende">{% translate "le rôle applicatif contourne les politiques (SUPERUSER ou BYPASSRLS)" %}</span>
+          </div>
+        </div>
+        {% if rls.contourne %}
+          <div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+            <span>{% translate "Les politiques existent mais sont ignorées pour ce rôle : la barrière ne protège rien. Correctif :" %} <code>{% translate "ALTER ROLE … NOSUPERUSER NOBYPASSRLS;" %}</code> {% translate "— acceptable en développement local, jamais en production." %}</span></div>
+        {% endif %}
+        {% if rls.defaillantes %}
+          <ul class="t-liste-technique">
+            {% for table, motif in rls.defaillantes %}<li><code>{{ table }}</code><span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{{ motif }}</span></li>{% endfor %}
+          </ul>
+        {% endif %}
+      {% else %}
+        <p class="t-2">{{ rls.raison }}</p>
+      {% endif %}
+      {% if rls.oubliees %}
+        <div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+          <span>{% translate "Modèles scopés absents de" %} <code>{% translate "TABLES_SCOPEES" %}</code> : {{ rls.oubliees|join:", " }}.</span></div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="carte col-5">
+    <header class="carte__entete">
+      <h2 class="t-section">{% translate "Déploiement" %}</h2>
+    </header>
+    <div class="carte__corps">
+      <dl class="cles">
+        <dt>{% translate "Commit" %}</dt><dd>{% if deploiement.commit %}<code>{{ deploiement.commit }}</code>{% else %}<span class="t-muet">{% translate "non renseigné (hors Vercel)" %}</span>{% endif %}</dd>
+        {% if deploiement.branche %}<dt>{% translate "Branche" %}</dt><dd><code>{{ deploiement.branche }}</code></dd>{% endif %}
+        {% if deploiement.environnement %}<dt>{% translate "Environnement" %}</dt><dd>{{ deploiement.environnement }}</dd>{% endif %}
+        <dt>{% translate "Moteur de base" %}</dt><dd>{{ versions.moteur }}</dd>
+        <dt>{% translate "Django" %}</dt><dd>{{ versions.django }}</dd>
+        <dt>{% translate "Python" %}</dt><dd>{{ versions.python }}</dd>
+        <dt>{% translate "Migrations" %}</dt>
+        <dd>
+          {% if not migrations.verifiable %}<span class="t-muet">{% translate "non vérifiable" %}</span>
+          {% elif migrations.liste %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% blocktranslate count liste=migrations.liste|length trimmed %}{{ liste }} non appliquée{% plural %}{{ liste }} non appliquées{% endblocktranslate %}</span>
+          {% else %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Toutes appliquées" %}</span>{% endif %}
+        </dd>
+      </dl>
+      {% if migrations.liste %}
+        <ul class="t-liste-technique t-bloc-haut">{% for m in migrations.liste %}<li><code>{{ m }}</code></li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="carte col-7">
+    <header class="carte__entete"><h2 class="t-section">{% translate "Réglages sensibles" %}</h2></header>
+    <div class="tableau-boite">
+      <table class="tableau">
+        <thead><tr><th scope="col">{% translate "Réglage" %}</th><th scope="col">{% translate "Valeur" %}</th><th scope="col" class="t-cache-moyen">{% translate "Pourquoi il compte" %}</th></tr></thead>
+        <tbody>
+          {% for r in reglages %}
+            <tr>
+              <td><code>{{ r.nom }}</code></td>
+              <td>{% if r.bon is None %}<span class="puce" title="{% translate 'Sans objet en développement' %}"><svg aria-hidden="true"><use href="#ic-info"></use></svg>{{ r.valeur }}</span>{% elif r.bon %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{{ r.valeur }}</span>{% else %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{{ r.valeur }}</span>{% endif %}</td>
+              <td class="t-cache-moyen t-2 t-petit">{{ r.aide }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="carte col-5">
+    <header class="carte__entete"><h2 class="t-section">{% translate "Volumes" %}</h2></header>
+    <div class="carte__corps">
+      <dl class="cles t-volumes">
+        {% for libelle, n in volumes %}<dt>{{ libelle }}</dt><dd class="chiffre">{{ n|fcfa }}</dd>{% endfor %}
+      </dl>
+    </div>
+  </section>
+</div>
+{% endblock %}

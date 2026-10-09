@@ -1,0 +1,37 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "pip install --disable-pip-version-check -r requirements.txt",
+  "buildCommand": "bash infrastructure/construire_sans_serveur.sh",
+  "outputDirectory": "sortie_vide",
+  "regions": [
+    "pdx1"
+  ],
+  "crons": [
+    {
+      "path": "/taches/quotidiennes/",
+      "schedule": "17 4 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "functions": {
+    "api/index.py": {
+      "memory": 1024,
+      "maxDuration": 30,
+      "includeFiles": "{apps,config,templates,staticfiles}/**"
+    }
+  },
+  "env": {
+    "DEBUG": "False",
+    "SANS_SERVEUR": "True",
+    "AFFICHER_COMPTE_DEMO": "True",
+    "CELERY_TASK_ALWAYS_EAGER": "True",
+    "SECURE_SSL_REDIRECT": "False",
+    "SECURE_HSTS_SECONDS": "3600"
+  }
+}

@@ -1,0 +1,177 @@
+{% load static i18n marche %}<!doctype html>
+{% get_current_language as LANGUE %}
+{% comment %}
+Gabarit de toutes les pages du marché (docs/26-design-system-marche.md).
+
+Feuille propre au marché (`static/css/marche.css`, compilée par Tailwind) : la vitrine n'emprunte
+plus rien au back-office, pour que l'une puisse évoluer sans casser l'autre. Seul le sprite
+d'icônes est partagé.
+
+Thème : la vitrine suit la préférence du système. Le bouton de thème permet de forcer clair ou
+sombre ; le choix est gardé dans le navigateur (`localStorage`) et restauré **avant** le premier
+rendu, pour éviter l'éclair de la mauvaise couleur.
+{% endcomment %}
+<html lang="{{ LANGUE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#00806A" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0F0C" media="(prefers-color-scheme: dark)">
+<title>{% block titre %}HyperMarché{% endblock %}</title>
+<meta name="description" content="{% block description %}{% translate "Les commerçants de Douala et Yaoundé, leurs prix affichés, livrés par celui qui vend. Paiement Mobile Money protégé." %}{% endblock %}">
+{% block meta %}{% endblock %}
+<script>
+  (function () {
+    var racine = document.documentElement;
+    racine.classList.add("js");
+    try {
+      var t = localStorage.getItem("hm-theme-marche");
+      if (t === "light" || t === "dark") racine.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<link rel="preload" href="{% static 'fonts/plus-jakarta-sans-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{% static 'fonts/bricolage-grotesque-800-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{% static 'css/marche.css' %}">
+{% include "partials/charte.html" %}
+{% include "partials/icones_marque.html" %}
+{# Aperçu de partage (WhatsApp, Facebook) : c'est par là que le marché circule à Douala. #}
+<meta property="og:site_name" content="HyperMarché">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="{% if LANGUE == 'en' %}en_US{% else %}fr_FR{% endif %}">
+<meta property="og:title" content="{% block og_titre %}{% translate 'HyperMarché — le marché de Douala et Yaoundé, livré chez vous' %}{% endblock %}">
+<meta property="og:description" content="{% translate 'Les commerçants de Douala et Yaoundé, leurs prix affichés, livrés par celui qui vend. Paiement Mobile Money protégé.' %}">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'marque/partage-1200x630.png' %}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<script src="{% static 'js/marche.js' %}" defer></script>
+</head>
+<body class="flex min-h-screen flex-col overflow-x-clip">
+{% include "partials/icones.html" %}
+{% include "marche/icones.html" %}
+<a class="evitement" href="#contenu">{% translate "Aller au contenu" %}</a>
+
+<header class="sticky top-0 z-30 border-b border-line/80 bg-bg/85 backdrop-blur-md supports-[backdrop-filter]:bg-bg/75">
+  <div class="mx-auto flex max-w-contenu items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 lg:px-8">
+    <a class="group flex shrink-0 items-center rounded-lg" href="{% url 'vitrine_accueil' %}" aria-label="{% translate 'HyperMarché, accueil du marché' %}">
+      {% include "marche/logo.html" with hauteur="h-9" %}
+    </a>
+
+    <form class="relative hidden flex-1 md:block" method="get" action="{% url 'vitrine_catalogue' %}" role="search">
+      <label class="sr-only" for="recherche-entete">{% translate "Chercher dans le marché" %}</label>
+      {% icone "recherche" "pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-ink-muted" %}
+      <input class="input rounded-full pl-11" id="recherche-entete" type="search" name="q" value="{{ recherche }}"
+             placeholder="{% translate 'Un article, une marque, une référence…' %}" autocomplete="off" enterkeyhint="search">
+    </form>
+
+    <div class="ml-auto flex items-center gap-1 sm:gap-2">
+      <form action="{% url 'set_language' %}" method="post" class="flex items-center rounded-full border border-line bg-surface p-0.5" aria-label="{% translate 'Langue' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% get_available_languages as LANGUES %}
+        {% for code, nom in LANGUES %}
+          <button class="h-8 min-w-9 rounded-full px-2 text-xs font-bold uppercase transition-colors {% if code == LANGUE %}bg-ink text-ink-inverse{% else %}text-ink-muted hover:text-ink{% endif %}"
+                  type="submit" name="language" value="{{ code }}" lang="{{ code }}"
+                  aria-pressed="{% if code == LANGUE %}true{% else %}false{% endif %}" title="{{ nom }}">{{ code }}</button>
+        {% endfor %}
+      </form>
+
+      <button class="btn btn-ghost btn-sm btn-icone" type="button" data-theme-bascule
+              data-libelle-systeme="{% translate 'Thème : automatique. Passer au thème clair' %}"
+              data-libelle-clair="{% translate 'Thème : clair. Passer au thème sombre' %}"
+              data-libelle-sombre="{% translate 'Thème : sombre. Revenir au thème automatique' %}"
+              aria-label="{% translate 'Changer de thème' %}">
+        {% icone "systeme" "size-5" %}
+      </button>
+
+      <a class="btn btn-outline btn-md relative" href="{% url 'vitrine_panier' %}"
+         aria-label="{% if articles_au_panier %}{% blocktranslate count n=articles_au_panier %}Panier, {{ n }} article{% plural %}Panier, {{ n }} articles{% endblocktranslate %}{% else %}{% translate 'Panier, vide' %}{% endif %}">
+        {% icone "panier" "size-5" %}
+        <span class="hidden sm:inline">{% translate "Panier" %}</span>
+        {% if articles_au_panier %}
+          <span class="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-2xs font-extrabold text-accent-on ring-2 ring-bg" aria-hidden="true" data-pastille-panier>{{ articles_au_panier }}</span>
+        {% endif %}
+      </a>
+    </div>
+  </div>
+
+  <div class="px-4 pb-3 md:hidden">
+    <form class="relative" method="get" action="{% url 'vitrine_catalogue' %}" role="search">
+      <label class="sr-only" for="recherche-mobile">{% translate "Chercher dans le marché" %}</label>
+      {% icone "recherche" "pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-ink-muted" %}
+      <input class="input rounded-full pl-11" id="recherche-mobile" type="search" name="q" value="{{ recherche }}"
+             placeholder="{% translate 'Chercher un article…' %}" autocomplete="off" enterkeyhint="search">
+    </form>
+  </div>
+
+  {% block rayons %}
+    <nav class="relative border-t border-line/70" aria-label="{% translate 'Rayons du marché' %}">
+      <ul class="defilement-discret mx-auto flex max-w-contenu items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8">
+        <li class="hidden lg:block">
+          <a class="puce-nav gap-1.5 border-ink bg-ink text-ink-inverse hover:text-ink-inverse" href="{% url 'vitrine_catalogue' %}"
+             data-megamenu-bouton aria-expanded="false" aria-controls="megamenu">
+            {% icone "tableau" "size-4" %}{% translate "Rayons" %}{% icone "chevron" "size-3.5 rotate-90 transition-transform" %}
+          </a>
+        </li>
+        <li class="lg:hidden">
+          <a class="puce-nav gap-1.5 border-ink bg-ink text-ink-inverse hover:text-ink-inverse" href="{% url 'vitrine_catalogue' %}" data-modale-ouvrir="feuille-rayons">
+            {% icone "tableau" "size-4" %}{% translate "Rayons" %}
+          </a>
+        </li>
+        <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}" {% if request.resolver_match.url_name == "vitrine_catalogue" and not rayon_courant and not recherche %}aria-current="page"{% endif %}>{% translate "Tout le marché" %}</a></li>
+        {% for r in rayons %}
+          <li><a class="puce-nav" href="{% url 'vitrine_catalogue' %}?rayon={{ r.code }}" {% if rayon_courant and rayon_courant.code == r.code %}aria-current="page"{% endif %}>{{ r.libelle_affiche }}</a></li>
+        {% endfor %}
+      </ul>
+      {% include "marche/megamenu.html" %}
+    </nav>
+  {% endblock %}
+</header>
+
+<main id="contenu" class="mx-auto w-full max-w-contenu flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:px-8" tabindex="-1">
+  {% if messages %}
+    <div class="mb-6 flex flex-col gap-2" role="status" aria-live="polite">
+      {% for message in messages %}
+        <div class="bandeau {% if message.tags == 'error' %}bandeau-erreur{% elif message.tags == 'success' %}bandeau-succes{% elif message.tags == 'warning' %}bandeau-alerte{% else %}bandeau-info{% endif %}"{% if message.tags == 'success' %} data-message-succes{% endif %}>
+          {% if message.tags == 'error' %}{% icone "alerte" %}{% else %}{% icone "check" %}{% endif %}
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block contenu %}{% endblock %}
+</main>
+
+<footer class="border-t border-line bg-surface">
+  <div class="mx-auto grid max-w-contenu gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr] lg:px-8">
+    <div class="flex flex-col gap-3">
+      {% include "marche/logo.html" with hauteur="h-8" toujours_complet=True %}
+      <p class="max-w-md text-sm text-ink-muted">
+        {% translate "Place de marché camerounaise. Chaque article est vendu par le commerçant nommé sur sa fiche, qui en assure la livraison." %}
+      </p>
+    </div>
+    <div class="flex flex-col gap-2 text-sm">
+      <span class="sur-titre">{% translate "Acheter" %}</span>
+      <a class="text-ink-muted hover:text-ink" href="{% url 'vitrine_catalogue' %}">{% translate "Tout le marché" %}</a>
+      <a class="text-ink-muted hover:text-ink" href="{% url 'vitrine_panier' %}">{% translate "Votre panier" %}</a>
+    </div>
+    <div class="flex flex-col gap-2 text-sm">
+      <span class="sur-titre">{% translate "Vendre" %}</span>
+      <a class="text-ink-muted hover:text-ink" href="{% url 'connexion' %}">{% translate "Espace commerçant" %}</a>
+      <a class="text-ink-muted hover:text-ink" href="{% url 'vitrine_design_system' %}">{% translate "Design system" %}</a>
+    </div>
+  </div>
+  <div class="border-t border-line">
+    <p class="mx-auto max-w-contenu px-4 py-4 text-xs text-ink-muted sm:px-6 lg:px-8">
+      {% icone "verrou" "inline size-3.5 align-[-2px]" %}
+      {% translate "Paiement protégé : l'argent payé en ligne reste en séquestre jusqu'à votre confirmation de réception. HyperMarché ne vous demandera jamais de payer sur un numéro personnel." %}
+    </p>
+  </div>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

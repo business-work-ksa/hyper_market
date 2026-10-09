@@ -1,0 +1,23 @@
+{% load marche %}{% comment %}
+Composant — Bouton (docs/26, §4.1)
+
+Paramètres :
+  libelle    texte visible (obligatoire, même avec une icône)
+  variante   primary | secondary | outline | ghost | accent        (défaut : primary)
+  taille     sm | md | lg                                          (défaut : md)
+  href       rend un lien <a> au lieu d'un <button>
+  type       submit | button                                       (défaut : submit)
+  icone      nom d'icône du sprite, posée avant le libellé
+  bloc       pleine largeur
+  desactive  désactivé (attribut `disabled`, ou `aria-disabled` sur un lien)
+  nom, valeur  attributs name/value du bouton (formulaires à plusieurs actions)
+
+Quand l'utiliser : toute action. `primary` pour l'action principale de la zone (une seule),
+`accent` pour l'achat (ajouter au panier, commander, payer), `secondary`/`outline` pour les
+alternatives, `ghost` pour les actions tertiaires dans une barre d'outils.
+Quand ne pas l'utiliser : pour naviguer dans un texte (un lien souligné suffit) ; deux `primary`
+côte à côte (l'œil ne sait plus lequel est le bon).
+Accessibilité : libellé visible obligatoire ; un bouton-icône exige `aria-label` (utiliser alors la
+classe `.btn-icone` directement) ; cible ≥ 44 px en `md` et `lg` ; focus visible fourni par le
+socle ; état occupé : `aria-busy="true"` (posé par marche.js à l'envoi d'un formulaire).
+{% endcomment %}{% if href %}<a class="btn btn-{{ variante|default:'primary' }} btn-{{ taille|default:'md' }}{% if bloc %} btn-bloc{% endif %}" href="{{ href }}"{% if desactive %} aria-disabled="true" tabindex="-1"{% endif %}>{% if icone %}{% icone icone %}{% endif %}<span>{{ libelle }}</span></a>{% else %}<button class="btn btn-{{ variante|default:'primary' }} btn-{{ taille|default:'md' }}{% if bloc %} btn-bloc{% endif %}" type="{{ type|default:'submit' }}"{% if nom %} name="{{ nom }}" value="{{ valeur }}"{% endif %}{% if desactive %} disabled{% endif %}>{% if icone %}{% icone icone %}{% endif %}<span>{{ libelle }}</span></button>{% endif %}

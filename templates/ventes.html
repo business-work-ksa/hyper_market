@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Ventes — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Ventes" %}{% endblock %}
+
+{% block actions_entete %}
+  {% if 'caisse.encaisser' in droits %}
+    <a class="btn btn--primaire" href="{% url 'caisse' %}">
+      <svg><use href="#ic-caisse"></use></svg> {% translate "Nouvelle vente" %}
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block contenu %}
+<div class="colonne">
+  <section class="tuiles">
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-ventes"></use></svg><span class="t-sur-titre">{% translate "Tickets affichés" %}</span></div>
+      <p class="tuile__valeur">{{ tickets|length }}</p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Ventes clôturées les plus récentes" %}</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-argent"></use></svg><span class="t-sur-titre">{% translate "Total encaissé" %}</span></div>
+      <p class="tuile__valeur">{{ total_periode|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Toutes taxes comprises" %}</span></p>
+    </article>
+    <article class="tuile">
+      <div class="tuile__libelle"><svg><use href="#ic-compta"></use></svg><span class="t-sur-titre">{% translate "TVA collectée" %}</span></div>
+      <p class="tuile__valeur">{{ tva_periode|fcfa }}<span class="unite">FCFA</span></p>
+      <p class="tuile__note"><span class="t-muet">{% translate "Reportée automatiquement au compte 4431" %}</span></p>
+    </article>
+  </section>
+
+  {% comment %}
+  Journal en ajout seul : ni création, ni modification, ni suppression. Une vente
+  encaissée ne se corrige pas, elle se contre-passe — la barre le dit plutôt que
+  de proposer des boutons qui refuseraient.
+  {% endcomment %}
+  <section class="carte tableau-panneau">
+    {% include "partials/tableau_barre.html" with nom="vente" noms="ventes" titre=_("Journal des ventes") filtres_id="filtres-ventes" filtres_actifs=filtres.actifs aide=_("Journal en ajout seul : une vente encaissée ne se modifie ni ne se supprime. Ouvrez un ticket pour le détail.") %}
+    <div class="carte__corps--serre">
+      <div class="tableau-boite tableau-boite--haute">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Ticket" %}</th>
+              <th scope="col">{% translate "Date" %}</th>
+              <th scope="col">{% translate "Caissier" %}</th>
+              <th scope="col">{% translate "Articles" %}</th>
+              <th scope="col" class="num">{% translate "Hors taxes" %}</th>
+              <th scope="col" class="num">TVA</th>
+              <th scope="col" class="num">{% translate "Total" %}</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in tickets %}
+              <tr>
+                <td class="principal chiffre">{{ ticket.numero }}</td>
+                <td class="t-2 chiffre">{{ ticket.cloture_le|date:"d/m/Y H:i" }}</td>
+                <td class="t-2">{{ ticket.session.caissier.nom_complet }}</td>
+                <td class="t-2">
+                  {% for ligne in ticket.lignes_affichees|slice:":2" %}
+                    {{ ligne.libelle|truncatechars:24 }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                  {% if ticket.lignes_affichees|length > 2 %}
+                    <span class="t-muet">+{{ ticket.lignes_affichees|length|add:"-2" }}</span>
+                  {% endif %}
+                </td>
+                <td class="num t-2">{{ ticket.total_ht|fcfa }}</td>
+                <td class="num t-2">{{ ticket.total_tva|fcfa }}</td>
+                <td class="num" style="font-weight:620">{{ ticket.total_ttc|fcfa }}</td>
+                <td class="num">
+                  <a class="btn btn--discret" href="{% url 'ticket' ticket.pk %}">{% translate "Ticket" %}</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="8"><div class="vide"><svg><use href="#ic-ventes"></use></svg>
+                <p class="t-2">{% translate "Aucune vente ne correspond." %}</p>
+                {% if filtres.actifs %}<a class="btn" href="{% url 'ventes' %}">{% translate "Retirer les filtres" %}</a>{% endif %}
+                </div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {% include "partials/modal_filtres.html" with id="filtres-ventes" formulaire=filtres action=url_ventes titre=_("Filtrer les ventes") aide=_("Le journal se lit par le haut : sans filtre, ce sont les soixante ventes les plus récentes.") %}
+</div>
+{% endblock %}

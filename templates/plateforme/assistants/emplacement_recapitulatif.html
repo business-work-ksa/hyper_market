@@ -1,0 +1,12 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Emplacements premium" %}{% endblock %}
+{% block question %}{% translate "Relisez, puis vendez" %}{% endblock %}
+{% block phrase %}{% translate "Rien n'est encore enregistré. La vente sera inscrite au journal des accès, à votre nom." %}{% endblock %}
+{% block avant_formulaire %}{% include "plateforme/partials/a_recap.html" %}{% endblock %}
+{% block etape %}
+  <p class="t-2 a-trace">
+    <svg class="icone-ligne" aria-hidden="true"><use href="#ic-journal"></use></svg>
+    {% translate "En confirmant, l'emplacement est enregistré à ce prix et compté dans la recette du marché." %}
+  </p>
+{% endblock %}

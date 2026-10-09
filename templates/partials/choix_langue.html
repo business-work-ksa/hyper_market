@@ -1,0 +1,14 @@
+{% load i18n %}{% comment %}
+Le choix de la langue, dans le back-office, la console et la page de connexion (le marché a le
+sien, `vitrine/base.html`). Un formulaire POST vers `set_language` : le cookie `hm_langue` est posé
+et la personne revient sur l'écran qu'elle quittait. Chaque bouton porte son code dans sa propre
+langue (`lang`) pour qu'un lecteur d'écran le prononce correctement.
+{% endcomment %}{% get_current_language as langue_courante %}{% get_available_languages as langues %}
+<form class="choix-langue" action="{% url 'set_language' %}" method="post" aria-label="{% translate 'Langue' %}">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  {% for code, nom in langues %}
+    <button class="choix-langue__option" type="submit" name="language" value="{{ code }}" lang="{{ code }}"
+            aria-pressed="{% if code == langue_courante %}true{% else %}false{% endif %}" title="{{ nom }}">{{ code }}</button>
+  {% endfor %}
+</form>

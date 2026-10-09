@@ -1,0 +1,110 @@
+{% load i18n %}{% comment %}
+Barre d'outils d'un tableau de données, et sa ligne d'assistance.
+
+À inclure **dans** un `<section class="carte tableau-panneau" data-tableau …>`,
+juste avant le tableau : `static/js/tableau.js` cherche ses boutons dans ce
+panneau-là, et la boîte de suppression doit y être aussi.
+
+Paramètres — tous facultatifs sauf `nom` et `noms` :
+
+  nom, noms        singulier et pluriel de ce qu'une ligne représente
+  accord           « e » si le nom est féminin (« sélectionnée »)
+  titre            intitulé à gauche de la barre
+  creer_url        lien de création ; absent, le bouton n'existe pas
+  creer_libelle    son libellé
+  modifier_libelle défaut « Modifier » ; l'URL est portée par la ligne
+  supprimer_url    point d'entrée POST recevant `ids` ; absent, pas de bouton
+  supprimer_libelle défaut « Supprimer »
+  filtres_id       identifiant de la boîte de filtres à ouvrir
+  filtres_actifs   nombre de filtres réellement posés, pour la pastille
+  aide             phrase affichée quand rien n'est sélectionné
+
+Les boutons contextuels sont **désactivés dans le HTML** et réveillés par le
+script. Sans JavaScript, la page reste lisible et les liens de ligne marchent :
+elle ne promet simplement pas des gestes qu'elle ne saurait pas tenir.
+{% endcomment %}
+
+<div class="tableau-barre">
+  {% if titre %}<span class="tableau-barre__titre">{{ titre }}</span>{% endif %}
+
+  {% comment %}
+  `creer_url` accepte une route **ou** un identifiant de boîte de dialogue
+  (« #modale-… »). Une création qui demande un écran entier — un article et son
+  stock initial — mérite sa page ; rattacher quelqu'un à l'équipe n'en mérite
+  pas une, et la boîte laisse la liste en place derrière elle.
+  {% endcomment %}
+  {% if creer_url %}
+    {% if creer_url|slice:":1" == "#" %}
+      <button class="btn btn--primaire" type="button" data-ouvre="{{ creer_url|slice:'1:' }}">
+        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:_("Nouveau") }}
+      </button>
+    {% else %}
+      <a class="btn btn--primaire" href="{{ creer_url }}">
+        <svg><use href="#ic-plus"></use></svg> {{ creer_libelle|default:_("Nouveau") }}
+      </a>
+    {% endif %}
+  {% endif %}
+
+  {% if creer_url and modifier_possible %}<span class="tableau-barre__separateur"></span>{% endif %}
+
+  {% if modifier_possible %}
+    <button class="btn" type="button" data-action="modifier" disabled
+            title="{% translate 'Sélectionnez une ligne à modifier.' %}">
+      <svg><use href="#ic-crayon"></use></svg> {{ modifier_libelle|default:_("Modifier") }}
+    </button>
+  {% endif %}
+
+  {% if supprimer_url %}
+    <button class="btn btn--danger" type="button" data-action="supprimer" disabled
+            title="{% translate 'Sélectionnez au moins une ligne à supprimer.' %}">
+      <svg><use href="#ic-corbeille"></use></svg> {{ supprimer_libelle|default:_("Supprimer") }}
+    </button>
+  {% endif %}
+
+  {% if filtres_id %}
+    <button class="btn pousse" type="button" data-ouvre="{{ filtres_id }}">
+      <svg><use href="#ic-filtre"></use></svg> {% translate "Filtres" %}
+      {% if filtres_actifs %}<span class="pastille-compteur">{{ filtres_actifs }}</span>{% endif %}
+    </button>
+  {% endif %}
+</div>
+
+{% comment %}
+La ligne d'assistance occupe sa place en permanence, même vide : la faire
+apparaître ferait sauter le tableau de quinze pixels à chaque clic.
+{% endcomment %}
+<div class="tableau-assistance" data-assistance data-selection="0" role="status"
+     data-aide="{{ aide|default:_('Sélectionnez une ligne pour agir dessus.') }}">
+  <svg><use href="#ic-info"></use></svg>
+  <span data-assistance-texte>{{ aide|default:_("Sélectionnez une ligne pour agir dessus.") }}</span>
+</div>
+
+{% if supprimer_url %}
+  <dialog class="modale" data-modale="supprimer" aria-labelledby="titre-suppr-{{ nom }}">
+    <form method="post" action="{{ supprimer_url }}">
+      {% csrf_token %}
+      <input type="hidden" name="suite" value="{{ request.get_full_path }}">
+      <header class="modale__entete">
+        <h2 class="t-section" id="titre-suppr-{{ nom }}">{% translate "Supprimer" %} <span data-compte></span> ?</h2>
+      </header>
+      <div class="modale__corps colonne" style="gap:14px">
+        {% comment %}
+        Les lignes visées sont **nommées**, pas comptées. « Supprimer 3 éléments ? »
+        ne permet pas de vérifier qu'on n'a pas attrapé une ligne de trop en
+        passant sur la case « tout sélectionner ».
+        {% endcomment %}
+        <ul class="liste-visee" data-visees></ul>
+        <div data-identifiants hidden></div>
+        <p class="t-legende">
+          {{ avertissement_suppression|default:_("Cette suppression est définitive.") }}
+        </p>
+      </div>
+      <footer class="modale__pied">
+        <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+        <button class="btn btn--danger-plein" type="submit" data-valider>
+          <svg><use href="#ic-corbeille"></use></svg> {% translate "Supprimer" %}
+        </button>
+      </footer>
+    </form>
+  </dialog>
+{% endif %}

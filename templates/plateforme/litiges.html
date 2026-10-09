@@ -1,0 +1,72 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% load static hm %}
+{% block titre %}{% translate "Litiges" %}{% endblock %}
+{% block entete %}{% translate "Litiges" %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-litiges.css' %}">{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">{% translate "Médiation acheteur ↔ marchand" %}</p>
+    <h2 class="entete-page__titre">{% translate "Litiges" %}</h2>
+    <p class="entete-page__phrase">
+      {% blocktranslate trimmed %}Chaque litige gèle la part contestée : ni libérée, ni remboursée, jusqu'à votre décision.
+      L'engagement pris envers l'acheteur est une décision motivée sous 72 heures.{% endblocktranslate %}
+    </p>
+  </div>
+</div>
+
+<section class="kpis" aria-label="{% translate 'Litiges' %}">
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--alerte"><svg aria-hidden="true"><use href="#ic-verrou"></use></svg></span>{% translate "En cours" %}</span>
+    <span class="kpi__valeur">{{ nb_en_cours }}</span>
+    <span class="kpi__pied">{% blocktranslate with montant_gele=montant_gele|fcfa trimmed %}{{ montant_gele }} FCFA gelés{% endblocktranslate %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>{% translate "Au-delà de 72 h" %}</span>
+    <span class="kpi__valeur">{{ nb_en_retard }}</span>
+    <span class="kpi__pied">{% if nb_en_retard %}{% translate "À trancher en priorité" %}{% else %}{% translate "Aucun retard" %}{% endif %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg></span>{% translate "Tranchés" %}</span>
+    <span class="kpi__valeur">{{ nb_tranches }}</span>
+    <span class="kpi__pied">{% translate "Décisions motivées, consignées" %}</span>
+  </div>
+</section>
+
+<nav class="onglets" aria-label="{% translate 'Filtrer les litiges' %}" style="margin-top:18px">
+  <a class="onglet" href="?vue=en_cours" {% if vue == 'en_cours' %}aria-current="page"{% endif %}>{% translate "En cours" %}<span class="onglet__compte">{{ nb_en_cours }}</span></a>
+  <a class="onglet" href="?vue=tranches" {% if vue != 'en_cours' %}aria-current="page"{% endif %}>{% translate "Tranchés" %}<span class="onglet__compte">{{ nb_tranches }}</span></a>
+</nav>
+
+<section class="carte">
+  {% if litiges %}
+    <div class="file">
+      {% for litige in litiges %}
+        <a class="file__ligne" href="{% url 'plateforme:litige' litige.pk %}">
+          <span class="monogramme" aria-hidden="true">{{ litige.boutique.enseigne|initiales }}</span>
+          <span class="file__corps">
+            <span class="file__titre">{{ litige.sous_commande.commande.numero }} · {{ litige.boutique.enseigne }}</span>
+            <span class="t-legende l-ligne-meta">
+              <span>{{ litige.get_motif_display }}</span>
+              <span>{% blocktranslate with cree_le=litige.cree_le|date:"d/m/Y H:i" trimmed %}ouvert le {{ cree_le }}{% endblocktranslate %}</span>
+              {% if litige.tranche_le %}<span>{% blocktranslate with tranche_le=litige.tranche_le|date:"d/m/Y" trimmed %}tranché le {{ tranche_le }}{% endblocktranslate %}</span>{% endif %}
+            </span>
+          </span>
+          {% if litige.sequestre_vu %}<span class="l-montant">{{ litige.sequestre_vu.montant_encaisse|fcfa }} <span class="unite">FCFA</span></span>{% endif %}
+          {% if litige.en_cours %}{% include "plateforme/partials/l_age.html" with age=litige.age %}{% endif %}
+          {% include "plateforme/partials/l_statut_litige.html" %}
+          <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vide">
+      <svg aria-hidden="true"><use href="#ic-check"></use></svg>
+      <p class="t-section">{% if vue == 'en_cours' %}{% translate "Aucun litige en cours" %}{% else %}{% translate "Aucun litige tranché" %}{% endif %}</p>
+      <p class="t-legende">{% translate "Les réclamations des acheteurs arrivent ici dès leur ouverture." %}</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

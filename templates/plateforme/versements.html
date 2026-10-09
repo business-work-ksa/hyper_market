@@ -1,0 +1,64 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% load static hm %}
+{% block titre %}{% translate "Versements" %}{% endblock %}
+{% block entete %}{% translate "Versements aux marchands" %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-litiges.css' %}">{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">{% translate "Le dernier mètre de l'argent" %}</p>
+    <h2 class="entete-page__titre">{% translate "Versements" %}</h2>
+    <p class="entete-page__phrase">
+      {% blocktranslate trimmed %}Chaque versement part vers la destination figée à la demande — le compte vérifié de la
+      boutique, sorti de carence. Exécuter, c'est constater le virement fait chez l'opérateur ou
+      l'agrégateur, en saisissant sa référence. Un versement ne se supprime jamais : il s'annule,
+      motivé.{% endblocktranslate %}
+    </p>
+  </div>
+</div>
+
+<section class="kpis" aria-label="{% translate 'Versements' %}">
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone kpi__icone--or"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>{% translate "À exécuter" %}</span>
+    <span class="kpi__valeur">{{ nb_a_executer }}</span>
+    <span class="kpi__pied">{{ total_a_executer|fcfa }} FCFA</span>
+  </div>
+</section>
+
+<nav class="onglets" aria-label="{% translate 'Filtrer les versements' %}" style="margin-top:18px">
+  <a class="onglet" href="?vue=a_executer" {% if vue == 'a_executer' %}aria-current="page"{% endif %}>{% translate "À exécuter" %}<span class="onglet__compte">{{ nb_a_executer }}</span></a>
+  <a class="onglet" href="?vue=passes" {% if vue != 'a_executer' %}aria-current="page"{% endif %}>{% translate "Exécutés et annulés" %}<span class="onglet__compte">{{ nb_passes }}</span></a>
+</nav>
+
+<section class="carte">
+  {% if versements %}
+    <div class="file">
+      {% for versement in versements %}
+        <a class="file__ligne" href="{% url 'plateforme:versement' versement.pk %}">
+          <span class="monogramme" aria-hidden="true">{{ versement.boutique.enseigne|initiales }}</span>
+          <span class="file__corps">
+            <span class="file__titre">{{ versement.boutique.enseigne }}</span>
+            <span class="t-legende l-ligne-meta">
+              <span>{{ versement.libelle_operateur }} <span class="chiffre">{{ versement.numero }}</span></span>
+              <span>{% blocktranslate with cree_le=versement.cree_le|date:"d/m/Y H:i" trimmed %}demandé le {{ cree_le }}{% endblocktranslate %}</span>
+              {% if versement.reference_operateur %}<span class="chiffre">{% blocktranslate with reference_operateur=versement.reference_operateur trimmed %}réf. {{ reference_operateur }}{% endblocktranslate %}</span>{% endif %}
+            </span>
+          </span>
+          <span class="l-montant">{{ versement.montant|fcfa }} <span class="unite">FCFA</span></span>
+          {% if versement.age %}{% include "plateforme/partials/l_age.html" with age=versement.age %}{% endif %}
+          {% include "plateforme/partials/l_statut_versement.html" %}
+          <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vide">
+      <svg aria-hidden="true"><use href="#ic-check"></use></svg>
+      <p class="t-section">{% if vue == 'a_executer' %}{% translate "Aucun versement à exécuter" %}{% else %}{% translate "Aucun versement passé" %}{% endif %}</p>
+      <p class="t-legende">{% translate "Les marchands demandent leurs versements depuis leur écran « Versements »." %}</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

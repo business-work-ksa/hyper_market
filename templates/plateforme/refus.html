@@ -1,0 +1,45 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Accès refusé" %}{% endblock %}
+{% block entete %}{% translate "Accès refusé" %}{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Un refus explicite, comme dans le back-office : l'écran existe, c'est le rôle qui le ferme. Un
+commerçant arrivé ici par erreur doit comprendre qu'il n'est pas dans sa boutique, pas que le
+logiciel est cassé.
+{% endcomment %}
+<section class="carte" style="max-width:600px">
+  <header class="carte__entete">
+    <h2 class="t-section">{% translate "Cet écran n'est pas ouvert à votre compte" %}</h2>
+    <span class="puce puce--alerte"><svg><use href="#ic-verrou"></use></svg>403</span>
+  </header>
+  <div class="carte__corps colonne" style="gap:16px">
+    {% if droits %}
+      <p class="t-2">{% translate "Vous êtes connecté comme" %} <strong>{{ niveau|lower }}</strong>{% translate ". Votre rôle ne porte pas ce droit." %}</p>
+    {% else %}
+      <p class="t-2">
+        {% blocktranslate trimmed %}La console de la plateforme est réservée au superadministrateur et aux administrateurs du
+        marché. Votre compte n'est ni l'un ni l'autre.{% endblocktranslate %}
+      </p>
+    {% endif %}
+    <div class="colonne" style="gap:8px">
+      <p class="t-sur-titre">{% translate "Ce que cet écran demande" %}</p>
+      {% for manquant in manquants %}
+        <span class="rangee" style="gap:8px">
+          <svg class="icone-ligne" style="color:var(--critique)"><use href="#ic-alerte"></use></svg>
+          <span class="t-corps">{{ manquant }}</span>
+        </span>
+      {% endfor %}
+    </div>
+    <p class="t-legende">
+      {% blocktranslate trimmed %}Les droits de la console sont attribués par le superadministrateur. Aucun d'eux n'ouvre les
+      chiffres d'une boutique : ceux-là restent à son gérant.{% endblocktranslate %}
+    </p>
+  </div>
+  <footer class="carte__pied rangee" style="gap:9px">
+    {% if droits %}<a class="btn btn--primaire" href="{% url 'plateforme:tableau_de_bord' %}">{% translate "Tableau de bord" %}</a>{% endif %}
+    <a class="btn" href="{% url 'deconnexion' %}">{% translate "Changer de compte" %}</a>
+  </footer>
+</section>
+{% endblock %}

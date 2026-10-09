@@ -1,0 +1,33 @@
+{% extends "vitrine/base.html" %}
+{% load i18n marche %}
+
+{% block titre %}{% include "vitrine/partials/titre_resultats.html" %}{% endblock %}
+
+{% block contenu %}
+{# ---- Bandeau : l'illustration du rayon, ou la scène du marché ---- #}
+<section class="relative isolate -mt-6 mb-6 overflow-hidden rounded-b-3xl sm:-mt-8 sm:rounded-3xl" aria-labelledby="catalogue-titre">
+  <img class="absolute inset-0 -z-10 size-full object-cover" data-parallaxe
+       src="{% if rayon_courant %}{% illustration_rayon rayon_courant.code %}{% else %}{% load static %}{% static 'marque/illustrations/marche.svg' %}{% endif %}"
+       alt="" width="1600" height="640" decoding="async" fetchpriority="high">
+  <div class="absolute inset-0 -z-10 bg-gradient-to-r from-bg via-bg/85 to-bg/10"></div>
+  <div class="flex min-h-[9rem] flex-col justify-center gap-1 px-5 py-8 sm:min-h-[11rem] sm:px-8">
+    <p class="sur-titre">{% if recherche %}{% translate "Recherche" %}{% elif rayon_courant %}{% translate "Rayon" %}{% else %}{% translate "Catalogue" %}{% endif %}</p>
+    <h1 class="max-w-xl text-3xl sm:text-4xl" id="catalogue-titre">{% if recherche %}« {{ recherche }} »{% elif rayon_courant %}{{ rayon_courant.libelle_affiche }}{% else %}{% translate "Tout le marché" %}{% endif %}</h1>
+  </div>
+</section>
+
+<p class="sr-only" aria-live="polite" data-catalogue-annonce data-chargement="{% translate 'Chargement des articles…' %}"></p>
+<div data-catalogue>
+  {% include "vitrine/partials/catalogue_corps.html" %}
+</div>
+
+<dialog class="tiroir" id="tiroir-filtres" aria-labelledby="tiroir-filtres-titre">
+  <div class="flex items-center justify-between border-b border-line px-5 py-4">
+    <h2 class="text-lg font-bold" id="tiroir-filtres-titre">{% translate "Filtres" %}</h2>
+    <button class="btn btn-ghost btn-sm btn-icone" type="button" data-modale-fermer aria-label="{% translate 'Fermer' %}">{% icone "fermer" %}</button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 py-5" data-tiroir-corps>{% include "vitrine/partials/filtres.html" with prefixe="tiroir-" %}</div>
+  <div class="border-t border-line px-5 py-4"><button class="btn btn-primary btn-md btn-bloc" type="button" data-modale-fermer>{% translate "Voir les résultats" %}</button></div>
+</dialog>
+{% include "marche/composants/squelette_grille.html" %}
+{% endblock %}

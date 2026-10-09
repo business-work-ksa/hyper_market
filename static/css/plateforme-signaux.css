@@ -1,0 +1,136 @@
+/* =====================================================================
+   HyperMarché — console : signaux de risque et carte « Confiance »
+   Chargée après hypermarche.css et plateforme.css, dont elle réutilise
+   les jetons. Aucune couleur en dur : les encres de statut (-encre)
+   gardent leur contraste dans les deux thèmes.
+
+   Une gravité se lit toujours par une icône ET un mot, jamais par la
+   couleur seule (docs/19, §2.2) : un administrateur daltonien trie la
+   même file que les autres.
+   ===================================================================== */
+
+/* ---- Gravité : pastille icône + mot ---- */
+.s-gravite {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 9px 0 7px;
+  border-radius: var(--r-pilule);
+  font-size: 11.5px; font-weight: 640; white-space: nowrap;
+}
+.s-gravite svg { width: 12px; height: 12px; flex-shrink: 0; }
+.s-gravite--critique { background: var(--critique-teinte); color: var(--critique-encre); }
+.s-gravite--alerte   { background: var(--alerte-teinte);   color: var(--alerte-encre); }
+.s-gravite--modere   { background: var(--surface-creuse);  color: var(--encre-2); box-shadow: inset 0 0 0 1px var(--filet); }
+
+/* ---- Décision : même principe ---- */
+.s-etat {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 9px 0 7px; border-radius: var(--r-pilule);
+  font-size: 11.5px; font-weight: 620; white-space: nowrap;
+  background: var(--surface-creuse); color: var(--encre-2);
+}
+.s-etat svg { width: 12px; height: 12px; }
+.s-etat--confirme { background: var(--critique-teinte); color: var(--critique-encre); }
+.s-etat--ecarte   { background: var(--bon-teinte); color: var(--bon-encre); }
+.s-etat--ouvert   { background: var(--or-teinte); color: var(--or-encre); }
+
+/* ---- Compteurs par gravité ---- */
+.s-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 16px; }
+
+/* ---- Filtres par type : des liens, chacun avec son adresse ---- */
+.s-types { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px; border-bottom: 1px solid var(--filet); }
+.s-type {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 11px; border-radius: var(--r-pilule);
+  font-size: 12.5px; font-weight: 560; color: var(--encre-2);
+  background: var(--surface-creuse);
+}
+.s-type:hover { color: var(--encre); background: var(--survol); }
+.s-type[aria-current="true"] { background: var(--marque-teinte); color: var(--marque-texte); }
+.s-type__compte { font-size: 11px; color: var(--encre-muette); font-variant-numeric: tabular-nums; }
+
+/* ---- La file ---- */
+.s-file { display: flex; flex-direction: column; }
+.s-ligne {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 4px 14px; align-items: start;
+  padding: 14px 16px; border-top: 1px solid var(--filet); color: var(--encre);
+  transition: background var(--t-rapide);
+}
+.s-ligne:first-child { border-top: 0; }
+.s-ligne:hover { background: var(--survol); }
+.s-ligne__corps { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.s-ligne__tete { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.s-ligne__boutique { font-weight: 640; }
+.s-ligne__resume { color: var(--encre-2); font-size: 13.5px; overflow-wrap: anywhere; }
+.s-ligne__pied { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--encre-muette); }
+.s-ligne__fin { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.s-score { font-size: 12px; color: var(--encre-muette); font-variant-numeric: tabular-nums; }
+
+.s-icone {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+}
+.s-icone svg { width: 17px; height: 17px; }
+.s-icone--critique { background: var(--critique-teinte); color: var(--critique-encre); }
+.s-icone--alerte   { background: var(--alerte-teinte); color: var(--alerte-encre); }
+.s-icone--modere   { background: var(--surface-creuse); color: var(--encre-2); }
+
+/* ---- La fiche d'un signal ---- */
+.s-resume {
+  font-size: 15px; font-weight: 560; line-height: 1.45; margin: 0;
+  padding: 12px 14px; border-radius: var(--r-sm);
+  background: var(--surface-creuse); border-left: 3px solid var(--filet-fort);
+}
+.s-resume--critique { border-left-color: var(--critique); }
+.s-resume--alerte   { border-left-color: var(--alerte); }
+
+.s-preuves { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.s-preuve {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 14px; border: 1px solid var(--filet); border-radius: var(--r-sm);
+}
+.s-preuve__tete { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; font-weight: 600; }
+.s-preuve__champs { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.s-lecture { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.s-lecture__bloc { padding: 12px 14px; border-radius: var(--r-sm); background: var(--surface-creuse); font-size: 13px; }
+.s-lecture__bloc h3 { font-size: 12.5px; font-weight: 660; margin: 0 0 5px; display: flex; align-items: center; gap: 6px; }
+.s-lecture__bloc h3 svg { width: 14px; height: 14px; }
+.s-lecture__bloc p { margin: 0; color: var(--encre-2); }
+
+.s-comparaison { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.s-comparaison__fleche { align-self: center; width: 18px; height: 18px; color: var(--encre-muette); }
+
+.s-decision { display: flex; flex-direction: column; gap: 14px; }
+.s-choix { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.s-choix label {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  padding: 12px; border: 1px solid var(--filet); border-radius: var(--r-sm);
+}
+.s-choix label:hover { border-color: var(--filet-fort); }
+.s-choix input { margin-top: 2px; accent-color: var(--marque); }
+.s-choix label:has(input:checked) { border-color: var(--marque); box-shadow: inset 0 0 0 1px var(--marque); }
+
+/* ---- Carte « Confiance » de la fiche boutique ---- */
+.s-palier { display: flex; align-items: center; gap: 12px; }
+.s-palier__niveau {
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 700; font-size: 17px;
+  background: var(--marque-teinte); color: var(--marque-texte);
+}
+.s-palier__texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s-palier__titre { font-weight: 640; }
+.s-criteres { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.s-critere .part__tete svg { width: 13px; height: 13px; }
+.s-critere--rempli .part__rempli { background: var(--bon); }
+.s-changements { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.s-changements li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 13px; }
+.s-changements svg { width: 15px; height: 15px; margin-top: 2px; }
+.s-monte { color: var(--bon-encre); }
+.s-descend { color: var(--critique-encre); }
+
+@media (max-width: 860px) {
+  .s-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .s-ligne { grid-template-columns: 30px minmax(0, 1fr); }
+  .s-ligne__fin { grid-column: 2; flex-direction: row; align-items: center; }
+  .s-lecture, .s-choix, .s-comparaison { grid-template-columns: minmax(0, 1fr); }
+  .s-comparaison__fleche { transform: rotate(90deg); justify-self: center; }
+}

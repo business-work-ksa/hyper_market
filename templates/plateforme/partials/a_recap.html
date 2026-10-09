@@ -1,0 +1,31 @@
+{% load i18n %}{% comment %}
+Le récapitulatif : une section par étape, chacune avec son lien « Modifier ». Les valeurs sont
+relues depuis la base au moment de l'affichage — ce qu'on lit est ce qui sera créé.
+{% endcomment %}
+{% if refus %}
+  <div class="bandeau-info bandeau-info--alerte a-refus" role="alert">
+    <svg aria-hidden="true"><use href="#ic-alerte"></use></svg>
+    <div class="pile-sm" style="gap:4px">
+      <strong>{% translate "Rien n'a été créé." %}</strong>
+      {% for message in refus %}<span>{{ message }}</span>{% endfor %}
+    </div>
+  </div>
+{% endif %}
+<section class="carte a-recap" aria-label="{% translate 'Récapitulatif' %}">
+  <div class="recap">
+    {% for section in sections %}
+      <div class="recap__section">
+        <div class="recap__tete">
+          <span class="a-recap__numero" aria-hidden="true">{{ forloop.counter }}</span>
+          <h3 class="t-section">{{ section.titre }}</h3>
+          <a class="lien-modifier" href="{% url assistant.url_etape section.etape %}">
+            <svg class="icone-ligne" aria-hidden="true"><use href="#ic-crayon"></use></svg>{% translate "Modifier" %}<span class="visuellement-cache"> — {{ section.titre }}</span>
+          </a>
+        </div>
+        <dl class="cles a-recap__cles">
+          {% for cle, valeur in section.lignes %}<dt>{{ cle }}</dt><dd>{{ valeur }}</dd>{% endfor %}
+        </dl>
+      </div>
+    {% endfor %}
+  </div>
+</section>

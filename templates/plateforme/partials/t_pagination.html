@@ -1,0 +1,22 @@
+{% load i18n %}{% comment %}
+Pagination côté serveur. `page_obj` : la page ; `parametres` : la requête courante sans `page`,
+pour que la recherche et les filtres survivent au changement de page.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="t-pages" aria-label="{% translate 'Pagination' %}">
+  <span class="t-pages__compte">
+    {% blocktranslate with start_index=page_obj.start_index end_index=page_obj.end_index count=page_obj.paginator.count trimmed %}{{ start_index }}–{{ end_index }} sur {{ count }}{% endblocktranslate %}
+  </span>
+  <span class="t-pages__liens">
+    {% if page_obj.has_previous %}
+      <a class="btn btn--discret" href="?{% if parametres %}{{ parametres }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev">
+        <svg aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg> {% translate "Précédente" %}</a>
+    {% endif %}
+    <span class="t-pages__numero">{% blocktranslate with number=page_obj.number num_pages=page_obj.paginator.num_pages trimmed %}Page {{ number }} / {{ num_pages }}{% endblocktranslate %}</span>
+    {% if page_obj.has_next %}
+      <a class="btn btn--discret" href="?{% if parametres %}{{ parametres }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next">
+        {% translate "Suivante" %} <svg aria-hidden="true"><use href="#ic-fleche-droite"></use></svg></a>
+    {% endif %}
+  </span>
+</nav>
+{% endif %}

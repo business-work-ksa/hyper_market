@@ -1,0 +1,22 @@
+{% load i18n hm %}
+<p class="t-legende" style="margin:0">
+  {% blocktranslate count appats=s.preuves.appats|length trimmed %}{{ appats }} article{% plural %}{{ appats }} articles{% endblocktranslate %}
+  {% blocktranslate count comparables=s.preuves.comparables with part=s.preuves.part trimmed %}sur {{ comparables }} comparable ({{ part }}) à moins de la moitié du prix médian du marché —{% plural %}sur {{ comparables }} comparables ({{ part }}) à moins de la moitié du prix médian du marché —{% endblocktranslate %}
+  {% blocktranslate count anciennete_jours=s.preuves.anciennete_jours trimmed %}boutique ouverte depuis {{ anciennete_jours }} jour.{% plural %}boutique ouverte depuis {{ anciennete_jours }} jours.{% endblocktranslate %}
+</p>
+<div class="tableau-boite">
+  <table class="tableau">
+    <thead><tr><th scope="col">{% translate "Article" %}</th><th scope="col" class="num">{% translate "Prix" %}</th><th scope="col" class="num">{% translate "Médiane du marché" %}</th><th scope="col" class="num">{% translate "Écart" %}</th></tr></thead>
+    <tbody>
+      {% for a in s.preuves.appats %}
+        <tr>
+          <td class="principal">{{ a.article }}<span class="t-legende"> {% blocktranslate with references=a.references trimmed %}· {{ references }} prix de référence{% endblocktranslate %}</span></td>
+          <td class="num">{{ a.prix|fcfa }}</td>
+          <td class="num">{{ a.mediane|fcfa }}</td>
+          <td class="num"><span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-baisse"></use></svg>−{{ a.ecart }}</span></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "plateforme/partials/s_lecture.html" with indice=_("C'est l'hameçon d'une boutique éphémère : un article à moitié prix attire des centaines de prépaiements en quelques jours, et la boutique n'a jamais eu l'intention de livrer.") innocent=_("Un grossiste qui entre sur le marché casse les prix pour se faire connaître ; un déstockage est légitime ; deux articles de même nom peuvent être un original et une copie.") verifier=_("regardez si des commandes prépayées arrivent déjà sur ces articles, et demandez au gérant d'où vient la marchandise. Une copie vendue comme originale relève d'un autre signalement.") %}

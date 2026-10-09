@@ -1,0 +1,3 @@
+{% comment %}Les cartes d'une page de résultats — seules, pour « Voir plus » (en-tête `X-Fragment: suite`).{% endcomment %}
+{% for article in articles %}{% include "marche/composants/carte_article.html" with rang=forloop.counter0 %}{% endfor %}
+{% if url_suivante %}<span hidden data-suite="{{ url_suivante }}"></span>{% endif %}

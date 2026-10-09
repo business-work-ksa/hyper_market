@@ -1,0 +1,56 @@
+{% load hm l10n %}
+{% comment %}
+Graphe des ventes journalières.
+
+Une seule série : pas de légende, le titre de la carte nomme la mesure.
+Géométrie calculée côté serveur (`geometrie_graphe`) : la page est lisible sans
+JavaScript, le survol n'est qu'un enrichissement.
+{% endcomment %}
+{% comment %}
+`localize off` est indispensable : en locale française, Django écrirait
+x="128,43" dans les attributs SVG, que le navigateur rejette silencieusement.
+Les coordonnées sont des valeurs machine, pas des nombres à afficher.
+{% endcomment %}
+{% localize off %}
+<svg class="graphe" viewBox="0 0 {{ graphe.largeur }} {{ graphe.hauteur }}"
+     role="img" preserveAspectRatio="xMidYMid meet"
+     aria-label="Chiffre d'affaires quotidien des 14 derniers jours, en francs CFA.">
+
+  <!-- Grille horizontale, volontairement effacée -->
+  {% for ligne in graphe.lignes %}
+    <line class="{% if ligne.base %}base{% else %}grille{% endif %}"
+          x1="{{ graphe.x_gauche }}" y1="{{ ligne.y }}"
+          x2="{{ graphe.x_droite }}" y2="{{ ligne.y }}"/>
+    <text class="tick" x="{{ graphe.x_etiquettes }}" y="{{ ligne.y_texte }}" text-anchor="end">
+      {{ ligne.valeur|fcfa }}
+    </text>
+  {% endfor %}
+
+  <!-- Marques -->
+  {% for barre in graphe.barres %}
+    {% if barre.chemin %}
+      <path class="barre" d="{{ barre.chemin }}" data-rang="{{ forloop.counter0 }}"/>
+    {% endif %}
+
+    {# Étiquette directe sur le seul maximum : jamais un nombre sur chaque barre. #}
+    {% if barre.est_max and barre.hauteur > 0 %}
+      <text class="etiquette-directe" x="{{ barre.centre }}" y="{{ barre.y_etiquette }}" text-anchor="middle">
+        {{ barre.valeur|fcfa }}
+      </text>
+    {% endif %}
+
+    {% if barre.tick_visible %}
+      <text class="tick" x="{{ barre.centre }}" y="{{ graphe.y_ticks }}" text-anchor="middle">
+        {{ barre.libelle }}
+      </text>
+    {% endif %}
+
+    <!-- Cible de survol : tout le créneau, pas seulement la barre -->
+    <rect class="zone-survol" x="{{ barre.creneau_x }}" y="{{ graphe.y_haut }}"
+          width="{{ barre.creneau_l }}" height="{{ graphe.hauteur_survol }}"
+          data-rang="{{ forloop.counter0 }}"
+          data-jour="{{ barre.libelle_long }}"
+          data-valeur="{{ barre.valeur|fcfa }}"/>
+  {% endfor %}
+</svg>
+{% endlocalize %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Vérification — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Vérification" %}{% endblock %}
+{% block actions_entete %}<a class="btn" href="{% url 'boutique' %}">{% translate "Ma boutique" %}</a>{% endblock %}
+
+{% comment %}
+Ce que le commerçant voit de son dossier : fait / à faire, en langage clair ; le résultat et le
+motif d'un rejet ; jamais qui a décidé. Les numéros sont masqués — lui les connaît.
+{% endcomment %}
+{% block contenu %}
+<div class="colonne">
+  <div class="bandeau-info" role="status">
+    <svg aria-hidden="true"><use href="#{% if complet %}ic-check{% else %}ic-bouclier{% endif %}"></use></svg>
+    <span>
+      {% if complet %}
+        <strong>{% translate "Votre boutique est vérifiée." %}</strong> {% translate "Votre identité et votre compte de versement ont été contrôlés par deux personnes de l'équipe HyperMarché." %}
+      {% else %}
+        <strong>{% blocktranslate count faits=faits with controles=controles|length trimmed %}{{ faits }} étape sur {{ controles }}.{% plural %}{{ faits }} étapes sur {{ controles }}.{% endblocktranslate %}</strong>
+        {% translate "Pour vendre en ligne, votre identité et votre compte de versement doivent être vérifiés, par deux personnes distinctes de l'équipe HyperMarché." %}
+      {% endif %}
+    </span>
+  </div>
+
+  <div class="duo duo--libre">
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">{% translate "Ce qui est fait, ce qui reste" %}</h2></header>
+      <ul class="colonne" style="gap:0;list-style:none;margin:0;padding:0">
+        {% for c in controles %}
+          <li class="rangee" style="gap:12px;align-items:flex-start;padding:12px 16px;border-top:1px solid var(--filet)">
+            {% if c.fait %}
+              <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Fait" %}</span>
+            {% else %}
+              <span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "À faire" %}</span>
+            {% endif %}
+            <span class="pile-sm" style="gap:2px;min-width:0">
+              <strong>{{ c.titre }}</strong>
+              <span class="t-legende">{% if c.fait %}{{ c.detail }}{% else %}{{ c.a_faire }}{% endif %}</span>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <div class="colonne">
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">{% translate "Compte de versement" %}</h2></header>
+        <div class="carte__corps colonne" style="gap:14px">
+          {% for l in comptes %}
+            <div class="rangee rangee--espace" style="gap:10px;flex-wrap:wrap">
+              <span class="pile-sm" style="gap:2px">
+                <strong>{{ l.compte.get_operateur_display }} <span class="chiffre">{{ l.numero_masque }}</span></strong>
+                <span class="t-legende">{% blocktranslate with titulaire=l.compte.titulaire trimmed %}Au nom de « {{ titulaire }} »{% endblocktranslate %}</span>
+                {% if l.compte.etat == 'verifie' %}
+                  <span class="t-legende">{% if l.en_carence %}{% translate "Vérifié. Il recevra vos versements à partir du" %} <strong>{{ l.compte.utilisable_le|date:"d/m/Y à H:i" }}</strong> {% blocktranslate with delai_carence_heures=delai_carence_heures trimmed %}: ce délai de {{ delai_carence_heures }} h vous protège si quelqu'un d'autre avait changé votre compte. Si ce n'est pas vous, appelez-nous tout de suite.{% endblocktranslate %}{% else %}{% blocktranslate with utilisable_le=l.compte.utilisable_le|date:"d/m/Y" trimmed %}Reçoit vos versements depuis le {{ utilisable_le }}.{% endblocktranslate %}{% endif %}</span>
+                {% elif l.compte.etat == 'rejete' %}
+                  <span class="t-legende">{% blocktranslate with motif=l.compte.motif trimmed %}Rejeté : {{ motif }}{% endblocktranslate %}</span>
+                {% elif l.compte.etat == 'en_attente' %}
+                  <span class="t-legende">{% blocktranslate with cree_le=l.compte.cree_le|date:"d/m/Y" trimmed %}Déclaré le {{ cree_le }}, en attente de vérification.{% endblocktranslate %}</span>
+                {% endif %}
+              </span>
+              {% if l.compte.etat == 'verifie' %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Vérifié" %}</span>
+              {% elif l.compte.etat == 'rejete' %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% translate "Rejeté" %}</span>
+              {% else %}<span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "En attente" %}</span>{% endif %}
+            </div>
+          {% empty %}
+            <p class="t-2">{% translate "Aucun compte déclaré." %}</p>
+          {% endfor %}
+
+          {% if peut_declarer %}
+            <form method="post" class="colonne" style="gap:12px;border-top:1px solid var(--filet);padding-top:14px" novalidate>
+              {% csrf_token %}
+              <h3 class="t-section">{% if comptes %}{% translate "Déclarer un nouveau compte" %}{% else %}{% translate "Déclarer votre compte" %}{% endif %}</h3>
+              {% if formulaire.non_field_errors %}<div class="bandeau-info bandeau-info--alerte"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ formulaire.non_field_errors|join:" " }}</span></div>{% endif %}
+              <fieldset class="groupe-champ">
+                <legend>{{ formulaire.operateur.label }}</legend>
+                {{ formulaire.operateur }}
+                {% for e in formulaire.operateur.errors %}<span class="t-petit" style="color:var(--critique-encre);font-weight:550">{{ e }}</span>{% endfor %}
+              </fieldset>
+              {% include "partials/champ.html" with champ=formulaire.numero %}
+              {% include "partials/champ.html" with champ=formulaire.titulaire %}
+              <p class="t-legende">{% blocktranslate with delai_carence_heures=delai_carence_heures trimmed %}Le compte doit être à votre nom, tel qu'il figure sur votre pièce d'identité, ou à celui de votre entreprise. Un administrateur le vérifiera ; l'ancien compte cessera alors de recevoir, et le nouveau ne recevra qu'après {{ delai_carence_heures }} heures.{% endblocktranslate %}</p>
+              <button class="btn btn--primaire" type="submit">{% translate "Déclarer ce compte" %}</button>
+            </form>
+          {% else %}
+            <p class="t-legende">{% translate "Seul le gérant peut déclarer le compte de versement." %}</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">{% translate "Vos pièces" %}</h2></header>
+        <div class="carte__corps colonne" style="gap:12px">
+          {% for d in pieces %}
+            <div class="rangee rangee--espace" style="gap:10px">
+              <span class="pile-sm" style="gap:2px">
+                <strong>{{ d.get_type_piece_display }} <span class="chiffre">{{ d.numero_masque }}</span></strong>
+                {% if d.etat == 'rejete' %}<span class="t-legende">{% blocktranslate with motif_rejet=d.motif_rejet trimmed %}Refusée : {{ motif_rejet }}{% endblocktranslate %}</span>
+                {% elif d.expire_le %}<span class="t-legende">{% blocktranslate with expire_le=d.expire_le|date:"d/m/Y" trimmed %}Valable jusqu'au {{ expire_le }}{% endblocktranslate %}</span>{% endif %}
+              </span>
+              {% if d.etat == 'valide' %}<span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Vérifiée" %}</span>
+              {% elif d.etat == 'rejete' %}<span class="puce puce--critique"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg>{% translate "Refusée" %}</span>
+              {% else %}<span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "En cours" %}</span>{% endif %}
+            </div>
+          {% empty %}
+            <p class="t-2">{% translate "Aucune pièce présentée pour l'instant." %}</p>
+          {% endfor %}
+          <p class="t-legende">
+            <svg class="icone-ligne" aria-hidden="true"><use href="#ic-verrou"></use></svg>
+            {% blocktranslate trimmed %}Nous ne gardons pas de copie de vos pièces : un administrateur voit l'original et note ce qu'il a lu.
+            Même votre numéro de pièce n'est pas conservé en clair.{% endblocktranslate %}
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

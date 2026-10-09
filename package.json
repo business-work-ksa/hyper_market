@@ -1,0 +1,16 @@
+{
+  "name": "hypermarche-outillage",
+  "private": true,
+  "description": "Outillage front de HyperMarché : feuille du marché (Tailwind) et captures d'écran.",
+  "scripts": {
+    "captures": "node scripts/captures.js",
+    "css": "tailwindcss -c tailwind.config.js -i static/src/marche.css -o static/css/marche.css --minify",
+    "css:veille": "tailwindcss -c tailwind.config.js -i static/src/marche.css -o static/css/marche.css --watch"
+  },
+  "devDependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "playwright": "^1.56.1",
+    "tailwindcss": "^3.4.19"
+  }
+}

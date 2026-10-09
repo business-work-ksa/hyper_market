@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Inventaire — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+
+{% block scripts %}
+<script>
+  // Le théorique reste consultable — un gérant qui vérifie une ligne douteuse en
+  // a besoin — mais il faut le demander. Le défaut protège le comptage.
+  (function () {
+    var bouton = document.getElementById("bascule-theorique");
+    if (!bouton) return;
+    bouton.addEventListener("click", function () {
+      var visible = bouton.getAttribute("aria-pressed") === "true";
+      bouton.setAttribute("aria-pressed", visible ? "false" : "true");
+      bouton.textContent = visible ? "{{ _("Afficher le théorique")|escapejs }}" : "{{ _("Masquer le théorique")|escapejs }}";
+      document.querySelectorAll(".theorique-masque").forEach(function (n) { n.hidden = !visible; });
+      document.querySelectorAll(".theorique-valeur").forEach(function (n) { n.hidden = visible; });
+    });
+  })();
+</script>
+{% endblock %}
+{% block entete %}{% translate "Inventaire physique" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'stock' %}">{% translate "Annuler" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<form method="post" class="colonne">
+  {% csrf_token %}
+
+  <div class="bandeau-info">
+    <svg><use href="#ic-info"></use></svg>
+    <span>
+      <strong>{% translate "Le stock théorique est masqué" %}</strong> {% blocktranslate trimmed %}: un compteur qui connaît le chiffre attendu
+      ne compte plus, il confirme.{% endblocktranslate %} <strong>{% translate "Laissez vide ce que vous n'avez pas compté" %}</strong> {% blocktranslate trimmed %}—
+      un article non saisi n'est pas régularisé. Les écarts passeront par des mouvements
+      d'ajustement, jamais par une correction directe du compteur.{% endblocktranslate %}
+    </span>
+  </div>
+
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{{ depot.libelle }}</h2>
+      <span class="puce"><svg><use href="#ic-stock"></use></svg>{% blocktranslate count niveaux=niveaux|length trimmed %}{{ niveaux }} référence{% plural %}{{ niveaux }} références{% endblocktranslate %}</span>
+      <button class="btn btn--discret" type="button" id="bascule-theorique" aria-pressed="false">
+        {% translate "Afficher le théorique" %}
+      </button>
+    </header>
+
+    <div class="carte__corps--serre">
+      <div class="tableau-boite">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th scope="col">{% translate "Article" %}</th>
+              <th scope="col">{% translate "Référence" %}</th>
+              <th scope="col" class="num">{% translate "Théorique" %}</th>
+              <th scope="col" style="width:150px">{% translate "Compté" %}</th>
+              <th scope="col" style="width:230px">{% translate "Motif de l'écart" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for niveau in niveaux %}
+              <tr>
+                <td class="principal">{{ niveau.variante.produit.libelle }}</td>
+                <td class="t-2 chiffre">{{ niveau.variante.sku }}</td>
+                {% comment %}
+                Le théorique est masqué par défaut : un compteur qui connaît le
+                chiffre attendu ne compte plus, il confirme. C'est la raison
+                d'être de l'écran.
+                {% endcomment %}
+                <td class="num t-2">
+                  <span class="theorique-masque">•••</span>
+                  <span class="theorique-valeur chiffre" hidden>{{ niveau.quantite|quantite }}</span>
+                </td>
+                <td>
+                  <input class="champ chiffre" type="text" inputmode="decimal"
+                         name="qte_{{ niveau.variante_id }}"
+                         aria-label="Quantité comptée pour {{ niveau.variante.produit.libelle }}"
+                         placeholder="—">
+                </td>
+                <td>
+                  <input class="champ" type="text" name="motif_{{ niveau.variante_id }}"
+                         aria-label="Motif de l'écart" placeholder="{% translate 'Casse, vol, erreur…' %}">
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5"><div class="vide"><svg><use href="#ic-stock"></use></svg>
+                <p class="t-2">{% translate "Aucun article à compter." %}</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if niveaux %}
+      <footer class="carte__pied rangee rangee--espace">
+        <span class="t-legende">{% translate "Les lignes vides sont ignorées." %}</span>
+        <button class="btn btn--primaire" type="submit">{% translate "Valider l'inventaire" %}</button>
+      </footer>
+    {% endif %}
+  </section>
+
+  {% if derniers %}
+    <section class="carte">
+      <header class="carte__entete"><h2 class="t-section">{% translate "Inventaires précédents" %}</h2></header>
+      <div class="carte__corps--serre">
+        <div class="tableau-boite">
+          <table class="tableau">
+            <tbody>
+              {% for inv in derniers %}
+                <tr>
+                  <td class="principal chiffre">{{ inv.date|date:"d/m/Y" }}</td>
+                  <td class="t-2">{{ inv.depot.libelle }}</td>
+                  <td class="num">
+                    <span class="puce puce--bon"><svg><use href="#ic-check"></use></svg>{% translate "Validé" %}</span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</form>
+{% endblock %}

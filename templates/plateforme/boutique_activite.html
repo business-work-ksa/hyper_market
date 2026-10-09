@@ -1,0 +1,73 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% load static hm %}
+{% block titre %}{% blocktranslate with enseigne=b.enseigne trimmed %}Activité — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block fil %}<p class="fil"><a href="{% url 'plateforme:boutiques' %}">{% translate "Boutiques" %}</a><span class="fil__sep">›</span><a href="{% url 'plateforme:boutique' b.pk %}">{{ b.enseigne }}</a><span class="fil__sep">›</span><span>{% translate "Activité" %}</span></p>{% endblock %}
+{% block entete %}{% translate "Activité" %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+L'activité d'une boutique, vue par le bailleur : combien, combien de fois, depuis quand. Jamais
+quoi, à qui, ni à quel prix d'origine (ADR-012). Ce qui s'affiche ici tient en quatre nombres et
+une courbe — c'est tout ce qu'il faut pour décider d'un appel.
+{% endcomment %}
+<header class="t-fiche">
+  <span class="monogramme monogramme--grand" aria-hidden="true">{{ b.enseigne|initiales }}</span>
+  <div class="t-fiche__texte">
+    <div class="t-fiche__ligne">
+      <h2 class="entete-page__titre">{{ b.enseigne }}</h2>
+      <span class="statut statut--{{ b.etat }}">{{ b.get_etat_display }}</span>
+      {% if ligne.endormie %}<span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% translate "Endormie" %}</span>{% endif %}
+    </div>
+    <p class="t-fiche__meta">
+      <span>{{ b.rayon_principal|traduit|default:_("Sans rayon") }}</span>
+      <span><svg aria-hidden="true"><use href="#ic-lieu"></use></svg>{{ b.ville }}</span>
+      <span>{% blocktranslate with fenetre=fenetre trimmed %}{{ fenetre }} derniers jours{% endblocktranslate %}</span>
+    </p>
+  </div>
+  <div class="t-fiche__actions">
+    <a class="btn" href="{% url 'plateforme:boutique' b.pk %}"><svg aria-hidden="true"><use href="#ic-fleche-gauche"></use></svg>{% translate "Fiche de la boutique" %}</a>
+  </div>
+</header>
+
+{% include "plateforme/partials/t_lecture.html" %}
+
+<section class="kpis t-kpis t-bloc-bas" aria-label="{% translate 'Activité agrégée de la boutique' %}">
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-argent"></use></svg></span>{% translate "Chiffre d'affaires TTC" %}</span>
+    <span class="kpi__valeur">{{ ligne.ca|fcfa }}<span class="unite">FCFA</span></span>
+    <span class="kpi__pied">{% if panier_moyen %}{% blocktranslate with panier_moyen=panier_moyen|fcfa trimmed %}Vente moyenne {{ panier_moyen }} FCFA{% endblocktranslate %}{% else %}<span class="t-muet">{% translate "Aucune vente sur la période" %}</span>{% endif %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-caisse"></use></svg></span>{% translate "Tickets de caisse" %}</span>
+    <span class="kpi__valeur">{{ ligne.tickets }}</span>
+    <span class="kpi__pied">{% blocktranslate count jours_actifs=jours_actifs with fenetre=fenetre trimmed %}{{ jours_actifs }} jour de vente sur {{ fenetre }}{% plural %}{{ jours_actifs }} jours de vente sur {{ fenetre }}{% endblocktranslate %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-commandes"></use></svg></span>{% translate "Commandes en ligne" %}</span>
+    <span class="kpi__valeur">{{ ligne.commandes }}</span>
+    <span class="kpi__pied">{% translate "Hors commandes annulées" %}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi__tete"><span class="kpi__icone {% if ligne.endormie %}kpi__icone--alerte{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg></span>{% translate "Dernière vente" %}</span>
+    <span class="kpi__valeur">{% if ligne.derniere %}{{ ligne.derniere|date:"d/m" }}{% else %}—{% endif %}</span>
+    <span class="kpi__pied">
+      {% if ligne.jours is None %}{% translate "Aucune vente enregistrée" %}
+      {% elif ligne.jours == 0 %}{% translate "Aujourd'hui" %}
+      {% else %}{% blocktranslate count jours=ligne.jours trimmed %}{{ jours }} jour sans activité{% plural %}{{ jours }} jours sans activité{% endblocktranslate %}{% endif %}
+    </span>
+  </div>
+</section>
+
+<section class="carte">
+  <header class="carte__entete">
+    <h2 class="t-section">{% translate "Chiffre d'affaires quotidien" %} <span class="t-muet t-petit">{% translate "TTC, caisse et vitrine" %}</span></h2>
+  </header>
+  <div class="carte__corps">
+    {% include "plateforme/partials/t_graphe.html" with aria=_("Chiffre d'affaires quotidien TTC des 30 derniers jours, en francs CFA.") vide=_("Aucune vente sur les 30 derniers jours.") %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/plateforme-tableaux.js' %}" defer></script>{% endblock %}

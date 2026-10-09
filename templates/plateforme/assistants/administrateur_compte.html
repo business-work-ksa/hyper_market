@@ -1,0 +1,16 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Administrateurs" %}{% endblock %}
+{% block question %}{% translate "À qui confiez-vous l'exploitation ?" %}{% endblock %}
+{% block phrase %}{% translate "Un administrateur du marché valide, suspend, encaisse et vend. Il ne voit ni la marge, ni le stock, ni le cahier de crédit d'aucune boutique." %}{% endblock %}
+{% block etape %}
+  {% include "plateforme/partials/a_cartes.html" with champ=form.mode cartes=cartes_mode classe="a-cartes--deux" %}
+  {% include "plateforme/partials/a_compte.html" %}
+  <div class="bandeau-info">
+    <svg aria-hidden="true"><use href="#ic-verrou"></use></svg>
+    <span><strong>{% translate "Deux casquettes, deux comptes." %}</strong> {% blocktranslate trimmed %}Un compte qui travaille dans une boutique
+      ne peut pas administrer le marché : s'il vend aussi, il lui faut un second compte, avec un
+      autre numéro. Et un administrateur du marché ne reçoit{% endblocktranslate %} <strong>{% translate "jamais" %}</strong> {% blocktranslate trimmed %}le drapeau
+      superutilisateur (ADR-012).{% endblocktranslate %}</span>
+  </div>
+{% endblock %}

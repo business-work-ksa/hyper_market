@@ -1,0 +1,94 @@
+{% load i18n hm marche %}{% comment %}
+Mégamenu des rayons (docs/26, §4.9).
+
+Bureau (≥ 1024 px) : un bouton « Rayons » ouvre un panneau pleine largeur ; à gauche la liste des
+rayons, à droite le volet du rayon survolé ou focalisé — son illustration, ses catégories, ses
+commerçants. Motif « disclosure » (bouton + aria-expanded), pas un `role="menu"` : les éléments sont
+des liens ordinaires, qu'on parcourt à la tabulation. Échap ferme et rend le focus au bouton.
+
+Téléphone : une feuille (<dialog>) avec un accordéon <details> par rayon — natif, sans script.
+
+Sans JavaScript, le bouton reste un lien vers le catalogue : rien n'est perdu.
+{% endcomment %}
+{% with menu_calcule=menu %}
+{# ---- Bureau ---- #}
+<div id="megamenu" class="megamenu" hidden data-megamenu>
+  <div class="mx-auto grid max-w-contenu grid-cols-[17rem_1fr] gap-6 px-8 py-6">
+    <ul class="flex flex-col gap-0.5 border-r border-line pr-4" role="list">
+      {% for entree in menu_calcule %}
+        <li>
+          <a class="megamenu-rayon" href="{% url 'vitrine_catalogue' %}?rayon={{ entree.rayon.code }}"
+             data-volet="volet-{{ entree.rayon.code }}" {% if forloop.first %}aria-current="true"{% endif %}>
+            <span class="jeton size-8 rounded-lg text-2xs" style="--teinte:{{ entree.rayon.libelle|teinte }}" aria-hidden="true">{{ entree.rayon.libelle_affiche|sigle }}</span>
+            <span class="flex-1">{{ entree.rayon.libelle_affiche }}</span>
+            <span class="text-xs tabular-nums text-ink-muted">{{ entree.nb_articles }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+    <div class="relative min-h-[18rem]">
+      {% for entree in menu_calcule %}
+        <section class="megamenu-volet" id="volet-{{ entree.rayon.code }}" {% if not forloop.first %}hidden{% endif %} aria-label="{{ entree.rayon.libelle_affiche }}">
+          <a class="megamenu-banniere group" href="{% url 'vitrine_catalogue' %}?rayon={{ entree.rayon.code }}">
+            <img src="{% illustration_rayon entree.rayon.code %}" alt="" width="800" height="500" loading="lazy" decoding="async">
+            <span class="megamenu-banniere-texte">
+              <span class="sur-titre text-ink">{% blocktranslate count n=entree.nb_articles %}{{ n }} article{% plural %}{{ n }} articles{% endblocktranslate %}</span>
+              <span class="font-display text-2xl font-extrabold text-ink">{{ entree.rayon.libelle_affiche }}</span>
+              <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink">{% translate "Tout le rayon" %}{% icone "fleche" "size-4 transition-transform group-hover:translate-x-1" %}</span>
+            </span>
+          </a>
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <p class="sur-titre mb-2">{% translate "Catégories" %}</p>
+              {% if entree.categories %}
+                <ul class="flex flex-col gap-1" role="list">
+                  {% for c in entree.categories %}<li><a class="megamenu-lien" href="{% url 'vitrine_catalogue' %}?rayon={{ entree.rayon.code }}&amp;categorie={{ c.slug }}">{{ c.libelle_affiche }}</a></li>{% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-sm text-ink-muted">{% translate "Les catégories de ce rayon arrivent." %}</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="sur-titre mb-2">{% blocktranslate count n=entree.nb_boutiques %}{{ n }} commerçant{% plural %}{{ n }} commerçants{% endblocktranslate %}</p>
+              {% if entree.boutiques %}
+                <ul class="flex flex-col gap-1.5" role="list">
+                  {% for b in entree.boutiques %}
+                    <li><a class="megamenu-lien flex items-center gap-2.5" href="{% url 'vitrine_boutique' b.slug %}"><span class="jeton size-7 rounded-md text-[0.6rem]" style="--teinte:{{ b.enseigne|teinte }}" aria-hidden="true">{{ b.enseigne|initiales }}</span><span class="flex min-w-0 flex-col leading-tight"><span class="truncate">{{ b.enseigne }}</span><span class="text-xs text-ink-muted">{{ b.ville }}</span></span></a></li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-sm text-ink-muted">{% translate "Aucun commerçant pour l'instant : ouvrez le premier étal." %}</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{# ---- Téléphone ---- #}
+<dialog class="feuille" id="feuille-rayons" aria-labelledby="feuille-rayons-titre">
+  <div class="flex items-center justify-between border-b border-line px-5 py-4">
+    <h2 class="text-lg font-bold" id="feuille-rayons-titre">{% translate "Rayons du marché" %}</h2>
+    <button class="btn btn-ghost btn-sm btn-icone" type="button" data-modale-fermer aria-label="{% translate 'Fermer' %}">{% icone "fermer" %}</button>
+  </div>
+  <div class="flex flex-col divide-y divide-line overflow-y-auto">
+    {% for entree in menu_calcule %}
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-3.5 font-semibold">
+          <img class="size-10 rounded-lg object-cover" src="{% illustration_rayon entree.rayon.code %}" alt="" width="40" height="40" loading="lazy">
+          <span class="flex-1">{{ entree.rayon.libelle_affiche }}</span>
+          <span class="text-xs tabular-nums text-ink-muted">{{ entree.nb_articles }}</span>
+          {% icone "chevron" "size-4 text-ink-muted transition-transform group-open:rotate-90" %}
+        </summary>
+        <div class="flex flex-col gap-1 px-5 pb-4 pl-[4.25rem]">
+          <a class="megamenu-lien font-semibold text-brand-ink" href="{% url 'vitrine_catalogue' %}?rayon={{ entree.rayon.code }}">{% translate "Tout le rayon" %}</a>
+          {% for c in entree.categories %}<a class="megamenu-lien" href="{% url 'vitrine_catalogue' %}?rayon={{ entree.rayon.code }}&amp;categorie={{ c.slug }}">{{ c.libelle_affiche }}</a>{% endfor %}
+          {% for b in entree.boutiques %}<a class="megamenu-lien text-ink-muted" href="{% url 'vitrine_boutique' b.slug %}">{{ b.enseigne }}</a>{% endfor %}
+        </div>
+      </details>
+    {% endfor %}
+  </div>
+</dialog>
+{% endwith %}

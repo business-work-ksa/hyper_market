@@ -1,0 +1,13 @@
+-- Le rôle applicatif ne doit pas contourner la sécurité au niveau ligne.
+--
+-- L'image officielle PostgreSQL crée le rôle nommé par POSTGRES_USER en
+-- **superutilisateur**. Un superutilisateur ignore toutes les politiques RLS —
+-- sans erreur, sans avertissement, sans trace. La barrière 3 serait donc
+-- parfaitement décorative dans tout environnement de développement, et les
+-- tests d'isolation passeraient triomphalement en ne prouvant rien.
+--
+-- CREATEDB est conservé : Django en a besoin pour créer la base de test.
+--
+-- Ce script est joué une seule fois, à la création du volume de données. Sur une
+-- base déjà initialisée, exécuter la même instruction à la main.
+ALTER ROLE hypermarche NOSUPERUSER NOBYPASSRLS CREATEDB;

@@ -1,0 +1,363 @@
+/* =====================================================================
+   HyperMarché — console : assistants et gestes
+   Chargée par les gabarits des assistants (`{% block styles %}`), après
+   hypermarche.css et plateforme.css, dont elle réutilise les jetons et
+   la section 4 (« Assistant pas à pas »).
+
+   Sections :
+     1. Utilitaires
+     2. Cadre d'un assistant : étapes, tête, carte, pied
+     3. Champs, groupes, erreurs
+     4. Cartes de choix
+     5. Récapitulatif
+     6. Gestes d'une page : état, loyer, taux
+     7. Administrateurs
+     8. Petits écrans
+   ===================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 1. Utilitaires                                                      */
+/* ------------------------------------------------------------------ */
+.visuellement-cache {
+  position: absolute !important;
+  width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* `hidden` doit gagner contre les `display: flex/grid` des composants : c'est lui que le
+   JavaScript pose pour replier un bloc inutile. */
+.a-assistant [hidden], .a-page [hidden] { display: none !important; }
+.a-page code, .a-assistant code {
+  font-family: var(--mono); font-size: 12px;
+  padding: 1px 6px; border-radius: var(--r-xs);
+  background: var(--surface-creuse); color: var(--encre-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Cadre                                                            */
+/* ------------------------------------------------------------------ */
+.a-assistant { grid-template-columns: 248px minmax(0, 1fr); gap: 28px; }
+.a-assistant .assistant__principal { gap: 18px; max-width: 800px; }
+
+.a-colonne-etapes { position: sticky; top: calc(var(--entete) + 22px); }
+.a-colonne-etapes .etapes { position: static; }
+
+/* L'étape faite est un lien qui couvre toute sa ligne : on revient d'un clic. */
+.a-etapes .etape__lien { color: inherit; }
+.a-etapes .etape__lien::after { content: ""; position: absolute; inset: 0; border-radius: var(--r-sm); }
+.a-etapes .etape--faite:hover { background: var(--survol); }
+.a-etapes .etape--faite:hover .etape__titre { color: var(--marque); }
+.a-etapes .etape__lien:focus-visible { outline: none; }
+.a-etapes .etape__lien:focus-visible::after { outline: 2px solid var(--marque); outline-offset: 1px; }
+.a-etapes .etape--avenir .etape__numero { color: var(--encre-muette); }
+.a-etapes .etape--courante .etape__titre { color: var(--encre); }
+.a-etapes .etape--courante .etape__aide { color: var(--encre-2); }
+
+.a-tete { display: flex; flex-direction: column; gap: 8px; }
+.a-tete__ligne { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.a-tete .t-sur-titre { color: var(--marque); }
+.a-tete__titre {
+  margin-top: 8px;
+  font-size: 23px; font-weight: 660; letter-spacing: -0.024em; line-height: 1.18;
+}
+.a-tete__phrase { color: var(--encre-2); max-width: 66ch; }
+
+.a-carte { overflow: visible; }
+.a-carte__corps { display: flex; flex-direction: column; gap: 22px; padding: 22px; }
+.a-pied { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; }
+.a-pied__droite { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.a-pied .btn .icone-ligne { width: 15px; height: 15px; }
+.a-pied .btn { gap: 7px; }
+.a-abandonner { color: var(--encre-muette); padding-left: 8px; padding-right: 8px; }
+.a-abandonner:hover { color: var(--critique-encre, var(--critique)); }
+
+.a-trace { display: flex; align-items: center; gap: 8px; color: var(--encre-2); }
+
+/* ------------------------------------------------------------------ */
+/* 3. Champs, groupes, erreurs                                         */
+/* ------------------------------------------------------------------ */
+.a-grille-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; }
+.a-grille-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 18px; }
+.a-grille-2:has(> :only-child) { grid-template-columns: minmax(0, 1fr); max-width: calc(50% - 9px); }
+
+.a-champ > label { display: flex; align-items: baseline; gap: 6px; }
+.a-facultatif {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--encre-muette);
+  padding: 1px 6px; border-radius: var(--r-pilule); background: var(--surface-creuse);
+}
+.a-champ--montant .champ { font-size: 17px; font-weight: 600; height: 44px; font-variant-numeric: tabular-nums; }
+
+.champ[aria-invalid="true"],
+.a-champ--erreur .champ { border-color: var(--critique); }
+.champ[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px var(--critique-teinte); }
+
+.a-erreur {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin: 0;
+  font-size: 12.5px; font-weight: 560; line-height: 1.45;
+  color: var(--critique-encre, var(--critique));
+}
+.a-erreur svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
+
+.a-resume-erreurs { background: var(--critique-teinte); border-color: transparent; }
+.a-resume-erreurs > svg { color: var(--critique); }
+.a-resume-erreurs__titre { font-weight: 640; }
+.a-resume-erreurs__liste { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.a-resume-erreurs__liste a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+.a-groupe { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.a-legende { padding: 0; font-size: 12.5px; font-weight: 600; color: var(--encre-2); }
+.a-groupe__aide { margin-top: -4px; }
+
+.a-nouveau-compte {
+  padding: 16px; border-radius: var(--r-md);
+  border: 1px dashed var(--filet-fort); background: var(--surface-creuse);
+  gap: 14px;
+}
+.a-nouveau-compte > .a-legende { float: left; margin-bottom: 2px; }
+.a-nouveau-compte > .a-legende + * { clear: both; }
+
+.a-apercu-slug { margin-top: -10px; }
+.a-apercu-slug strong { color: var(--marque); font-weight: 600; }
+
+.a-derogation { display: flex; flex-direction: column; gap: 10px; }
+.a-derogation__signal {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: var(--r-sm);
+  background: var(--alerte-teinte); color: #6E5006; font-size: 13px;
+}
+:root[data-theme="dark"] .a-derogation__signal { color: var(--alerte); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .a-derogation__signal { color: var(--alerte); } }
+
+.a-recherche { display: flex; gap: 8px; }
+.a-recherche .champ { flex: 1; height: 40px; }
+.a-recherche .btn { height: 40px; }
+
+.a-regle { background: var(--or-teinte); border-color: transparent; }
+.a-regle > svg { color: var(--or); }
+
+/* Compteur de caractères d'un motif (posé par le JavaScript, jamais indispensable). */
+.a-compteur { align-self: flex-end; font-size: 11px; color: var(--encre-muette); font-variant-numeric: tabular-nums; margin-top: -2px; }
+.a-compteur--proche { color: #8A6408; }
+
+/* ------------------------------------------------------------------ */
+/* 4. Cartes de choix                                                  */
+/* ------------------------------------------------------------------ */
+.a-assistant .choix-cartes, .a-page .choix-cartes { gap: 10px; }
+.choix-carte__corps { gap: 7px; }
+.choix-carte__tete { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.choix-carte__titre { flex: 1; min-width: 0; line-height: 1.3; }
+.choix-carte__icone {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--surface-creuse); color: var(--encre-2);
+  transition: background var(--t-rapide), color var(--t-rapide);
+}
+.choix-carte__icone svg { width: 16px; height: 16px; }
+.choix-carte .monogramme { width: 32px; height: 32px; border-radius: 9px; font-size: 12px; }
+.choix-carte__coche {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--filet-fort); color: transparent;
+  transition: background var(--t-rapide), border-color var(--t-rapide);
+}
+.choix-carte__coche svg { width: 12px; height: 12px; }
+.choix-carte input:checked + .choix-carte__corps .choix-carte__coche {
+  background: var(--marque); border-color: var(--marque); color: var(--marque-encre);
+}
+.choix-carte input:checked + .choix-carte__corps .choix-carte__icone { background: var(--marque-teinte); color: var(--marque); }
+.choix-carte__texte { font-size: 12.5px; line-height: 1.45; color: var(--encre-2); }
+.choix-carte__prix { font-variant-numeric: tabular-nums; }
+.choix-carte__suffixe { font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--encre-muette); }
+.choix-carte__lignes {
+  list-style: none; margin: 2px 0 0; padding: 9px 0 0;
+  border-top: 1px dashed var(--filet);
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 12.5px; color: var(--encre-2);
+}
+.choix-carte__lignes li { display: flex; gap: 8px; line-height: 1.4; }
+.choix-carte__lignes li::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 6px;
+  background: var(--marque);
+}
+.a-groupe--erreur .choix-carte__corps { border-color: color-mix(in srgb, var(--critique) 40%, var(--filet)); }
+
+.a-cartes--compactes { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.a-cartes--compactes .choix-carte__corps { padding: 11px 13px; gap: 4px; }
+.a-cartes--compactes .choix-carte__titre { font-size: 13.5px; }
+.a-cartes--compactes .choix-carte__texte { font-size: 12px; }
+.a-cartes--deux { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.a-cartes--offres { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.a-cartes--boutiques { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); max-height: 560px; overflow-y: auto; padding: 3px; margin: -3px; }
+.a-cartes--boutiques .choix-carte__corps { padding: 11px 13px; gap: 3px; }
+.a-cartes--boutiques .choix-carte__texte { padding-left: 42px; }
+
+/* ------------------------------------------------------------------ */
+/* 5. Récapitulatif                                                    */
+/* ------------------------------------------------------------------ */
+.a-recap .recap__section { padding: 16px 18px; }
+.a-recap .recap__tete { gap: 10px; }
+.a-recap__numero {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 11.5px; font-weight: 680;
+  background: var(--marque-teinte); color: var(--marque);
+}
+.lien-modifier {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 580; color: var(--marque);
+  padding: 4px 8px; margin: -4px -8px -4px auto; border-radius: var(--r-sm);
+}
+.lien-modifier:hover { background: var(--marque-teinte); }
+.lien-modifier .icone-ligne { width: 13px; height: 13px; }
+.a-recap__cles { grid-template-columns: minmax(150px, 200px) minmax(0, 1fr); padding-left: 32px; }
+.a-refus { background: var(--critique-teinte); border-color: transparent; }
+.a-refus > svg { color: var(--critique); }
+
+/* ------------------------------------------------------------------ */
+/* 6. Gestes d'une page                                                */
+/* ------------------------------------------------------------------ */
+.a-page { max-width: 800px; display: flex; flex-direction: column; gap: 18px; }
+.a-fiche-tete { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.a-fiche-tete__icone { width: 56px; height: 56px; border-radius: 14px; }
+.a-fiche-tete__icone svg { width: 24px; height: 24px; }
+.a-transition { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.a-transition .icone-ligne { color: var(--encre-muette); }
+
+.a-carte-geste .carte__corps { padding: 20px; gap: 18px; }
+.a-carte-geste .assistant__pied > :last-child:not(:first-child) { margin-left: auto; }
+.a-carte-geste--danger { border-top: 3px solid var(--critique); }
+.a-carte-geste--primaire { border-top: 3px solid var(--marque); }
+
+.a-consequences { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.a-consequences li { position: relative; padding-left: 22px; line-height: 1.5; color: var(--encre-2); }
+.a-consequences li::before {
+  content: ""; position: absolute; left: 4px; top: 8px;
+  width: 7px; height: 7px; border-radius: 2px; transform: rotate(45deg);
+  background: var(--marque);
+}
+.a-carte-geste--danger .a-consequences li::before { background: var(--critique); }
+
+.a-cycle { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.a-cycle li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.a-montants { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.a-montant {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  padding: 13px 15px; border-radius: var(--r-md);
+  background: var(--surface-creuse);
+}
+.a-montant__valeur { font-size: 20px; font-weight: 640; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.a-montant--total { background: var(--marque-teinte); }
+.a-montant--total .a-montant__valeur { color: var(--marque); font-size: 24px; }
+.a-montant__devise { font-size: 12px; font-weight: 600; margin-left: 5px; letter-spacing: 0; }
+
+.a-effet {
+  display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 18px; align-items: center;
+  padding: 16px 18px; border-radius: var(--r-md);
+  background: var(--surface-creuse);
+}
+.a-effet__taux { display: flex; align-items: center; gap: 14px; }
+.a-effet__taux > svg { width: 20px; height: 20px; color: var(--encre-muette); flex-shrink: 0; }
+.a-effet__ancien, .a-effet__nouveau { display: flex; flex-direction: column; gap: 2px; }
+.a-effet__ancien strong, .a-effet__nouveau strong { font-size: 26px; font-weight: 660; letter-spacing: -0.026em; font-variant-numeric: tabular-nums; }
+.a-effet__ancien strong { color: var(--encre-muette); }
+.a-effet__nouveau strong { color: var(--marque); }
+.a-effet__portee { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 1px solid var(--filet-fort); display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--encre-2); }
+.a-apercu { background: var(--marque-teinte); border-color: transparent; }
+.a-apercu > svg { color: var(--marque); }
+
+/* ------------------------------------------------------------------ */
+/* 7. Administrateurs                                                  */
+/* ------------------------------------------------------------------ */
+.a-personnes { list-style: none; margin: 0; padding: 0; }
+.a-personne {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 14px; align-items: start;
+  padding: 14px 16px; border-top: 1px solid var(--filet);
+}
+.a-personne:first-child { border-top: 0; }
+.a-personne:target { background: color-mix(in srgb, var(--marque-teinte) 50%, transparent); }
+.a-personne--vide { display: block; }
+.a-personne__corps { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.a-personne__nom { font-weight: 600; }
+.a-personne__motif { font-size: 13px; color: var(--encre-2); font-style: italic; overflow-wrap: anywhere; }
+.a-personne__puce { margin-top: 2px; }
+.a-personne--revolu .jeton { opacity: 0.6; }
+.a-avertissement {
+  display: flex; align-items: flex-start; gap: 7px; margin-top: 4px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--alerte-teinte); color: #6E5006; font-size: 12.5px; line-height: 1.45;
+}
+.a-avertissement .icone-ligne { margin-top: 1px; }
+:root[data-theme="dark"] .a-avertissement { color: var(--alerte); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .a-avertissement { color: var(--alerte); } }
+
+.a-droits { margin-top: 4px; font-size: 12.5px; }
+.a-droits summary { cursor: pointer; color: var(--encre-2); font-weight: 560; width: max-content; }
+.a-droits summary:hover { color: var(--marque); }
+.a-droits ul { margin: 6px 0 0; padding-left: 18px; color: var(--encre-2); display: flex; flex-direction: column; gap: 2px; }
+
+.a-retrait { grid-column: 2 / -1; margin-top: 4px; }
+.a-retrait > summary { list-style: none; width: max-content; height: 30px; font-size: 12.5px; }
+.a-retrait > summary::-webkit-details-marker { display: none; }
+.a-retrait__fermer, .a-retrait[open] .a-retrait__ouvrir { display: none; }
+.a-retrait[open] .a-retrait__fermer { display: inline; }
+.a-retrait__form {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-top: 10px; padding: 14px; border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--critique) 30%, var(--filet));
+  background: color-mix(in srgb, var(--critique-teinte) 45%, var(--surface));
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. Petits écrans                                                    */
+/* ------------------------------------------------------------------ */
+@media (max-width: 1080px) {
+  /* Même spécificité que la règle du cadre : sans ce rappel, la colonne des étapes (248 px)
+     survivrait sur petit écran et pousserait la page hors de l'écran. */
+  .a-assistant { grid-template-columns: minmax(0, 1fr); }
+  .a-colonne-etapes { position: static; min-width: 0; }
+  .a-assistant { gap: 16px; }
+  .a-etapes .etape::after { display: none; }
+}
+
+@media (max-width: 860px) {
+  .a-grille-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .a-effet { grid-template-columns: minmax(0, 1fr); }
+  .a-effet__portee { padding: 12px 0 0; border-left: 0; border-top: 1px solid var(--filet-fort); }
+}
+
+@media (max-width: 640px) {
+  /* Les étapes deviennent une frise compacte : des numéros, et le titre de l'étape en cours. */
+  .a-etapes { gap: 6px; overflow: visible; }
+  .a-etapes .etape { flex: 0 0 auto; min-width: 0; padding: 6px; background: transparent; }
+  .a-etapes .etape--courante { flex: 1 1 auto; background: var(--actif); padding-right: 12px; }
+  .a-etapes .etape .etape__texte { display: none; }
+  .a-etapes .etape--courante .etape__texte { display: flex; padding-top: 0; justify-content: center; }
+  .a-etapes .etape--faite .etape__texte { display: flex; position: absolute; inset: 0; padding: 0; }
+  .a-etapes .etape--faite .etape__texte > * { opacity: 0; }
+  .a-etapes .etape--faite .etape__lien { position: absolute; inset: 0; opacity: 1; font-size: 0; }
+  .a-etapes .etape__aide { display: none; }
+  .a-etapes .etape { align-items: center; }
+
+  .a-tete__titre { font-size: 20px; }
+  .a-carte__corps { padding: 16px; gap: 20px; }
+  .a-grille-2, .a-grille-3, .a-cartes--deux { grid-template-columns: minmax(0, 1fr); }
+  .a-grille-2:has(> :only-child) { max-width: none; }
+  .a-recap__cles { grid-template-columns: minmax(0, 1fr); padding-left: 0; gap: 1px; }
+  .a-recap__cles dd { margin-bottom: 9px; }
+  .a-recap .recap__section { padding: 14px; }
+  .a-montants { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .a-montant--total { grid-column: 1 / -1; }
+  .a-transition { margin-left: 0; width: 100%; }
+  .a-personne { grid-template-columns: auto minmax(0, 1fr); }
+  .a-personne__puce { grid-column: 2; justify-self: start; }
+  /* Le pied se range sur deux lignes : Précédent et Continuer côte à côte, sous le pouce ;
+     Abandonner en dessous, à l'écart du geste principal. */
+  .a-pied { padding: 12px; flex-direction: column-reverse; align-items: stretch; gap: 6px; }
+  .a-pied__droite { margin-left: 0; flex-wrap: nowrap; }
+  .a-pied__droite .btn--primaire { flex: 1; justify-content: center; }
+  .a-abandonner { align-self: center; }
+  .a-recherche .btn { padding: 0 12px; }
+  .a-effet__ancien strong, .a-effet__nouveau strong { font-size: 22px; }
+}

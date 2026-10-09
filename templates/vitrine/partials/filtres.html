@@ -1,0 +1,59 @@
+{% load i18n hm marche %}{% comment %}
+Formulaire de filtres (GET) : le même dans la colonne de gauche (bureau) et dans le tiroir
+(téléphone). Sans JavaScript, « Appliquer » envoie le formulaire ; avec, chaque changement recharge
+la grille seule (static/js/marche.js). `prefixe` distingue les identifiants des deux exemplaires.
+{% endcomment %}
+<form class="flex flex-col gap-6" method="get" action="{% url 'vitrine_catalogue' %}" data-filtres>
+  {% if recherche %}<input type="hidden" name="q" value="{{ recherche }}">{% endif %}
+  {% if rayon_courant %}<input type="hidden" name="rayon" value="{{ rayon_courant.code }}">{% endif %}
+  <input type="hidden" name="tri" value="{{ filtres.tri }}">
+
+  {% if facettes.categories %}
+  <fieldset class="flex flex-col gap-2">
+    <legend class="sur-titre mb-2">{% translate "Catégorie" %}</legend>
+    <label class="filtre-option"><input type="radio" name="categorie" value="" {% if not filtres.categorie %}checked{% endif %}><span class="flex-1">{% translate "Toutes" %}</span></label>
+    {% for c in facettes.categories %}
+      <label class="filtre-option"><input type="radio" name="categorie" value="{{ c.slug }}" {% if filtres.categorie == c.slug %}checked{% endif %}><span class="flex-1">{{ c.libelle }}</span><span class="filtre-compte">{{ c.n }}</span></label>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
+
+  <fieldset class="flex flex-col gap-3">
+    <legend class="sur-titre mb-2">{% translate "Prix (FCFA)" %}</legend>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="champ"><label class="text-xs font-semibold text-ink-muted" for="{{ prefixe }}prix-min">{% translate "Minimum" %}</label>
+        <input class="input input-sm" id="{{ prefixe }}prix-min" type="number" name="prix_min" min="0" step="100" inputmode="numeric" value="{{ filtres.prix_min|default_if_none:'' }}" placeholder="{{ facettes.prix.0|default_if_none:''|floatformat:0 }}"></div>
+      <div class="champ"><label class="text-xs font-semibold text-ink-muted" for="{{ prefixe }}prix-max">{% translate "Maximum" %}</label>
+        <input class="input input-sm" id="{{ prefixe }}prix-max" type="number" name="prix_max" min="0" step="100" inputmode="numeric" value="{{ filtres.prix_max|default_if_none:'' }}" placeholder="{{ facettes.prix.1|default_if_none:''|floatformat:0 }}"></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class="sur-titre mb-2">{% translate "Confiance" %}</legend>
+    <label class="filtre-option"><input type="checkbox" name="verifie" value="1" {% if filtres.verifie %}checked{% endif %}><span class="flex-1">{% translate "Identité du commerçant vérifiée" %}</span>{% icone "check" "size-4 text-success-ink" %}</label>
+  </fieldset>
+
+  {% if facettes.villes|length > 1 %}
+  <fieldset class="flex flex-col gap-2">
+    <legend class="sur-titre mb-2">{% translate "Ville" %}</legend>
+    <label class="filtre-option"><input type="radio" name="ville" value="" {% if not filtres.ville %}checked{% endif %}><span class="flex-1">{% translate "Toutes" %}</span></label>
+    {% for v in facettes.villes %}
+      <label class="filtre-option"><input type="radio" name="ville" value="{{ v.libelle }}" {% if filtres.ville == v.libelle %}checked{% endif %}><span class="flex-1">{{ v.libelle }}</span><span class="filtre-compte">{{ v.n }}</span></label>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
+
+  {% if facettes.boutiques %}
+  <fieldset class="flex flex-col gap-2">
+    <legend class="sur-titre mb-2">{% translate "Commerçant" %}</legend>
+    <label class="filtre-option"><input type="radio" name="boutique" value="" {% if not filtres.boutique %}checked{% endif %}><span class="flex-1">{% translate "Tous" %}</span></label>
+    {% for b in facettes.boutiques %}
+      <label class="filtre-option"><input type="radio" name="boutique" value="{{ b.slug }}" {% if filtres.boutique == b.slug %}checked{% endif %}><span class="jeton size-6 rounded-md text-[0.6rem]" style="--teinte:{{ b.libelle|teinte }}" aria-hidden="true">{{ b.libelle|initiales }}</span><span class="min-w-0 flex-1 truncate">{{ b.libelle }}</span><span class="filtre-compte">{{ b.n }}</span></label>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
+
+  <div class="flex gap-2" data-sans-script>
+    <button class="btn btn-primary btn-md flex-1" type="submit">{% translate "Appliquer" %}</button>
+  </div>
+</form>

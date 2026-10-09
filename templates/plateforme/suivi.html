@@ -1,0 +1,58 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Ouvrir un suivi" %}{% endblock %}
+{% block entete %}{% translate "Ouvrir un suivi" %}{% endblock %}
+
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">{% translate "Lecture à travers les boutiques" %}</p>
+    <h2 class="entete-page__titre">{% translate "Pourquoi regardez-vous ?" %}</h2>
+    <p class="entete-page__phrase">
+      {% blocktranslate with duree=duree trimmed %}L'écran demandé lit l'activité des boutiques. Cette lecture est journalisée : chaque écran
+      consulté pendant les {{ duree }} prochaines minutes sera inscrit au journal des accès, avec
+      votre nom et ce motif. Les commerçants peuvent le savoir, et c'est le but.{% endblocktranslate %}
+    </p>
+  </div>
+</div>
+
+<form class="carte" method="post" style="max-width:720px">
+  {% csrf_token %}
+  <input type="hidden" name="suite" value="{{ suite }}">
+  <div class="carte__corps colonne" style="gap:16px">
+    {% if erreur %}
+      <div class="bandeau-info bandeau-info--alerte" role="alert">
+        <svg><use href="#ic-alerte"></use></svg><span>{{ erreur }}</span>
+      </div>
+    {% endif %}
+
+    <fieldset class="choix-cartes" style="border:0;padding:0;margin:0">
+      <legend class="t-sur-titre" style="margin-bottom:8px">{% translate "Motif" %}</legend>
+      {% for code, libelle in motifs_de_suivi %}
+        <label class="choix-carte">
+          <input type="radio" name="motif" value="{{ code }}" required
+                 {% if motif_choisi == code or not motif_choisi and forloop.first %}checked{% endif %}>
+          <span class="choix-carte__corps"><span class="choix-carte__titre">{{ libelle }}</span></span>
+        </label>
+      {% endfor %}
+    </fieldset>
+
+    <label class="groupe-champ">
+      <span class="t-petit" style="font-weight:560">{% translate "Précision" %} <span class="t-legende">{% translate "— obligatoire pour « Autre »" %}</span></span>
+      <input class="champ" name="precision" maxlength="200" value="{{ precision }}"
+             placeholder="{% translate 'Ex. : relance du loyer de septembre, dossier n° 42' %}">
+    </label>
+
+    <div class="bandeau-info">
+      <svg><use href="#ic-verrou"></use></svg>
+      <span>{% translate "Ce suivi ouvre des" %} <strong>{% translate "agrégats" %}</strong> {% blocktranslate trimmed %}: chiffre d'affaires, nombre de ventes,
+        dernière activité. Jamais la marge, le coût d'achat, le stock détaillé ni les clients d'un
+        commerçant (ADR-012).{% endblocktranslate %}</span>
+    </div>
+  </div>
+  <footer class="carte__pied assistant__pied">
+    <a class="btn" href="{% url 'plateforme:tableau_de_bord' %}">{% translate "Annuler" %}</a>
+    <button class="btn btn--primaire" type="submit">{% translate "Ouvrir le suivi" %}</button>
+  </footer>
+</form>
+{% endblock %}

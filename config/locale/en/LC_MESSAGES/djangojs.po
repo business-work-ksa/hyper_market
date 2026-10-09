@@ -1,0 +1,142 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-01 18:57+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: static/js/hors-ligne.js:315 static/js/hors-ligne.js:361
+msgid "Opération refusée."
+msgstr "Operation refused."
+
+#: static/js/imprimante.js:176
+msgid "Total hors taxes"
+msgstr "Total excl. tax"
+
+#: static/js/imprimante.js:177
+msgid "TVA 19,25 %"
+msgstr "VAT 19.25 %"
+
+#: static/js/imprimante.js:188
+msgid "TVA non applicable"
+msgstr "VAT not applicable"
+
+#: static/js/imprimante.js:189
+msgid "Impot general synthetique"
+msgstr "General synthetic tax"
+
+#: static/js/imprimante.js:191
+msgid "Merci de votre visite."
+msgstr "Thank you for your visit."
+
+#: static/js/imprimante.js:192
+msgid "Conservez ce ticket."
+msgstr "Keep this receipt."
+
+#: static/js/imprimante.js:222
+msgid "Ce navigateur ne sait pas parler Bluetooth."
+msgstr "This browser cannot use Bluetooth."
+
+#: static/js/imprimante.js:236
+msgid "Aucune voie d'écriture sur cette imprimante."
+msgstr "No writable channel on this printer."
+
+#: static/js/plateforme-assistants.js:152
+msgid "%(n)s jours, du premier au dernier inclus"
+msgstr "%(n)s days, first to last inclusive"
+
+#: static/js/plateforme-assistants.js:153
+msgid "%(n)s semaine"
+msgid_plural "%(n)s semaines"
+msgstr[0] "%(n)s week"
+msgstr[1] "%(n)s weeks"
+
+#: static/js/plateforme-assistants.js:154
+msgid "La fin doit venir après le début."
+msgstr "The end must come after the start."
+
+#: static/js/tableau.js:93
+msgid "Tout sélectionner"
+msgstr "Select all"
+
+#: static/js/tableau.js:104
+msgid "Sélectionner %(libelle)s"
+msgstr "Select %(libelle)s"
+
+#: static/js/tableau.js:104
+msgid "cette ligne"
+msgstr "this row"
+
+#: static/js/tableau.js:176
+msgid "Modifier « %(libelle)s »"
+msgstr "Edit “%(libelle)s”"
+
+#: static/js/tableau.js:178
+msgid "On ne modifie qu'une ligne à la fois : choisissez-en une seule."
+msgstr "Only one row can be edited at a time: choose just one."
+
+#: static/js/tableau.js:180
+msgid "Cette ligne ne se modifie pas."
+msgstr "This row cannot be edited."
+
+#: static/js/tableau.js:181
+msgid "Sélectionnez une ligne à modifier."
+msgstr "Select a row to edit."
+
+#: static/js/tableau.js:187
+msgid "Supprimer %(n)s %(noms)s"
+msgstr "Delete %(n)s %(noms)s"
+
+#: static/js/tableau.js:192
+msgid "Aucune des lignes choisies ne peut être supprimée."
+msgstr "None of the selected rows can be deleted."
+
+#: static/js/tableau.js:193
+msgid "Sélectionnez au moins une ligne à supprimer."
+msgstr "Select at least one row to delete."
+
+#: static/js/tableau.js:211
+msgid "Modifier"
+msgstr "Edit"
+
+#: static/js/tableau.js:216
+msgid "ouvre ses réglages"
+msgstr "opens its settings"
+
+#: static/js/tableau.js:216
+msgid "ouvre sa fiche"
+msgstr "opens its page"
+
+#: static/js/tableau.js:220
+msgid "s'y applique"
+msgstr "applies to it"
+
+#: static/js/tableau.js:236
+msgid "sélectionné"
+msgstr "selected"
+
+#: static/js/tableau.js:249
+msgid "sélectionnés"
+msgstr "selected"
+
+#: static/js/tableau.js:250
+msgid " — seule la <b>suppression</b> s'applique à plusieurs lignes"
+msgstr " — only <b>deletion</b> applies to several rows"
+
+#: static/js/tableau.js:252
+msgid ", et %(n)s ne peut pas être supprimée"
+msgid_plural ", et %(n)s ne peuvent pas être supprimées"
+msgstr[0] ", and %(n)s cannot be deleted"
+msgstr[1] ", and %(n)s cannot be deleted"

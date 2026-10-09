@@ -1,0 +1,172 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% load static hm %}
+{% block titre %}{% translate "Vérifications" %}{% endblock %}
+{% block entete %}{% translate "Vérifications" %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static styles %}">{% endblock %}
+
+{% comment %}
+La file des vérifications. Aucun numéro complet ici — ni de pièce, ni de compte : une file se lit
+par-dessus une épaule, dans un bureau partagé. Le numéro entier ne paraît que dans le dossier
+d'une boutique, et chaque affichage d'un dossier est inscrit au journal.
+{% endcomment %}
+{% block contenu %}
+<div class="entete-page">
+  <div class="entete-page__texte">
+    <p class="t-sur-titre">{% translate "Confiance" %}</p>
+    <h2 class="entete-page__titre">{% translate "Vérifications" %}</h2>
+    <p class="entete-page__phrase">
+      {% blocktranslate trimmed %}Aucune boutique ne vend sans que l'identité de son gérant et son compte de versement aient été
+      vérifiés, par deux personnes distinctes. Ce qui attend un second regard est ici.{% endblocktranslate %}
+    </p>
+  </div>
+</div>
+
+<section class="kpis" aria-label="{% translate 'Ce qui attend' %}">
+  <a class="kpi" href="#pieces">
+    <span class="kpi__tete"><span class="kpi__icone {% if compteurs.pieces %}kpi__icone--or{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#ic-cle"></use></svg></span>{% translate "Pièces à valider" %}</span>
+    <span class="kpi__valeur">{{ compteurs.pieces }}</span>
+    <span class="kpi__pied">{% translate "Attestées, en attente du second regard" %}</span>
+  </a>
+  <a class="kpi" href="#comptes">
+    <span class="kpi__tete"><span class="kpi__icone {% if compteurs.comptes %}kpi__icone--or{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#ic-momo"></use></svg></span>{% translate "Comptes à vérifier" %}</span>
+    <span class="kpi__valeur">{{ compteurs.comptes }}</span>
+    <span class="kpi__pied">{% translate "Où la plateforme versera l'argent" %}</span>
+  </a>
+  <a class="kpi" href="#candidatures">
+    <span class="kpi__tete"><span class="kpi__icone"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg></span>{% translate "Candidatures" %}</span>
+    <span class="kpi__valeur">{{ compteurs.candidatures }}</span>
+    <span class="kpi__pied">{% if compteurs.pretes %}{% blocktranslate count pretes=compteurs.pretes trimmed %}{{ pretes }} prête à valider{% plural %}{{ pretes }} prêtes à valider{% endblocktranslate %}{% else %}{% translate "Dossiers incomplets" %}{% endif %}</span>
+  </a>
+  <a class="kpi" href="#regulariser">
+    <span class="kpi__tete"><span class="kpi__icone {% if compteurs.a_regulariser %}kpi__icone--alerte{% else %}kpi__icone--bon{% endif %}"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg></span>{% translate "Actives à régulariser" %}</span>
+    <span class="kpi__valeur">{{ compteurs.a_regulariser }}</span>
+    <span class="kpi__pied">{% if compteurs.expirent %}{% blocktranslate count expirent=compteurs.expirent trimmed %}{{ expirent }} pièce expire sous 30 jours{% plural %}{{ expirent }} pièces expirent sous 30 jours{% endblocktranslate %}{% else %}{% translate "Elles vendent, mais le dossier manque" %}{% endif %}</span>
+  </a>
+</section>
+
+<div class="v-grille" style="margin-top:18px">
+  <div class="v-pile">
+    <section class="carte" id="pieces" aria-labelledby="t-pieces">
+      <header class="carte__entete"><h3 class="t-section" id="t-pieces">{% translate "Pièces à valider" %}</h3><span class="v-compte-titre">{{ compteurs.pieces }}</span></header>
+      {% if file.pieces %}
+        <div class="file">
+          {% for d in file.pieces %}
+            <a class="file__ligne" href="{% if d.boutique_id %}{% url 'plateforme:verification_dossier' d.boutique_id %}#piece-{{ d.pk }}{% else %}#{% endif %}">
+              <span class="v-icone v-icone--or" aria-hidden="true"><svg><use href="#{% if d.est_piece_identite %}ic-cle{% else %}ic-document{% endif %}"></use></svg></span>
+              <span class="file__corps">
+                <span class="file__titre">{{ d.get_type_piece_display }} <span class="v-numero">{{ d.numero_masque }}</span>{% if d.utilisateur %} · {{ d.utilisateur.nom_complet }}{% endif %}</span>
+                <span class="t-legende">{% blocktranslate with enseigne=d.boutique.enseigne|default:"—" nom_complet=d.declare_par.nom_complet|default:"—" cree_le=d.cree_le|date:"d/m/Y" get_mode_verification_display=d.get_mode_verification_display|lower trimmed %}{{ enseigne }} · attestée par {{ nom_complet }} le {{ cree_le }} · {{ get_mode_verification_display }}{% endblocktranslate %}</span>
+              </span>
+              {% include "plateforme/partials/v_etat.html" with etat=d.etat libelle=_("À valider") %}
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-check"></use></svg><p class="t-2">{% translate "Aucune pièce n'attend de validation." %}</p></div>
+      {% endif %}
+    </section>
+
+    <section class="carte" id="comptes" aria-labelledby="t-comptes">
+      <header class="carte__entete"><h3 class="t-section" id="t-comptes">{% translate "Comptes de versement à vérifier" %}</h3><span class="v-compte-titre">{{ compteurs.comptes }}</span></header>
+      {% if file.comptes %}
+        <div class="file">
+          {% for c in file.comptes %}
+            <a class="file__ligne" href="{% url 'plateforme:verification_dossier' c.boutique_id %}#compte-{{ c.pk }}">
+              <span class="v-icone v-icone--or" aria-hidden="true"><svg><use href="#ic-momo"></use></svg></span>
+              <span class="file__corps">
+                <span class="file__titre">{{ c.get_operateur_display }} <span class="v-numero">{{ c.numero_masque }}</span> · {{ c.boutique.enseigne }}</span>
+                <span class="t-legende">{% blocktranslate with titulaire=c.titulaire cree_le=c.cree_le|date:"d/m/Y à H:i" trimmed %}Au nom de « {{ titulaire }} » · déclaré le {{ cree_le }}{% endblocktranslate %}</span>
+              </span>
+              {% include "plateforme/partials/v_etat.html" with etat=c.etat libelle=_("À vérifier") %}
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-check"></use></svg><p class="t-2">{% translate "Aucun compte n'attend de vérification." %}</p></div>
+      {% endif %}
+    </section>
+
+    <section class="carte" aria-labelledby="t-expirent">
+      <header class="carte__entete"><h3 class="t-section" id="t-expirent">{% translate "Pièces qui expirent sous 30 jours" %}</h3><span class="v-compte-titre">{{ compteurs.expirent }}</span></header>
+      {% if file.expirent %}
+        <div class="file">
+          {% for d in file.expirent %}
+            <a class="file__ligne" href="{% if d.boutique_id %}{% url 'plateforme:verification_dossier' d.boutique_id %}{% else %}#{% endif %}">
+              <span class="v-icone v-icone--alerte" aria-hidden="true"><svg><use href="#ic-horloge"></use></svg></span>
+              <span class="file__corps">
+                <span class="file__titre">{{ d.utilisateur.nom_complet }} · {{ d.get_type_piece_display }} <span class="v-numero">{{ d.numero_masque }}</span></span>
+                <span class="t-legende">{% blocktranslate with expire_le=d.expire_le|date:"d/m/Y" trimmed %}Expire le {{ expire_le }}{% endblocktranslate %}{% if d.boutique %} · {{ d.boutique.enseigne }}{% endif %}{% translate ". À renouveler avant qu'elle ne bloque." %}</span>
+              </span>
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-calendrier"></use></svg><p class="t-2">{% translate "Aucune pièce n'expire dans le mois." %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="v-pile">
+    <section class="carte" id="candidatures" aria-labelledby="t-candidatures">
+      <header class="carte__entete"><h3 class="t-section" id="t-candidatures">{% translate "Candidatures" %}</h3><span class="v-compte-titre">{% blocktranslate count candidatures=compteurs.candidatures trimmed %}{{ candidatures }} incomplète{% plural %}{{ candidatures }} incomplètes{% endblocktranslate %}</span></header>
+      {% if file.pretes or file.candidatures %}
+        <div class="file">
+          {% for item in file.pretes %}
+            <a class="file__ligne" href="{% url 'plateforme:boutique_etat' item.boutique.pk %}?action=valider">
+              <span class="v-icone v-icone--bon" aria-hidden="true"><svg><use href="#ic-check"></use></svg></span>
+              <span class="file__corps">
+                <span class="file__titre">{{ item.boutique.enseigne }}</span>
+                <span class="t-legende">{% translate "Dossier complet : prête à valider." %}</span>
+              </span>
+              <span class="statut statut--candidature">{% translate "Candidature" %}</span>
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+          {% for item in file.candidatures %}
+            <a class="file__ligne" href="{% url 'plateforme:verification_dossier' item.boutique.pk %}">
+              <span class="v-icone" aria-hidden="true"><svg><use href="#ic-boutique"></use></svg></span>
+              <span class="file__corps">
+                <span class="file__titre">{{ item.boutique.enseigne }}</span>
+                <span class="t-legende">{% blocktranslate count manques=item.manques|length with v0=item.manques.0 trimmed %}{{ manques }} manque — {{ v0 }}{% plural %}{{ manques }} manques — {{ v0 }}{% endblocktranslate %}</span>
+              </span>
+              <span class="statut statut--candidature">{% translate "Candidature" %}</span>
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg><p class="t-2">{% translate "Aucune candidature en cours." %}</p></div>
+      {% endif %}
+    </section>
+
+    <section class="carte" id="regulariser" aria-labelledby="t-regulariser">
+      <header class="carte__entete"><h3 class="t-section" id="t-regulariser">{% translate "Boutiques actives à régulariser" %}</h3><span class="v-compte-titre">{{ compteurs.a_regulariser }}</span></header>
+      <p class="t-legende" style="padding:0 16px 10px">
+        {% blocktranslate trimmed %}Elles vendaient avant que la vérification soit exigée : elles ne sont pas coupées. Mais une
+        suspendue ne se réactivera qu'une fois son dossier complet.{% endblocktranslate %}
+      </p>
+      {% if file.a_regulariser %}
+        <div class="file">
+          {% for item in file.a_regulariser %}
+            <a class="file__ligne" href="{% url 'plateforme:verification_dossier' item.boutique.pk %}">
+              <span class="v-icone v-icone--alerte" aria-hidden="true"><svg><use href="#ic-alerte"></use></svg></span>
+              <span class="file__corps">
+                <span class="file__titre">{{ item.boutique.enseigne }}</span>
+                <span class="t-legende">{% blocktranslate count manques=item.manques|length with v0=item.manques.0 trimmed %}{{ manques }} manque — {{ v0 }}{% plural %}{{ manques }} manques — {{ v0 }}{% endblocktranslate %}</span>
+              </span>
+              <span class="statut statut--active">{% translate "Active" %}</span>
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="vide"><svg aria-hidden="true"><use href="#ic-check"></use></svg><p class="t-2">{% translate "Toutes les boutiques actives sont vérifiées." %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

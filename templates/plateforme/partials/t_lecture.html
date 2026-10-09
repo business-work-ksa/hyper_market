@@ -1,0 +1,11 @@
+{% load i18n %}{% comment %}
+Le rappel d'une lecture journalisée, en tête de chaque écran d'activité. Il dit ce qui vient
+d'être écrit au journal, avec quel motif : l'administrateur ne doit jamais avoir à deviner si son
+regard a laissé une trace.
+{% endcomment %}
+<div class="t-lecture" role="note">
+  <svg aria-hidden="true"><use href="#ic-journal"></use></svg>
+  <span>{% translate "Cet affichage vient d'être inscrit au" %} <a href="{% url 'plateforme:journal' %}">{% translate "journal des accès" %}</a>
+    {% translate "à votre nom — motif :" %} <strong>« {{ suivi.motif }} »</strong>{% blocktranslate trimmed %}.
+    Seuls des agrégats sont lus : chiffre d'affaires, nombre de ventes, date de la dernière.{% endblocktranslate %}</span>
+</div>

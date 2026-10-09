@@ -1,0 +1,16 @@
+{% load hm %}{% comment %}Corps d'un SVG de `t_graphe.html` — `g` est une géométrie de `geometrie_graphe`. Rendu sous `localize off` : des coordonnées « 128,43 » seraient rejetées par le navigateur.{% endcomment %}
+{% for ligne in g.lignes %}
+  <line class="{% if ligne.base %}base{% else %}grille{% endif %}" x1="{{ g.x_gauche }}" y1="{{ ligne.y }}" x2="{{ g.x_droite }}" y2="{{ ligne.y }}"/>
+  <text class="tick" x="{{ g.x_etiquettes }}" y="{{ ligne.y_texte }}" text-anchor="end">{{ ligne.valeur|fcfa }}</text>
+{% endfor %}
+{% for barre in g.barres %}
+  {% if barre.chemin %}<path class="barre" d="{{ barre.chemin }}" data-rang="{{ forloop.counter0 }}"/>{% endif %}
+  {% if barre.est_max and barre.hauteur > 0 %}
+    <text class="etiquette-directe" x="{{ barre.centre }}" y="{{ barre.y_etiquette }}" text-anchor="middle">{{ barre.valeur|fcfa }}</text>
+  {% endif %}
+  {% if barre.tick_visible %}
+    <text class="tick" x="{{ barre.centre }}" y="{{ g.y_ticks }}" text-anchor="middle">{{ barre.libelle }}</text>
+  {% endif %}
+  <rect class="zone-survol" x="{{ barre.creneau_x }}" y="{{ g.y_haut }}" width="{{ barre.creneau_l }}" height="{{ g.hauteur_survol }}"
+        data-rang="{{ forloop.counter0 }}" data-jour="{{ barre.libelle_long }}" data-valeur="{{ barre.valeur|fcfa }}"/>
+{% endfor %}

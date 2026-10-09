@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}Le signal d'activité d'une ligne `l` de l'écran d'activité : pastille, icône et mot.{% endcomment %}
+{% if l.b.etat == 'suspendue' %}
+  <span class="statut statut--suspendue">{% translate "Suspendue" %}</span>
+{% elif l.endormie %}
+  <span class="puce puce--alerte"><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% if l.jours is None %}{% translate "Jamais vendu" %}{% else %}{% blocktranslate with jours=l.jours trimmed %}Endormie · {{ jours }} j{% endblocktranslate %}{% endif %}</span>
+{% elif l.jours == 0 %}
+  <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Vendu aujourd'hui" %}</span>
+{% else %}
+  <span class="puce puce--bon"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% blocktranslate with jours=l.jours trimmed %}Il y a {{ jours }} j{% endblocktranslate %}</span>
+{% endif %}

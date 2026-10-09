@@ -1,0 +1,124 @@
+{% extends "plateforme/base.html" %}
+{% load i18n %}
+{% load static hm %}
+{% block titre %}{{ s.get_type_display }} · {{ b.enseigne }}{% endblock %}
+{% block fil %}<p class="fil"><a href="{% url 'plateforme:signaux' %}">{% translate "Signaux" %}</a><span class="fil__sep">›</span><span>{% translate "Fiche" %}</span></p>{% endblock %}
+{% block entete %}{{ s.get_type_display }}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/plateforme-tableaux.css' %}"><link rel="stylesheet" href="{% static 'css/plateforme-signaux.css' %}">{% endblock %}
+
+{% block contenu %}
+{% comment %}
+La fiche d'un signal : la preuve, lisible ; comment la lire ; la décision. Aucune table scopée
+n'est relue : la preuve est celle que la tâche de nuit a écrite. Confirmer ne suspend pas — la
+suspension est un second geste, dans son propre assistant, avec son propre motif.
+{% endcomment %}
+<header class="t-fiche">
+  <span class="s-icone s-icone--{{ s.ton }}" aria-hidden="true"><svg><use href="#{{ s.icone }}"></use></svg></span>
+  <div class="t-fiche__texte">
+    <div class="t-fiche__ligne">
+      <h2 class="entete-page__titre">{{ s.get_type_display }}</h2>
+      {% include "plateforme/partials/s_gravite.html" with signal=s %}
+      {% include "plateforme/partials/s_etat.html" with signal=s %}
+    </div>
+    <p class="t-fiche__meta">
+      <span><svg aria-hidden="true"><use href="#ic-boutique"></use></svg><a class="t-lien" href="{% url 'plateforme:boutique' b.pk %}">{{ b.enseigne }}</a></span>
+      <span class="statut statut--{{ b.etat }}">{{ b.get_etat_display }}</span>
+      <span>{% blocktranslate with niveau=palier_boutique.niveau libelle=palier_boutique.libelle trimmed %}Palier {{ niveau }} — {{ libelle }}{% endblocktranslate %}</span>
+      <span><svg aria-hidden="true"><use href="#ic-horloge"></use></svg>{% blocktranslate with constate_le=s.constate_le|date:"j F Y à H:i" trimmed %}Constaté le {{ constate_le }}{% endblocktranslate %}</span>
+    </p>
+  </div>
+  <div class="t-fiche__actions">
+    <a class="btn" href="{% url 'plateforme:boutique' b.pk %}"><svg aria-hidden="true"><use href="#ic-boutique"></use></svg>{% translate "Fiche de la boutique" %}</a>
+    {% if peut_suspendre %}
+      <a class="btn btn--danger" href="{% url 'plateforme:boutique_etat' b.pk %}?action=suspendre"><svg aria-hidden="true"><use href="#ic-pause"></use></svg>{% translate "Suspendre…" %}</a>
+    {% endif %}
+  </div>
+</header>
+
+<div class="grille-console">
+  <div class="col-7 colonne">
+    <section class="carte" aria-labelledby="s-preuve-titre">
+      <header class="carte__entete"><h2 class="t-section" id="s-preuve-titre">{% translate "La preuve" %}</h2><span class="s-score">{% blocktranslate with score=s.score trimmed %}score {{ score }} / 100{% endblocktranslate %}</span></header>
+      <div class="carte__corps colonne" style="gap:14px">
+        <p class="s-resume s-resume--{{ s.ton }}">{{ s.resume }}</p>
+        {% include partiel %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-5 colonne">
+    <section class="carte" aria-labelledby="s-decision-titre">
+      <header class="carte__entete"><h2 class="t-section" id="s-decision-titre">{% translate "Décision" %}</h2></header>
+      <div class="carte__corps">
+        {% if s.est_ouvert %}
+          <form method="post" class="s-decision" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+              <div class="bandeau-info bandeau-info--alerte" role="alert"><svg aria-hidden="true"><use href="#ic-alerte"></use></svg><span>{{ form.non_field_errors|join:" " }}</span></div>
+            {% endif %}
+            <fieldset class="s-choix" style="border:0;margin:0;padding:0">
+              <legend class="lecteur-seul">{% translate "Votre décision" %}</legend>
+              {% for choix in form.decision %}
+                <label>{{ choix.tag }}<span class="pile-sm"><strong>{% if choix.data.value == 'ecarter' %}{% translate "Écarter" %}{% else %}{% translate "Confirmer" %}{% endif %}</strong><span class="t-legende">{% if choix.data.value == 'ecarter' %}{% translate "C'est un faux positif. Les mêmes faits ne reviendront pas." %}{% else %}{% translate "L'indice est fondé. Décidez ensuite d'une mesure." %}{% endif %}</span></span></label>
+              {% endfor %}
+            </fieldset>
+            {% if form.decision.errors %}<p class="t-petit" style="color:var(--critique-encre);margin:0">{{ form.decision.errors|join:" " }}</p>{% endif %}
+            <label class="pile-sm" for="id_motif">
+              <span class="t-petit" style="font-weight:600">{% translate "Motif" %}</span>
+              {{ form.motif }}
+              <span class="t-legende">{% translate "Inscrit au journal des accès, avec votre nom. Il sera relu — peut-être par le commerçant." %}</span>
+            </label>
+            {% if form.motif.errors %}<p class="t-petit" style="color:var(--critique-encre);margin:0">{{ form.motif.errors|join:" " }}</p>{% endif %}
+            <button class="btn btn--primaire" type="submit"><svg aria-hidden="true"><use href="#ic-check"></use></svg>{% translate "Enregistrer la décision" %}</button>
+            <p class="t-legende" style="margin:0">{% translate "Confirmer ne suspend pas la boutique. Si une mesure s'impose, c'est un second geste, avec son propre motif." %}</p>
+          </form>
+        {% else %}
+          <dl class="cles">
+            <dt>{% translate "Décision" %}</dt><dd>{% include "plateforme/partials/s_etat.html" with signal=s %}</dd>
+            <dt>{% translate "Par" %}</dt><dd>{{ s.traite_par.nom_complet|default:"—" }}</dd>
+            <dt>{% translate "Le" %}</dt><dd>{{ s.traite_le|date:"j F Y à H:i" }}</dd>
+            <dt>{% translate "Motif" %}</dt><dd>{{ s.decision }}</dd>
+          </dl>
+          {% if s.etat == 'confirme' and peut_suspendre %}
+            <p class="bandeau-info" style="margin:12px 0 0"><svg aria-hidden="true"><use href="#ic-info"></use></svg><span>{% translate "Signal confirmé, boutique toujours active. Si la poursuite des ventes expose des acheteurs," %} <a class="t-lien" href="{% url 'plateforme:boutique_etat' b.pk %}?action=suspendre">{% translate "suspendez-la" %}</a>.</span></p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </section>
+
+    {% if autres %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">{% translate "Autres signaux de cette boutique" %}</h2></header>
+        <div class="s-file">
+          {% for x in autres %}
+            <a class="file__ligne" href="{% url 'plateforme:signal' x.pk %}">
+              {% include "plateforme/partials/s_gravite.html" with signal=x %}
+              <span class="file__corps">
+                <span class="file__titre">{{ x.get_type_display }}</span>
+                <span class="t-legende">{{ x.get_etat_display }} · {{ x.constate_le|date:"d/m/Y" }}</span>
+              </span>
+              <svg class="file__fleche" aria-hidden="true"><use href="#ic-fleche-droite"></use></svg>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if changements %}
+      <section class="carte">
+        <header class="carte__entete"><h2 class="t-section">{% translate "Palier : derniers changements" %}</h2></header>
+        <div class="carte__corps">
+          <ul class="s-changements">
+            {% for ch in changements %}
+              <li>
+                {% if ch.est_une_montee %}<svg class="s-monte" aria-hidden="true"><use href="#ic-hausse"></use></svg>{% else %}<svg class="s-descend" aria-hidden="true"><use href="#ic-baisse"></use></svg>{% endif %}
+                <span><strong>{{ ch.ancien }} → {{ ch.nouveau }}</strong> <span class="t-legende">{% blocktranslate with decide_le=ch.decide_le|date:"d/m/Y" trimmed %}le {{ decide_le }}{% endblocktranslate %}</span><br><span class="t-legende">{{ ch.raisons|first }}</span></span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

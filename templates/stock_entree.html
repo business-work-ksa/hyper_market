@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with libelle=variante.produit.libelle trimmed %}Entrée de stock — {{ libelle }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Entrée de stock" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'article' variante.pk %}">{% translate "Retour à l'article" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{{ variante.produit.libelle }}</h2>
+      <span class="puce chiffre">{{ variante.sku }}</span>
+    </header>
+
+    {% comment %}
+    Le formulaire poste normalement — il fonctionne sans JavaScript. Quand le
+    script est là, il passe par la file hors ligne : une réception saisie au
+    moment où le réseau tombe était jusqu'ici perdue, alors que le camion, lui,
+    était bien reparti.
+    {% endcomment %}
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate
+          id="formulaire-entree" data-json="{% url 'entree_stock_json' variante.pk %}"
+          data-article="{% url 'article' variante.pk %}"
+          data-depot="{% if depot_courant %}{{ depot_courant.pk }}{% endif %}">
+      {% csrf_token %}
+      {% include "partials/champ.html" with champ=formulaire.quantite %}
+      {% include "partials/champ.html" with champ=formulaire.cout_unitaire %}
+      {% include "partials/champ.html" with champ=formulaire.commentaire %}
+      {% comment %}
+      Présent seulement si l'article est suivi à l'unité : le formulaire ne
+      compose le champ que dans ce cas (`EntreeStockForm.__init__`). C'est le
+      moment où les numéros se lisent — les cartons sont ouverts, la douchette
+      est en main.
+      {% endcomment %}
+      {% if formulaire.numeros_serie %}
+        {% include "partials/champ.html" with champ=formulaire.numeros_serie %}
+      {% endif %}
+      <button class="btn btn--primaire btn--grand btn--bloc" type="submit" id="valider-entree">
+        {% translate "Enregistrer l'entrée" %}
+      </button>
+      <p class="t-legende" style="text-align:center" id="message-entree" role="status"></p>
+    </form>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">{% translate "État actuel" %}</h2></header>
+    <div class="carte__corps colonne" style="gap:14px">
+      {% if niveau %}
+        <div class="rangee rangee--espace">
+          <span class="t-2">{% translate "En stock" %}</span>
+          <strong class="chiffre">{{ niveau.quantite|quantite }}</strong>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">{% translate "Coût moyen pondéré" %}</span>
+          <strong class="chiffre">{{ niveau.cmp|fcfa }} FCFA</strong>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">{% translate "Valeur du stock" %}</span>
+          <strong class="chiffre">{{ niveau.valeur|fcfa }} FCFA</strong>
+        </div>
+        <div class="rangee rangee--espace">
+          <span class="t-2">{% translate "Seuil d'alerte" %}</span>
+          <span class="chiffre">{{ niveau.seuil_alerte|quantite }}</span>
+        </div>
+      {% else %}
+        <p class="t-2">{% translate "Aucun stock enregistré pour cet article." %}</p>
+      {% endif %}
+    </div>
+    <footer class="carte__pied">
+      <p class="t-legende">
+        {% blocktranslate trimmed %}Une entrée recalcule le coût moyen pondéré ; une sortie ne le modifie jamais.
+        Le coût appliqué est historisé sur chaque mouvement et ne pourra plus être recalculé.
+        Saisie sans réseau, elle est conservée et partira seule au retour de la connexion.{% endblocktranslate %}
+      </p>
+    </footer>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+
+  var formulaire = document.getElementById("formulaire-entree");
+  var bouton = document.getElementById("valider-entree");
+  var message = document.getElementById("message-entree");
+  if (!formulaire) return;
+
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+
+  formulaire.addEventListener("submit", function (evt) {
+    // `hors-ligne.js` est chargé en `defer` : au moment où ce script s'exécute,
+    // il n'est pas encore là. On ne peut donc décider d'intercepter qu'ici, à la
+    // soumission — sinon on couperait le POST classique sans rien pour le
+    // remplacer.
+    if (!window.HorsLigne) return;
+    evt.preventDefault();
+    var donnees = new FormData(formulaire);
+
+    // La clé d'idempotence est générée ici : une réception rejouée après
+    // coupure ne créera jamais deux entrées de stock, donc jamais deux fois
+    // le même coût moyen recalculé.
+    var charge = {
+      operation_id: uuid(),
+      quantite: donnees.get("quantite"),
+      cout_unitaire: donnees.get("cout_unitaire"),
+      commentaire: donnees.get("commentaire") || "",
+      // Les numéros voyagent avec la réception plutôt que d'être saisis après
+      // coup : une réception mise en file un jour de coupure doit arriver
+      // complète, sinon les numéros seraient à ressaisir de mémoire.
+      numeros_serie: donnees.get("numeros_serie") || "",
+      depot: formulaire.dataset.depot || null,
+    };
+
+    bouton.disabled = true;
+    message.textContent = "";
+
+    window.HorsLigne.soumettre({
+      operation_id: charge.operation_id,
+      type: "entree_stock",
+      url: formulaire.dataset.json,
+      charge: charge,
+    })
+      .then(function (resultat) {
+        if (resultat.etat === "envoyee") {
+          window.location.href = formulaire.dataset.article;
+          return;
+        }
+        if (resultat.etat === "en_attente") {
+          message.textContent = "{% translate 'Réception conservée (%(n)s opération(s) en attente). Elle partira au retour du réseau.' as t_js_1 %}{{ t_js_1|escapejs }}"
+            .replace("%(n)s", resultat.enAttente);
+          formulaire.reset();
+        } else {
+          message.textContent = resultat.erreur || "{{ _("La saisie a été refusée.")|escapejs }}";
+        }
+      })
+      .finally(function () {
+        bouton.disabled = false;
+      });
+  });
+})();
+</script>
+{% endblock %}

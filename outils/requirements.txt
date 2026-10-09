@@ -1,0 +1,11 @@
+# Dépendances des outils de fabrication, **séparées de celles de l'application**.
+#
+# WeasyPrint tire Cairo et Pango — plusieurs dizaines de mégaoctets de
+# bibliothèques système qui ne servent qu'à composer un PDF sur un poste de
+# travail. Les mettre dans `requirements.txt` les embarquerait dans l'image de
+# production, où rien ne fabrique de manuel.
+#
+#   pip install -r outils/requirements.txt && make manuel
+
+weasyprint==70.0
+markdown==3.7

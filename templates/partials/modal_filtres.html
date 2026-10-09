@@ -1,0 +1,68 @@
+{% load i18n %}{% comment %}
+Boîte de filtres d'un écran de liste.
+
+Les filtres sont un **formulaire Django ordinaire, en GET** : l'état filtré vit
+dans l'URL, donc il se partage, se met en favori, et survit à un retour arrière.
+Un panneau qui garderait ses filtres en mémoire du navigateur produirait deux
+utilisateurs regardant « la même liste » sans voir la même chose.
+
+Paramètres :
+  id           identifiant de la boîte, repris par le bouton `data-ouvre`
+  formulaire   une sous-classe de `apps.backoffice.filtres.FiltreForm`
+  action       URL de destination (la liste elle-même)
+  titre        intitulé, défaut « Filtres »
+  aide         phrase sous les champs
+
+Sans JavaScript, `<dialog>` ne s'ouvre pas. Le `<noscript>` ci-dessous la
+déplie sur place : les filtres restent atteignables, simplement moins jolis.
+{% endcomment %}
+
+<noscript>
+  <style>#{{ id }} { display: block; position: static; width: auto; max-height: none; margin: 0 0 14px; }</style>
+</noscript>
+
+<dialog class="modale" id="{{ id }}" aria-labelledby="titre-{{ id }}">
+  <form method="get" action="{{ action }}">
+    <header class="modale__entete">
+      <h2 class="t-section" id="titre-{{ id }}">{{ titre|default:_("Filtres") }}</h2>
+      {% if formulaire.actifs %}
+        <span class="puce puce--marque">{% blocktranslate count actifs=formulaire.actifs trimmed %}{{ actifs }} actif{% plural %}{{ actifs }} actifs{% endblocktranslate %}</span>
+      {% endif %}
+    </header>
+
+    {% comment %}
+    Ce que la boîte doit **reporter** sans le montrer : la recherche par véhicule
+    de l'écran du stock, par exemple, est une question posée par le client et non
+    un filtre de la liste. Appliquer un filtre ne doit pas l'effacer au passage.
+    {% endcomment %}
+    {% for cle, valeur in conserver.items %}
+      <input type="hidden" name="{{ cle }}" value="{{ valeur }}">
+    {% endfor %}
+
+    <div class="modale__corps colonne" style="gap:16px">
+      <div class="grille-filtres">
+        {% for champ in formulaire %}
+          <div class="groupe-champ {% if champ.field.widget.input_type == 'search' %}pleine-largeur{% endif %}">
+            <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+            {{ champ }}
+            {% if champ.help_text %}<span class="t-legende">{{ champ.help_text }}</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if aide %}<p class="t-legende">{{ aide }}</p>{% endif %}
+    </div>
+
+    <footer class="modale__pied">
+      {% comment %}
+      « Tout effacer » est un lien vers la liste nue, pas un bouton qui vide les
+      champs : vider les champs sans valider laisse la liste filtrée sous une
+      boîte qui prétend le contraire.
+      {% endcomment %}
+      <a class="btn btn--discret pousse-gauche" href="{{ action }}">{% translate "Tout effacer" %}</a>
+      <button class="btn" type="button" data-ferme>{% translate "Annuler" %}</button>
+      <button class="btn btn--primaire" type="submit">
+        <svg><use href="#ic-filtre"></use></svg> {% translate "Appliquer" %}
+      </button>
+    </footer>
+  </form>
+</dialog>

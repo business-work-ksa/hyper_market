@@ -1,0 +1,43 @@
+{% load i18n hm marche %}{% comment %}
+« À la une » de la page d'accueil : jusqu'à trois commerçants qui ont loué cette place
+(`EmplacementPremium.ACCUEIL`). Chaque lien passe par le compteur de clics ; la mention
+« Sponsorisé » est portée par chaque carte, pas seulement par le titre de la section — une carte
+peut être citée seule.
+
+Paramètre : a_la_une (liste de `MiseEnAvant`).
+{% endcomment %}
+{% if a_la_une %}
+<section class="mt-14" aria-labelledby="a-la-une-titre">
+  <p class="sur-titre" data-apparition>{% translate "Mis en avant cette semaine" %}</p>
+  <h2 class="mb-5 mt-1 text-2xl font-extrabold" id="a-la-une-titre" data-apparition>{% translate "À la une du marché" %}</h2>
+  <ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3" role="list">
+    {% for mise in a_la_une %}
+      <li class="carte flex flex-col overflow-hidden" data-apparition style="--delai:{{ forloop.counter0|delai }}">
+        <div class="flex items-center gap-3 border-b border-line p-4" style="background:color-mix(in oklab, {{ mise.boutique.enseigne|teinte }} 10%, transparent)">
+          <span class="jeton size-12 text-base" style="--teinte:{{ mise.boutique.enseigne|teinte }}" aria-hidden="true">{{ mise.boutique.enseigne|initiales }}</span>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <a class="truncate font-bold hover:text-brand" href="{{ mise.lien_boutique }}">{{ mise.boutique.enseigne }}</a>
+            <span class="truncate text-sm text-ink-muted">{{ mise.boutique.ville }}{% if mise.boutique.rayon_principal %} · {{ mise.boutique.rayon_principal|traduit }}{% endif %}</span>
+          </span>
+          {% include "marche/composants/sponsorise.html" %}
+        </div>
+        {% if mise.articles %}
+          <ul class="grid grid-cols-2 gap-px bg-line" role="list">
+            {% for article in mise.articles %}
+              <li class="bg-surface">
+                <a class="group flex h-full flex-col gap-1 p-3 hover:bg-surface-sunken" href="{{ article.lien_mise_en_avant }}">
+                  <span class="line-clamp-2 text-sm font-semibold leading-snug group-hover:text-brand">{{ article.produit|traduit }}</span>
+                  <span class="prix mt-auto text-sm">{{ article.prix_vente|fcfa }}<span class="devise">FCFA</span></span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <a class="mt-auto flex items-center justify-between gap-2 border-t border-line px-4 py-3 text-sm font-semibold text-brand-ink hover:bg-surface-sunken" href="{{ mise.lien_boutique }}">
+          {% translate "Voir la boutique" %}{% icone "fleche" "size-4" %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

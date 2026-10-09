@@ -1,0 +1,21 @@
+{% load i18n hm %}{% comment %}
+Quelques lignes du journal des accès, en liste compacte. `lignes` : des dictionnaires de
+`vues_tableau.lignes_de_journal`, ou des `AccesPlateforme` (fiche boutique : `sans_boutique`).
+{% endcomment %}
+<ol class="t-acces">
+  {% for a in lignes %}
+    <li class="t-acces__ligne">
+      <span class="jeton t-acces__jeton" aria-hidden="true">{{ a.utilisateur.nom_complet|initiales }}</span>
+      <span class="t-acces__corps">
+        <span class="t-acces__titre">
+          <strong>{{ a.utilisateur.nom_complet }}</strong>
+          {% if not sans_boutique %}
+            · {% if a.boutique %}<a href="{% url 'plateforme:boutique' a.boutique_id %}">{{ a.boutique }}</a>{% elif a.boutique_disparue %}<span class="t-muet">{% translate "boutique retirée" %}</span>{% else %}<span class="t-muet">{% translate "vue d'ensemble" %}</span>{% endif %}
+          {% endif %}
+        </span>
+        <span class="t-acces__motif">{{ a.motif }}</span>
+      </span>
+      <time class="t-acces__heure" datetime="{{ a.horodatage|date:'c' }}">{{ a.horodatage|date:"d/m à H:i" }}</time>
+    </li>
+  {% endfor %}
+</ol>

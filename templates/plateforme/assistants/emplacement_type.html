@@ -1,0 +1,18 @@
+{% extends "plateforme/assistants/cadre.html" %}
+{% load i18n %}
+{% block fil_parent %}{% translate "Emplacements premium" %}{% endblock %}
+{% block question %}{% translate "Quel emplacement ?" %}{% endblock %}
+{% block phrase %}{% translate "La tête de gondole et le bandeau se placent dans un rayon ; la page d'accueil est celle de tout le marché." %}{% endblock %}
+{% block etape %}
+  {% include "plateforme/partials/a_cartes.html" with champ=form.type cartes=cartes_types %}
+  <div class="a-grille-2" data-rayon-emplacement>
+    {% include "plateforme/partials/a_champ.html" with champ=form.rayon %}
+  </div>
+  <div class="bandeau-info">
+    <svg aria-hidden="true"><use href="#ic-info"></use></svg>
+    <span>{% blocktranslate trimmed %}L'emplacement paraît sur la vitrine dès son premier jour, avec la mention « Sponsorisé ».
+      Une seule tête de gondole et un seul bandeau par rayon, trois commerçants sur l'accueil : une
+      place déjà prise est refusée. Le commerçant suit ses affichages, ses clics et les commandes qui
+      ont suivi dans <em>Ma boutique → Mise en avant</em>.{% endblocktranslate %}</span>
+  </div>
+{% endblock %}

@@ -1,0 +1,4 @@
+{% comment %}L'état d'un `signal` : ouvert, écarté ou confirmé — icône et mot.{% endcomment %}
+<span class="s-etat s-etat--{{ signal.etat }}">
+  <svg aria-hidden="true"><use href="#{% if signal.etat == 'ouvert' %}ic-horloge{% elif signal.etat == 'ecarte' %}ic-check{% else %}ic-alerte{% endif %}"></use></svg>{{ signal.get_etat_display }}
+</span>

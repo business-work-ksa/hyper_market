@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load hm %}
+
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Nouveau dépôt — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Nouveau dépôt" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% url 'boutique' %}">{% translate "Retour à ma boutique" %}</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="duo">
+  <section class="carte">
+    <header class="carte__entete">
+      <h2 class="t-section">{% translate "Ouvrir un dépôt" %}</h2>
+      <span class="puce">{% blocktranslate count existants=existants with quota_depots=quota_depots trimmed %}{{ existants }} / {{ quota_depots }} utilisé{% plural %}{{ existants }} / {{ quota_depots }} utilisés{% endblocktranslate %}</span>
+    </header>
+
+    <form method="post" class="carte__corps colonne" style="gap:16px" novalidate>
+      {% csrf_token %}
+      {% include "partials/champ.html" with champ=formulaire.libelle %}
+      {% include "partials/champ.html" with champ=formulaire.type %}
+      {% include "partials/champ.html" with champ=formulaire.adresse %}
+      <button class="btn btn--primaire btn--grand btn--bloc" type="submit">
+        {% translate "Ouvrir le dépôt" %}
+      </button>
+    </form>
+  </section>
+
+  <section class="carte">
+    <header class="carte__entete"><h2 class="t-section">{% translate "Un dépôt, un stock" %}</h2></header>
+    <div class="carte__corps colonne" style="gap:12px">
+      <p class="t-2">
+        {% translate "Chaque dépôt tient" %} <strong>{% translate "son propre stock et son propre coût moyen" %}</strong>{% blocktranslate trimmed %}. Le comptoir
+        et la réserve ne sont pas deux vues du même compteur : ce sont deux emplacements réels,
+        entre lesquels la marchandise se déplace par transfert.{% endblocktranslate %}
+      </p>
+      <p class="t-2">
+        {% translate "Le sélecteur en haut de l'écran désigne le" %} <strong>{% translate "dépôt d'exploitation" %}</strong> {% blocktranslate trimmed %}: celui
+        où l'on encaisse, où l'on reçoit et où l'on compte. Un inventaire fait dans la mauvaise
+        réserve produit des écarts inventés de toutes pièces.{% endblocktranslate %}
+      </p>
+      <p class="t-2">
+        {% translate "Le nombre de dépôts fait partie de votre offre de location : votre emplacement en autorise" %}
+        <strong>{{ quota_depots }}</strong>.
+      </p>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+{% block titre %}{% blocktranslate with enseigne=boutique.enseigne trimmed %}Aide — {{ enseigne }}{% endblocktranslate %}{% endblock %}
+{% block entete %}{% translate "Aide" %}{% endblock %}
+
+{% block actions_entete %}
+  <a class="btn" href="{% if depuis %}{{ depuis }}{% else %}/{% endif %}">{% translate "Retour" %}</a>
+{% endblock %}
+
+{% block contenu %}
+{% comment %}
+Une seule page, une ancre par écran. Le bouton « ? » de chaque en-tête y saute
+directement, et le tout tient dans une seule entrée de cache — l'aide sert
+surtout quand le réseau est tombé, c'est-à-dire au moment où personne ne peut
+aller chercher ailleurs.
+
+Les fiches sont composées par la vue selon les droits et le métier : ce qui
+n'est pas ouvert n'apparaît pas. Expliquer un écran qu'on ne peut pas ouvrir
+est une promesse qui ne sera pas tenue.
+{% endcomment %}
+<div class="colonne">
+
+  <section class="carte">
+    <div class="carte__corps colonne" style="gap:12px">
+      <p class="t-2">
+        {% blocktranslate trimmed %}Une fiche par écran, et seulement ceux que vous pouvez ouvrir. Sur
+        n'importe quel écran, le bouton{% endblocktranslate %}
+        <span class="puce"><svg><use href="#ic-info"></use></svg>{% translate "Aide" %}</span>
+        {% translate "de l'en-tête vous amène directement à la fiche correspondante." %}
+      </p>
+      <nav class="aide-sommaire" aria-label="Sommaire de l'aide">
+        {% for fiche in fiches %}
+          <a class="aide-sommaire__lien" href="#{{ fiche.cle }}">{{ fiche.titre }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </section>
+
+  {% for fiche in fiches %}
+    <section class="carte aide-fiche" id="{{ fiche.cle }}" tabindex="-1">
+      <header class="carte__entete">
+        <h2 class="t-section">{{ fiche.titre }}</h2>
+        <span class="t-legende">{{ fiche.resume }}</span>
+      </header>
+      <div class="carte__corps colonne" style="gap:14px">
+
+        {% if fiche.gestes %}
+          <table class="tableau aide-gestes">
+            <tbody>
+              {% for quand, quoi in fiche.gestes %}
+                <tr>
+                  <th scope="row">{{ quand }}</th>
+                  <td class="t-2">{{ quoi }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+
+        {% if fiche.pieges %}
+          {% comment %}
+          Les pièges portent l'icône d'information et non celle d'alerte : ce ne
+          sont pas des erreurs en cours, ce sont des choses que le logiciel fait
+          exprès et qu'on prendrait autrement pour des pannes.
+          {% endcomment %}
+          <div class="colonne" style="gap:8px">
+            <span class="t-sur-titre">{% translate "Ce qu'il faut savoir" %}</span>
+            {% for piege in fiche.pieges %}
+              <div class="bandeau-info">
+                <svg><use href="#ic-info"></use></svg>
+                <span>{{ piege }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+      </div>
+    </section>
+  {% empty %}
+    <section class="carte">
+      <div class="vide">
+        <svg><use href="#ic-info"></use></svg>
+        <p class="t-2">{% translate "Aucune fiche à afficher." %}</p>
+        <p class="t-legende">
+          {% blocktranslate trimmed %}Votre compte n'ouvre aucun des écrans documentés. Si c'est inattendu,
+          votre gérant peut vérifier votre rôle depuis Ma boutique › Équipe.{% endblocktranslate %}
+        </p>
+      </div>
+    </section>
+  {% endfor %}
+
+  <section class="carte">
+    <div class="carte__corps colonne" style="gap:8px">
+      <span class="t-sur-titre">{% translate "Pour aller plus loin" %}</span>
+      <p class="t-2">
+        {% translate "Le" %} <strong>{% translate "manuel d'utilisation" %}</strong> {% blocktranslate trimmed %}raconte une journée entière —
+        celle d'un caissier, d'un magasinier, d'un gérant — et explique ce que le
+        logiciel refuse de faire, et pourquoi. Il existe aussi en version
+        imprimable, avec une fiche de poste par rôle à afficher près du comptoir.{% endblocktranslate %}
+      </p>
+      <p class="t-legende">
+        {% translate "Demandez-le à votre gérant :" %} <span class="chiffre">{% translate "docs/21-manuel-utilisation.md" %}</span>
+        {% translate "dans le dossier du projet." %}
+      </p>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
